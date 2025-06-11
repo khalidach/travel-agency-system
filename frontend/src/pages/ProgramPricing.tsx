@@ -16,7 +16,7 @@ interface HotelPrice {
   };
 }
 
-interface ProgramCalculation {
+interface ProgramPricing {
   id: string;
   selectProgram: string;
   programId: string;
@@ -26,22 +26,21 @@ interface ProgramCalculation {
   allHotels: HotelPrice[];
 }
 
-export default function ProgramCalculate() {
+export default function ProgramPricing() {
   const { t } = useTranslation();
   const { state } = useAppContext();
   const { programs } = state;
 
-  const [calculations, setCalculations] = useState<ProgramCalculation[]>([]);
-  const [currentCalculation, setCurrentCalculation] =
-    useState<ProgramCalculation>({
-      id: crypto.randomUUID(),
-      selectProgram: "",
-      programId: "",
-      ticketAirline: 0,
-      visaFees: 0,
-      guideFees: 0,
-      allHotels: [],
-    });
+  const [calculations, setCalculations] = useState<ProgramPricing[]>([]);
+  const [currentPricing, setCurrentPricing] = useState<ProgramPricing>({
+    id: crypto.randomUUID(),
+    selectProgram: "",
+    programId: "",
+    ticketAirline: 0,
+    visaFees: 0,
+    guideFees: 0,
+    allHotels: [],
+  });
 
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 
@@ -64,7 +63,7 @@ export default function ProgramCalculate() {
         )
       );
 
-      setCurrentCalculation((prev) => ({
+      setCurrentPricing((prev) => ({
         ...prev,
         selectProgram: selectedProgram.name,
         programId: selectedProgram.id,
@@ -78,13 +77,13 @@ export default function ProgramCalculate() {
     setSelectedProgram(program || null);
   };
 
-  const handleEditCalculation = (calc: ProgramCalculation) => {
-    const program = programs.find((p) => p.id === calc.programId);
+  const handleEditPricing = (pricing: ProgramPricing) => {
+    const program = programs.find((p) => p.id === pricing.programId);
     setSelectedProgram(program || null);
-    setCurrentCalculation(calc);
+    setCurrentPricing(pricing);
   };
 
-  const handleDeleteCalculation = (id: string) => {
+  const handleDeletePricing = (id: string) => {
     setCalculations((prev) => prev.filter((calc) => calc.id !== id));
   };
 
@@ -93,7 +92,7 @@ export default function ProgramCalculate() {
     roomType: string,
     value: number
   ) => {
-    setCurrentCalculation((prev) => ({
+    setCurrentPricing((prev) => ({
       ...prev,
       allHotels: prev.allHotels.map((hotel, idx) =>
         idx === hotelIndex
@@ -110,23 +109,23 @@ export default function ProgramCalculate() {
   };
 
   const handleSave = () => {
-    const isEditing = calculations.some((c) => c.id === currentCalculation.id);
+    const isEditing = calculations.some((c) => c.id === currentPricing.id);
 
     if (isEditing) {
       setCalculations((prev) =>
         prev.map((calc) =>
-          calc.id === currentCalculation.id ? currentCalculation : calc
+          calc.id === currentPricing.id ? currentPricing : calc
         )
       );
     } else {
       setCalculations((prev) => [
         ...prev,
-        { ...currentCalculation, id: crypto.randomUUID() },
+        { ...currentPricing, id: crypto.randomUUID() },
       ]);
     }
 
     // Reset form
-    setCurrentCalculation({
+    setCurrentPricing({
       id: crypto.randomUUID(),
       selectProgram: "",
       programId: "",
@@ -138,48 +137,9 @@ export default function ProgramCalculate() {
     setSelectedProgram(null);
   };
 
-  const calculatePrice = (roomType: string) => {
-    if (!selectedProgram) return 0;
-
-    const totalGuests =
-      roomType === "double"
-        ? 2
-        : roomType === "triple"
-        ? 3
-        : roomType === "quad"
-        ? 4
-        : 5;
-
-    const hotelCosts = selectedProgram.cities.reduce((total, city) => {
-      const cityHotels = currentCalculation.allHotels.filter((hotel) =>
-        selectedProgram.packages[0].hotels[city.name]?.includes(hotel.name)
-      );
-
-      const cityHotelCost = cityHotels.reduce(
-        (acc, hotel) =>
-          acc +
-          hotel.PricePerNights[roomType as keyof typeof hotel.PricePerNights] *
-            city.nights,
-        0
-      );
-
-      return total + cityHotelCost;
-    }, 0);
-
-    const totalCost =
-      currentCalculation.ticketAirline +
-      (selectedProgram.type === "Umrah" ? currentCalculation.visaFees : 0) +
-      currentCalculation.guideFees +
-      hotelCosts;
-
-    return Math.round(totalCost / totalGuests);
-  };
-
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-6">
-        {t("Program Price Calculator")}
-      </h1>
+      <h1 className="text-2xl font-bold mb-6">{t("Program Pricing")}</h1>
 
       {/* Program Selection */}
       <div className="mb-6">
@@ -210,9 +170,9 @@ export default function ProgramCalculate() {
               </label>
               <input
                 type="number"
-                value={currentCalculation.ticketAirline}
+                value={currentPricing.ticketAirline}
                 onChange={(e) =>
-                  setCurrentCalculation((prev) => ({
+                  setCurrentPricing((prev) => ({
                     ...prev,
                     ticketAirline: Number(e.target.value),
                   }))
@@ -228,9 +188,9 @@ export default function ProgramCalculate() {
                 </label>
                 <input
                   type="number"
-                  value={currentCalculation.visaFees}
+                  value={currentPricing.visaFees}
                   onChange={(e) =>
-                    setCurrentCalculation((prev) => ({
+                    setCurrentPricing((prev) => ({
                       ...prev,
                       visaFees: Number(e.target.value),
                     }))
@@ -246,9 +206,9 @@ export default function ProgramCalculate() {
               </label>
               <input
                 type="number"
-                value={currentCalculation.guideFees}
+                value={currentPricing.guideFees}
                 onChange={(e) =>
-                  setCurrentCalculation((prev) => ({
+                  setCurrentPricing((prev) => ({
                     ...prev,
                     guideFees: Number(e.target.value),
                   }))
@@ -261,7 +221,7 @@ export default function ProgramCalculate() {
           {/* Hotels */}
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">{t("Hotels")}</h2>
-            {currentCalculation.allHotels.map((hotel, index) => (
+            {currentPricing.allHotels.map((hotel, index) => (
               <div key={index} className="mb-6 p-4 border rounded-lg">
                 <div className="flex justify-between items-center mb-3">
                   <div>
@@ -296,47 +256,6 @@ export default function ProgramCalculate() {
             ))}
           </div>
 
-          {/* Calculated Prices */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">
-              {t("Calculated Prices Per Person")}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Double Room")}
-                </label>
-                <div className="text-lg font-semibold">
-                  {calculatePrice("double")}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Triple Room")}
-                </label>
-                <div className="text-lg font-semibold">
-                  {calculatePrice("triple")}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Quad Room")}
-                </label>
-                <div className="text-lg font-semibold">
-                  {calculatePrice("quad")}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Quintuple Room")}
-                </label>
-                <div className="text-lg font-semibold">
-                  {calculatePrice("quintuple")}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="mt-6 flex justify-end">
             <button
               type="button"
@@ -344,9 +263,9 @@ export default function ProgramCalculate() {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               {t(
-                calculations.some((c) => c.id === currentCalculation.id)
-                  ? "Update Calculation"
-                  : "Save Calculation"
+                calculations.some((c) => c.id === currentPricing.id)
+                  ? "Update Pricing"
+                  : "Save Pricing"
               )}
             </button>
           </div>
@@ -357,29 +276,31 @@ export default function ProgramCalculate() {
       {calculations.length > 0 && (
         <div className="mt-12">
           <h2 className="text-xl font-semibold mb-4">
-            {t("Previous Calculations")}
+            {t("Previous Pricing")}
           </h2>
           <div className="space-y-4">
-            {calculations.map((calc) => (
-              <div key={calc.id} className="p-4 border rounded-lg">
+            {calculations.map((pricing) => (
+              <div key={pricing.id} className="p-4 border rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="font-medium mb-2">{calc.selectProgram}</h3>
+                    <h3 className="font-medium mb-2">
+                      {pricing.selectProgram}
+                    </h3>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Flight Ticket: {calc.ticketAirline}</div>
-                      <div>Visa Fees: {calc.visaFees}</div>
-                      <div>Guide Fees: {calc.guideFees}</div>
+                      <div>Flight Ticket: {pricing.ticketAirline}</div>
+                      <div>Visa Fees: {pricing.visaFees}</div>
+                      <div>Guide Fees: {pricing.guideFees}</div>
                     </div>
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleEditCalculation(calc)}
+                      onClick={() => handleEditPricing(pricing)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteCalculation(calc.id)}
+                      onClick={() => handleDeletePricing(pricing.id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -391,7 +312,7 @@ export default function ProgramCalculate() {
                     Hotels
                   </h4>
                   <div className="grid gap-4">
-                    {calc.allHotels.map((hotel, idx) => (
+                    {pricing.allHotels.map((hotel, idx) => (
                       <div key={idx} className="text-sm border-t pt-2">
                         <div className="font-medium">
                           {hotel.name} ({hotel.city} - {hotel.nights}{" "}

@@ -1,19 +1,21 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { 
-  BarChart3, 
-  Package, 
-  Calendar, 
-  TrendingUp, 
-  Plane 
-} from 'lucide-react';
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import {
+  BarChart3,
+  Package,
+  Calendar,
+  TrendingUp,
+  Plane,
+  ShipWheel,
+} from "lucide-react";
 
 const menuItems = [
-  { key: 'dashboard', path: '/', icon: BarChart3 },
-  { key: 'programs', path: '/programs', icon: Package },
-  { key: 'booking', path: '/booking', icon: Calendar },
-  { key: 'profitReport', path: '/profit-report', icon: TrendingUp },
+  { key: "dashboard", path: "/", icon: BarChart3 },
+  { key: "program Pricing", path: "/program-pricing", icon: ShipWheel },
+  { key: "programs", path: "/programs", icon: Package },
+  { key: "booking", path: "/booking", icon: Calendar },
+  { key: "profitReport", path: "/profit-report", icon: TrendingUp },
 ];
 
 export default function Sidebar() {
@@ -41,20 +43,24 @@ export default function Sidebar() {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <li key={item.key}>
                 <Link
                   to={item.path}
                   className={`group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? "bg-blue-50 text-blue-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  <Icon className={`mr-3 h-5 w-5 transition-colors ${
-                    isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'
-                  }`} />
+                  <Icon
+                    className={`mr-3 h-5 w-5 transition-colors ${
+                      isActive
+                        ? "text-blue-600"
+                        : "text-gray-400 group-hover:text-gray-600"
+                    }`}
+                  />
                   {t(item.key)}
                 </Link>
               </li>

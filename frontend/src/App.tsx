@@ -7,7 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Programs from "./pages/Programs";
 import Booking from "./pages/Booking";
 import ProfitReport from "./pages/ProfitReport";
-import ProgramCalculate from "./pages/ProgramCalculate";
+import ProgramPricing from "./pages/ProgramPricing";
 import { AppProvider } from "./context/AppContext";
 
 function App() {
@@ -21,7 +21,7 @@ function App() {
               <Route path="/programs" element={<Programs />} />
               <Route path="/booking" element={<Booking />} />
               <Route path="/profit-report" element={<ProfitReport />} />
-              <Route path="/program-calculate" element={<ProgramCalculate />} />
+              <Route path="/program-pricing" element={<ProgramPricing />} />
             </Routes>
           </Layout>
         </Router>
