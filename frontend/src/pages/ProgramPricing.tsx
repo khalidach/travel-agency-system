@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import type { Program } from "../context/AppContext";
@@ -28,10 +28,8 @@ interface ProgramPricing {
 
 export default function ProgramPricing() {
   const { t } = useTranslation();
-  const { state } = useAppContext();
-  const { programs } = state;
-
-  const [calculations, setCalculations] = useState<ProgramPricing[]>([]);
+  const { state, dispatch } = useAppContext();
+  const { programs, programPricing } = state;
   const [currentPricing, setCurrentPricing] = useState<ProgramPricing>({
     id: crypto.randomUUID(),
     selectProgram: "",
@@ -82,9 +80,11 @@ export default function ProgramPricing() {
     setSelectedProgram(program || null);
     setCurrentPricing(pricing);
   };
-
   const handleDeletePricing = (id: string) => {
-    setCalculations((prev) => prev.filter((calc) => calc.id !== id));
+    dispatch({
+      type: "DELETE_PROGRAM_PRICING",
+      payload: id,
+    });
   };
 
   const handleHotelPriceChange = (
@@ -107,21 +107,19 @@ export default function ProgramPricing() {
       ),
     }));
   };
-
   const handleSave = () => {
-    const isEditing = calculations.some((c) => c.id === currentPricing.id);
+    const isEditing = programPricing.some((p) => p.id === currentPricing.id);
 
     if (isEditing) {
-      setCalculations((prev) =>
-        prev.map((calc) =>
-          calc.id === currentPricing.id ? currentPricing : calc
-        )
-      );
+      dispatch({
+        type: "UPDATE_PROGRAM_PRICING",
+        payload: currentPricing,
+      });
     } else {
-      setCalculations((prev) => [
-        ...prev,
-        { ...currentPricing, id: crypto.randomUUID() },
-      ]);
+      dispatch({
+        type: "ADD_PROGRAM_PRICING",
+        payload: { ...currentPricing, id: crypto.randomUUID() },
+      });
     }
 
     // Reset form
@@ -140,7 +138,6 @@ export default function ProgramPricing() {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">{t("Program Pricing")}</h1>
-
       {/* Program Selection */}
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -159,7 +156,6 @@ export default function ProgramPricing() {
           ))}
         </select>
       </div>
-
       {selectedProgram && (
         <>
           {/* Basic Costs */}
@@ -262,24 +258,26 @@ export default function ProgramPricing() {
               onClick={handleSave}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
+              {" "}
               {t(
-                calculations.some((c) => c.id === currentPricing.id)
+                programPricing.some(
+                  (p: ProgramPricing) => p.id === currentPricing.id
+                )
                   ? "Update Pricing"
                   : "Save Pricing"
               )}
             </button>
           </div>
         </>
-      )}
-
+      )}{" "}
       {/* Previous Calculations */}
-      {calculations.length > 0 && (
+      {programPricing.length > 0 && (
         <div className="mt-12">
           <h2 className="text-xl font-semibold mb-4">
             {t("Previous Pricing")}
           </h2>
           <div className="space-y-4">
-            {calculations.map((pricing) => (
+            {programPricing.map((pricing: ProgramPricing) => (
               <div key={pricing.id} className="p-4 border rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -312,20 +310,24 @@ export default function ProgramPricing() {
                     Hotels
                   </h4>
                   <div className="grid gap-4">
-                    {pricing.allHotels.map((hotel, idx) => (
+                    {" "}
+                    {pricing.allHotels.map((hotel: HotelPrice, idx: number) => (
                       <div key={idx} className="text-sm border-t pt-2">
                         <div className="font-medium">
                           {hotel.name} ({hotel.city} - {hotel.nights}{" "}
                           {t("nights")})
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-gray-600">
-                          {Object.entries(hotel.PricePerNights).map(
-                            ([type, price]) => (
-                              <div key={type}>
-                                {type}: {price}
-                              </div>
-                            )
-                          )}
+                          {(
+                            Object.entries(hotel.PricePerNights) as [
+                              string,
+                              number
+                            ][]
+                          ).map(([type, price]) => (
+                            <div key={type}>
+                              {type}: {price}
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}

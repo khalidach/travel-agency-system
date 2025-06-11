@@ -61,9 +61,32 @@ export interface Payment {
   date: string;
 }
 
+export interface HotelPrice {
+  name: string;
+  city: string;
+  nights: number;
+  PricePerNights: {
+    double: number;
+    triple: number;
+    quad: number;
+    quintuple: number;
+  };
+}
+
+export interface ProgramPricing {
+  id: string;
+  selectProgram: string;
+  programId: string;
+  ticketAirline: number;
+  visaFees: number;
+  guideFees: number;
+  allHotels: HotelPrice[];
+}
+
 interface AppState {
   programs: Program[];
   bookings: Booking[];
+  programPricing: ProgramPricing[];
   currentLanguage: "en" | "ar" | "fr";
 }
 
@@ -75,9 +98,57 @@ type AppAction =
   | { type: "UPDATE_BOOKING"; payload: Booking }
   | { type: "DELETE_BOOKING"; payload: string }
   | { type: "ADD_PAYMENT"; payload: { bookingId: string; payment: Payment } }
-  | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" };
+  | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
+  | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
+  | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
+  | { type: "DELETE_PROGRAM_PRICING"; payload: string };
 
 const initialState: AppState = {
+  programPricing: [
+    {
+      id: "1",
+      selectProgram: "Umrah Spring 2025",
+      programId: "1",
+      ticketAirline: 9000,
+      visaFees: 1650,
+      guideFees: 500,
+      allHotels: [
+        {
+          name: "Al-Taysir Towers",
+          city: "Makkah",
+          nights: 5,
+          PricePerNights: {
+            double: 800,
+            triple: 700,
+            quad: 600,
+            quintuple: 500,
+          },
+        },
+        {
+          name: "Safir Al Misk",
+          city: "Makkah",
+          nights: 5,
+          PricePerNights: {
+            double: 1000,
+            triple: 900,
+            quad: 800,
+            quintuple: 700,
+          },
+        },
+        {
+          name: "Qasr Al-Ansar",
+          city: "Madinah",
+          nights: 5,
+          PricePerNights: {
+            double: 900,
+            triple: 800,
+            quad: 700,
+            quintuple: 600,
+          },
+        },
+      ],
+    },
+  ],
   programs: [
     {
       id: "1",
@@ -151,7 +222,7 @@ const initialState: AppState = {
       clientNameFr: "Ahmed Ben Ali",
       passportNumber: "A12345678",
       tripId: "1",
-      packageId: "0",
+      packageId: "Standard",
       selectedHotel: {
         cities: ["Makkah", "Madinah"],
         hotelNames: ["Al-Taysir Towers", "Qasr Al-Ansar"],
@@ -173,7 +244,7 @@ const initialState: AppState = {
       clientNameFr: "Fatima Zahra",
       passportNumber: "B87654321",
       tripId: "2",
-      packageId: "0",
+      packageId: "Premium",
       selectedHotel: {
         cities: ["Makkah", "Madinah"],
         hotelNames: ["Fairmont Makkah", "Pullman Zamzam Madinah"],
@@ -254,9 +325,30 @@ function appReducer(state: AppState, action: AppAction): AppState {
           return booking;
         }),
       };
-
     case "SET_LANGUAGE":
       return { ...state, currentLanguage: action.payload };
+
+    case "ADD_PROGRAM_PRICING":
+      return {
+        ...state,
+        programPricing: [...state.programPricing, action.payload],
+      };
+
+    case "UPDATE_PROGRAM_PRICING":
+      return {
+        ...state,
+        programPricing: state.programPricing.map((p) =>
+          p.id === action.payload.id ? action.payload : p
+        ),
+      };
+
+    case "DELETE_PROGRAM_PRICING":
+      return {
+        ...state,
+        programPricing: state.programPricing.filter(
+          (p) => p.id !== action.payload
+        ),
+      };
 
     default:
       return state;

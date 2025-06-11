@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { Booking, Program } from '../context/AppContext';
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import type {
+  Booking,
+  Program,
+  Package,
+  Payment,
+  CityData,
+} from "../context/AppContext";
 
 interface BookingFormProps {
   booking?: Booking | null;
@@ -9,19 +15,28 @@ interface BookingFormProps {
   onCancel: () => void;
 }
 
-export default function BookingForm({ booking, programs, onSave, onCancel }: BookingFormProps) {
+interface FormData extends Omit<Booking, "id"> {
+  id?: string;
+}
+
+export default function BookingForm({
+  booking,
+  programs,
+  onSave,
+  onCancel,
+}: BookingFormProps) {
   const { t } = useTranslation();
-  
-  const [formData, setFormData] = useState({
-    clientNameAr: '',
-    clientNameFr: '',
-    passportNumber: '',
-    tripId: '',
-    packageId: '',
+
+  const initialFormData: FormData = {
+    clientNameAr: "",
+    clientNameFr: "",
+    passportNumber: "",
+    tripId: "",
+    packageId: "",
     selectedHotel: {
-      cities: [''],
-      hotelNames: [''],
-      roomType: 'Double'
+      cities: [],
+      hotelNames: [],
+      roomType: "Double",
     },
     sellingPrice: 0,
     basePrice: 0,
@@ -29,163 +44,198 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     remainingBalance: 0,
     isFullyPaid: false,
     profit: 0,
-    createdAt: new Date().toISOString().split('T')[0]
-  });
+    createdAt: new Date().toISOString().split("T")[0],
+  };
 
+  const [formData, setFormData] = useState<FormData>(initialFormData);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<any>(null);
-  const [availableRoomTypes] = useState(['Single', 'Double', 'Triple', 'Quad']);
-
+  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
+  const [availableRoomTypes] = useState([
+    "Double",
+    "Triple",
+    "Quad",
+    "Quintuple",
+  ]);
+  const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (booking) {
-      setFormData({
-        clientNameAr: booking.clientNameAr,
-        clientNameFr: booking.clientNameFr,
-        passportNumber: booking.passportNumber,
-        tripId: booking.tripId,
-        packageId: booking.packageId,
-        selectedHotel: booking.selectedHotel,
-        sellingPrice: booking.sellingPrice,
-        basePrice: booking.basePrice,
-        advancePayments: booking.advancePayments,
-        remainingBalance: booking.remainingBalance,
-        isFullyPaid: booking.isFullyPaid,
-        profit: booking.profit,
-        createdAt: booking.createdAt
-      });
+      // First set the form data
+      setFormData(booking);
 
-      const program = programs.find(p => p.id === booking.tripId);
+      // Find and set the program
+      const program = programs.find((p) => p.id === booking.tripId);
       if (program) {
         setSelectedProgram(program);
-        const pkg = program.packages[parseInt(booking.packageId)];
-        setSelectedPackage(pkg);
+
+        // Find the package by name
+        const pkg = program.packages.find((p) => p.name === booking.packageId);
+        if (pkg) {
+          setSelectedPackage(pkg);
+          // Ensure the packageId is set correctly
+          setFormData((prev) => ({
+            ...prev,
+            packageId: pkg.name,
+          }));
+        } else {
+          setError("Selected package not found");
+        }
+      } else {
+        setError("Selected program not found");
       }
     }
   }, [booking, programs]);
 
   useEffect(() => {
     if (formData.tripId) {
-      const program = programs.find(p => p.id === formData.tripId);
+      const program = programs.find((p) => p.id === formData.tripId);
       setSelectedProgram(program || null);
       setSelectedPackage(null);
-      setFormData(prev => ({ ...prev, packageId: '' }));
+      setFormData((prev) => ({ ...prev, packageId: "" }));
+      setError(null);
     }
   }, [formData.tripId, programs]);
-
   useEffect(() => {
     if (selectedProgram && formData.packageId) {
-      const pkg = selectedProgram.packages[parseInt(formData.packageId)];
-      setSelectedPackage(pkg);
+      const pkg = selectedProgram.packages.find(
+        (p) => p.name === formData.packageId
+      );
+      if (pkg) {
+        setSelectedPackage(pkg);
+        setError(null);
+        // Make sure formData reflects the current package
+        setFormData((prev) => ({
+          ...prev,
+          packageId: pkg.name,
+        }));
+      } else {
+        setSelectedPackage(null);
+        setError("Selected package not found");
+      }
     }
   }, [selectedProgram, formData.packageId]);
+  useEffect(() => {
+    if (formData.tripId) {
+      const program = programs.find((p) => p.id === formData.tripId);
+      setSelectedProgram(program || null);
+      // Only clear package if this isn't the initial load (if there's no booking.packageId)
+      if (!booking?.packageId) {
+        setSelectedPackage(null);
+        setFormData((prev) => ({ ...prev, packageId: "" }));
+      }
+    }
+  }, [formData.tripId, programs, booking?.packageId]);
 
   useEffect(() => {
     const profit = formData.sellingPrice - formData.basePrice;
-    const totalPaid = formData.advancePayments.reduce((sum: number, payment: any) => sum + payment.amount, 0);
+    const totalPaid = formData.advancePayments.reduce(
+      (sum: number, payment: any) => sum + payment.amount,
+      0
+    );
     const remaining = Math.max(0, formData.sellingPrice - totalPaid);
-    
-    setFormData(prev => ({
+
+    setFormData((prev) => ({
       ...prev,
       profit,
       remainingBalance: remaining,
-      isFullyPaid: remaining === 0
+      isFullyPaid: remaining === 0,
     }));
   }, [formData.sellingPrice, formData.basePrice, formData.advancePayments]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!selectedProgram || !selectedPackage) {
+      setError("Program and package must be selected");
+      return;
+    }
+
     const bookingData: Booking = {
-      id: booking?.id || '',
-      ...formData
+      id: booking?.id || crypto.randomUUID(),
+      ...formData,
+      isFullyPaid: formData.remainingBalance === 0,
+      profit: formData.sellingPrice - formData.basePrice,
     };
-    
+
     onSave(bookingData);
   };
 
   const handleProgramChange = (programId: string) => {
-    setFormData(prev => ({
+    const program = programs.find((p) => p.id === programId);
+    if (program) {
+      setSelectedProgram(program);
+      setError(null);
+    } else {
+      setError("Selected program not found");
+    }
+
+    setFormData((prev) => ({
       ...prev,
       tripId: programId,
-      packageId: '',
+      packageId: "",
       selectedHotel: {
-        cities: [''],
-        hotelNames: [''],
-        roomType: 'Double'
-      }
+        cities: [],
+        hotelNames: [],
+        roomType: "Double",
+      },
     }));
   };
+  const handlePackageChange = (packageName: string) => {
+    if (!selectedProgram) {
+      setError("No program selected");
+      return;
+    }
 
-  const handlePackageChange = (packageId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      packageId,
-      selectedHotel: {
-        cities: [''],
-        hotelNames: [''],
-        roomType: 'Double'
-      }
-    }));
+    const pkg = selectedProgram.packages.find((p) => p.name === packageName);
+    if (pkg) {
+      setSelectedPackage(pkg);
+      setError(null);
+      // Initialize hotel selection for all cities
+      setFormData((prev) => ({
+        ...prev,
+        packageId: packageName,
+        selectedHotel: {
+          cities: selectedProgram.cities.map((city) => city.name),
+          hotelNames: selectedProgram.cities.map(() => ""),
+          roomType: prev.selectedHotel.roomType,
+        },
+      }));
+    } else {
+      setError("Selected package not found");
+      setSelectedPackage(null);
+    }
   };
 
   const updateHotelSelection = (cityIndex: number, hotelName: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       selectedHotel: {
         ...prev.selectedHotel,
-        hotelNames: prev.selectedHotel.hotelNames.map((name, i) => 
+        hotelNames: prev.selectedHotel.hotelNames.map((name, i) =>
           i === cityIndex ? hotelName : name
-        )
-      }
+        ),
+      },
     }));
   };
-
-  const addCityHotelSelection = () => {
-    setFormData(prev => ({
-      ...prev,
-      selectedHotel: {
-        ...prev.selectedHotel,
-        cities: [...prev.selectedHotel.cities, ''],
-        hotelNames: [...prev.selectedHotel.hotelNames, '']
-      }
-    }));
-  };
-
-  const removeCityHotelSelection = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedHotel: {
-        ...prev.selectedHotel,
-        cities: prev.selectedHotel.cities.filter((_, i) => i !== index),
-        hotelNames: prev.selectedHotel.hotelNames.filter((_, i) => i !== index)
-      }
-    }));
-  };
-
-  const updateCitySelection = (cityIndex: number, cityName: string) => {
-    setFormData(prev => ({
-      ...prev,
-      selectedHotel: {
-        ...prev.selectedHotel,
-        cities: prev.selectedHotel.cities.map((city, i) => 
-          i === cityIndex ? cityName : city
-        )
-      }
-    }));
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+          {error}
+        </div>
+      )}
+
       {/* Client Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Client Name (French)
+            {t("Client Name (French)")}
           </label>
           <input
             type="text"
             value={formData.clientNameFr}
-            onChange={(e) => setFormData(prev => ({ ...prev, clientNameFr: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, clientNameFr: e.target.value }))
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           />
@@ -193,12 +243,14 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Client Name (Arabic)
+            {t("Client Name (Arabic)")}
           </label>
           <input
             type="text"
             value={formData.clientNameAr}
-            onChange={(e) => setFormData(prev => ({ ...prev, clientNameAr: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, clientNameAr: e.target.value }))
+            }
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             dir="rtl"
             required
@@ -208,12 +260,14 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t('passportNumber')}
+          {t("Passport Number")}
         </label>
         <input
           type="text"
           value={formData.passportNumber}
-          onChange={(e) => setFormData(prev => ({ ...prev, passportNumber: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, passportNumber: e.target.value }))
+          }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         />
@@ -223,7 +277,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Travel Program
+            {t("Travel Program")}
           </label>
           <select
             value={formData.tripId}
@@ -231,8 +285,8 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             required
           >
-            <option value="">Select a program</option>
-            {programs.map(program => (
+            <option value="">{t("Select a program")}</option>
+            {programs.map((program) => (
               <option key={program.id} value={program.id}>
                 {program.name} ({program.type})
               </option>
@@ -242,18 +296,18 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Package
-          </label>
+            {t("Package")}
+          </label>{" "}
           <select
-            value={formData.packageId}
+            value={formData.packageId || ""}
             onChange={(e) => handlePackageChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={!selectedProgram}
             required
           >
-            <option value="">Select a package</option>
-            {selectedProgram?.packages.map((pkg, index) => (
-              <option key={index} value={index.toString()}>
+            <option value="">{t("Select a package")}</option>
+            {selectedProgram?.packages.map((pkg) => (
+              <option key={pkg.name} value={pkg.name}>
                 {pkg.name}
               </option>
             ))}
@@ -262,71 +316,43 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
       </div>
 
       {/* Hotel Selection by City */}
-      {selectedPackage && (
+      {selectedPackage && !error && (
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Hotel Selection by City
-            </label>
-            <button
-              type="button"
-              onClick={addCityHotelSelection}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              + Add City
-            </button>
-          </div>
-          
-          <div className="space-y-3">
-            {formData.selectedHotel.cities.map((selectedCity, cityIndex) => (
-              <div key={cityIndex} className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {t("Hotel Selection")}
+          </h3>
+
+          <div className="space-y-4">
+            {selectedProgram?.cities.map((city, cityIndex) => (
+              <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{city.name}</h4>
+                    <p className="text-sm text-gray-600">
+                      {city.nights} {t("nights")}
+                    </p>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    City
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t("Select Hotel")}
                   </label>
                   <select
-                    value={selectedCity}
-                    onChange={(e) => updateCitySelection(cityIndex, e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={formData.selectedHotel.hotelNames[cityIndex] || ""}
+                    onChange={(e) =>
+                      updateHotelSelection(cityIndex, e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="">Select city</option>
-                    {selectedProgram?.cities.map(city => (
-                      <option key={city} value={city}>{city}</option>
+                    <option value="">{t("Select a hotel")}</option>
+                    {selectedPackage.hotels[city.name]?.map((hotel: string) => (
+                      <option key={hotel} value={hotel}>
+                        {hotel}
+                      </option>
                     ))}
                   </select>
-                </div>
-                
-                <div className="flex items-end space-x-2">
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Hotel
-                    </label>
-                    <select
-                      value={formData.selectedHotel.hotelNames[cityIndex] || ''}
-                      onChange={(e) => updateHotelSelection(cityIndex, e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      disabled={!selectedCity}
-                      required
-                    >
-                      <option value="">Select hotel</option>
-                      {selectedCity && selectedPackage.hotels[selectedCity]?.map((hotel: string, hotelIndex: number) => (
-                        <option key={hotelIndex} value={hotel}>{hotel}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {formData.selectedHotel.cities.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeCityHotelSelection(cityIndex)}
-                      className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -337,19 +363,26 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
       {/* Room Type */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Room Type
+          {t("Room Type")}
         </label>
         <select
           value={formData.selectedHotel.roomType}
-          onChange={(e) => setFormData(prev => ({
-            ...prev,
-            selectedHotel: { ...prev.selectedHotel, roomType: e.target.value }
-          }))}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              selectedHotel: {
+                ...prev.selectedHotel,
+                roomType: e.target.value,
+              },
+            }))
+          }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required
         >
-          {availableRoomTypes.map(type => (
-            <option key={type} value={type}>{type}</option>
+          {availableRoomTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
           ))}
         </select>
       </div>
@@ -358,12 +391,19 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('basePrice')} (MAD)
+            {t("Base Price")} (MAD)
           </label>
           <input
             type="number"
             value={formData.basePrice}
-            onChange={(e) => setFormData(prev => ({ ...prev, basePrice: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => {
+              const basePrice = parseFloat(e.target.value) || 0;
+              setFormData((prev) => ({
+                ...prev,
+                basePrice,
+                profit: prev.sellingPrice - basePrice,
+              }));
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             min="0"
             step="0.01"
@@ -373,12 +413,23 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('sellingPrice')} (MAD)
+            {t("Selling Price")} (MAD)
           </label>
           <input
             type="number"
             value={formData.sellingPrice}
-            onChange={(e) => setFormData(prev => ({ ...prev, sellingPrice: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) => {
+              const sellingPrice = parseFloat(e.target.value) || 0;
+              const profit = sellingPrice - formData.basePrice;
+              setFormData((prev) => ({
+                ...prev,
+                sellingPrice,
+                profit,
+                remainingBalance:
+                  sellingPrice -
+                  prev.advancePayments.reduce((sum, p) => sum + p.amount, 0),
+              }));
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             min="0"
             step="0.01"
@@ -388,7 +439,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Profit (MAD)
+            {t("Profit")} (MAD)
           </label>
           <input
             type="number"
@@ -399,34 +450,20 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         </div>
       </div>
 
-      {/* Booking Date */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Booking Date
-        </label>
-        <input
-          type="date"
-          value={formData.createdAt}
-          onChange={(e) => setFormData(prev => ({ ...prev, createdAt: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          required
-        />
-      </div>
-
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          {t('cancel')}
+          {t("Cancel")}
         </button>
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          {t('save')}
+          {booking ? t("Update") : t("Save")}
         </button>
       </div>
     </form>

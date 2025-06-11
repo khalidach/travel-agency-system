@@ -86,7 +86,7 @@ export default function ProgramForm({
               (sum, nights) => sum + nights,
               0
             );
-            const pricePerNight = room.basePrice;
+            const pricePerNight = room.sellingPrice; // Use sellingPrice instead of basePrice
             const totalPrice = pricePerNight * totalNights;
 
             // Divide by number of guests based on room type
@@ -300,6 +300,7 @@ export default function ProgramForm({
                   basePrice: 0,
                   sellingPrice: 0,
                 }));
+            // Both basePrice and sellingPrice are set to 0 initially
 
             return {
               ...pkg,
@@ -365,7 +366,7 @@ export default function ProgramForm({
                   ...price,
                   roomTypes: [
                     ...price.roomTypes,
-                    { type: "Single", basePrice: 0, sellingPrice: 0 },
+                    { type: "Double", basePrice: 0, sellingPrice: 0 },
                   ],
                 };
               }
@@ -740,8 +741,9 @@ export default function ProgramForm({
                         {priceStructure.roomTypes.map((roomType, roomIndex) => (
                           <div
                             key={roomIndex}
-                            className="grid grid-cols-1 md:grid-cols-4 gap-3 p-3 bg-gray-50 rounded-lg"
+                            className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-gray-50 rounded-lg"
                           >
+                            {" "}
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">
                                 Room Type
@@ -768,44 +770,33 @@ export default function ProgramForm({
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Base Price (MAD)
-                              </label>
-                              <input
-                                type="number"
-                                value={roomType.basePrice}
-                                onChange={(e) =>
-                                  updateRoomPrice(
-                                    packageIndex,
-                                    priceIndex,
-                                    roomIndex,
-                                    "basePrice",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Selling Price (MAD)
+                                Price (MAD)
                               </label>
                               <input
                                 type="number"
                                 value={roomType.sellingPrice}
-                                onChange={(e) =>
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0;
                                   updateRoomPrice(
                                     packageIndex,
                                     priceIndex,
                                     roomIndex,
                                     "sellingPrice",
-                                    parseFloat(e.target.value) || 0
-                                  )
-                                }
+                                    value
+                                  );
+                                  // Set basePrice equal to sellingPrice
+                                  updateRoomPrice(
+                                    packageIndex,
+                                    priceIndex,
+                                    roomIndex,
+                                    "basePrice",
+                                    value
+                                  );
+                                }}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                                 min="0"
                                 step="0.01"
+                                required
                               />
                             </div>
                             <div className="flex items-end">
