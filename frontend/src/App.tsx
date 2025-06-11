@@ -1,13 +1,14 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { I18nextProvider } from 'react-i18next';
-import i18n from './services/i18n';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Programs from './pages/Programs';
-import Booking from './pages/Booking';
-import ProfitReport from './pages/ProfitReport';
-import { AppProvider } from './context/AppContext';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { I18nextProvider } from "react-i18next";
+import i18n from "./services/i18n";
+import Layout from "./components/Layout";
+import Dashboard from "./pages/Dashboard";
+import Programs from "./pages/Programs";
+import Booking from "./pages/Booking";
+import ProfitReport from "./pages/ProfitReport";
+import ProgramCalculate from "./pages/ProgramCalculate";
+import { AppProvider } from "./context/AppContext";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
               <Route path="/programs" element={<Programs />} />
               <Route path="/booking" element={<Booking />} />
               <Route path="/profit-report" element={<ProfitReport />} />
+              <Route path="/program-calculate" element={<ProgramCalculate />} />
             </Routes>
           </Layout>
         </Router>

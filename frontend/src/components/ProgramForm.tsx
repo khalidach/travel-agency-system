@@ -9,11 +9,16 @@ interface ProgramFormProps {
   onCancel: () => void;
 }
 
+interface CityData {
+  name: string;
+  nights: number;
+}
+
 interface FormData {
   name: string;
   type: "Hajj" | "Umrah" | "Tourism";
   duration: number;
-  cities: string[];
+  cities: CityData[];
   packages: Package[];
 }
 
@@ -28,7 +33,7 @@ export default function ProgramForm({
     name: "",
     type: "Umrah",
     duration: 7,
-    cities: [""],
+    cities: [{ name: "", nights: 1 }],
     packages: [
       {
         name: "Standard",
@@ -57,8 +62,66 @@ export default function ProgramForm({
     }
   }, [program]);
 
+  const calculateBasePrice = () => {
+    const basePrice = formData.packages.map((pkg) => {
+      const prices = pkg.prices
+        .map((price) => {
+          const [hotel1, hotel2] = price.hotelCombination.split("_");
+
+          // Find cities and nights for these hotels
+          const cityNights = formData.cities.reduce<{ [key: string]: number }>(
+            (acc, city) => {
+              const hotels = pkg.hotels[city.name] || [];
+              if (hotels.includes(hotel1) || hotels.includes(hotel2)) {
+                acc[city.name] = city.nights;
+              }
+              return acc;
+            },
+            {}
+          );
+
+          // Calculate price per room type
+          return price.roomTypes.map((room) => {
+            const totalNights = Object.values(cityNights).reduce(
+              (sum, nights) => sum + nights,
+              0
+            );
+            const pricePerNight = room.basePrice;
+            const totalPrice = pricePerNight * totalNights;
+
+            // Divide by number of guests based on room type
+            const guestsPerRoom =
+              room.type === "Double"
+                ? 2
+                : room.type === "Triple"
+                ? 3
+                : room.type === "Quad"
+                ? 4
+                : 5; // quintuple
+
+            return {
+              type: room.type,
+              pricePerPerson: Math.round(totalPrice / guestsPerRoom),
+            };
+          });
+        })
+        .flat();
+
+      return {
+        packageName: pkg.name,
+        prices,
+      };
+    });
+
+    return basePrice;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Calculate base prices for all packages and room types
+    const basePrices = calculateBasePrice();
+    console.log("Base prices per person:", basePrices);
 
     const programData: Program = {
       id: program?.id || "",
@@ -71,14 +134,20 @@ export default function ProgramForm({
   const addCity = () => {
     setFormData((prev) => ({
       ...prev,
-      cities: [...prev.cities, ""],
+      cities: [...prev.cities, { name: "", nights: 1 }],
     }));
   };
 
-  const updateCity = (index: number, value: string) => {
+  const updateCity = (
+    index: number,
+    field: keyof CityData,
+    value: string | number
+  ) => {
     setFormData((prev) => ({
       ...prev,
-      cities: prev.cities.map((city, i) => (i === index ? value : city)),
+      cities: prev.cities.map((city, i) =>
+        i === index ? { ...city, [field]: value } : city
+      ),
     }));
   };
 
@@ -119,16 +188,16 @@ export default function ProgramForm({
     }));
   };
 
-  const addHotelToCity = (packageIndex: number, city: string) => {
+  const addHotelToCity = (packageIndex: number, cityName: string) => {
     setFormData((prev) => ({
       ...prev,
       packages: prev.packages.map((pkg, i) => {
         if (i === packageIndex) {
           const newHotels = { ...pkg.hotels };
-          if (!newHotels[city]) {
-            newHotels[city] = [];
+          if (!newHotels[cityName]) {
+            newHotels[cityName] = [];
           }
-          newHotels[city].push("");
+          newHotels[cityName].push("");
           return { ...pkg, hotels: newHotels };
         }
         return pkg;
@@ -178,12 +247,12 @@ export default function ProgramForm({
   // Generate all possible hotel combinations (including single hotels)
   const generateAllHotelOptions = (packageIndex: number) => {
     const pkg = formData.packages[packageIndex];
-    const cities = formData.cities.filter((city) => city.trim());
+    const cities = formData.cities.filter((city) => city.name.trim());
     const options: string[] = [];
 
     if (cities.length === 1) {
       // Single city case - list individual hotels
-      const cityHotels = pkg.hotels[cities[0]] || [];
+      const cityHotels = pkg.hotels[cities[0].name] || [];
       cityHotels.forEach((hotel) => {
         if (hotel.trim()) {
           options.push(hotel); // Single hotel
@@ -193,8 +262,8 @@ export default function ProgramForm({
       // Multiple cities case - create combinations
       for (let i = 0; i < cities.length - 1; i++) {
         for (let j = i + 1; j < cities.length; j++) {
-          const city1Hotels = pkg.hotels[cities[i]] || [];
-          const city2Hotels = pkg.hotels[cities[j]] || [];
+          const city1Hotels = pkg.hotels[cities[i].name] || [];
+          const city2Hotels = pkg.hotels[cities[j].name] || [];
 
           city1Hotels.forEach((hotel1) => {
             if (hotel1.trim()) {
@@ -440,10 +509,21 @@ export default function ProgramForm({
               <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <input
                 type="text"
-                value={city}
-                onChange={(e) => updateCity(index, e.target.value)}
+                value={city.name}
+                onChange={(e) => updateCity(index, "name", e.target.value)}
                 placeholder="Enter city name"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              <input
+                type="number"
+                value={city.nights}
+                onChange={(e) =>
+                  updateCity(index, "nights", parseInt(e.target.value))
+                }
+                placeholder="Nights"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                min="1"
                 required
               />
               {formData.cities.length > 1 && (
@@ -520,56 +600,64 @@ export default function ProgramForm({
                 </h5>
                 <div className="space-y-4">
                   {formData.cities
-                    .filter((city) => city.trim())
+                    .filter((city) => city.name.trim())
                     .map((city) => (
                       <div
-                        key={city}
+                        key={city.name}
                         className="bg-white p-4 rounded-lg border border-gray-200"
                       >
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-sm font-medium text-gray-700 flex items-center">
                             <Hotel className="w-4 h-4 mr-2" />
-                            {city}
+                            {city.name}
                           </span>
                           <button
                             type="button"
-                            onClick={() => addHotelToCity(packageIndex, city)}
+                            onClick={() =>
+                              addHotelToCity(packageIndex, city.name)
+                            }
                             className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                           >
                             + Add Hotel
                           </button>
                         </div>
                         <div className="space-y-2">
-                          {(pkg.hotels[city] || []).map((hotel, hotelIndex) => (
-                            <div
-                              key={hotelIndex}
-                              className="flex items-center space-x-2"
-                            >
-                              <input
-                                type="text"
-                                value={hotel}
-                                onChange={(e) =>
-                                  updateHotel(
-                                    packageIndex,
-                                    city,
-                                    hotelIndex,
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Hotel name"
-                                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeHotel(packageIndex, city, hotelIndex)
-                                }
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          {(pkg.hotels[city.name] || []).map(
+                            (hotel, hotelIndex) => (
+                              <div
+                                key={hotelIndex}
+                                className="flex items-center space-x-2"
                               >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
+                                <input
+                                  type="text"
+                                  value={hotel}
+                                  onChange={(e) =>
+                                    updateHotel(
+                                      packageIndex,
+                                      city.name,
+                                      hotelIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="Hotel name"
+                                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    removeHotel(
+                                      packageIndex,
+                                      city.name,
+                                      hotelIndex
+                                    )
+                                  }
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )
+                          )}
                         </div>
                       </div>
                     ))}

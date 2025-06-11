@@ -1,11 +1,16 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode } from "react";
+
+export interface CityData {
+  name: string;
+  nights: number;
+}
 
 export interface Program {
   id: string;
   name: string;
-  type: 'Hajj' | 'Umrah' | 'Tourism';
+  type: "Hajj" | "Umrah" | "Tourism";
   duration: number;
-  cities: string[];
+  cities: CityData[];
   packages: Package[];
 }
 
@@ -52,190 +57,207 @@ export interface Booking {
 export interface Payment {
   id: string;
   amount: number;
-  method: 'cash' | 'cheque' | 'transfer' | 'card';
+  method: "cash" | "cheque" | "transfer" | "card";
   date: string;
 }
 
 interface AppState {
   programs: Program[];
   bookings: Booking[];
-  currentLanguage: 'en' | 'ar' | 'fr';
+  currentLanguage: "en" | "ar" | "fr";
 }
 
-type AppAction = 
-  | { type: 'ADD_PROGRAM'; payload: Program }
-  | { type: 'UPDATE_PROGRAM'; payload: Program }
-  | { type: 'DELETE_PROGRAM'; payload: string }
-  | { type: 'ADD_BOOKING'; payload: Booking }
-  | { type: 'UPDATE_BOOKING'; payload: Booking }
-  | { type: 'DELETE_BOOKING'; payload: string }
-  | { type: 'ADD_PAYMENT'; payload: { bookingId: string; payment: Payment } }
-  | { type: 'SET_LANGUAGE'; payload: 'en' | 'ar' | 'fr' };
+type AppAction =
+  | { type: "ADD_PROGRAM"; payload: Program }
+  | { type: "UPDATE_PROGRAM"; payload: Program }
+  | { type: "DELETE_PROGRAM"; payload: string }
+  | { type: "ADD_BOOKING"; payload: Booking }
+  | { type: "UPDATE_BOOKING"; payload: Booking }
+  | { type: "DELETE_BOOKING"; payload: string }
+  | { type: "ADD_PAYMENT"; payload: { bookingId: string; payment: Payment } }
+  | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" };
 
 const initialState: AppState = {
   programs: [
     {
-      id: '1',
-      name: 'Umrah Spring 2025',
-      type: 'Umrah',
+      id: "1",
+      name: "Umrah Spring 2025",
+      type: "Umrah",
       duration: 10,
-      cities: ['Makkah', 'Madinah'],
+      cities: [
+        { name: "Makkah", nights: 5 },
+        { name: "Madinah", nights: 5 },
+      ],
       packages: [
         {
-          name: 'Standard',
+          name: "Standard",
           hotels: {
-            'Makkah': ['Al-Taysir Towers', 'Safir Al Misk'],
-            'Madinah': ['Qasr Al-Ansar']
+            Makkah: ["Al-Taysir Towers", "Safir Al Misk"],
+            Madinah: ["Qasr Al-Ansar"],
           },
           prices: [
             {
-              hotelCombination: 'Qasr Al-Ansar_Al-Taysir Towers',
+              hotelCombination: "Qasr Al-Ansar_Al-Taysir Towers",
               roomTypes: [
-                { type: 'Double', basePrice: 3000, sellingPrice: 4000 },
-                { type: 'Triple', basePrice: 2500, sellingPrice: 3500 }
-              ]
+                { type: "Double", basePrice: 3000, sellingPrice: 4000 },
+                { type: "Triple", basePrice: 2500, sellingPrice: 3500 },
+              ],
             },
             {
-              hotelCombination: 'Qasr Al-Ansar_Safir Al Misk',
+              hotelCombination: "Qasr Al-Ansar_Safir Al Misk",
               roomTypes: [
-                { type: 'Quad', basePrice: 5000, sellingPrice: 6500 },
-                { type: 'Triple', basePrice: 7000, sellingPrice: 8500 }
-              ]
-            }
-          ]
-        }
-      ]
+                { type: "Quad", basePrice: 5000, sellingPrice: 6500 },
+                { type: "Triple", basePrice: 7000, sellingPrice: 8500 },
+              ],
+            },
+          ],
+        },
+      ],
     },
     {
-      id: '2',
-      name: 'Hajj 2025 Premium',
-      type: 'Hajj',
+      id: "2",
+      name: "Hajj 2025 Premium",
+      type: "Hajj",
       duration: 21,
-      cities: ['Makkah', 'Madinah', 'Mina'],
+      cities: [
+        { name: "Makkah", nights: 7 },
+        { name: "Madinah", nights: 7 },
+        { name: "Mina", nights: 7 },
+      ],
       packages: [
         {
-          name: 'Premium',
+          name: "Premium",
           hotels: {
-            'Makkah': ['Fairmont Makkah', 'Swissotel Makkah'],
-            'Madinah': ['Pullman Zamzam Madinah']
+            Makkah: ["Fairmont Makkah", "Swissotel Makkah"],
+            Madinah: ["Pullman Zamzam Madinah"],
           },
           prices: [
             {
-              hotelCombination: 'Pullman Zamzam Madinah_Fairmont Makkah',
+              hotelCombination: "Pullman Zamzam Madinah_Fairmont Makkah",
               roomTypes: [
-                { type: 'Double', basePrice: 8000, sellingPrice: 10000 },
-                { type: 'Single', basePrice: 12000, sellingPrice: 15000 }
-              ]
-            }
-          ]
-        }
-      ]
-    }
+                { type: "Double", basePrice: 8000, sellingPrice: 10000 },
+                { type: "Single", basePrice: 12000, sellingPrice: 15000 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
   ],
   bookings: [
     {
-      id: '1',
-      clientNameAr: 'أحمد بن علي',
-      clientNameFr: 'Ahmed Ben Ali',
-      passportNumber: 'A12345678',
-      tripId: '1',
-      packageId: '0',
+      id: "1",
+      clientNameAr: "أحمد بن علي",
+      clientNameFr: "Ahmed Ben Ali",
+      passportNumber: "A12345678",
+      tripId: "1",
+      packageId: "0",
       selectedHotel: {
-        cities: ['Makkah', 'Madinah'],
-        hotelNames: ['Al-Taysir Towers', 'Qasr Al-Ansar'],
-        roomType: 'Double'
+        cities: ["Makkah", "Madinah"],
+        hotelNames: ["Al-Taysir Towers", "Qasr Al-Ansar"],
+        roomType: "Double",
       },
       sellingPrice: 4000,
       basePrice: 3000,
       advancePayments: [
-        { id: '1', amount: 2000, method: 'cash', date: '2025-01-15' }
+        { id: "1", amount: 2000, method: "cash", date: "2025-01-15" },
       ],
       remainingBalance: 2000,
       isFullyPaid: false,
       profit: 1000,
-      createdAt: '2025-01-15'
+      createdAt: "2025-01-15",
     },
     {
-      id: '2',
-      clientNameAr: 'فاطمة الزهراء',
-      clientNameFr: 'Fatima Zahra',
-      passportNumber: 'B87654321',
-      tripId: '2',
-      packageId: '0',
+      id: "2",
+      clientNameAr: "فاطمة الزهراء",
+      clientNameFr: "Fatima Zahra",
+      passportNumber: "B87654321",
+      tripId: "2",
+      packageId: "0",
       selectedHotel: {
-        cities: ['Makkah', 'Madinah'],
-        hotelNames: ['Fairmont Makkah', 'Pullman Zamzam Madinah'],
-        roomType: 'Double'
+        cities: ["Makkah", "Madinah"],
+        hotelNames: ["Fairmont Makkah", "Pullman Zamzam Madinah"],
+        roomType: "Double",
       },
       sellingPrice: 10000,
       basePrice: 8000,
       advancePayments: [
-        { id: '2', amount: 5000, method: 'transfer', date: '2025-01-10' },
-        { id: '3', amount: 5000, method: 'cash', date: '2025-01-20' }
+        { id: "2", amount: 5000, method: "transfer", date: "2025-01-10" },
+        { id: "3", amount: 5000, method: "cash", date: "2025-01-20" },
       ],
       remainingBalance: 0,
       isFullyPaid: true,
       profit: 2000,
-      createdAt: '2025-01-10'
-    }
+      createdAt: "2025-01-10",
+    },
   ],
-  currentLanguage: 'en'
+  currentLanguage: "en",
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'ADD_PROGRAM':
+    case "ADD_PROGRAM":
       return { ...state, programs: [...state.programs, action.payload] };
-    
-    case 'UPDATE_PROGRAM':
+
+    case "UPDATE_PROGRAM":
       return {
         ...state,
-        programs: state.programs.map(p => p.id === action.payload.id ? action.payload : p)
+        programs: state.programs.map((p) =>
+          p.id === action.payload.id ? action.payload : p
+        ),
       };
-    
-    case 'DELETE_PROGRAM':
+
+    case "DELETE_PROGRAM":
       return {
         ...state,
-        programs: state.programs.filter(p => p.id !== action.payload)
+        programs: state.programs.filter((p) => p.id !== action.payload),
       };
-    
-    case 'ADD_BOOKING':
+
+    case "ADD_BOOKING":
       return { ...state, bookings: [...state.bookings, action.payload] };
-    
-    case 'UPDATE_BOOKING':
+
+    case "UPDATE_BOOKING":
       return {
         ...state,
-        bookings: state.bookings.map(b => b.id === action.payload.id ? action.payload : b)
+        bookings: state.bookings.map((b) =>
+          b.id === action.payload.id ? action.payload : b
+        ),
       };
-    
-    case 'DELETE_BOOKING':
+
+    case "DELETE_BOOKING":
       return {
         ...state,
-        bookings: state.bookings.filter(b => b.id !== action.payload)
+        bookings: state.bookings.filter((b) => b.id !== action.payload),
       };
-    
-    case 'ADD_PAYMENT':
+
+    case "ADD_PAYMENT":
       return {
         ...state,
-        bookings: state.bookings.map(booking => {
+        bookings: state.bookings.map((booking) => {
           if (booking.id === action.payload.bookingId) {
-            const newPayments = [...booking.advancePayments, action.payload.payment];
-            const totalPaid = newPayments.reduce((sum, payment) => sum + payment.amount, 0);
+            const newPayments = [
+              ...booking.advancePayments,
+              action.payload.payment,
+            ];
+            const totalPaid = newPayments.reduce(
+              (sum, payment) => sum + payment.amount,
+              0
+            );
             const remainingBalance = booking.sellingPrice - totalPaid;
             return {
               ...booking,
               advancePayments: newPayments,
               remainingBalance: Math.max(0, remainingBalance),
-              isFullyPaid: remainingBalance <= 0
+              isFullyPaid: remainingBalance <= 0,
             };
           }
           return booking;
-        })
+        }),
       };
-    
-    case 'SET_LANGUAGE':
+
+    case "SET_LANGUAGE":
       return { ...state, currentLanguage: action.payload };
-    
+
     default:
       return state;
   }
@@ -259,7 +281,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 export function useAppContext() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error('useAppContext must be used within an AppProvider');
+    throw new Error("useAppContext must be used within an AppProvider");
   }
   return context;
 }
