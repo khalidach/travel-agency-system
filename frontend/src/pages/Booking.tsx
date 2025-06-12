@@ -422,15 +422,20 @@ export default function BookingPage() {
         size="md"
         level={1}
       >
-        <PaymentForm
-          payment={editingPayment?.payment}
-          onSave={handleSavePayment}
-          onCancel={() => {
-            setIsPaymentModalOpen(false);
-            setSelectedBookingForPayment(null);
-            setEditingPayment(null);
-          }}
-        />
+        {selectedBookingForPayment && (
+          <PaymentForm
+            payment={editingPayment?.payment}
+            onSave={handleSavePayment}
+            onCancel={() => {
+              setIsPaymentModalOpen(false);
+              setSelectedBookingForPayment(null);
+              setEditingPayment(null);
+            }}
+            remainingBalance={
+              state.bookings.find(b => b.id === selectedBookingForPayment)?.remainingBalance || 0
+            }
+          />
+        )}
       </Modal>{" "}
       {/* Payment Management Modal */}
       <Modal

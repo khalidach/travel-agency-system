@@ -6,12 +6,14 @@ interface PaymentFormProps {
   payment?: Payment;
   onSave: (payment: Payment) => void;
   onCancel: () => void;
+  remainingBalance: number;
 }
 
 export default function PaymentForm({
   payment,
   onSave,
   onCancel,
+  remainingBalance,
 }: PaymentFormProps) {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Payment>({
@@ -23,6 +25,7 @@ export default function PaymentForm({
     bankName: payment?.bankName || "",
     chequeCashingDate: payment?.chequeCashingDate || "",
   });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (payment) {
@@ -32,6 +35,13 @@ export default function PaymentForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate payment amount against remaining balance
+    if (formData.amount > remainingBalance) {
+      setError(`Payment amount cannot exceed the remaining balance (${remainingBalance} MAD)`);
+      return;
+    }
+    
     onSave(formData);
   };
 
@@ -51,17 +61,29 @@ export default function PaymentForm({
         <input
           type="number"
           value={formData.amount}
-          onChange={(e) =>
+          onChange={(e) => {
+            const amount = parseFloat(e.target.value) || 0;
             setFormData((prev) => ({
               ...prev,
-              amount: parseFloat(e.target.value) || 0,
-            }))
-          }
+              amount,
+            }));
+            // Clear error when amount is valid
+            if (amount <= remainingBalance) {
+              setError(null);
+            }
+          }}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           min="0"
+          max={remainingBalance}
           step="0.01"
           required
         />
+        {error && (
+          <p className="mt-1 text-sm text-red-600">{error}</p>
+        )}
+        <p className="mt-1 text-sm text-gray-500">
+          Remaining balance: {remainingBalance.toLocaleString()} MAD
+        </p>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -81,7 +103,7 @@ export default function PaymentForm({
             </option>
           ))}
         </select>
-      </div>{" "}
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Payment Date
@@ -115,7 +137,6 @@ export default function PaymentForm({
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("Bank Name")}
@@ -130,7 +151,6 @@ export default function PaymentForm({
               required
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t("Check Cashing Date")}
@@ -150,7 +170,7 @@ export default function PaymentForm({
           </div>
         </>
       )}
-      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+      <div className="flex justify-end space-x-4">
         <button
           type="button"
           onClick={onCancel}
