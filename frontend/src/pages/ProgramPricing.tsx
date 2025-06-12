@@ -148,12 +148,19 @@ export default function ProgramPricing() {
           onChange={(e) => handleProgramSelect(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         >
-          <option value="">{t("Select a program")}</option>
-          {programs.map((program: Program) => (
-            <option key={program.id} value={program.id}>
-              {program.name}
-            </option>
-          ))}
+          <option value="">{t("Select a program")}</option>{" "}
+          {programs
+            .filter(
+              (program) =>
+                !programPricing.some(
+                  (pricing) => pricing.programId === program.id
+                )
+            )
+            .map((program: Program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
         </select>
       </div>
       {selectedProgram && (
@@ -175,27 +182,23 @@ export default function ProgramPricing() {
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
+            </div>{" "}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t("Visa Fees")}
+              </label>
+              <input
+                type="number"
+                value={currentPricing.visaFees}
+                onChange={(e) =>
+                  setCurrentPricing((prev) => ({
+                    ...prev,
+                    visaFees: Number(e.target.value),
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
             </div>
-
-            {selectedProgram.type === "Umrah" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t("Visa Fees")}
-                </label>
-                <input
-                  type="number"
-                  value={currentPricing.visaFees}
-                  onChange={(e) =>
-                    setCurrentPricing((prev) => ({
-                      ...prev,
-                      visaFees: Number(e.target.value),
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-            )}
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("Guide Fees")}

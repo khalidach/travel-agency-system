@@ -37,6 +37,7 @@ export interface Booking {
   id: string;
   clientNameAr: string;
   clientNameFr: string;
+  phoneNumber: string;
   passportNumber: string;
   tripId: string;
   packageId: string;
@@ -59,6 +60,9 @@ export interface Payment {
   amount: number;
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
+  chequeNumber?: string;
+  bankName?: string;
+  chequeCashingDate?: string;
 }
 
 export interface HotelPrice {
@@ -98,6 +102,14 @@ type AppAction =
   | { type: "UPDATE_BOOKING"; payload: Booking }
   | { type: "DELETE_BOOKING"; payload: string }
   | { type: "ADD_PAYMENT"; payload: { bookingId: string; payment: Payment } }
+  | {
+      type: "UPDATE_PAYMENT";
+      payload: { bookingId: string; paymentId: string; payment: Payment };
+    }
+  | {
+      type: "DELETE_PAYMENT";
+      payload: { bookingId: string; paymentId: string };
+    }
   | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
   | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
@@ -221,6 +233,7 @@ const initialState: AppState = {
       clientNameAr: "أحمد بن علي",
       clientNameFr: "Ahmed Ben Ali",
       passportNumber: "A12345678",
+      phoneNumber: "0612345678",
       tripId: "1",
       packageId: "Standard",
       selectedHotel: {
@@ -243,6 +256,7 @@ const initialState: AppState = {
       clientNameAr: "فاطمة الزهراء",
       clientNameFr: "Fatima Zahra",
       passportNumber: "B87654321",
+      phoneNumber: "0612345678",
       tripId: "2",
       packageId: "Premium",
       selectedHotel: {
@@ -310,6 +324,54 @@ function appReducer(state: AppState, action: AppAction): AppState {
               ...booking.advancePayments,
               action.payload.payment,
             ];
+            const totalPaid = newPayments.reduce(
+              (sum, payment) => sum + payment.amount,
+              0
+            );
+            const remainingBalance = booking.sellingPrice - totalPaid;
+            return {
+              ...booking,
+              advancePayments: newPayments,
+              remainingBalance: Math.max(0, remainingBalance),
+              isFullyPaid: remainingBalance <= 0,
+            };
+          }
+          return booking;
+        }),
+      };
+    case "UPDATE_PAYMENT":
+      return {
+        ...state,
+        bookings: state.bookings.map((booking) => {
+          if (booking.id === action.payload.bookingId) {
+            const newPayments = booking.advancePayments.map((payment) =>
+              payment.id === action.payload.paymentId
+                ? action.payload.payment
+                : payment
+            );
+            const totalPaid = newPayments.reduce(
+              (sum, payment) => sum + payment.amount,
+              0
+            );
+            const remainingBalance = booking.sellingPrice - totalPaid;
+            return {
+              ...booking,
+              advancePayments: newPayments,
+              remainingBalance: Math.max(0, remainingBalance),
+              isFullyPaid: remainingBalance <= 0,
+            };
+          }
+          return booking;
+        }),
+      };
+    case "DELETE_PAYMENT":
+      return {
+        ...state,
+        bookings: state.bookings.map((booking) => {
+          if (booking.id === action.payload.bookingId) {
+            const newPayments = booking.advancePayments.filter(
+              (payment) => payment.id !== action.payload.paymentId
+            );
             const totalPaid = newPayments.reduce(
               (sum, payment) => sum + payment.amount,
               0

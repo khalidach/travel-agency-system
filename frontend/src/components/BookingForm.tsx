@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useAppContext } from "../context/AppContext";
 import type {
   Booking,
   Program,
@@ -26,10 +27,11 @@ export default function BookingForm({
   onCancel,
 }: BookingFormProps) {
   const { t } = useTranslation();
-
+  const { state } = useAppContext();
   const initialFormData: FormData = {
     clientNameAr: "",
     clientNameFr: "",
+    phoneNumber: "",
     passportNumber: "",
     tripId: "",
     packageId: "",
@@ -140,6 +142,84 @@ export default function BookingForm({
       isFullyPaid: remaining === 0,
     }));
   }, [formData.sellingPrice, formData.basePrice, formData.advancePayments]);
+
+  // Get the number of guests based on room type
+  const getGuestsPerRoom = (roomType: string): number => {
+    switch (roomType.toLowerCase()) {
+      case "double":
+        return 2;
+      case "triple":
+        return 3;
+      case "quad":
+        return 4;
+      case "quintuple":
+        return 5;
+      default:
+        return 2;
+    }
+  };
+
+  // Calculate hotel costs per city
+  const calculateHotelCosts = (): number => {
+    if (!selectedProgram || !formData.selectedHotel.cities.length) return 0;
+
+    const pricing = state.programPricing.find(
+      (p) => p.programId === formData.tripId
+    );
+    if (!pricing) return 0;
+
+    return formData.selectedHotel.cities.reduce((total, city, index) => {
+      const hotelName = formData.selectedHotel.hotelNames[index];
+      const roomType = formData.selectedHotel.roomType.toLowerCase();
+      const hotel = pricing.allHotels.find(
+        (h) => h.name === hotelName && h.city === city
+      );
+
+      if (hotel) {
+        const pricePerNight =
+          hotel.PricePerNights[roomType as keyof typeof hotel.PricePerNights];
+        const nights = selectedProgram.cities.find(
+          (c) => c.name === city
+        )?.nights;
+        const guestsPerRoom = getGuestsPerRoom(roomType);
+        return total + (pricePerNight * nights!) / guestsPerRoom;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Calculate total base price including all components
+  const calculateTotalBasePrice = (): number => {
+    if (!selectedProgram) return 0;
+
+    const pricing = state.programPricing.find(
+      (p) => p.programId === formData.tripId
+    );
+    if (!pricing) return 0;
+
+    const hotelCosts = calculateHotelCosts();
+    return (
+      pricing.ticketAirline + pricing.visaFees + pricing.guideFees + hotelCosts
+    );
+  };
+
+  // Add effect to update base price when relevant fields change
+  useEffect(() => {
+    if (selectedProgram) {
+      const newBasePrice = calculateTotalBasePrice();
+      setFormData((prev) => ({
+        ...prev,
+        basePrice: newBasePrice,
+        profit: prev.sellingPrice - newBasePrice,
+      }));
+    }
+  }, [
+    formData.tripId,
+    formData.selectedHotel.cities,
+    formData.selectedHotel.hotelNames,
+    formData.selectedHotel.roomType,
+    selectedProgram,
+  ]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +353,21 @@ export default function BookingForm({
         />
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Phone Number")}
+        </label>
+        <input
+          type="tel"
+          value={formData.phoneNumber}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          required
+        />
+      </div>
+
       {/* Program Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -392,22 +487,12 @@ export default function BookingForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("Base Price")} (MAD)
-          </label>
+          </label>{" "}
           <input
             type="number"
             value={formData.basePrice}
-            onChange={(e) => {
-              const basePrice = parseFloat(e.target.value) || 0;
-              setFormData((prev) => ({
-                ...prev,
-                basePrice,
-                profit: prev.sellingPrice - basePrice,
-              }));
-            }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            min="0"
-            step="0.01"
-            required
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+            readOnly
           />
         </div>
 

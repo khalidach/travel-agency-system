@@ -15,7 +15,7 @@ import {
 import Modal from "../components/Modal";
 import BookingForm from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
-import type { Booking } from "../context/AppContext";
+import type { Booking, Payment } from "../context/AppContext";
 import { format } from "date-fns";
 
 export default function BookingPage() {
@@ -24,9 +24,14 @@ export default function BookingPage() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editingPayment, setEditingPayment] = useState<{
+    bookingId: string;
+    payment: Payment;
+  } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<
     string | null
   >(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -60,6 +65,27 @@ export default function BookingPage() {
     }
   };
 
+  const handleAddPayment = (bookingId: string) => {
+    setSelectedBookingForPayment(bookingId);
+    setEditingPayment(null);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleEditPayment = (bookingId: string, payment: Payment) => {
+    setSelectedBookingForPayment(bookingId);
+    setEditingPayment({ bookingId, payment });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleDeletePayment = (bookingId: string, paymentId: string) => {
+    if (window.confirm("Are you sure you want to delete this payment?")) {
+      dispatch({
+        type: "DELETE_PAYMENT",
+        payload: { bookingId, paymentId },
+      });
+    }
+  };
+
   const handleSaveBooking = (booking: Booking) => {
     if (editingBooking) {
       dispatch({ type: "UPDATE_BOOKING", payload: booking });
@@ -73,23 +99,32 @@ export default function BookingPage() {
     setEditingBooking(null);
   };
 
-  const handleAddPayment = (bookingId: string) => {
-    setSelectedBookingForPayment(bookingId);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleSavePayment = (payment: any) => {
+  const handleSavePayment = (payment: Payment) => {
     if (selectedBookingForPayment) {
-      dispatch({
-        type: "ADD_PAYMENT",
-        payload: {
-          bookingId: selectedBookingForPayment,
-          payment: { ...payment, id: Date.now().toString() },
-        },
-      });
+      if (editingPayment) {
+        // Update existing payment
+        dispatch({
+          type: "UPDATE_PAYMENT",
+          payload: {
+            bookingId: selectedBookingForPayment,
+            paymentId: editingPayment.payment.id,
+            payment,
+          },
+        });
+      } else {
+        // Add new payment
+        dispatch({
+          type: "ADD_PAYMENT",
+          payload: {
+            bookingId: selectedBookingForPayment,
+            payment: { ...payment, id: crypto.randomUUID() },
+          },
+        });
+      }
     }
     setIsPaymentModalOpen(false);
     setSelectedBookingForPayment(null);
+    setEditingPayment(null);
   };
 
   const getStatusColor = (isFullyPaid: boolean) => {
@@ -120,7 +155,6 @@ export default function BookingPage() {
           {t("addBooking")}
         </button>
       </div>
-
       {/* Filters */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -144,7 +178,6 @@ export default function BookingPage() {
           </select>
         </div>
       </div>
-
       {/* Bookings Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -189,6 +222,7 @@ export default function BookingPage() {
                           <User className="w-5 h-5 text-white" />
                         </div>
                         <div className="ml-4">
+                          {" "}
                           <div className="text-sm font-medium text-gray-900">
                             {booking.clientNameFr}
                           </div>
@@ -197,6 +231,10 @@ export default function BookingPage() {
                           </div>
                           <div className="text-xs text-gray-400">
                             {booking.passportNumber}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            <span className="font-medium">Tel:</span>{" "}
+                            {booking.phoneNumber}
                           </div>
                         </div>
                       </div>
@@ -251,24 +289,34 @@ export default function BookingPage() {
                           )}`}
                         >
                           {getStatusText(booking.isFullyPaid)}
-                        </span>
-                        <div className="text-xs text-gray-500">
+                        </span>{" "}
+                        <div className="text-sm font-medium text-gray-900">
                           Paid: {totalPaid.toLocaleString()} MAD
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-sm text-gray-500">
                           Remaining: {booking.remainingBalance.toLocaleString()}{" "}
                           MAD
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-col space-y-2">
                         <button
                           onClick={() => handleAddPayment(booking.id)}
                           className="inline-flex items-center px-3 py-1 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                         >
                           <CreditCard className="w-3 h-3 mr-1" />
                           {t("addPayment")}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedBookingForPayment(booking.id);
+                            setSelectedBooking(booking);
+                          }}
+                          className="inline-flex items-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Edit2 className="w-3 h-3 mr-1" />
+                          {t("managePayments")}
                         </button>
                         <button
                           onClick={() => handleEditBooking(booking)}
@@ -291,7 +339,6 @@ export default function BookingPage() {
           </table>
         </div>
       </div>
-
       {filteredBookings.length === 0 && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -312,7 +359,6 @@ export default function BookingPage() {
           </button>
         </div>
       )}
-
       {/* Booking Form Modal */}
       <Modal
         isOpen={isBookingModalOpen}
@@ -332,25 +378,117 @@ export default function BookingPage() {
             setEditingBooking(null);
           }}
         />
-      </Modal>
-
+      </Modal>{" "}
       {/* Payment Form Modal */}
       <Modal
         isOpen={isPaymentModalOpen}
         onClose={() => {
           setIsPaymentModalOpen(false);
           setSelectedBookingForPayment(null);
+          setEditingPayment(null);
         }}
-        title={t("addPayment")}
+        title={editingPayment ? t("editPayment") : t("addPayment")}
         size="md"
+        level={1}
       >
         <PaymentForm
+          payment={editingPayment?.payment}
           onSave={handleSavePayment}
           onCancel={() => {
             setIsPaymentModalOpen(false);
             setSelectedBookingForPayment(null);
+            setEditingPayment(null);
           }}
         />
+      </Modal>{" "}
+      {/* Payment Management Modal */}
+      <Modal
+        isOpen={!!selectedBooking}
+        onClose={() => {
+          setSelectedBooking(null);
+          setSelectedBookingForPayment(null);
+          setEditingPayment(null);
+        }}
+        title={t("managePayments")}
+        size="xl"
+        level={0}
+      >
+        {selectedBooking && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                {selectedBooking.clientNameFr}
+              </h3>
+              <button
+                onClick={() => handleAddPayment(selectedBooking.id)}
+                className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                {t("addPayment")}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {selectedBooking.advancePayments.map((payment) => (
+                <div
+                  key={payment.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-900">
+                        {payment.amount.toLocaleString()} MAD
+                      </span>
+                      <span className="mx-2 text-gray-400">•</span>
+                      <span className="text-sm text-gray-600 capitalize">
+                        {payment.method}
+                      </span>
+                      <span className="mx-2 text-gray-400">•</span>
+                      <span className="text-sm text-gray-600">
+                        {payment.date}
+                      </span>
+                    </div>
+                    {payment.method === "cheque" && payment.chequeNumber && (
+                      <div className="text-sm text-gray-500 mt-1">
+                        <span className="font-medium">
+                          Check #{payment.chequeNumber}
+                        </span>
+                        {payment.bankName && <span> • {payment.bankName}</span>}
+                        {payment.chequeCashingDate && (
+                          <span> • Cashing: {payment.chequeCashingDate}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() =>
+                        handleEditPayment(selectedBooking.id, payment)
+                      }
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeletePayment(selectedBooking.id, payment.id)
+                      }
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {selectedBooking.advancePayments.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No payments recorded yet
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
