@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -34,6 +34,16 @@ export default function BookingPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [programFilter, setProgramFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (selectedBooking) {
+      const updatedBooking = state.bookings.find((b) => b.id === selectedBooking.id);
+      if (updatedBooking) {
+        setSelectedBooking(updatedBooking);
+      }
+    }
+  }, [state.bookings, selectedBooking]);
 
   const filteredBookings = state.bookings.filter((booking) => {
     const matchesSearch =
@@ -46,7 +56,10 @@ export default function BookingPage() {
       (statusFilter === "paid" && booking.isFullyPaid) ||
       (statusFilter === "pending" && !booking.isFullyPaid);
 
-    return matchesSearch && matchesStatus;
+    const matchesProgram =
+      programFilter === "all" || booking.tripId === programFilter;
+
+    return matchesSearch && matchesStatus && matchesProgram;
   });
 
   const handleAddBooking = () => {
@@ -83,6 +96,11 @@ export default function BookingPage() {
         type: "DELETE_PAYMENT",
         payload: { bookingId, paymentId },
       });
+      // Update the selected booking to reflect the changes
+      const updatedBooking = state.bookings.find((b) => b.id === bookingId);
+      if (updatedBooking) {
+        setSelectedBooking(updatedBooking);
+      }
     }
   };
 
@@ -120,6 +138,11 @@ export default function BookingPage() {
             payment: { ...payment, id: crypto.randomUUID() },
           },
         });
+      }
+      // Update the selected booking to reflect the changes
+      const updatedBooking = state.bookings.find((b) => b.id === selectedBookingForPayment);
+      if (updatedBooking) {
+        setSelectedBooking(updatedBooking);
       }
     }
     setIsPaymentModalOpen(false);
@@ -175,6 +198,18 @@ export default function BookingPage() {
             <option value="all">All Status</option>
             <option value="paid">Fully Paid</option>
             <option value="pending">Pending Payment</option>
+          </select>
+          <select
+            value={programFilter}
+            onChange={(e) => setProgramFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">{t("allPrograms")}</option>
+            {state.programs.map((program) => (
+              <option key={program.id} value={program.id}>
+                {program.name}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -301,13 +336,7 @@ export default function BookingPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col space-y-2">
-                        <button
-                          onClick={() => handleAddPayment(booking.id)}
-                          className="inline-flex items-center px-3 py-1 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                        >
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          {t("addPayment")}
-                        </button>
+                        
                         <button
                           onClick={() => {
                             setSelectedBookingForPayment(booking.id);
@@ -316,19 +345,21 @@ export default function BookingPage() {
                           className="inline-flex items-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           <Edit2 className="w-3 h-3 mr-1" />
-                          {t("managePayments")}
+                          {t("Manage Payments")}
                         </button>
                         <button
                           onClick={() => handleEditBooking(booking)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="inline-flex items-center px-3 py-1 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                         >
-                          <Edit2 className="w-4 h-4" />
+                          <Edit2 className="w-3 h-3 mr-1" />
+                          {t("Edit Booking")}
                         </button>
                         <button
                           onClick={() => handleDeleteBooking(booking.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="inline-flex items-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          {t("Delete Booking")}
                         </button>
                       </div>
                     </td>
@@ -428,13 +459,13 @@ export default function BookingPage() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3" key={selectedBooking.advancePayments.length}>
               {selectedBooking.advancePayments.map((payment) => (
                 <div
-                  key={payment.id}
+                  key={`${payment.id}-${payment.amount}`}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
-                  <div className="flex flex-col">
+                  <div>
                     <div className="flex items-center">
                       <span className="text-sm text-gray-900">
                         {payment.amount.toLocaleString()} MAD
@@ -460,7 +491,7 @@ export default function BookingPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex space-x-2">
                     <button
                       onClick={() =>
                         handleEditPayment(selectedBooking.id, payment)
