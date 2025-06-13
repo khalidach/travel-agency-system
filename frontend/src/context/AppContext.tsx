@@ -29,7 +29,6 @@ export interface PriceStructure {
 
 export interface RoomPrice {
   type: string;
-  basePrice: number;
   sellingPrice: number;
 }
 
@@ -182,15 +181,15 @@ const initialState: AppState = {
             {
               hotelCombination: "Qasr Al-Ansar_Al-Taysir Towers",
               roomTypes: [
-                { type: "Double", basePrice: 3000, sellingPrice: 4000 },
-                { type: "Triple", basePrice: 2500, sellingPrice: 3500 },
+                { type: "Double", sellingPrice: 4000 },
+                { type: "Triple", sellingPrice: 3500 },
               ],
             },
             {
               hotelCombination: "Qasr Al-Ansar_Safir Al Misk",
               roomTypes: [
-                { type: "Quad", basePrice: 5000, sellingPrice: 6500 },
-                { type: "Triple", basePrice: 7000, sellingPrice: 8500 },
+                { type: "Quad", sellingPrice: 6500 },
+                { type: "Triple", sellingPrice: 8500 },
               ],
             },
           ],
@@ -218,8 +217,7 @@ const initialState: AppState = {
             {
               hotelCombination: "Pullman Zamzam Madinah_Fairmont Makkah",
               roomTypes: [
-                { type: "Double", basePrice: 8000, sellingPrice: 10000 },
-                { type: "Single", basePrice: 12000, sellingPrice: 15000 },
+                { type: "Single", sellingPrice: 15000 },
               ],
             },
           ],

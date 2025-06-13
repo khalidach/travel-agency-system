@@ -197,10 +197,19 @@ export default function BookingForm({
     );
     if (!pricing) return 0;
 
+    // Calculate base price from program pricing components
     const hotelCosts = calculateHotelCosts();
-    return (
-      pricing.ticketAirline + pricing.visaFees + pricing.guideFees + hotelCosts
-    );
+    const basePrice = pricing.ticketAirline + pricing.visaFees + pricing.guideFees + hotelCosts;
+    
+    // Update form data with the calculated base price
+    setFormData(prev => ({
+      ...prev,
+      basePrice,
+      profit: prev.sellingPrice - basePrice,
+      remainingBalance: prev.sellingPrice - prev.advancePayments.reduce((sum, p) => sum + p.amount, 0)
+    }));
+
+    return basePrice;
   };
 
   // Add effect to update base price when relevant fields change

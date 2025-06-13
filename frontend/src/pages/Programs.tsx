@@ -131,7 +131,7 @@ export default function Programs() {
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <MapPin className="w-4 h-4 mr-2" />
-                <span>{program.cities.join(', ')}</span>
+                <span>{program.cities.map(city => city.name).join(', ')}</span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Users className="w-4 h-4 mr-2" />

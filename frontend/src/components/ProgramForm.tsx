@@ -294,10 +294,9 @@ export default function ProgramForm({
             // For multiple cities (combined hotels), start with Double room type
             const isMultiCity = hotelOption.includes("_");
             const defaultRoomTypes = isMultiCity
-              ? [{ type: "Double", basePrice: 0, sellingPrice: 0 }]
+              ? [{ type: "Double", sellingPrice: 0 }]
               : availableRoomTypes.map((type) => ({
                   type,
-                  basePrice: 0,
                   sellingPrice: 0,
                 }));
             // Both basePrice and sellingPrice are set to 0 initially
@@ -366,7 +365,7 @@ export default function ProgramForm({
                   ...price,
                   roomTypes: [
                     ...price.roomTypes,
-                    { type: "Double", basePrice: 0, sellingPrice: 0 },
+                    { type: "Double", sellingPrice: 0 },
                   ],
                 };
               }
@@ -782,14 +781,6 @@ export default function ProgramForm({
                                     priceIndex,
                                     roomIndex,
                                     "sellingPrice",
-                                    value
-                                  );
-                                  // Set basePrice equal to sellingPrice
-                                  updateRoomPrice(
-                                    packageIndex,
-                                    priceIndex,
-                                    roomIndex,
-                                    "basePrice",
                                     value
                                   );
                                 }}
