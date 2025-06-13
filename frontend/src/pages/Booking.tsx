@@ -13,10 +13,11 @@ import {
   Hotel,
 } from "lucide-react";
 import Modal from "../components/Modal";
-import BookingForm from "../components/BookingForm";
+import BookingForm, { BookingFormData } from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
 import type { Booking, Payment } from "../context/AppContext";
 import * as api from '../services/api';
+import { toast } from "react-hot-toast";
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -34,6 +35,26 @@ export default function BookingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Effect to refresh bookings when program pricing changes
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setIsLoading(true);
+        const bookings = await api.getBookings();
+        dispatch({ type: 'SET_BOOKINGS', payload: bookings });
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        toast.error(t('Error fetching bookings'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Add programPricing to the dependency array to refresh when it changes
+    fetchBookings();
+  }, [dispatch, state.programPricing]);
 
   const filteredBookings = state.bookings.filter((booking) => {
     const matchesSearch =
@@ -96,19 +117,27 @@ export default function BookingPage() {
     }
   };
 
-  const handleSaveBooking = async (booking: Omit<Booking, '_id' | 'id'>) => {
+  const handleSaveBooking = async (bookingData: BookingFormData, initialPayments: Payment[]) => {
     try {
-        if (editingBooking) {
-            const updatedBooking = await api.updateBooking(editingBooking._id, booking);
-            dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
-        } else {
-            const newBooking = await api.createBooking(booking);
-            dispatch({ type: "ADD_BOOKING", payload: newBooking });
-        }
-        setIsBookingModalOpen(false);
-        setEditingBooking(null);
+      const bookingToSave = {
+        ...bookingData,
+        advancePayments: initialPayments,
+        remainingBalance: bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0),
+        isFullyPaid: false
+      };
+
+      if (editingBooking) {
+        const updatedBooking = await api.updateBooking(editingBooking._id, bookingToSave);
+        dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
+      } else {
+        const newBooking = await api.createBooking(bookingToSave);
+        dispatch({ type: "ADD_BOOKING", payload: newBooking });
+      }
+      setIsBookingModalOpen(false);
+      setEditingBooking(null);
     } catch(error) {
-        console.error("Failed to save booking", error);
+      console.error("Failed to save booking", error);
+      toast.error(t("Failed to save booking"));
     }
   };
 
