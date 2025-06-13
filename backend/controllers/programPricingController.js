@@ -3,7 +3,8 @@ const ProgramPricing = require('../models/programPricingModel');
 // Get all program pricing
 exports.getAllProgramPricing = async (req, res) => {
   try {
-    const programPricing = await ProgramPricing.find().populate('programId');
+    // REMOVED .populate('programId') from the next line
+    const programPricing = await ProgramPricing.find();
     res.json(programPricing);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -49,4 +50,4 @@ exports.deleteProgramPricing = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-}; 
+};

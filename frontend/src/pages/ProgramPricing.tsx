@@ -23,13 +23,14 @@ export default function ProgramPricing() {
 
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 
-  // Effect to update hotels when program is selected
+  // Effect to update hotels when a program is selected FOR A NEW PRICING
   useEffect(() => {
-    if (selectedProgram) {
+    // ADDED a check here: only run if a program is selected AND we are not editing an existing price.
+    if (selectedProgram && !('_id' in currentPricing)) {
       const hotelsList = selectedProgram.cities.flatMap((city) =>
         Object.values(selectedProgram.packages[0].hotels[city.name] || []).map(
           (hotelName) => ({
-            name: hotelName,
+            name: hotelName as string,
             city: city.name,
             nights: city.nights,
             PricePerNights: {
@@ -49,10 +50,12 @@ export default function ProgramPricing() {
         allHotels: hotelsList,
       }));
     }
-  }, [selectedProgram]);
+  }, [selectedProgram, currentPricing]); // Added currentPricing to dependency array
 
   const handleProgramSelect = (programId: string) => {
     const program = programs.find((p) => p._id === programId);
+    // When a new program is selected from the dropdown, reset the form.
+    setCurrentPricing(emptyPricing);
     setSelectedProgram(program || null);
     if (!programId) {
         setCurrentPricing(emptyPricing);
@@ -233,7 +236,7 @@ export default function ProgramPricing() {
                       </label>
                       <input
                         type="number"
-                        value={price}
+                        value={price as number}
                         onChange={(e) =>
                           handleHotelPriceChange(
                             index,
