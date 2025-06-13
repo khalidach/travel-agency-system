@@ -37,28 +37,28 @@ export default function Dashboard() {
       value: totalBookings,
       icon: Users,
       color: 'bg-blue-500',
-      change: '+12%'
+      
     },
     {
       title: t('totalRevenue'),
       value: `${totalRevenue.toLocaleString()} MAD`,
       icon: DollarSign,
       color: 'bg-emerald-500',
-      change: '+8%'
+      
     },
     {
       title: t('totalProfit'),
       value: `${totalProfit.toLocaleString()} MAD`,
       icon: TrendingUp,
       color: 'bg-orange-500',
-      change: '+15%'
+      
     },
     {
       title: t('activePrograms'),
       value: activePrograms,
       icon: Package,
       color: 'bg-purple-500',
-      change: '+3'
+      
     }
   ];
 
@@ -82,7 +82,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                  <p className="text-sm text-emerald-600 mt-1">{stat.change} from last month</p>
+                  
                 </div>
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
