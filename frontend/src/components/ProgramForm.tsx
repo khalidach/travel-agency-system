@@ -119,16 +119,20 @@ export default function ProgramForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Calculate base prices for all packages and room types
+    // Calculate base prices
     const basePrices = calculateBasePrice();
     console.log("Base prices per person:", basePrices);
 
-    const programData: Program = {
-      id: program?.id || "",
-      ...formData,
-    };
+    // For editing, include IDs; for new program, only send form data
+    const programData = program
+      ? {
+          _id: program._id,
+          id: program.id,
+          ...formData,
+        }
+      : formData;
 
-    onSave(programData);
+    onSave(programData as Program);
   };
 
   const addCity = () => {

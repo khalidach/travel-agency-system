@@ -16,7 +16,7 @@ import Modal from "../components/Modal";
 import BookingForm from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
 import type { Booking, Payment } from "../context/AppContext";
-import { format } from "date-fns";
+import * as api from '../services/api';
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -29,21 +29,11 @@ export default function BookingPage() {
     payment: Payment;
   } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<
-    string | null
+    Booking | null
   >(null);
-  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
-
-  useEffect(() => {
-    if (selectedBooking) {
-      const updatedBooking = state.bookings.find((b) => b.id === selectedBooking.id);
-      if (updatedBooking) {
-        setSelectedBooking(updatedBooking);
-      }
-    }
-  }, [state.bookings, selectedBooking]);
 
   const filteredBookings = state.bookings.filter((booking) => {
     const matchesSearch =
@@ -52,12 +42,12 @@ export default function BookingPage() {
       booking.passportNumber.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "paid" && booking.isFullyPaid) ||
-      (statusFilter === "pending" && !booking.isFullyPaid);
+      statusFilter === 'all' ||
+      (statusFilter === 'paid' && booking.isFullyPaid) ||
+      (statusFilter === 'pending' && !booking.isFullyPaid);
 
     const matchesProgram =
-      programFilter === "all" || booking.tripId === programFilter;
+      programFilter === 'all' || booking.tripId === programFilter;
 
     return matchesSearch && matchesStatus && matchesProgram;
   });
@@ -72,78 +62,70 @@ export default function BookingPage() {
     setIsBookingModalOpen(true);
   };
 
-  const handleDeleteBooking = (bookingId: string) => {
+  const handleDeleteBooking = async (bookingId: string) => {
     if (window.confirm("Are you sure you want to delete this booking?")) {
-      dispatch({ type: "DELETE_BOOKING", payload: bookingId });
+        try {
+            await api.deleteBooking(bookingId);
+            dispatch({ type: "DELETE_BOOKING", payload: bookingId });
+        } catch (error) {
+            console.error("Failed to delete booking", error);
+        }
     }
   };
 
-  const handleAddPayment = (bookingId: string) => {
-    setSelectedBookingForPayment(bookingId);
+  const handleAddPayment = (booking: Booking) => {
+    setSelectedBookingForPayment(booking);
     setEditingPayment(null);
     setIsPaymentModalOpen(true);
   };
 
-  const handleEditPayment = (bookingId: string, payment: Payment) => {
-    setSelectedBookingForPayment(bookingId);
-    setEditingPayment({ bookingId, payment });
+  const handleEditPayment = (booking: Booking, payment: Payment) => {
+    setSelectedBookingForPayment(booking);
+    setEditingPayment({ bookingId: booking._id, payment });
     setIsPaymentModalOpen(true);
   };
 
-  const handleDeletePayment = (bookingId: string, paymentId: string) => {
+  const handleDeletePayment = async (bookingId: string, paymentId: string) => {
     if (window.confirm("Are you sure you want to delete this payment?")) {
-      dispatch({
-        type: "DELETE_PAYMENT",
-        payload: { bookingId, paymentId },
-      });
-      // Update the selected booking to reflect the changes
-      const updatedBooking = state.bookings.find((b) => b.id === bookingId);
-      if (updatedBooking) {
-        setSelectedBooking(updatedBooking);
-      }
+        try {
+            const updatedBooking = await api.deletePayment(bookingId, paymentId);
+            dispatch({ type: "DELETE_PAYMENT", payload: { bookingId, updatedBooking } });
+        } catch (error) {
+            console.error("Failed to delete payment", error);
+        }
     }
   };
 
-  const handleSaveBooking = (booking: Booking) => {
-    if (editingBooking) {
-      dispatch({ type: "UPDATE_BOOKING", payload: booking });
-    } else {
-      dispatch({
-        type: "ADD_BOOKING",
-        payload: { ...booking, id: Date.now().toString() },
-      });
+  const handleSaveBooking = async (booking: Omit<Booking, '_id' | 'id'>) => {
+    try {
+        if (editingBooking) {
+            const updatedBooking = await api.updateBooking(editingBooking._id, booking);
+            dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
+        } else {
+            const newBooking = await api.createBooking(booking);
+            dispatch({ type: "ADD_BOOKING", payload: newBooking });
+        }
+        setIsBookingModalOpen(false);
+        setEditingBooking(null);
+    } catch(error) {
+        console.error("Failed to save booking", error);
     }
-    setIsBookingModalOpen(false);
-    setEditingBooking(null);
   };
 
-  const handleSavePayment = (payment: Payment) => {
+  const handleSavePayment = async (payment: Omit<Payment, '_id' | 'id'>) => {
     if (selectedBookingForPayment) {
-      if (editingPayment) {
-        // Update existing payment
-        dispatch({
-          type: "UPDATE_PAYMENT",
-          payload: {
-            bookingId: selectedBookingForPayment,
-            paymentId: editingPayment.payment.id,
-            payment,
-          },
-        });
-      } else {
-        // Add new payment
-        dispatch({
-          type: "ADD_PAYMENT",
-          payload: {
-            bookingId: selectedBookingForPayment,
-            payment: { ...payment, id: crypto.randomUUID() },
-          },
-        });
-      }
-      // Update the selected booking to reflect the changes
-      const updatedBooking = state.bookings.find((b) => b.id === selectedBookingForPayment);
-      if (updatedBooking) {
-        setSelectedBooking(updatedBooking);
-      }
+        try {
+            let updatedBooking;
+            if (editingPayment) {
+                updatedBooking = await api.updatePayment(selectedBookingForPayment._id, editingPayment.payment._id, payment);
+                dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
+            } else {
+                updatedBooking = await api.addPayment(selectedBookingForPayment._id, payment);
+                dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
+            }
+        } catch(error) {
+            console.error("Failed to save payment", error);
+        }
     }
     setIsPaymentModalOpen(false);
     setSelectedBookingForPayment(null);
@@ -159,6 +141,10 @@ export default function BookingPage() {
   const getStatusText = (isFullyPaid: boolean) => {
     return isFullyPaid ? "Fully Paid" : "Pending Payment";
   };
+
+  if (state.loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -206,7 +192,7 @@ export default function BookingPage() {
           >
             <option value="all">{t("allPrograms")}</option>
             {state.programs.map((program) => (
-              <option key={program.id} value={program.id}>
+              <option key={program._id} value={program._id}>
                 {program.name}
               </option>
             ))}
@@ -239,7 +225,7 @@ export default function BookingPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredBookings.map((booking) => {
                 const program = state.programs.find(
-                  (p) => p.id === booking.tripId
+                  (p) => p._id === booking.tripId
                 );
                 const totalPaid = booking.advancePayments.reduce(
                   (sum, payment) => sum + payment.amount,
@@ -248,7 +234,7 @@ export default function BookingPage() {
 
                 return (
                   <tr
-                    key={booking.id}
+                    key={booking._id}
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4">
@@ -336,15 +322,12 @@ export default function BookingPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col space-y-2">
-                        
+
                         <button
-                          onClick={() => {
-                            setSelectedBookingForPayment(booking.id);
-                            setSelectedBooking(booking);
-                          }}
+                          onClick={() => setSelectedBookingForPayment(booking)}
                           className="inline-flex items-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         >
-                          <Edit2 className="w-3 h-3 mr-1" />
+                          <CreditCard className="w-3 h-3 mr-1" />
                           {t("Manage Payments")}
                         </button>
                         <button
@@ -355,7 +338,7 @@ export default function BookingPage() {
                           {t("Edit Booking")}
                         </button>
                         <button
-                          onClick={() => handleDeleteBooking(booking.id)}
+                          onClick={() => handleDeleteBooking(booking._id)}
                           className="inline-flex items-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                         >
                           <Trash2 className="w-3 h-3 mr-1" />
@@ -432,31 +415,29 @@ export default function BookingPage() {
               setEditingPayment(null);
             }}
             remainingBalance={
-              state.bookings.find(b => b.id === selectedBookingForPayment)?.remainingBalance || 0
+              selectedBookingForPayment.remainingBalance || 0
             }
           />
         )}
       </Modal>{" "}
       {/* Payment Management Modal */}
       <Modal
-        isOpen={!!selectedBooking}
+        isOpen={!!selectedBookingForPayment}
         onClose={() => {
-          setSelectedBooking(null);
-          setSelectedBookingForPayment(null);
-          setEditingPayment(null);
+            setSelectedBookingForPayment(null);
         }}
         title={t("managePayments")}
         size="xl"
         level={0}
       >
-        {selectedBooking && (
+        {selectedBookingForPayment && (
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900">
-                {selectedBooking.clientNameFr}
+                {selectedBookingForPayment.clientNameFr}
               </h3>
               <button
-                onClick={() => handleAddPayment(selectedBooking.id)}
+                onClick={() => handleAddPayment(selectedBookingForPayment)}
                 className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -464,10 +445,10 @@ export default function BookingPage() {
               </button>
             </div>
 
-            <div className="space-y-3" key={selectedBooking.advancePayments.length}>
-              {selectedBooking.advancePayments.map((payment) => (
+            <div className="space-y-3" key={selectedBookingForPayment.advancePayments.length}>
+              {selectedBookingForPayment.advancePayments.map((payment) => (
                 <div
-                  key={`${payment.id}-${payment.amount}`}
+                  key={`<span class="math-inline">\{payment\.\_id\}\-</span>{payment.amount}`}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                 >
                   <div>
@@ -499,7 +480,7 @@ export default function BookingPage() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() =>
-                        handleEditPayment(selectedBooking.id, payment)
+                        handleEditPayment(selectedBookingForPayment, payment)
                       }
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                     >
@@ -507,7 +488,7 @@ export default function BookingPage() {
                     </button>
                     <button
                       onClick={() =>
-                        handleDeletePayment(selectedBooking.id, payment.id)
+                        handleDeletePayment(selectedBookingForPayment._id, payment._id)
                       }
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
@@ -517,7 +498,7 @@ export default function BookingPage() {
                 </div>
               ))}
 
-              {selectedBooking.advancePayments.length === 0 && (
+              {selectedBookingForPayment.advancePayments.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   No payments recorded yet
                 </div>

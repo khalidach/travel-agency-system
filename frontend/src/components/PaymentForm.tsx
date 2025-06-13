@@ -4,7 +4,7 @@ import { Payment } from "../context/AppContext";
 
 interface PaymentFormProps {
   payment?: Payment;
-  onSave: (payment: Payment) => void;
+  onSave: (payment: Omit<Payment, '_id' | 'id'>) => void;
   onCancel: () => void;
   remainingBalance: number;
 }
@@ -16,32 +16,47 @@ export default function PaymentForm({
   remainingBalance,
 }: PaymentFormProps) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState<Payment>({
-    id: payment?.id || crypto.randomUUID(),
-    amount: payment?.amount || 0,
-    method: payment?.method || "cash",
-    date: payment?.date || new Date().toISOString().split("T")[0],
-    chequeNumber: payment?.chequeNumber || "",
-    bankName: payment?.bankName || "",
-    chequeCashingDate: payment?.chequeCashingDate || "",
-  });
+
+  // This function initializes the form state correctly
+  const getInitialFormData = (): Omit<Payment, '_id' | 'id'> => {
+    // If we are editing an existing payment, use its data
+    if (payment) {
+      return {
+        amount: payment.amount,
+        method: payment.method,
+        // Ensure date is correctly formatted as YYYY-MM-DD
+        date: payment.date ? new Date(payment.date).toISOString().split("T")[0] : "",
+        chequeNumber: payment.chequeNumber || "",
+        bankName: payment.bankName || "",
+        chequeCashingDate: payment.chequeCashingDate ? new Date(payment.chequeCashingDate).toISOString().split("T")[0] : "",
+      };
+    }
+    // Otherwise, this is a new payment, so provide default values
+    return {
+      amount: 0,
+      method: "cash",
+      date: new Date().toISOString().split("T")[0],
+      chequeNumber: "",
+      bankName: "",
+      chequeCashingDate: "",
+    };
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData());
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (payment) {
-      setFormData(payment);
-    }
-  }, [payment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate payment amount against remaining balance
-    if (formData.amount > remainingBalance) {
-      setError(`Payment amount cannot exceed the remaining balance (${remainingBalance} MAD)`);
+
+    // When editing, the remaining balance should be the old balance + the payment amount being edited.
+    const validationBalance = payment ? remainingBalance + payment.amount : remainingBalance;
+
+    if (formData.amount > validationBalance) {
+      setError(`Payment amount cannot exceed the remaining balance (${validationBalance.toLocaleString()} MAD)`);
       return;
     }
-    
+
     onSave(formData);
   };
 
@@ -68,20 +83,20 @@ export default function PaymentForm({
               amount,
             }));
             // Clear error when amount is valid
-            if (amount <= remainingBalance) {
+            const validationBalance = payment ? remainingBalance + payment.amount : remainingBalance;
+            if (amount <= validationBalance) {
               setError(null);
             }
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           min="0"
-          max={remainingBalance}
           step="0.01"
           required
         />
         {error && (
           <p className="mt-1 text-sm text-red-600">{error}</p>
         )}
-        <p className="mt-1 text-sm text-gray-500">
+         <p className="mt-1 text-sm text-gray-500">
           Remaining balance: {remainingBalance.toLocaleString()} MAD
         </p>
       </div>

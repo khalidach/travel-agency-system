@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, MapPin, Calendar, Users } from 'lucide-react';
 import Modal from '../components/Modal';
 import ProgramForm from '../components/ProgramForm';
 import type { Program } from '../context/AppContext';
+import * as api from '../services/api';
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -30,20 +31,33 @@ export default function Programs() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProgram = (programId: string) => {
+  const handleDeleteProgram = async (programId: string) => {
     if (window.confirm('Are you sure you want to delete this program?')) {
-      dispatch({ type: 'DELETE_PROGRAM', payload: programId });
+      try {
+        await api.deleteProgram(programId);
+        dispatch({ type: 'DELETE_PROGRAM', payload: programId });
+      } catch (error) {
+        console.error("Failed to delete program", error);
+        // Optionally, show an error message to the user
+      }
     }
   };
 
-  const handleSaveProgram = (program: Program) => {
-    if (editingProgram) {
-      dispatch({ type: 'UPDATE_PROGRAM', payload: program });
-    } else {
-      dispatch({ type: 'ADD_PROGRAM', payload: { ...program, id: Date.now().toString() } });
+  const handleSaveProgram = async (program: Program) => {
+    try {
+      if (editingProgram) {
+        const updatedProgram = await api.updateProgram(editingProgram._id, program);
+        dispatch({ type: 'UPDATE_PROGRAM', payload: updatedProgram });
+      } else {
+        const newProgram = await api.createProgram(program);
+        dispatch({ type: 'ADD_PROGRAM', payload: newProgram });
+      }
+      setIsModalOpen(false);
+      setEditingProgram(null);
+    } catch (error) {
+        console.error("Failed to save program", error);
+        // Optionally, show an error message to the user
     }
-    setIsModalOpen(false);
-    setEditingProgram(null);
   };
 
   const getTypeColor = (type: string) => {
@@ -54,6 +68,10 @@ export default function Programs() {
       default: return 'bg-gray-100 text-gray-700';
     }
   };
+
+  if (state.loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -100,7 +118,7 @@ export default function Programs() {
       {/* Programs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredPrograms.map((program) => (
-          <div key={program.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
+          <div key={program._id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
@@ -116,7 +134,7 @@ export default function Programs() {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => handleDeleteProgram(program.id)}
+                  onClick={() => handleDeleteProgram(program._id)}
                   className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />

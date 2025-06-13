@@ -1,11 +1,14 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
+import * as api from '../services/api';
 
+// Interfaces (keep them as they are)
 export interface CityData {
   name: string;
   nights: number;
 }
 
 export interface Program {
+  _id: string;
   id: string;
   name: string;
   type: "Hajj" | "Umrah" | "Tourism";
@@ -33,6 +36,7 @@ export interface RoomPrice {
 }
 
 export interface Booking {
+  _id: string;
   id: string;
   clientNameAr: string;
   clientNameFr: string;
@@ -55,6 +59,7 @@ export interface Booking {
 }
 
 export interface Payment {
+  _id: string;
   id: string;
   amount: number;
   method: "cash" | "cheque" | "transfer" | "card";
@@ -77,6 +82,7 @@ export interface HotelPrice {
 }
 
 export interface ProgramPricing {
+  _id: string;
   id: string;
   selectProgram: string;
   programId: string;
@@ -91,325 +97,104 @@ interface AppState {
   bookings: Booking[];
   programPricing: ProgramPricing[];
   currentLanguage: "en" | "ar" | "fr";
+  loading: boolean;
 }
 
+// AppAction remains the same, but with new actions for setting data
 type AppAction =
+  | { type: "SET_LOADING"; payload: boolean }
+  | { type: "SET_PROGRAMS"; payload: Program[] }
+  | { type: "SET_BOOKINGS"; payload: Booking[] }
+  | { type: "SET_PROGRAM_PRICING"; payload: ProgramPricing[] }
   | { type: "ADD_PROGRAM"; payload: Program }
   | { type: "UPDATE_PROGRAM"; payload: Program }
   | { type: "DELETE_PROGRAM"; payload: string }
   | { type: "ADD_BOOKING"; payload: Booking }
   | { type: "UPDATE_BOOKING"; payload: Booking }
   | { type: "DELETE_BOOKING"; payload: string }
-  | { type: "ADD_PAYMENT"; payload: { bookingId: string; payment: Payment } }
-  | {
-      type: "UPDATE_PAYMENT";
-      payload: { bookingId: string; paymentId: string; payment: Payment };
-    }
-  | {
-      type: "DELETE_PAYMENT";
-      payload: { bookingId: string; paymentId: string };
-    }
+  | { type: "ADD_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
+  | { type: "UPDATE_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
+  | { type: "DELETE_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
   | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
   | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "DELETE_PROGRAM_PRICING"; payload: string };
 
+// The initial state is now empty, as it will be filled by API calls.
 const initialState: AppState = {
-  programPricing: [
-    {
-      id: "1",
-      selectProgram: "Umrah Spring 2025",
-      programId: "1",
-      ticketAirline: 9000,
-      visaFees: 1650,
-      guideFees: 500,
-      allHotels: [
-        {
-          name: "Al-Taysir Towers",
-          city: "Makkah",
-          nights: 5,
-          PricePerNights: {
-            double: 800,
-            triple: 700,
-            quad: 600,
-            quintuple: 500,
-          },
-        },
-        {
-          name: "Safir Al Misk",
-          city: "Makkah",
-          nights: 5,
-          PricePerNights: {
-            double: 1000,
-            triple: 900,
-            quad: 800,
-            quintuple: 700,
-          },
-        },
-        {
-          name: "Qasr Al-Ansar",
-          city: "Madinah",
-          nights: 5,
-          PricePerNights: {
-            double: 900,
-            triple: 800,
-            quad: 700,
-            quintuple: 600,
-          },
-        },
-      ],
-    },
-  ],
-  programs: [
-    {
-      id: "1",
-      name: "Umrah Spring 2025",
-      type: "Umrah",
-      duration: 10,
-      cities: [
-        { name: "Makkah", nights: 5 },
-        { name: "Madinah", nights: 5 },
-      ],
-      packages: [
-        {
-          name: "Standard",
-          hotels: {
-            Makkah: ["Al-Taysir Towers", "Safir Al Misk"],
-            Madinah: ["Qasr Al-Ansar"],
-          },
-          prices: [
-            {
-              hotelCombination: "Qasr Al-Ansar_Al-Taysir Towers",
-              roomTypes: [
-                { type: "Double", sellingPrice: 4000 },
-                { type: "Triple", sellingPrice: 3500 },
-              ],
-            },
-            {
-              hotelCombination: "Qasr Al-Ansar_Safir Al Misk",
-              roomTypes: [
-                { type: "Quad", sellingPrice: 6500 },
-                { type: "Triple", sellingPrice: 8500 },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Hajj 2025 Premium",
-      type: "Hajj",
-      duration: 21,
-      cities: [
-        { name: "Makkah", nights: 7 },
-        { name: "Madinah", nights: 7 },
-        { name: "Mina", nights: 7 },
-      ],
-      packages: [
-        {
-          name: "Premium",
-          hotels: {
-            Makkah: ["Fairmont Makkah", "Swissotel Makkah"],
-            Madinah: ["Pullman Zamzam Madinah"],
-          },
-          prices: [
-            {
-              hotelCombination: "Pullman Zamzam Madinah_Fairmont Makkah",
-              roomTypes: [
-                { type: "Single", sellingPrice: 15000 },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  bookings: [
-    {
-      id: "1",
-      clientNameAr: "أحمد بن علي",
-      clientNameFr: "Ahmed Ben Ali",
-      passportNumber: "A12345678",
-      phoneNumber: "0612345678",
-      tripId: "1",
-      packageId: "Standard",
-      selectedHotel: {
-        cities: ["Makkah", "Madinah"],
-        hotelNames: ["Al-Taysir Towers", "Qasr Al-Ansar"],
-        roomType: "Double",
-      },
-      sellingPrice: 4000,
-      basePrice: 3000,
-      advancePayments: [
-        { id: "1", amount: 2000, method: "cash", date: "2025-01-15" },
-      ],
-      remainingBalance: 2000,
-      isFullyPaid: false,
-      profit: 1000,
-      createdAt: "2025-01-15",
-    },
-    {
-      id: "2",
-      clientNameAr: "فاطمة الزهراء",
-      clientNameFr: "Fatima Zahra",
-      passportNumber: "B87654321",
-      phoneNumber: "0612345678",
-      tripId: "2",
-      packageId: "Premium",
-      selectedHotel: {
-        cities: ["Makkah", "Madinah"],
-        hotelNames: ["Fairmont Makkah", "Pullman Zamzam Madinah"],
-        roomType: "Double",
-      },
-      sellingPrice: 10000,
-      basePrice: 8000,
-      advancePayments: [
-        { id: "2", amount: 5000, method: "transfer", date: "2025-01-10" },
-        { id: "3", amount: 5000, method: "cash", date: "2025-01-20" },
-      ],
-      remainingBalance: 0,
-      isFullyPaid: true,
-      profit: 2000,
-      createdAt: "2025-01-10",
-    },
-  ],
+  programs: [],
+  bookings: [],
+  programPricing: [],
   currentLanguage: "en",
+  loading: true,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case "SET_LOADING":
+      return { ...state, loading: action.payload };
+    case "SET_PROGRAMS":
+      return { ...state, programs: action.payload.map(p => ({...p, id: p._id})) };
+    case "SET_BOOKINGS":
+      return { ...state, bookings: action.payload.map(b => ({...b, id: b._id})) };
+    case "SET_PROGRAM_PRICING":
+        return { ...state, programPricing: action.payload.map(p => ({...p, id: p._id})) };
     case "ADD_PROGRAM":
-      return { ...state, programs: [...state.programs, action.payload] };
-
+      return { ...state, programs: [...state.programs, {...action.payload, id: action.payload._id}] };
     case "UPDATE_PROGRAM":
       return {
         ...state,
         programs: state.programs.map((p) =>
-          p.id === action.payload.id ? action.payload : p
+          p._id === action.payload._id ? {...action.payload, id: action.payload._id} : p
         ),
       };
-
     case "DELETE_PROGRAM":
       return {
         ...state,
-        programs: state.programs.filter((p) => p.id !== action.payload),
+        programs: state.programs.filter((p) => p._id !== action.payload),
       };
-
     case "ADD_BOOKING":
-      return { ...state, bookings: [...state.bookings, action.payload] };
-
+       return { ...state, bookings: [...state.bookings, {...action.payload, id: action.payload._id}] };
     case "UPDATE_BOOKING":
-      return {
-        ...state,
-        bookings: state.bookings.map((b) =>
-          b.id === action.payload.id ? action.payload : b
-        ),
-      };
-
+        return {
+            ...state,
+            bookings: state.bookings.map((b) =>
+              b._id === action.payload._id ? {...action.payload, id: action.payload._id} : b
+            ),
+          };
     case "DELETE_BOOKING":
       return {
         ...state,
-        bookings: state.bookings.filter((b) => b.id !== action.payload),
+        bookings: state.bookings.filter((b) => b._id !== action.payload),
       };
-
     case "ADD_PAYMENT":
-      return {
-        ...state,
-        bookings: state.bookings.map((booking) => {
-          if (booking.id === action.payload.bookingId) {
-            const newPayments = [
-              ...booking.advancePayments,
-              action.payload.payment,
-            ];
-            const totalPaid = newPayments.reduce(
-              (sum, payment) => sum + payment.amount,
-              0
-            );
-            const remainingBalance = booking.sellingPrice - totalPaid;
-            return {
-              ...booking,
-              advancePayments: newPayments,
-              remainingBalance: Math.max(0, remainingBalance),
-              isFullyPaid: remainingBalance <= 0,
-            };
-          }
-          return booking;
-        }),
-      };
     case "UPDATE_PAYMENT":
-      return {
-        ...state,
-        bookings: state.bookings.map((booking) => {
-          if (booking.id === action.payload.bookingId) {
-            const newPayments = booking.advancePayments.map((payment) =>
-              payment.id === action.payload.paymentId
-                ? action.payload.payment
-                : payment
-            );
-            const totalPaid = newPayments.reduce(
-              (sum, payment) => sum + payment.amount,
-              0
-            );
-            const remainingBalance = booking.sellingPrice - totalPaid;
-            return {
-              ...booking,
-              advancePayments: newPayments,
-              remainingBalance: Math.max(0, remainingBalance),
-              isFullyPaid: remainingBalance <= 0,
-            };
-          }
-          return booking;
-        }),
-      };
     case "DELETE_PAYMENT":
-      return {
-        ...state,
-        bookings: state.bookings.map((booking) => {
-          if (booking.id === action.payload.bookingId) {
-            const newPayments = booking.advancePayments.filter(
-              (payment) => payment.id !== action.payload.paymentId
-            );
-            const totalPaid = newPayments.reduce(
-              (sum, payment) => sum + payment.amount,
-              0
-            );
-            const remainingBalance = booking.sellingPrice - totalPaid;
-            return {
-              ...booking,
-              advancePayments: newPayments,
-              remainingBalance: Math.max(0, remainingBalance),
-              isFullyPaid: remainingBalance <= 0,
-            };
-          }
-          return booking;
-        }),
-      };
+        return {
+            ...state,
+            bookings: state.bookings.map(b => b._id === action.payload.bookingId ? {...action.payload.updatedBooking, id: action.payload.updatedBooking._id} : b)
+        };
     case "SET_LANGUAGE":
       return { ...state, currentLanguage: action.payload };
-
     case "ADD_PROGRAM_PRICING":
-      return {
-        ...state,
-        programPricing: [...state.programPricing, action.payload],
-      };
-
+        return {
+            ...state,
+            programPricing: [...state.programPricing, {...action.payload, id: action.payload._id}],
+          };
     case "UPDATE_PROGRAM_PRICING":
       return {
         ...state,
         programPricing: state.programPricing.map((p) =>
-          p.id === action.payload.id ? action.payload : p
+          p._id === action.payload._id ? {...action.payload, id: action.payload._id} : p
         ),
       };
-
     case "DELETE_PROGRAM_PRICING":
       return {
         ...state,
         programPricing: state.programPricing.filter(
-          (p) => p.id !== action.payload
+          (p) => p._id !== action.payload
         ),
       };
-
     default:
       return state;
   }
@@ -422,6 +207,28 @@ const AppContext = createContext<{
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        dispatch({ type: "SET_LOADING", payload: true });
+        const [programs, bookings, programPricing] = await Promise.all([
+          api.getPrograms(),
+          api.getBookings(),
+          api.getProgramPricing(),
+        ]);
+        dispatch({ type: "SET_PROGRAMS", payload: programs });
+        dispatch({ type: "SET_BOOKINGS", payload: bookings });
+        dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
+      } catch (error) {
+        console.error("Failed to fetch initial data", error);
+      } finally {
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
