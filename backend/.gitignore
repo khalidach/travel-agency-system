@@ -8,6 +8,7 @@ yarn.lock
 .env.local
 .env.*.local
 
+addUser.js
 # Logs
 logs
 *.log
