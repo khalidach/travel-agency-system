@@ -25,7 +25,7 @@ export default function ProgramPricing() {
 
   // Effect to update hotels when a program is selected FOR A NEW PRICING
   useEffect(() => {
-    // ADDED a check here: only run if a program is selected AND we are not editing an existing price.
+    // only run if a program is selected AND we are not editing an existing price.
     if (selectedProgram && !('_id' in currentPricing)) {
       const hotelsList = selectedProgram.cities.flatMap((city) =>
         Object.values(selectedProgram.packages[0].hotels[city.name] || []).map(
@@ -50,7 +50,7 @@ export default function ProgramPricing() {
         allHotels: hotelsList,
       }));
     }
-  }, [selectedProgram, currentPricing]); // Added currentPricing to dependency array
+  }, [selectedProgram, currentPricing]);
 
   const handleProgramSelect = (programId: string) => {
     const program = programs.find((p) => p._id === programId);
@@ -65,7 +65,40 @@ export default function ProgramPricing() {
   const handleEditPricing = (pricing: ProgramPricing) => {
     const program = programs.find((p) => p._id === pricing.programId);
     setSelectedProgram(program || null);
-    setCurrentPricing(pricing);
+  
+    if (program) {
+      // Get all hotels from the program definition
+      const programHotels = program.cities.flatMap(city =>
+        (Object.values(program.packages[0]?.hotels[city.name] || []) as string[]).map(hotelName => ({
+          name: hotelName,
+          city: city.name,
+          nights: city.nights
+        }))
+      );
+  
+      const pricingHotels = pricing.allHotels || [];
+  
+      // Add new hotels from the program that are not yet in the pricing data
+      const hotelsToAdd = programHotels
+        .filter(pHotel => !pricingHotels.some(prHotel => prHotel.name === pHotel.name && prHotel.city === pHotel.city))
+        .map(newHotel => ({
+          name: newHotel.name,
+          city: newHotel.city,
+          nights: newHotel.nights,
+          PricePerNights: { double: 0, triple: 0, quad: 0, quintuple: 0 } // Default prices
+        }));
+  
+      // Filter out hotels from pricing that are no longer in the program definition
+      const hotelsToKeep = pricingHotels.filter(prHotel =>
+        programHotels.some(pHotel => pHotel.name === prHotel.name && prHotel.city === prHotel.city)
+      );
+  
+      const synchronizedHotels = [...hotelsToKeep, ...hotelsToAdd];
+  
+      setCurrentPricing({ ...pricing, allHotels: synchronizedHotels });
+    } else {
+      setCurrentPricing(pricing);
+    }
   };
 
   const handleDeletePricing = async (id: string) => {

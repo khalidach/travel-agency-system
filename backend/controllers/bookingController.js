@@ -1,4 +1,6 @@
 const Booking = require('../models/bookingModel');
+const Program = require('../models/programModel');
+const excel = require('exceljs');
 
 // Get all bookings
 exports.getAllBookings = async (req, res) => {
@@ -113,3 +115,70 @@ exports.deletePayment = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 }; 
+
+// Export bookings for a specific program to an Excel file
+exports.exportBookingsToExcel = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    
+    if (!programId || programId === 'all') {
+      return res.status(400).json({ message: 'A specific program must be selected for export.' });
+    }
+
+    const bookings = await Booking.find({ tripId: programId });
+    const program = await Program.findById(programId);
+
+    if (!program) {
+        return res.status(404).json({ message: 'Program not found.' });
+    }
+    
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: 'No bookings found for this program.' });
+    }
+
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Bookings');
+
+    worksheet.columns = [
+      { header: 'Client Name (FR)', key: 'clientNameFr', width: 30 },
+      { header: 'Client Name (AR)', key: 'clientNameAr', width: 30 },
+      { header: 'Passport Number', key: 'passportNumber', width: 20 },
+      { header: 'Phone Number', key: 'phoneNumber', width: 20 },
+      { header: 'Room Type', key: 'roomType', width: 15 },
+      { header: 'Selling Price', key: 'sellingPrice', width: 15 },
+      { header: 'Base Price', key: 'basePrice', width: 15 },
+      { header: 'Profit', key: 'profit', width: 15 },
+      { header: 'Total Paid', key: 'totalPaid', width: 15 },
+      { header: 'Remaining Balance', key: 'remainingBalance', width: 20 },
+      { header: 'Payment Status', key: 'paymentStatus', width: 15 }
+    ];
+
+    bookings.forEach(booking => {
+        const totalPaid = booking.advancePayments.reduce((sum, p) => sum + p.amount, 0);
+        worksheet.addRow({
+            clientNameFr: booking.clientNameFr,
+            clientNameAr: booking.clientNameAr,
+            passportNumber: booking.passportNumber,
+            phoneNumber: booking.phoneNumber,
+            roomType: booking.selectedHotel.roomType,
+            sellingPrice: booking.sellingPrice,
+            basePrice: booking.basePrice,
+            profit: booking.profit,
+            totalPaid: totalPaid,
+            remainingBalance: booking.remainingBalance,
+            paymentStatus: booking.isFullyPaid ? 'Paid' : 'Pending'
+        });
+    });
+
+    const fileName = `${program.name.replace(/\s/g, '_')}_bookings.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Failed to export to Excel:', error);
+    res.status(500).json({ message: 'Failed to export bookings to Excel.' });
+  }
+};
