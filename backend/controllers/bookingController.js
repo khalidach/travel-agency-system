@@ -165,37 +165,154 @@ exports.exportBookingsToExcel = async (req, res) => {
     }
 
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Bookings');
+    const worksheet = workbook.addWorksheet('Bookings', {
+      views: [{ rightToLeft: false }]
+    });
 
+    // Define columns with headers only (widths will be set after data is added)
     worksheet.columns = [
-      { header: 'Client Name (FR)', key: 'clientNameFr', width: 30 },
-      { header: 'Client Name (AR)', key: 'clientNameAr', width: 30 },
-      { header: 'Passport Number', key: 'passportNumber', width: 20 },
-      { header: 'Phone Number', key: 'phoneNumber', width: 20 },
-      { header: 'Room Type', key: 'roomType', width: 15 },
-      { header: 'Selling Price', key: 'sellingPrice', width: 15 },
-      { header: 'Base Price', key: 'basePrice', width: 15 },
-      { header: 'Profit', key: 'profit', width: 15 },
-      { header: 'Total Paid', key: 'totalPaid', width: 15 },
-      { header: 'Remaining Balance', key: 'remainingBalance', width: 20 },
-      { header: 'Payment Status', key: 'paymentStatus', width: 15 }
+      { header: 'ID', key: 'id' },
+      { header: 'Name (French)', key: 'clientNameFr' },
+      { header: 'Name (Arabic)', key: 'clientNameAr' },
+      { header: 'Passport Number', key: 'passportNumber' },
+      { header: 'Phone Number', key: 'phoneNumber' },
+      { header: 'Package', key: 'packageId' },
+      { header: 'Hotels Chosen', key: 'hotels' },
+      { header: 'Room Type', key: 'roomType' },
+      { header: 'Base Price', key: 'basePrice', style: { numFmt: '#,##0.00 "MAD"' } },
+      { header: 'Sell Price', key: 'sellingPrice', style: { numFmt: '#,##0.00 "MAD"' } },
+      { header: 'Profit', key: 'profit', style: { numFmt: '#,##0.00 "MAD"' } },
+      { header: 'Paid', key: 'paid', style: { numFmt: '#,##0.00 "MAD"' } },
+      { header: 'Remaining', key: 'remaining', style: { numFmt: '#,##0.00 "MAD"' } },
     ];
+    
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, size: 16 };
+    headerRow.height = 35; // Fixed header height
+    headerRow.eachCell(cell => {
+        cell.alignment = { 
+            vertical: 'middle', 
+            horizontal: 'center'
+        };
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFFFFF00' }
+        };
+        cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+        };
+    });
 
-    bookings.forEach(booking => {
+    // Add data rows and apply styling
+    bookings.forEach((booking, index) => {
         const totalPaid = booking.advancePayments.reduce((sum, p) => sum + p.amount, 0);
-        worksheet.addRow({
+        const row = worksheet.addRow({
+            id: index + 1,
             clientNameFr: booking.clientNameFr,
             clientNameAr: booking.clientNameAr,
             passportNumber: booking.passportNumber,
             phoneNumber: booking.phoneNumber,
+            packageId: booking.packageId,
+            hotels: booking.selectedHotel.hotelNames.join(', '),
             roomType: booking.selectedHotel.roomType,
-            sellingPrice: booking.sellingPrice,
             basePrice: booking.basePrice,
+            sellingPrice: booking.sellingPrice,
             profit: booking.profit,
-            totalPaid: totalPaid,
-            remainingBalance: booking.remainingBalance,
-            paymentStatus: booking.isFullyPaid ? 'Paid' : 'Pending'
+            paid: totalPaid,
+            remaining: booking.remainingBalance
         });
+        
+        // Set font size and row height for each cell in the data row
+        row.font = { size: 16 };
+        row.height = 30; // Fixed row height
+        row.eachCell(cell => {
+            // Special alignment for different types of content
+            if (typeof cell.value === 'number') {
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            } else if (cell.col === 3) { // Arabic names column
+                cell.alignment = { vertical: 'middle', horizontal: 'right' };
+            } else {
+                cell.alignment = { vertical: 'middle', horizontal: 'left' };
+            }
+            // Add borders to all cells
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        });
+    });
+
+    // Add empty row for spacing
+    const spacingRow = worksheet.addRow([]);
+    spacingRow.height = 20;
+    
+    // Add summary row with totals
+    const lastDataRow = worksheet.lastRow.number;
+    const summaryRow = worksheet.addRow([
+        `Total Bookings: ${bookings.length}`,
+        null, null, null, null, null, null,
+        'Totals:',
+        { formula: `SUM(I2:I${lastDataRow-1})`, style: { numFmt: '#,##0.00 "MAD"' } },
+        { formula: `SUM(J2:J${lastDataRow-1})`, style: { numFmt: '#,##0.00 "MAD"' } },
+        { formula: `SUM(K2:K${lastDataRow-1})`, style: { numFmt: '#,##0.00 "MAD"' } },
+        { formula: `SUM(L2:L${lastDataRow-1})`, style: { numFmt: '#,##0.00 "MAD"' } },
+        { formula: `SUM(M2:M${lastDataRow-1})`, style: { numFmt: '#,##0.00 "MAD"' } }
+    ]);
+    
+    // Style the summary row
+    summaryRow.font = { bold: true, size: 16 };
+    summaryRow.height = 35;
+    summaryRow.eachCell(cell => {
+        if (cell.value) {
+            cell.alignment = { 
+                vertical: 'middle',
+                horizontal: cell.type === 'number' ? 'right' : 'left'
+            };
+            // Add borders to summary row
+            cell.border = {
+                top: { style: 'thin' },
+                left: { style: 'thin' },
+                bottom: { style: 'thin' },
+                right: { style: 'thin' }
+            };
+        }
+    });
+
+    // Auto-fit columns based on content
+    worksheet.columns.forEach((column) => {
+        let maxLength = 0;
+        column.eachCell({ includeEmpty: true }, (cell) => {
+            // Get the actual length of the cell content
+            let cellLength;
+            if (cell.value === null || cell.value === undefined) {
+                cellLength = 0;
+            } else if (typeof cell.value === 'number') {
+                // For numbers, convert to formatted string to get actual display length
+                cellLength = cell.text.length;
+            } else if (typeof cell.value === 'object' && cell.value.formula) {
+                // For formulas, estimate based on typical MAD number format
+                cellLength = 15; // Approximate width for currency values
+            } else {
+                cellLength = cell.value.toString().length;
+            }
+            
+            // Account for font size difference
+            const fontFactor = cell.font && cell.font.size ? (cell.font.size / 11) : 1;
+            cellLength = cellLength * fontFactor;
+            
+            // Update maxLength if this cell's content is longer
+            maxLength = Math.max(maxLength, cellLength);
+        });
+        
+        // Set column width with some padding
+        column.width = Math.min(Math.max(maxLength + 2, 8), 100);
     });
 
     const fileName = `${program.name.replace(/\s/g, '_')}_bookings.xlsx`;

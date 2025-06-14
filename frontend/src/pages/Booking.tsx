@@ -430,6 +430,24 @@ export default function BookingPage() {
             </tbody>
           </table>
         </div>
+        {filteredBookings.length > 0 && (
+            <div className="bg-gray-50 px-6 py-4 border-t-2 font-mono">
+              <div className="grid grid-cols-5 text-sm">
+                  <div className="font-bold text-gray-800">Totals ({summaryStats.totalBookings} Bookings)</div>
+                  <div />
+                  <div>
+                      <p>Sell: <span className="font-semibold text-gray-700">{summaryStats.totalRevenue.toLocaleString()} MAD</span></p>
+                      <p>Cost: <span className="font-semibold text-gray-700">{summaryStats.totalCost.toLocaleString()} MAD</span></p>
+                      <p className="text-emerald-600">Profit: <span className="font-bold">{summaryStats.totalProfit.toLocaleString()} MAD</span></p>
+                  </div>
+                  <div>
+                      <p>Paid: <span className="font-semibold text-blue-600">{summaryStats.totalPaid.toLocaleString()} MAD</span></p>
+                      <p>Remaining: <span className="font-semibold text-orange-600">{summaryStats.totalRemaining.toLocaleString()} MAD</span></p>
+                  </div>
+                  <div />
+              </div>
+            </div>
+        )}
       </div>
 
       {filteredBookings.length === 0 && (
