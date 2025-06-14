@@ -4,7 +4,11 @@ const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Import middleware
+const { protect } = require('./middleware/authMiddleware');
+
 // Import routes
+const authRoutes = require('./routes/authRoutes');
 const programRoutes = require('./routes/programRoutes');
 const programPricingRoutes = require('./routes/programPricingRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
@@ -21,9 +25,12 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // API routes
-app.use('/api/programs', programRoutes);
-app.use('/api/program-pricing', programPricingRoutes);
-app.use('/api/bookings', bookingRoutes);
+app.use('/api/auth', authRoutes);
+// Apply protect middleware to all data routes
+app.use('/api/programs', protect, programRoutes);
+app.use('/api/program-pricing', protect, programPricingRoutes);
+app.use('/api/bookings', protect, bookingRoutes);
+
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
@@ -42,4 +49,4 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-}); 
+});

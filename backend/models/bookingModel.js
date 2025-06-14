@@ -1,3 +1,4 @@
+// backend/models/bookingModel.js
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
@@ -20,6 +21,11 @@ const paymentSchema = new mongoose.Schema({
 });
 
 const bookingSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User'
+  },
   clientNameAr: {
     type: String,
     required: true
@@ -86,4 +92,4 @@ bookingSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Booking', bookingSchema); 
+module.exports = mongoose.model('Booking', bookingSchema);

@@ -1,21 +1,25 @@
+// backend/controllers/bookingController.js
 const Booking = require('../models/bookingModel');
 const Program = require('../models/programModel');
 const excel = require('exceljs');
 
-// Get all bookings
+// Get all bookings for the logged-in user
 exports.getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.find();
+    const bookings = await Booking.find({ user: req.user.id });
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Create a new booking
+// Create a new booking for the logged-in user
 exports.createBooking = async (req, res) => {
   try {
-    const booking = new Booking(req.body);
+    const booking = new Booking({
+      ...req.body,
+      user: req.user.id
+    });
     const newBooking = await booking.save();
     res.status(201).json(newBooking);
   } catch (error) {
@@ -26,15 +30,21 @@ exports.createBooking = async (req, res) => {
 // Update a booking
 exports.updateBooking = async (req, res) => {
   try {
-    const booking = await Booking.findByIdAndUpdate(
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    if (booking.user.toString() !== req.user.id) {
+        return res.status(401).json({ message: 'User not authorized' });
+    }
+
+    const updatedBooking = await Booking.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-    res.json(booking);
+    res.json(updatedBooking);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -43,10 +53,16 @@ exports.updateBooking = async (req, res) => {
 // Delete a booking
 exports.deleteBooking = async (req, res) => {
   try {
-    const booking = await Booking.findByIdAndDelete(req.params.id);
+    const booking = await Booking.findById(req.params.id);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
+
+    if (booking.user.toString() !== req.user.id) {
+        return res.status(401).json({ message: 'User not authorized' });
+    }
+    
+    await booking.remove();
     res.json({ message: 'Booking deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -59,6 +75,10 @@ exports.addPayment = async (req, res) => {
     const booking = await Booking.findById(req.params.bookingId);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
+    }
+    
+    if (booking.user.toString() !== req.user.id) {
+        return res.status(401).json({ message: 'User not authorized' });
     }
 
     booking.advancePayments.push(req.body);
@@ -75,6 +95,10 @@ exports.updatePayment = async (req, res) => {
     const booking = await Booking.findById(req.params.bookingId);
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    if (booking.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: 'User not authorized' });
     }
 
     const paymentIndex = booking.advancePayments.findIndex(
@@ -105,6 +129,10 @@ exports.deletePayment = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
+    if (booking.user.toString() !== req.user.id) {
+        return res.status(401).json({ message: 'User not authorized' });
+    }
+
     booking.advancePayments = booking.advancePayments.filter(
       payment => payment._id.toString() !== req.params.paymentId
     );
@@ -125,7 +153,7 @@ exports.exportBookingsToExcel = async (req, res) => {
       return res.status(400).json({ message: 'A specific program must be selected for export.' });
     }
 
-    const bookings = await Booking.find({ tripId: programId });
+    const bookings = await Booking.find({ tripId: programId, user: req.user.id });
     const program = await Program.findById(programId);
 
     if (!program) {

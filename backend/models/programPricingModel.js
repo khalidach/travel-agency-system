@@ -1,6 +1,12 @@
+// backend/models/programPricingModel.js
 const mongoose = require('mongoose');
 
 const programPricingSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User'
+  },
   programId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Program',
@@ -47,4 +53,4 @@ const programPricingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('ProgramPricing', programPricingSchema); 
+module.exports = mongoose.model('ProgramPricing', programPricingSchema);

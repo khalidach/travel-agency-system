@@ -1,16 +1,50 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
-// Helper function for API requests
-async function request(endpoint: string, options: RequestInit = {}, returnsBlob = false) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+// --- Auth API ---
+export const login = async (username: string, password: string) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers,
     },
-    ...options,
+    body: JSON.stringify({ username, password }),
   });
 
   if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Login failed');
+  }
+
+  return response.json();
+};
+
+
+// Helper function for authenticated API requests
+async function request(endpoint: string, options: RequestInit = {}, returnsBlob = false) {
+  // Retrieve user data from local storage to get the token
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  } as Record<string, string>;
+
+  if (user && user.token) {
+    headers['Authorization'] = `Bearer ${user.token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      // If unauthorized, dispatch a logout event or redirect to login
+      // For simplicity, we'll let the AppContext handle this via the error
+      window.dispatchEvent(new Event('auth-error'));
+    }
     const errorData = await response.json();
     throw new Error(errorData.message || 'Something went wrong');
   }
@@ -47,3 +81,4 @@ export const deletePayment = (bookingId: string, paymentId: string) => request(`
 // --- Export API ---
 export const exportBookingsToExcel = (programId: string) => 
   request(`/bookings/export-excel/program/${programId}`, {}, true);
+

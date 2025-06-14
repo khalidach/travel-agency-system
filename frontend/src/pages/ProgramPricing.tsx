@@ -23,82 +23,94 @@ export default function ProgramPricing() {
 
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 
-  // Effect to update hotels when a program is selected FOR A NEW PRICING
-  useEffect(() => {
-    // only run if a program is selected AND we are not editing an existing price.
-    if (selectedProgram && !('_id' in currentPricing)) {
-      const hotelsList = selectedProgram.cities.flatMap((city) =>
-        Object.values(selectedProgram.packages[0].hotels[city.name] || []).map(
-          (hotelName) => ({
-            name: hotelName as string,
-            city: city.name,
-            nights: city.nights,
-            PricePerNights: {
-              double: 0,
-              triple: 0,
-              quad: 0,
-              quintuple: 0,
-            },
-          })
-        )
-      );
-
-      setCurrentPricing((prev) => ({
-        ...prev,
-        selectProgram: selectedProgram.name,
-        programId: selectedProgram._id,
-        allHotels: hotelsList,
-      }));
-    }
-  }, [selectedProgram, currentPricing]);
-
   const handleProgramSelect = (programId: string) => {
     const program = programs.find((p) => p._id === programId);
-    // When a new program is selected from the dropdown, reset the form.
-    setCurrentPricing(emptyPricing);
-    setSelectedProgram(program || null);
-    if (!programId) {
-        setCurrentPricing(emptyPricing);
+    if (!program) {
+      setCurrentPricing(emptyPricing);
+      setSelectedProgram(null);
+      return;
     }
+
+    // Get all hotels from all packages in the program
+    const hotelsList = program.cities.flatMap((city) => {
+      // Get unique hotels across all packages for this city
+      const cityHotels = new Set<string>();
+      program.packages.forEach(pkg => {
+        const hotels = pkg.hotels[city.name] || [];
+        hotels.forEach(hotel => cityHotels.add(hotel));
+      });
+
+      return Array.from(cityHotels).map((hotelName) => ({
+        name: hotelName,
+        city: city.name,
+        nights: city.nights,
+        PricePerNights: {
+          double: 0,
+          triple: 0,
+          quad: 0,
+          quintuple: 0,
+        },
+      }));
+    });
+
+    setSelectedProgram(program);
+    setCurrentPricing({
+      ...emptyPricing,
+      selectProgram: program.name,
+      programId: program._id,
+      allHotels: hotelsList,
+    });
   };
 
   const handleEditPricing = (pricing: ProgramPricing) => {
     const program = programs.find((p) => p._id === pricing.programId);
-    setSelectedProgram(program || null);
-  
-    if (program) {
-      // Get all hotels from the program definition
-      const programHotels = program.cities.flatMap(city =>
-        (Object.values(program.packages[0]?.hotels[city.name] || []) as string[]).map(hotelName => ({
-          name: hotelName,
-          city: city.name,
-          nights: city.nights
-        }))
-      );
-  
-      const pricingHotels = pricing.allHotels || [];
-  
-      // Add new hotels from the program that are not yet in the pricing data
-      const hotelsToAdd = programHotels
-        .filter(pHotel => !pricingHotels.some(prHotel => prHotel.name === pHotel.name && prHotel.city === pHotel.city))
-        .map(newHotel => ({
-          name: newHotel.name,
-          city: newHotel.city,
-          nights: newHotel.nights,
-          PricePerNights: { double: 0, triple: 0, quad: 0, quintuple: 0 } // Default prices
-        }));
-  
-      // Filter out hotels from pricing that are no longer in the program definition
-      const hotelsToKeep = pricingHotels.filter(prHotel =>
-        programHotels.some(pHotel => pHotel.name === prHotel.name && prHotel.city === prHotel.city)
-      );
-  
-      const synchronizedHotels = [...hotelsToKeep, ...hotelsToAdd];
-  
-      setCurrentPricing({ ...pricing, allHotels: synchronizedHotels });
-    } else {
-      setCurrentPricing(pricing);
+    if (!program) {
+      console.error('Program not found');
+      return;
     }
+
+    setSelectedProgram(program);
+
+    // Get all hotels from all packages in the program
+    const programHotels = program.cities.flatMap((city) => {
+      // Get unique hotels across all packages for this city
+      const cityHotels = new Set<string>();
+      program.packages.forEach(pkg => {
+        const hotels = pkg.hotels[city.name] || [];
+        hotels.forEach(hotel => cityHotels.add(hotel));
+      });
+
+      return Array.from(cityHotels).map((hotelName) => ({
+        name: hotelName,
+        city: city.name,
+        nights: city.nights,
+      }));
+    });
+
+    // Create a map of existing hotel prices
+    const existingPrices = new Map(
+      pricing.allHotels.map((hotel) => [
+        `${hotel.city}-${hotel.name}`,
+        hotel.PricePerNights,
+      ])
+    );
+
+    // Create the synchronized hotels list
+    const synchronizedHotels = programHotels.map((hotel) => ({
+      ...hotel,
+      PricePerNights: existingPrices.get(`${hotel.city}-${hotel.name}`) || {
+        double: 0,
+        triple: 0,
+        quad: 0,
+        quintuple: 0,
+      },
+    }));
+
+    // Update the current pricing with synchronized hotels
+    setCurrentPricing({
+      ...pricing,
+      allHotels: synchronizedHotels,
+    });
   };
 
   const handleDeletePricing = async (id: string) => {
@@ -118,21 +130,18 @@ export default function ProgramPricing() {
   const handleHotelPriceChange = (
     hotelIndex: number,
     roomType: string,
-    value: number
+    value: string
   ) => {
     setCurrentPricing((prev) => {
-        const newHotels = (prev.allHotels || []).map((hotel, idx) =>
-            idx === hotelIndex
-              ? {
-                  ...hotel,
-                  PricePerNights: {
-                    ...hotel.PricePerNights,
-                    [roomType]: value,
-                  },
-                }
-              : hotel
-          );
-        return {...prev, allHotels: newHotels};
+      const newHotels = [...prev.allHotels];
+      newHotels[hotelIndex] = {
+        ...newHotels[hotelIndex],
+        PricePerNights: {
+          ...newHotels[hotelIndex].PricePerNights,
+          [roomType]: value === '' ? 0 : Number(value)
+        }
+      };
+      return { ...prev, allHotels: newHotels };
     });
   };
 
@@ -140,17 +149,25 @@ export default function ProgramPricing() {
     const isEditing = '_id' in currentPricing;
 
     try {
+        let updatedPricing;
         if (isEditing) {
-          const updatedPricing = await api.updateProgramPricing(currentPricing._id, currentPricing);
+          updatedPricing = await api.updateProgramPricing(currentPricing._id, currentPricing);
           dispatch({
             type: "UPDATE_PROGRAM_PRICING",
             payload: updatedPricing,
           });
+
+          // Fetch updated bookings to reflect new profit calculations
+          const updatedBookings = await api.getBookings();
+          dispatch({
+            type: "SET_BOOKINGS",
+            payload: updatedBookings,
+          });
         } else {
-          const newPricing = await api.createProgramPricing(currentPricing);
+          updatedPricing = await api.createProgramPricing(currentPricing);
           dispatch({
             type: "ADD_PROGRAM_PRICING",
-            payload: newPricing,
+            payload: updatedPricing,
           });
         }
 
@@ -269,12 +286,14 @@ export default function ProgramPricing() {
                       </label>
                       <input
                         type="number"
-                        value={price as number}
+                        min="0"
+                        step="any"
+                        value={price === 0 ? '' : price}
                         onChange={(e) =>
                           handleHotelPriceChange(
                             index,
                             type,
-                            Number(e.target.value)
+                            e.target.value
                           )
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"

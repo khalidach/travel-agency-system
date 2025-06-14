@@ -1,7 +1,14 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import * as api from '../services/api';
 
-// Interfaces (keep them as they are)
+// --- INTERFACES ---
+export interface User {
+  _id: string;
+  username: string;
+  agencyName: string;
+  token: string;
+}
+
 export interface CityData {
   name: string;
   nights: number;
@@ -93,6 +100,8 @@ export interface ProgramPricing {
 }
 
 interface AppState {
+  isAuthenticated: boolean;
+  user: User | null;
   programs: Program[];
   bookings: Booking[];
   programPricing: ProgramPricing[];
@@ -100,8 +109,9 @@ interface AppState {
   loading: boolean;
 }
 
-// AppAction remains the same, but with new actions for setting data
 type AppAction =
+  | { type: "LOGIN"; payload: User }
+  | { type: "LOGOUT" }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_PROGRAMS"; payload: Program[] }
   | { type: "SET_BOOKINGS"; payload: Booking[] }
@@ -120,17 +130,28 @@ type AppAction =
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "DELETE_PROGRAM_PRICING"; payload: string };
 
-// The initial state is now empty, as it will be filled by API calls.
+
+const userFromStorage = localStorage.getItem('user');
+const initialUser = userFromStorage ? JSON.parse(userFromStorage) : null;
+
 const initialState: AppState = {
   programs: [],
   bookings: [],
   programPricing: [],
   currentLanguage: "en",
-  loading: true,
+  loading: !!initialUser, // Only load if a user session exists
+  isAuthenticated: !!initialUser,
+  user: initialUser,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case "LOGIN":
+      localStorage.setItem('user', JSON.stringify(action.payload));
+      return { ...state, isAuthenticated: true, user: action.payload, loading: true };
+    case "LOGOUT":
+      localStorage.removeItem('user');
+      return { ...initialState, isAuthenticated: false, user: null, loading: false, programs: [], bookings: [], programPricing: [] };
     case "SET_LOADING":
       return { ...state, loading: action.payload };
     case "SET_PROGRAMS":
@@ -208,10 +229,10 @@ const AppContext = createContext<{
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Fetch initial data only when authenticated
   useEffect(() => {
     const fetchData = async () => {
       try {
-        dispatch({ type: "SET_LOADING", payload: true });
         const [programs, bookings, programPricing] = await Promise.all([
           api.getPrograms(),
           api.getBookings(),
@@ -222,13 +243,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
       } catch (error) {
         console.error("Failed to fetch initial data", error);
+        // If there's an auth error, log out the user
+        if (error instanceof Error && error.message.includes('401')) {
+          dispatch({ type: 'LOGOUT' });
+        }
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
+    
+    // Auth error listener
+    const handleAuthError = () => {
+        dispatch({ type: 'LOGOUT' });
+    };
+    window.addEventListener('auth-error', handleAuthError);
 
-    fetchData();
-  }, []);
+    if (state.isAuthenticated) {
+      fetchData();
+    }
+
+    return () => {
+        window.removeEventListener('auth-error', handleAuthError);
+    };
+  }, [state.isAuthenticated]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -23,6 +23,8 @@ import { toast } from "react-hot-toast";
 export default function BookingPage() {
   const { t } = useTranslation();
   const { state, dispatch } = useAppContext();
+  
+  // State for managing modals and UI
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -33,33 +35,23 @@ export default function BookingPage() {
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<
     Booking | null
   >(null);
+  
+  // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>("all");
-  const [isLoading, setIsLoading] = useState(false);
+  
+  // State for async operations
   const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        setIsLoading(true);
-        const bookings = await api.getBookings();
-        dispatch({ type: 'SET_BOOKINGS', payload: bookings });
-      } catch (error) {
-        console.error('Error fetching bookings:', error);
-        toast.error(t('Error fetching bookings'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchBookings();
-  }, [dispatch, state.programPricing]);
+  // Data is now loaded centrally by AppContext, so the local useEffect for fetching is no longer needed.
 
   const filteredBookings = state.bookings.filter((booking) => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
-      booking.clientNameFr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
       booking.clientNameAr.includes(searchTerm) ||
-      booking.passportNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
 
     const matchesStatus =
       statusFilter === 'all' ||
@@ -84,14 +76,14 @@ export default function BookingPage() {
 
   const handleDeleteBooking = async (bookingId: string) => {
     if (window.confirm("Are you sure you want to delete this booking?")) {
-        try {
-            await api.deleteBooking(bookingId);
-            dispatch({ type: "DELETE_BOOKING", payload: bookingId });
-            toast.success('Booking deleted!');
-        } catch (error) {
-            toast.error('Failed to delete booking.');
-            console.error("Failed to delete booking", error);
-        }
+      try {
+        await api.deleteBooking(bookingId);
+        dispatch({ type: "DELETE_BOOKING", payload: bookingId });
+        toast.success('Booking deleted!');
+      } catch (error) {
+        toast.error('Failed to delete booking.');
+        console.error("Failed to delete booking", error);
+      }
     }
   };
 
@@ -109,15 +101,15 @@ export default function BookingPage() {
 
   const handleDeletePayment = async (bookingId: string, paymentId: string) => {
     if (window.confirm("Are you sure you want to delete this payment?")) {
-        try {
-            const updatedBooking = await api.deletePayment(bookingId, paymentId);
-            dispatch({ type: "DELETE_PAYMENT", payload: { bookingId, updatedBooking } });
-            setSelectedBookingForPayment(updatedBooking);
-            toast.success('Payment deleted!');
-        } catch (error) {
-            toast.error('Failed to delete payment.');
-            console.error("Failed to delete payment", error);
-        }
+      try {
+        const updatedBooking = await api.deletePayment(bookingId, paymentId);
+        dispatch({ type: "DELETE_PAYMENT", payload: { bookingId, updatedBooking } });
+        setSelectedBookingForPayment(updatedBooking); // Refresh the modal with updated data
+        toast.success('Payment deleted!');
+      } catch (error) {
+        toast.error('Failed to delete payment.');
+        console.error("Failed to delete payment", error);
+      }
     }
   };
 
@@ -127,7 +119,7 @@ export default function BookingPage() {
         ...bookingData,
         advancePayments: initialPayments,
         remainingBalance: bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0),
-        isFullyPaid: false
+        isFullyPaid: false,
       };
 
       if (editingBooking) {
@@ -141,7 +133,7 @@ export default function BookingPage() {
       }
       setIsBookingModalOpen(false);
       setEditingBooking(null);
-    } catch(error) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to save booking";
       toast.error(errorMessage);
       console.error("Failed to save booking", error);
@@ -150,74 +142,72 @@ export default function BookingPage() {
 
   const handleSavePayment = async (payment: Omit<Payment, '_id' | 'id'>) => {
     if (selectedBookingForPayment) {
-        try {
-            let updatedBooking;
-            if (editingPayment) {
-                updatedBooking = await api.updatePayment(selectedBookingForPayment._id, editingPayment.payment._id, payment);
-                dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
-            } else {
-                updatedBooking = await api.addPayment(selectedBookingForPayment._id, payment);
-                dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
-            }
-            setSelectedBookingForPayment(updatedBooking);
-            toast.success('Payment saved!');
-        } catch(error) {
-            toast.error('Failed to save payment.');
-            console.error("Failed to save payment", error);
+      try {
+        let updatedBooking;
+        if (editingPayment) {
+          updatedBooking = await api.updatePayment(selectedBookingForPayment._id, editingPayment.payment._id, payment);
+          dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
+        } else {
+          updatedBooking = await api.addPayment(selectedBookingForPayment._id, payment);
+          dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
         }
+        setSelectedBookingForPayment(updatedBooking); // Refresh modal with updated data
+        toast.success('Payment saved!');
+      } catch (error) {
+        toast.error('Failed to save payment.');
+        console.error("Failed to save payment", error);
+      }
     }
-    setIsPaymentModalOpen(false);
+    setIsPaymentModalOpen(false); // Close the form modal
     setEditingPayment(null);
   };
 
   const handleExport = async () => {
     if (programFilter === 'all' || isExporting) {
-        toast.error('Please select a specific program to export.');
-        return;
+      toast.error('Please select a specific program to export.');
+      return;
     }
-    
+
     setIsExporting(true);
     toast.loading('Exporting to Excel...');
 
     try {
-        const program = state.programs.find(p => p._id === programFilter);
-        const blob = await api.exportBookingsToExcel(programFilter);
-        
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const fileName = program ? `${program.name.replace(/\s/g, '_')}_bookings.xlsx` : 'bookings.xlsx';
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+      const program = state.programs.find(p => p._id === programFilter);
+      const blob = await api.exportBookingsToExcel(programFilter);
 
-        toast.dismiss();
-        toast.success('Export successful!');
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileName = program ? `${program.name.replace(/\s/g, '_')}_bookings.xlsx` : 'bookings.xlsx';
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.dismiss();
+      toast.success('Export successful!');
 
     } catch (error) {
-        toast.dismiss();
-        const errorMessage = error instanceof Error ? error.message : 'Failed to export bookings.';
-        toast.error(errorMessage);
-        console.error("Failed to export bookings", error);
+      toast.dismiss();
+      const errorMessage = error instanceof Error ? error.message : 'Failed to export bookings.';
+      toast.error(errorMessage);
+      console.error("Failed to export bookings", error);
     } finally {
-        setIsExporting(false);
+      setIsExporting(false);
     }
   };
 
   const getStatusColor = (isFullyPaid: boolean) => {
-    return isFullyPaid
-      ? "bg-emerald-100 text-emerald-700"
-      : "bg-orange-100 text-orange-700";
+    return isFullyPaid ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700";
   };
 
   const getStatusText = (isFullyPaid: boolean) => {
-    return isFullyPaid ? "Fully Paid" : "Pending Payment";
+    return isFullyPaid ? t("Fully Paid") : t("Pending Payment");
   };
 
   if (state.loading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-full">Loading...</div>;
   }
 
   return (
@@ -225,9 +215,7 @@ export default function BookingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{t("booking")}</h1>
-          <p className="text-gray-600 mt-2">
-            Manage all customer bookings and payments
-          </p>
+          <p className="text-gray-600 mt-2">Manage all customer bookings and payments</p>
         </div>
         <button
           onClick={handleAddBooking}
@@ -299,9 +287,9 @@ export default function BookingPage() {
                 const totalPaid = booking.advancePayments.reduce((sum, payment) => sum + payment.amount, 0);
                 return (
                   <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <User className="w-5 h-5 text-white" />
                         </div>
                         <div className="ml-4">
@@ -312,11 +300,11 @@ export default function BookingPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top">
                       <div className="space-y-2">
                         <div className="text-sm font-medium text-gray-900">{program?.name || "Unknown Program"}</div>
                         <div className="text-sm text-gray-500">{booking.selectedHotel.roomType} Room</div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 mt-2">
                           {booking.selectedHotel.cities.map((city, index) => {
                             const hotelName = booking.selectedHotel.hotelNames[index];
                             if (!city || !hotelName) return null;
@@ -332,12 +320,12 @@ export default function BookingPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top">
                       <div className="text-sm text-gray-900">Selling: {booking.sellingPrice.toLocaleString()} MAD</div>
                       <div className="text-sm text-gray-500">Base: {booking.basePrice.toLocaleString()} MAD</div>
                       <div className="text-sm text-emerald-600 font-medium">Profit: {booking.profit.toLocaleString()} MAD</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top">
                       <div className="space-y-2">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(booking.isFullyPaid)}`}>
                           {getStatusText(booking.isFullyPaid)}
@@ -346,17 +334,17 @@ export default function BookingPage() {
                         <div className="text-sm text-gray-500">Remaining: {booking.remainingBalance.toLocaleString()} MAD</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 align-top">
                       <div className="flex flex-col space-y-2">
-                        <button onClick={() => setSelectedBookingForPayment(booking)} className="inline-flex items-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <button onClick={() => setSelectedBookingForPayment(booking)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                           <CreditCard className="w-3 h-3 mr-1" />
                           {t("Manage Payments")}
                         </button>
-                        <button onClick={() => handleEditBooking(booking)} className="inline-flex items-center px-3 py-1 text-xs bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                        <button onClick={() => handleEditBooking(booking)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
                           <Edit2 className="w-3 h-3 mr-1" />
                           {t("Edit Booking")}
                         </button>
-                        <button onClick={() => handleDeleteBooking(booking._id)} className="inline-flex items-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                        <button onClick={() => handleDeleteBooking(booking._id)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                           <Trash2 className="w-3 h-3 mr-1" />
                           {t("Delete Booking")}
                         </button>

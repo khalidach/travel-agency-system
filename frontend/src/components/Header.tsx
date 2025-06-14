@@ -1,15 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { Globe, User } from 'lucide-react';
+import { Globe, User, LogOut } from 'lucide-react';
 
 export default function Header() {
   const { t, i18n } = useTranslation();
-  const { dispatch } = useAppContext();
+  const { state, dispatch } = useAppContext();
 
   const changeLanguage = (lang: 'en' | 'ar' | 'fr') => {
     i18n.changeLanguage(lang);
     dispatch({ type: 'SET_LANGUAGE', payload: lang });
+  };
+
+  const handleLogout = () => {
+    dispatch({ type: 'LOGOUT' });
   };
 
   return (
@@ -18,10 +22,10 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              {t('dashboard')}
+              Welcome, {state.user?.agencyName || 'User'}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              Welcome back to your travel management dashboard
+              Here's your travel management dashboard
             </p>
           </div>
 
@@ -62,15 +66,22 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Profile */}
+            {/* Profile & Logout */}
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center ring-2 ring-white">
+                <User className="w-5 h-5 text-white" />
               </div>
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">Admin User</p>
-                <p className="text-xs text-gray-500">administrator</p>
+                <p className="text-sm font-medium text-gray-900">{state.user?.agencyName}</p>
+                <p className="text-xs text-gray-500">{state.user?.username}</p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
