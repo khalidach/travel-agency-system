@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import {
   Plus,
@@ -12,6 +13,7 @@ import {
   MapPin,
   Hotel,
   Download,
+  Archive, Briefcase, TrendingUp, TrendingDown, Users
 } from "lucide-react";
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
@@ -23,6 +25,8 @@ import { toast } from "react-hot-toast";
 export default function BookingPage() {
   const { t } = useTranslation();
   const { state, dispatch } = useAppContext();
+  const { programId } = useParams<{ programId?: string }>();
+  const navigate = useNavigate();
   
   // State for managing modals and UI
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -39,10 +43,20 @@ export default function BookingPage() {
   // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [programFilter, setProgramFilter] = useState<string>("all");
+  const [programFilter, setProgramFilter] = useState<string>(programId || "all");
   
   // State for async operations
   const [isExporting, setIsExporting] = useState(false);
+
+  useEffect(() => {
+    setProgramFilter(programId || 'all');
+  }, [programId]);
+
+  const handleProgramFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newProgramId = e.target.value;
+    setProgramFilter(newProgramId);
+    navigate(newProgramId === 'all' ? '/booking' : `/booking/program/${newProgramId}`);
+  };
 
   // Data is now loaded centrally by AppContext, so the local useEffect for fetching is no longer needed.
 
@@ -63,6 +77,36 @@ export default function BookingPage() {
 
     return matchesSearch && matchesStatus && matchesProgram;
   });
+
+  // Calculate summary stats for the filtered bookings
+  const summaryStats = useMemo(() => {
+    const stats = {
+      totalBookings: filteredBookings.length,
+      totalRevenue: 0,
+      totalCost: 0,
+      totalPaid: 0,
+    };
+
+    for (const booking of filteredBookings) {
+      stats.totalRevenue += booking.sellingPrice;
+      stats.totalCost += booking.basePrice;
+      stats.totalPaid += booking.advancePayments.reduce((sum, p) => sum + p.amount, 0);
+    }
+
+    return {
+      ...stats,
+      totalProfit: stats.totalRevenue - stats.totalCost,
+      totalRemaining: stats.totalRevenue - stats.totalPaid,
+    };
+  }, [filteredBookings]);
+
+  const selectedProgram = programId ? state.programs.find(p => p._id === programId) : null;
+  const pageTitle = selectedProgram
+    ? `${t("booking")} for ${selectedProgram.name}`
+    : t("booking");
+  const pageDescription = selectedProgram
+    ? `View all bookings, payments, and financial details for ${selectedProgram.name}.`
+    : "Manage all customer bookings and payments";
 
   const handleAddBooking = () => {
     setEditingBooking(null);
@@ -206,16 +250,16 @@ export default function BookingPage() {
     return isFullyPaid ? t("Fully Paid") : t("Pending Payment");
   };
 
-  if (state.loading) {
-    return <div className="flex items-center justify-center h-full">Loading...</div>;
-  }
-
   return (
     <div className="space-y-6">
+      {state.loading ? (
+        <div className="flex items-center justify-center h-full">Loading...</div>
+      ) : (
+        <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("booking")}</h1>
-          <p className="text-gray-600 mt-2">Manage all customer bookings and payments</p>
+          <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
+          <p className="text-gray-600 mt-2">{pageDescription}</p>
         </div>
         <button
           onClick={handleAddBooking}
@@ -225,6 +269,36 @@ export default function BookingPage() {
           {t("addBooking")}
         </button>
       </div>
+
+      {/* Summary Cards */}
+      {filteredBookings.length > 0 && (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Bookings</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalBookings}</p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalRevenue.toLocaleString()} <span className="text-sm">MAD</span></p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Cost</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalCost.toLocaleString()} <span className="text-sm">MAD</span></p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Profit</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">{summaryStats.totalProfit.toLocaleString()} <span className="text-sm">MAD</span></p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Paid</p>
+              <p className="text-2xl font-bold text-blue-600 mt-1">{summaryStats.totalPaid.toLocaleString()} <span className="text-sm">MAD</span></p>
+          </div>
+          <div className="bg-white p-4 rounded-xl shadow-sm border">
+              <p className="text-sm font-medium text-gray-500">Total Remaining</p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">{summaryStats.totalRemaining.toLocaleString()} <span className="text-sm">MAD</span></p>
+          </div>
+      </div>
+      )}
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -248,7 +322,7 @@ export default function BookingPage() {
           </select>
           <select
             value={programFilter}
-            onChange={(e) => setProgramFilter(e.target.value)}
+            onChange={handleProgramFilterChange}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">{t("allPrograms")}</option>
@@ -282,7 +356,7 @@ export default function BookingPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredBookings.map((booking) => {
+              {[...filteredBookings].reverse().map((booking) => {
                 const program = state.programs.find((p) => p._id === booking.tripId);
                 const totalPaid = booking.advancePayments.reduce((sum, payment) => sum + payment.amount, 0);
                 return (
@@ -370,6 +444,8 @@ export default function BookingPage() {
             {t("addBooking")}
           </button>
         </div>
+      )}
+      </>
       )}
 
       <Modal isOpen={isBookingModalOpen} onClose={() => { setIsBookingModalOpen(false); setEditingBooking(null); }} title={editingBooking ? "Edit Booking" : t("addBooking")} size="xl">

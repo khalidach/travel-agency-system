@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Download, Filter, TrendingUp, DollarSign, Calendar, Package } from 'lucide-react';
 
 export default function ProfitReport() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { state } = useAppContext();
   const [filterType, setFilterType] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('all');
@@ -74,30 +76,7 @@ export default function ProfitReport() {
     return Object.values(monthlyData).sort((a: any, b: any) => a.month.localeCompare(b.month));
   }, [state.bookings]);
 
-  const handleExport = () => {
-    // Create CSV content
-    const headers = ['Program Name', 'Type', 'Bookings', 'Total Sales (MAD)', 'Total Profit (MAD)', 'Profit Margin (%)'];
-    const csvContent = [
-      headers.join(','),
-      ...profitData.map(item => [
-        item.programName,
-        item.type,
-        item.bookings,
-        item.totalSales,
-        item.totalProfit,
-        item.profitMargin.toFixed(2)
-      ].join(','))
-    ].join('\n');
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'profit-report.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="space-y-8">
@@ -107,13 +86,8 @@ export default function ProfitReport() {
           <h1 className="text-3xl font-bold text-gray-900">{t('profitReport')}</h1>
           <p className="text-gray-600 mt-2">Comprehensive profit analysis and performance metrics</p>
         </div>
-        <button
-          onClick={handleExport}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
-        >
-          <Download className="w-5 h-5 mr-2" />
-          {t('export')} CSV
-        </button>
+    
+ 
       </div>
 
       {/* Summary Cards */}
@@ -287,7 +261,11 @@ export default function ProfitReport() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {profitData.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                <tr
+                  key={item.id}
+                  className="hover:bg-blue-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/booking/program/${item.id}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{item.programName}</div>
                   </td>

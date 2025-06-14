@@ -328,7 +328,7 @@ export default function ProgramPricing() {
             {t("Previous Pricing")}
           </h2>
           <div className="space-y-4">
-            {programPricing.map((pricing: ProgramPricing) => (
+            {[...programPricing].reverse().map((pricing: ProgramPricing) => (
               <div key={pricing._id} className="p-4 border rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <div>

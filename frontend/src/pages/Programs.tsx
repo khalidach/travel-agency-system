@@ -117,7 +117,7 @@ export default function Programs() {
 
       {/* Programs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPrograms.map((program) => (
+        {[...filteredPrograms].reverse().map((program) => (
           <div key={program._id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
             <div className="flex items-start justify-between mb-4">
               <div>

@@ -42,6 +42,7 @@ function AppRoutes() {
                 <Route path="/programs" element={<Programs />} />
                 <Route path="/program-pricing" element={<ProgramPricing />} />
                 <Route path="/booking" element={<Booking />} />
+                <Route path="/booking/program/:programId" element={<Booking />} />
                 <Route path="/profit-report" element={<ProfitReport />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
