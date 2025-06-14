@@ -1,66 +1,107 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Users, DollarSign, TrendingUp, Package, Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { subDays, startOfDay, endOfDay, subYears } from 'date-fns';
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const { state } = useAppContext();
 
-  // Calculate statistics
-  const totalBookings = state.bookings.length;
-  const totalRevenue = state.bookings.reduce((sum, booking) => sum + booking.sellingPrice, 0);
-  const totalProfit = state.bookings.reduce((sum, booking) => sum + booking.profit, 0);
-  const activePrograms = state.programs.length;
-  const fullyPaidBookings = state.bookings.filter(b => b.isFullyPaid).length;
-  const pendingPayments = state.bookings.filter(b => !b.isFullyPaid).length;
+  // State for date filtering
+  const [dateFilter, setDateFilter] = useState('month');
+  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
 
-  // Chart data
+  // Memoized calculation for filtered metrics
+  const {
+    totalBookings,
+    totalRevenue,
+    totalCost,
+    totalProfit
+  } = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = endOfDay(now);
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = startOfDay(now);
+        break;
+      case 'month': // Last 30 days
+        startDate = startOfDay(subDays(now, 30));
+        break;
+      case 'year':
+        startDate = startOfDay(subYears(now, 1));
+        break;
+      case 'custom':
+        startDate = customDateRange.start ? startOfDay(new Date(customDateRange.start)) : startOfDay(subDays(now, 7));
+        endDate = customDateRange.end ? endOfDay(new Date(customDateRange.end)) : endOfDay(now);
+        break;
+      case '7days':
+      default:
+        startDate = startOfDay(subDays(now, 7));
+        break;
+    }
+
+    const filteredBookings = state.bookings.filter(booking => {
+      const bookingDate = new Date(booking.createdAt);
+      return bookingDate >= startDate && bookingDate <= endDate;
+    });
+    
+    return {
+      totalBookings: filteredBookings.length,
+      totalRevenue: filteredBookings.reduce((sum, b) => sum + b.sellingPrice, 0),
+      totalCost: filteredBookings.reduce((sum, b) => sum + b.basePrice, 0),
+      totalProfit: filteredBookings.reduce((sum, b) => sum + b.profit, 0),
+    };
+  }, [state.bookings, dateFilter, customDateRange]);
+
+  // Data for the metrics grid
+  const metrics = [
+    { title: t('totalBookings'), value: totalBookings },
+    { title: t('totalRevenue'), value: `${totalRevenue.toLocaleString()} MAD` },
+    { title: 'Total Costs', value: `${totalCost.toLocaleString()} MAD` },
+    { title: t('totalProfit'), value: `${totalProfit.toLocaleString()} MAD` },
+  ];
+
+  // Data for Program Types pie chart
   const programTypeData = [
     { name: 'Hajj', value: state.programs.filter(p => p.type === 'Hajj').length, color: '#3b82f6' },
     { name: 'Umrah', value: state.programs.filter(p => p.type === 'Umrah').length, color: '#059669' },
     { name: 'Tourism', value: state.programs.filter(p => p.type === 'Tourism').length, color: '#ea580c' }
   ];
-
-  const monthlyData = [
-    { month: 'Jan', bookings: 12, revenue: 48000 },
-    { month: 'Feb', bookings: 8, revenue: 32000 },
-    { month: 'Mar', bookings: 15, revenue: 60000 },
-    { month: 'Apr', bookings: 10, revenue: 40000 },
-    { month: 'May', bookings: 18, revenue: 72000 },
-  ];
-
-  const stats = [
+  
+  // Data for top stats cards (shows overall stats)
+  const topStats = [
     {
       title: t('totalBookings'),
-      value: totalBookings,
+      value: state.bookings.length,
       icon: Users,
       color: 'bg-blue-500',
-      
     },
     {
       title: t('totalRevenue'),
-      value: `${totalRevenue.toLocaleString()} MAD`,
+      value: `${state.bookings.reduce((sum, b) => sum + b.sellingPrice, 0).toLocaleString()} MAD`,
       icon: DollarSign,
       color: 'bg-emerald-500',
-      
     },
     {
       title: t('totalProfit'),
-      value: `${totalProfit.toLocaleString()} MAD`,
+      value: `${state.bookings.reduce((sum, b) => sum + b.profit, 0).toLocaleString()} MAD`,
       icon: TrendingUp,
       color: 'bg-orange-500',
-      
     },
     {
       title: t('activePrograms'),
-      value: activePrograms,
+      value: state.programs.length,
       icon: Package,
       color: 'bg-purple-500',
-      
     }
   ];
+  
+  const fullyPaidBookings = state.bookings.filter(b => b.isFullyPaid).length;
+  const pendingPayments = state.bookings.filter(b => !b.isFullyPaid).length;
 
   return (
     <div className="space-y-8">
@@ -72,9 +113,9 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Top Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+        {topStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200">
@@ -82,7 +123,6 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>
                   <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                  
                 </div>
                 <div className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
@@ -93,27 +133,41 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Charts Row */}
+      {/* Main Content Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Monthly Revenue Chart */}
+        {/* Combined Filtered Metrics Table */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Monthly Revenue Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
-              <Tooltip 
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-                }}
-              />
-              <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+            {/* Date Filter Controls */}
+            <div className="pb-4 border-b border-gray-200">
+                <div className="flex items-center flex-wrap gap-2">
+                    <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                        <button onClick={() => setDateFilter('today')} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === 'today' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Today</button>
+                        <button onClick={() => setDateFilter('7days')} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === '7days' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Last 7 Days</button>
+                        <button onClick={() => setDateFilter('month')} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === 'month' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Last 30 Days</button>
+                        <button onClick={() => setDateFilter('year')} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === 'year' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Last Year</button>
+                        <button onClick={() => setDateFilter('custom')} className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === 'custom' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>Custom</button>
+                    </div>
+                </div>
+                {dateFilter === 'custom' && (
+                    <div className="flex items-center space-x-2 mt-4">
+                        <input type="date" value={customDateRange.start} onChange={e => setCustomDateRange({ ...customDateRange, start: e.target.value })} className="px-3 py-1 border border-gray-300 rounded-lg" />
+                        <span>to</span>
+                        <input type="date" value={customDateRange.end} onChange={e => setCustomDateRange({ ...customDateRange, end: e.target.value })} className="px-3 py-1 border border-gray-300 rounded-lg" />
+                    </div>
+                )}
+            </div>
+
+            {/* Metrics Table */}
+            <table className="w-full mt-4">
+                <tbody>
+                    {metrics.map(metric => (
+                        <tr key={metric.title} className="border-b last:border-b-0 border-gray-100">
+                            <td className="py-3 text-base font-medium text-gray-600">{metric.title}</td>
+                            <td className="py-3 text-2xl font-bold text-gray-900 text-right">{metric.value}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
         </div>
 
         {/* Program Types Distribution */}
