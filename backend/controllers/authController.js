@@ -1,28 +1,26 @@
 // backend/controllers/authController.js
+
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const User = require('../models/userModel');
 
-// @desc    Authenticate a user
-// @route   POST /api/auth/login
-// @access  Public
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
-
   try {
-    const user = await User.findOne({ username });
+    const { rows } = await req.db.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = rows[0];
 
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
-        _id: user.id,
+        id: user.id, // Use the new 'id'
         username: user.username,
-        agencyName: user.agencyName,
-        token: generateToken(user._id),
+        agencyName: user.agencyName, // Use camelCase 'agencyName'
+        token: generateToken(user.id),
       });
     } else {
       res.status(401).json({ message: 'Invalid username or password' });
     }
   } catch (error) {
+    console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -30,7 +28,7 @@ const loginUser = async (req, res) => {
 // Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '1h', // Token expires in 1 hour
+    expiresIn: '1h',
   });
 };
 

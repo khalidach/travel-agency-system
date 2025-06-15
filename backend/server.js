@@ -1,5 +1,6 @@
+// backend/server.js
 const express = require('express');
-const mongoose = require('mongoose');
+const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -19,10 +20,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+// Connect to PostgreSQL
+const pool = new Pool({
+  connectionString: process.env.MONGODB_URI, // Rename this to SUPABASE_URL in your .env
+});
+
+pool.connect()
+  .then(() => console.log('Connected to PostgreSQL'))
+  .catch((err) => console.error('PostgreSQL connection error:', err));
+
+// Make the database pool available to all routes
+app.use((req, res, next) => {
+  req.db = pool;
+  next();
+});
 
 // API routes
 app.use('/api/auth', authRoutes);

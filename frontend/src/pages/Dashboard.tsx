@@ -9,11 +9,9 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { state } = useAppContext();
 
-  // State for date filtering
   const [dateFilter, setDateFilter] = useState('month');
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
 
-  // Memoized calculation for filtered metrics
   const {
     totalBookings,
     totalRevenue,
@@ -28,7 +26,7 @@ export default function Dashboard() {
       case 'today':
         startDate = startOfDay(now);
         break;
-      case 'month': // Last 30 days
+      case 'month':
         startDate = startOfDay(subDays(now, 30));
         break;
       case 'year':
@@ -51,13 +49,12 @@ export default function Dashboard() {
     
     return {
       totalBookings: filteredBookings.length,
-      totalRevenue: filteredBookings.reduce((sum, b) => sum + b.sellingPrice, 0),
-      totalCost: filteredBookings.reduce((sum, b) => sum + b.basePrice, 0),
-      totalProfit: filteredBookings.reduce((sum, b) => sum + b.profit, 0),
+      totalRevenue: filteredBookings.reduce((sum, b) => sum + Number(b.sellingPrice), 0),
+      totalCost: filteredBookings.reduce((sum, b) => sum + Number(b.basePrice), 0),
+      totalProfit: filteredBookings.reduce((sum, b) => sum + Number(b.profit), 0),
     };
   }, [state.bookings, dateFilter, customDateRange]);
 
-  // Data for the metrics grid
   const metrics = [
     { title: t('totalBookings'), value: totalBookings },
     { title: t('totalRevenue'), value: `${totalRevenue.toLocaleString()} MAD` },
@@ -65,14 +62,12 @@ export default function Dashboard() {
     { title: t('totalProfit'), value: `${totalProfit.toLocaleString()} MAD` },
   ];
 
-  // Data for Program Types pie chart
   const programTypeData = [
     { name: 'Hajj', value: state.programs.filter(p => p.type === 'Hajj').length, color: '#3b82f6' },
     { name: 'Umrah', value: state.programs.filter(p => p.type === 'Umrah').length, color: '#059669' },
     { name: 'Tourism', value: state.programs.filter(p => p.type === 'Tourism').length, color: '#ea580c' }
   ];
   
-  // Data for top stats cards (shows overall stats)
   const topStats = [
     {
       title: t('totalBookings'),
@@ -82,13 +77,13 @@ export default function Dashboard() {
     },
     {
       title: t('totalRevenue'),
-      value: `${state.bookings.reduce((sum, b) => sum + b.sellingPrice, 0).toLocaleString()} MAD`,
+      value: `${state.bookings.reduce((sum, b) => sum + Number(b.sellingPrice), 0).toLocaleString()} MAD`,
       icon: DollarSign,
       color: 'bg-emerald-500',
     },
     {
       title: t('totalProfit'),
-      value: `${state.bookings.reduce((sum, b) => sum + b.profit, 0).toLocaleString()} MAD`,
+      value: `${state.bookings.reduce((sum, b) => sum + Number(b.profit), 0).toLocaleString()} MAD`,
       icon: TrendingUp,
       color: 'bg-orange-500',
     },
@@ -135,9 +130,7 @@ export default function Dashboard() {
 
       {/* Main Content Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Combined Filtered Metrics Table */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            {/* Date Filter Controls */}
             <div className="pb-4 border-b border-gray-200">
                 <div className="flex items-center flex-wrap gap-2">
                     <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
@@ -157,7 +150,6 @@ export default function Dashboard() {
                 )}
             </div>
 
-            {/* Metrics Table */}
             <table className="w-full mt-4">
                 <tbody>
                     {metrics.map(metric => (
@@ -170,20 +162,11 @@ export default function Dashboard() {
             </table>
         </div>
 
-        {/* Program Types Distribution */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Program Types Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie
-                data={programTypeData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
-                dataKey="value"
-              >
+              <Pie data={programTypeData} cx="50%" cy="50%" innerRadius={60} outerRadius={120} paddingAngle={5} dataKey="value">
                 {programTypeData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
@@ -202,9 +185,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Actions & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Quick Actions */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
           <div className="space-y-3">
@@ -223,7 +204,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Payment Status */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h3>
           <div className="space-y-4">
@@ -244,7 +224,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Bookings */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Bookings</h3>
           <div className="space-y-3">
@@ -255,7 +234,7 @@ export default function Dashboard() {
                   <p className="text-xs text-gray-500">{booking.passportNumber}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{booking.sellingPrice.toLocaleString()} MAD</p>
+                  <p className="text-sm font-semibold text-gray-900">{Number(booking.sellingPrice).toLocaleString()} MAD</p>
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     booking.isFullyPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
                   }`}>

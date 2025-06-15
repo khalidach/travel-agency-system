@@ -1,73 +1,58 @@
 // backend/controllers/programController.js
-const Program = require('../models/programModel');
 
-// Get all programs for the logged-in user
 exports.getAllPrograms = async (req, res) => {
   try {
-    const programs = await Program.find({ user: req.user.id });
-    res.json(programs);
+    // Note: We use double quotes in SQL for camelCase column names
+    const { rows } = await req.db.query('SELECT * FROM programs WHERE "userId" = $1', [req.user.id]);
+    res.json(rows);
   } catch (error) {
+    console.error('Get All Programs Error:', error);
     res.status(500).json({ message: error.message });
   }
 };
 
-// Create a new program for the logged-in user
 exports.createProgram = async (req, res) => {
-  try {
-    const program = new Program({
-      ...req.body,
-      user: req.user.id
-    });
-    const newProgram = await program.save();
-    res.status(201).json(newProgram);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
+    const { name, type, duration, cities, packages } = req.body;
+    try {
+        const { rows } = await req.db.query(
+            'INSERT INTO programs ("userId", name, type, duration, cities, packages) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+            [req.user.id, name, type, duration, JSON.stringify(cities), JSON.stringify(packages)]
+        );
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error('Create Program Error:', error);
+        res.status(400).json({ message: error.message });
+    }
 };
 
-// Update a program
 exports.updateProgram = async (req, res) => {
-  try {
-    const program = await Program.findById(req.params.id);
-
-    if (!program) {
-      return res.status(404).json({ message: 'Program not found' });
+    const { id } = req.params;
+    const { name, type, duration, cities, packages } = req.body;
+    try {
+        const { rows } = await req.db.query(
+            'UPDATE programs SET name = $1, type = $2, duration = $3, cities = $4, packages = $5, "updatedAt" = NOW() WHERE id = $6 AND "userId" = $7 RETURNING *',
+            [name, type, duration, JSON.stringify(cities), JSON.stringify(packages), id, req.user.id]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Program not found or user not authorized' });
+        }
+        res.json(rows[0]);
+    } catch (error) {
+        console.error('Update Program Error:', error);
+        res.status(400).json({ message: error.message });
     }
-
-    // Check if the program belongs to the user
-    if (program.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'User not authorized' });
-    }
-
-    const updatedProgram = await Program.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    
-    res.json(updatedProgram);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
 };
 
-// Delete a program
 exports.deleteProgram = async (req, res) => {
-  try {
-    const program = await Program.findById(req.params.id);
-
-    if (!program) {
-      return res.status(404).json({ message: 'Program not found' });
+    const { id } = req.params;
+    try {
+        const { rowCount } = await req.db.query('DELETE FROM programs WHERE id = $1 AND "userId" = $2', [id, req.user.id]);
+        if (rowCount === 0) {
+            return res.status(404).json({ message: 'Program not found or user not authorized' });
+        }
+        res.json({ message: 'Program deleted successfully' });
+    } catch (error) {
+        console.error('Delete Program Error:', error);
+        res.status(500).json({ message: error.message });
     }
-
-    // Check if the program belongs to the user
-    if (program.user.toString() !== req.user.id) {
-      return res.status(401).json({ message: 'User not authorized' });
-    }
-
-    await program.remove();
-    res.json({ message: 'Program deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
 };

@@ -1,6 +1,5 @@
 // backend/middleware/authMiddleware.js
 const jwt = require('jsonwebtoken');
-const User = require('../models/userModel');
 
 const protect = async (req, res, next) => {
   let token;
@@ -13,10 +12,21 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from the token
-      req.user = await User.findById(decoded.id).select('-password');
+      // Get user from the token using the new database connection
+      // We select all columns except the password for security
+      const { rows } = await req.db.query(
+        'SELECT id, username, "agencyName", "createdAt", "updatedAt" FROM users WHERE id = $1',
+        [decoded.id]
+      );
+
+      if (rows.length === 0) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
+
+      req.user = rows[0];
       next();
     } catch (error) {
+      console.error('Auth Middleware Error:', error);
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import * as api from '../services/api';
 
-// --- INTERFACES ---
+// --- INTERFACES (UPDATED FOR POSTGRESQL) ---
 export interface User {
-  _id: string;
+  id: number; // Changed from _id: string
   username: string;
-  agencyName: string;
+  agencyName: string; // Switched to camelCase
   token: string;
 }
 
@@ -15,8 +15,7 @@ export interface CityData {
 }
 
 export interface Program {
-  _id: string;
-  id: string;
+  id: number; // Changed from _id: string
   name: string;
   type: "Hajj" | "Umrah" | "Tourism";
   duration: number;
@@ -43,8 +42,7 @@ export interface RoomPrice {
 }
 
 export interface Booking {
-  _id: string;
-  id: string;
+  id: number; // Changed from _id: string
   clientNameAr: string;
   clientNameFr: string;
   phoneNumber: string;
@@ -66,8 +64,8 @@ export interface Booking {
 }
 
 export interface Payment {
-  _id: string;
-  id: string;
+  _id: string; // MongoDB IDs can still exist in the JSONB field, so we keep this for payments
+  id: string; // Keeping both for safety
   amount: number;
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
@@ -89,8 +87,7 @@ export interface HotelPrice {
 }
 
 export interface ProgramPricing {
-  _id: string;
-  id: string;
+  id: number; // Changed from _id: string
   selectProgram: string;
   programId: string;
   ticketAirline: number;
@@ -118,17 +115,17 @@ type AppAction =
   | { type: "SET_PROGRAM_PRICING"; payload: ProgramPricing[] }
   | { type: "ADD_PROGRAM"; payload: Program }
   | { type: "UPDATE_PROGRAM"; payload: Program }
-  | { type: "DELETE_PROGRAM"; payload: string }
+  | { type: "DELETE_PROGRAM"; payload: number } // Changed to number
   | { type: "ADD_BOOKING"; payload: Booking }
   | { type: "UPDATE_BOOKING"; payload: Booking }
-  | { type: "DELETE_BOOKING"; payload: string }
-  | { type: "ADD_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
-  | { type: "UPDATE_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
-  | { type: "DELETE_PAYMENT"; payload: { bookingId: string; updatedBooking: Booking } }
+  | { type: "DELETE_BOOKING"; payload: number } // Changed to number
+  | { type: "ADD_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
+  | { type: "UPDATE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
+  | { type: "DELETE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
   | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
   | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
-  | { type: "DELETE_PROGRAM_PRICING"; payload: string };
+  | { type: "DELETE_PROGRAM_PRICING"; payload: number }; // Changed to number
 
 
 const userFromStorage = localStorage.getItem('user');
@@ -139,7 +136,7 @@ const initialState: AppState = {
   bookings: [],
   programPricing: [],
   currentLanguage: "en",
-  loading: !!initialUser, // Only load if a user session exists
+  loading: !!initialUser,
   isAuthenticated: !!initialUser,
   user: initialUser,
 };
@@ -147,6 +144,7 @@ const initialState: AppState = {
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "LOGIN":
+      // The login response now provides `agencyName` directly
       localStorage.setItem('user', JSON.stringify(action.payload));
       return { ...state, isAuthenticated: true, user: action.payload, loading: true };
     case "LOGOUT":
@@ -155,65 +153,62 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_LOADING":
       return { ...state, loading: action.payload };
     case "SET_PROGRAMS":
-      return { ...state, programs: action.payload.map(p => ({...p, id: p._id})) };
+      return { ...state, programs: action.payload };
     case "SET_BOOKINGS":
-      return { ...state, bookings: action.payload.map(b => ({...b, id: b._id})) };
+      return { ...state, bookings: action.payload };
     case "SET_PROGRAM_PRICING":
-        return { ...state, programPricing: action.payload.map(p => ({...p, id: p._id})) };
+        return { ...state, programPricing: action.payload };
     case "ADD_PROGRAM":
-      return { ...state, programs: [...state.programs, {...action.payload, id: action.payload._id}] };
+      return { ...state, programs: [...state.programs, action.payload] };
     case "UPDATE_PROGRAM":
       return {
         ...state,
         programs: state.programs.map((p) =>
-          p._id === action.payload._id ? {...action.payload, id: action.payload._id} : p
+          p.id === action.payload.id ? action.payload : p
         ),
       };
     case "DELETE_PROGRAM":
       return {
         ...state,
-        programs: state.programs.filter((p) => p._id !== action.payload),
+        programs: state.programs.filter((p) => p.id !== action.payload),
       };
     case "ADD_BOOKING":
-       return { ...state, bookings: [...state.bookings, {...action.payload, id: action.payload._id}] };
+       return { ...state, bookings: [...state.bookings, action.payload] };
     case "UPDATE_BOOKING":
         return {
             ...state,
             bookings: state.bookings.map((b) =>
-              b._id === action.payload._id ? {...action.payload, id: action.payload._id} : b
+              b.id === action.payload.id ? action.payload : b
             ),
           };
     case "DELETE_BOOKING":
       return {
         ...state,
-        bookings: state.bookings.filter((b) => b._id !== action.payload),
+        bookings: state.bookings.filter((b) => b.id !== action.payload),
       };
     case "ADD_PAYMENT":
     case "UPDATE_PAYMENT":
     case "DELETE_PAYMENT":
         return {
             ...state,
-            bookings: state.bookings.map(b => b._id === action.payload.bookingId ? {...action.payload.updatedBooking, id: action.payload.updatedBooking._id} : b)
+            bookings: state.bookings.map(b => b.id === action.payload.bookingId ? action.payload.updatedBooking : b)
         };
     case "SET_LANGUAGE":
       return { ...state, currentLanguage: action.payload };
     case "ADD_PROGRAM_PRICING":
-        return {
-            ...state,
-            programPricing: [...state.programPricing, {...action.payload, id: action.payload._id}],
-          };
+        return { ...state, programPricing: [...state.programPricing, action.payload] };
     case "UPDATE_PROGRAM_PRICING":
       return {
         ...state,
         programPricing: state.programPricing.map((p) =>
-          p._id === action.payload._id ? {...action.payload, id: action.payload._id} : p
+          p.id === action.payload.id ? action.payload : p
         ),
       };
     case "DELETE_PROGRAM_PRICING":
       return {
         ...state,
         programPricing: state.programPricing.filter(
-          (p) => p._id !== action.payload
+          (p) => p.id !== action.payload
         ),
       };
     default:
@@ -229,7 +224,6 @@ const AppContext = createContext<{
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Fetch initial data only when authenticated
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -243,7 +237,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
       } catch (error) {
         console.error("Failed to fetch initial data", error);
-        // If there's an auth error, log out the user
         if (error instanceof Error && error.message.includes('401')) {
           dispatch({ type: 'LOGOUT' });
         }
@@ -252,7 +245,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    // Auth error listener
     const handleAuthError = () => {
         dispatch({ type: 'LOGOUT' });
     };

@@ -3,18 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
 import {
-  Plus,
-  Edit2,
-  Trash2,
-  CreditCard,
-  User,
-  Calendar,
-  Download,
-  Upload,
-  ChevronLeft,
-  ChevronRight,
-  MapPin,
-  Hotel
+  Plus, Edit2, Trash2, CreditCard, User, Download, Upload,
+  ChevronLeft, ChevronRight, MapPin, Hotel, Calendar
 } from "lucide-react";
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
@@ -23,59 +13,38 @@ import type { Booking, Payment } from "../context/AppContext";
 import * as api from '../services/api';
 import { toast } from "react-hot-toast";
 
-// Helper hook for advanced pagination logic
-const usePagination = ({
-  totalCount,
-  pageSize,
-  siblingCount = 1,
-  currentPage
-}: {
-  totalCount: number;
-  pageSize: number;
-  siblingCount?: number;
-  currentPage: number;
-}) => {
-  const paginationRange = useMemo(() => {
+// Pagination hook (no changes needed here)
+const usePagination = ({ totalCount, pageSize, currentPage }: { totalCount: number, pageSize: number, currentPage: number }) => {
+    // ... (logic is unchanged)
+    const paginationRange = useMemo(() => {
     const totalPageCount = Math.ceil(totalCount / pageSize);
-
+    const siblingCount = 1;
     const totalPageNumbers = siblingCount + 5;
-
     if (totalPageNumbers >= totalPageCount) {
       return Array.from({ length: totalPageCount }, (_, i) => i + 1);
     }
-
     const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-    const rightSiblingIndex = Math.min(
-      currentPage + siblingCount,
-      totalPageCount
-    );
-
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPageCount);
     const shouldShowLeftDots = leftSiblingIndex > 2;
     const shouldShowRightDots = rightSiblingIndex < totalPageCount - 2;
-
     const firstPageIndex = 1;
     const lastPageIndex = totalPageCount;
-
     if (!shouldShowLeftDots && shouldShowRightDots) {
       let leftItemCount = 3 + 2 * siblingCount;
       let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
       return [...leftRange, '...', totalPageCount];
     }
-
     if (shouldShowLeftDots && !shouldShowRightDots) {
       let rightItemCount = 3 + 2 * siblingCount;
       let rightRange = Array.from({ length: rightItemCount }, (_, i) => totalPageCount - rightItemCount + i + 1);
       return [firstPageIndex, '...', ...rightRange];
     }
-
     if (shouldShowLeftDots && shouldShowRightDots) {
       let middleRange = Array.from({ length: rightSiblingIndex - leftSiblingIndex + 1 }, (_, i) => leftSiblingIndex + i);
       return [firstPageIndex, '...', ...middleRange, '...', lastPageIndex];
     }
-    
-    return []; // Default empty array
-  }, [totalCount, pageSize, siblingCount, currentPage]);
-
+    return [];
+  }, [totalCount, pageSize, currentPage]);
   return paginationRange;
 };
 
@@ -86,27 +55,17 @@ export default function BookingPage() {
   const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();
   
-  // State for managing modals and UI
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [editingPayment, setEditingPayment] = useState<{
-    bookingId: string;
-    payment: Payment;
-  } | null>(null);
-  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<
-    Booking | null
-  >(null);
+  const [editingPayment, setEditingPayment] = useState<{ payment: Payment } | null>(null);
+  const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<Booking | null>(null);
   
-  // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>(programId || "all");
   
-  // State for async operations
   const [isExporting, setIsExporting] = useState(false);
-
-  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
   
@@ -114,12 +73,11 @@ export default function BookingPage() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-
   useEffect(() => {
     setProgramFilter(programId || 'all');
+    setCurrentPage(1);
   }, [programId]);
   
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, programFilter]);
@@ -130,75 +88,36 @@ export default function BookingPage() {
     navigate(newProgramId === 'all' ? '/booking' : `/booking/program/${newProgramId}`);
   };
 
-  const filteredBookings = state.bookings.filter((booking) => {
+  const filteredBookings = useMemo(() => state.bookings.filter((booking) => {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
       booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-      booking.clientNameAr.includes(searchTerm) ||
+      (booking.clientNameAr || '').includes(searchTerm) ||
       booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
-
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'paid' && booking.isFullyPaid) ||
-      (statusFilter === 'pending' && !booking.isFullyPaid);
-
-    const matchesProgram =
-      programFilter === 'all' || booking.tripId === programFilter;
-
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'paid' && booking.isFullyPaid) || (statusFilter === 'pending' && !booking.isFullyPaid);
+    const matchesProgram = programFilter === 'all' || (booking.tripId || '').toString() === programFilter;
     return matchesSearch && matchesStatus && matchesProgram;
-  });
+  }), [state.bookings, searchTerm, statusFilter, programFilter]);
 
-  // Calculate summary stats for the filtered bookings
   const summaryStats = useMemo(() => {
-    const stats = {
-      totalBookings: filteredBookings.length,
-      totalRevenue: 0,
-      totalCost: 0,
-      totalPaid: 0,
-    };
-
-    for (const booking of filteredBookings) {
-      stats.totalRevenue += booking.sellingPrice;
-      stats.totalCost += booking.basePrice;
-      stats.totalPaid += booking.advancePayments.reduce((sum, p) => sum + p.amount, 0);
-    }
-
-    return {
-      ...stats,
-      totalProfit: stats.totalRevenue - stats.totalCost,
-      totalRemaining: stats.totalRevenue - stats.totalPaid,
-    };
+    return filteredBookings.reduce((acc, booking) => {
+        acc.totalBookings += 1;
+        acc.totalRevenue += Number(booking.sellingPrice) || 0;
+        acc.totalCost += Number(booking.basePrice) || 0;
+        acc.totalPaid += (booking.advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
+        return acc;
+    }, { totalBookings: 0, totalRevenue: 0, totalCost: 0, totalPaid: 0, totalProfit: 0, totalRemaining: 0});
   }, [filteredBookings]);
 
-  // Pagination Logic
   const reversedBookings = useMemo(() => [...filteredBookings].reverse(), [filteredBookings]);
-  const indexOfLastBooking = currentPage * bookingsPerPage;
-  const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
-  const currentBookings = useMemo(() => 
-    reversedBookings.slice(indexOfFirstBooking, indexOfLastBooking),
-    [reversedBookings, indexOfFirstBooking, indexOfLastBooking]
-  );
+  const currentBookings = useMemo(() => reversedBookings.slice((currentPage - 1) * bookingsPerPage, currentPage * bookingsPerPage), [reversedBookings, currentPage, bookingsPerPage]);
   const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+  const paginationRange = usePagination({ currentPage, totalCount: filteredBookings.length, pageSize: bookingsPerPage });
+  const paginate = (pageNumber: number) => { if (pageNumber > 0 && pageNumber <= totalPages) setCurrentPage(pageNumber) };
 
-  const paginationRange = usePagination({
-    currentPage,
-    totalCount: filteredBookings.length,
-    pageSize: bookingsPerPage
-  });
-
-  const paginate = (pageNumber: number) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-
-  const selectedProgram = programId ? state.programs.find(p => p._id === programId) : null;
-  const pageTitle = selectedProgram
-    ? `${t("booking")} for ${selectedProgram.name}`
-    : t("booking");
-  const pageDescription = selectedProgram
-    ? `View all bookings, payments, and financial details for ${selectedProgram.name}.`
-    : "Manage all customer bookings and payments";
+  const selectedProgram = programId ? state.programs.find(p => p.id.toString() === programId) : null;
+  const pageTitle = selectedProgram ? `${t("booking")} for ${selectedProgram.name}` : t("booking");
+  const pageDescription = selectedProgram ? `View all bookings...for ${selectedProgram.name}.` : "Manage all customer bookings and payments";
 
   const handleAddBooking = () => {
     setEditingBooking(null);
@@ -210,19 +129,16 @@ export default function BookingPage() {
     setIsBookingModalOpen(true);
   };
 
-  const handleDeleteBooking = async (bookingId: string) => {
+  const handleDeleteBooking = async (bookingId: number) => {
     if (window.confirm("Are you sure you want to delete this booking?")) {
       try {
         await api.deleteBooking(bookingId);
         dispatch({ type: "DELETE_BOOKING", payload: bookingId });
         toast.success('Booking deleted!');
-      } catch (error) {
-        toast.error('Failed to delete booking.');
-        console.error("Failed to delete booking", error);
-      }
+      } catch (error) { toast.error('Failed to delete booking.'); }
     }
   };
-
+  
   const handleAddPayment = (booking: Booking) => {
     setSelectedBookingForPayment(booking);
     setEditingPayment(null);
@@ -231,35 +147,26 @@ export default function BookingPage() {
 
   const handleEditPayment = (booking: Booking, payment: Payment) => {
     setSelectedBookingForPayment(booking);
-    setEditingPayment({ bookingId: booking._id, payment });
+    setEditingPayment({ payment });
     setIsPaymentModalOpen(true);
   };
 
-  const handleDeletePayment = async (bookingId: string, paymentId: string) => {
+  const handleDeletePayment = async (bookingId: number, paymentId: string) => {
     if (window.confirm("Are you sure you want to delete this payment?")) {
       try {
         const updatedBooking = await api.deletePayment(bookingId, paymentId);
         dispatch({ type: "DELETE_PAYMENT", payload: { bookingId, updatedBooking } });
         setSelectedBookingForPayment(updatedBooking);
         toast.success('Payment deleted!');
-      } catch (error) {
-        toast.error('Failed to delete payment.');
-        console.error("Failed to delete payment", error);
-      }
+      } catch (error) { toast.error('Failed to delete payment.'); }
     }
   };
 
   const handleSaveBooking = async (bookingData: BookingFormData, initialPayments: Payment[]) => {
     try {
-      const bookingToSave = {
-        ...bookingData,
-        advancePayments: initialPayments,
-        remainingBalance: bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0),
-        isFullyPaid: false,
-      };
-
+      const bookingToSave = { ...bookingData, advancePayments: initialPayments };
       if (editingBooking) {
-        const updatedBooking = await api.updateBooking(editingBooking._id, bookingToSave);
+        const updatedBooking = await api.updateBooking(editingBooking.id, bookingToSave);
         dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
         toast.success('Booking updated!');
       } else {
@@ -269,11 +176,7 @@ export default function BookingPage() {
       }
       setIsBookingModalOpen(false);
       setEditingBooking(null);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to save booking";
-      toast.error(errorMessage);
-      console.error("Failed to save booking", error);
-    }
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Failed to save booking"); }
   };
 
   const handleSavePayment = async (payment: Omit<Payment, '_id' | 'id'>) => {
@@ -281,24 +184,24 @@ export default function BookingPage() {
       try {
         let updatedBooking;
         if (editingPayment) {
-          updatedBooking = await api.updatePayment(selectedBookingForPayment._id, editingPayment.payment._id, payment);
-          dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
+          updatedBooking = await api.updatePayment(selectedBookingForPayment.id, editingPayment.payment._id, payment);
+          dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } });
         } else {
-          updatedBooking = await api.addPayment(selectedBookingForPayment._id, payment);
-          dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
+          updatedBooking = await api.addPayment(selectedBookingForPayment.id, payment);
+          dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } });
         }
         setSelectedBookingForPayment(updatedBooking);
         toast.success('Payment saved!');
-      } catch (error) {
-        toast.error('Failed to save payment.');
-        console.error("Failed to save payment", error);
-      }
+      } catch (error) { toast.error('Failed to save payment.'); }
     }
     setIsPaymentModalOpen(false);
     setEditingPayment(null);
   };
 
-  const handleExport = async () => {
+  const getStatusColor = (isFullyPaid: boolean) => isFullyPaid ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700";
+  const getStatusText = (isFullyPaid: boolean) => isFullyPaid ? t("Fully Paid") : t("Pending Payment");
+
+    const handleExport = async () => {
     if (programFilter === 'all' || isExporting) {
       toast.error('Please select a specific program to export.');
       return;
@@ -308,7 +211,7 @@ export default function BookingPage() {
     toast.loading('Exporting to Excel...');
 
     try {
-      const program = state.programs.find(p => p._id === programFilter);
+      const program = state.programs.find(p => p.id.toString() === programFilter);
       const blob = await api.exportBookingsToExcel(programFilter);
 
       const url = window.URL.createObjectURL(blob);
@@ -328,18 +231,9 @@ export default function BookingPage() {
       toast.dismiss();
       const errorMessage = error instanceof Error ? error.message : 'Failed to export bookings.';
       toast.error(errorMessage);
-      console.error("Failed to export bookings", error);
     } finally {
       setIsExporting(false);
     }
-  };
-
-  const getStatusColor = (isFullyPaid: boolean) => {
-    return isFullyPaid ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700";
-  };
-
-  const getStatusText = (isFullyPaid: boolean) => {
-    return isFullyPaid ? t("Fully Paid") : t("Pending Payment");
   };
   
   const handleExportTemplate = async () => {
@@ -377,7 +271,6 @@ export default function BookingPage() {
     toast.loading('Importing bookings...');
     try {
       const result = await api.importBookings(importFile);
-      // Refresh bookings list after import
       const updatedBookings = await api.getBookings();
       dispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
 
@@ -394,13 +287,8 @@ export default function BookingPage() {
     }
   };
 
-
   return (
     <div className="space-y-6">
-      {state.loading ? (
-        <div className="flex items-center justify-center h-full">Loading...</div>
-      ) : (
-        <>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
@@ -445,38 +333,8 @@ export default function BookingPage() {
           </button>
         </div>
       </div>
-
-      {/* Summary Cards */}
-      {filteredBookings.length > 0 && (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Bookings</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalBookings}</p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalRevenue.toLocaleString()} <span className="text-sm">MAD</span></p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Cost</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{summaryStats.totalCost.toLocaleString()} <span className="text-sm">MAD</span></p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Profit</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{summaryStats.totalProfit.toLocaleString()} <span className="text-sm">MAD</span></p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Paid</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{summaryStats.totalPaid.toLocaleString()} <span className="text-sm">MAD</span></p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-              <p className="text-sm font-medium text-gray-500">Total Remaining</p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">{summaryStats.totalRemaining.toLocaleString()} <span className="text-sm">MAD</span></p>
-          </div>
-      </div>
-      )}
-
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      
+       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -503,7 +361,7 @@ export default function BookingPage() {
           >
             <option value="all">{t("allPrograms")}</option>
             {state.programs.map((program) => (
-              <option key={program._id} value={program._id}>
+              <option key={program.id} value={program.id}>
                 {program.name}
               </option>
             ))}
@@ -519,7 +377,7 @@ export default function BookingPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -533,10 +391,11 @@ export default function BookingPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {currentBookings.map((booking) => {
-                const program = state.programs.find((p) => p._id === booking.tripId);
-                const totalPaid = booking.advancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+                const program = state.programs.find((p) => p.id.toString() === (booking.tripId || '').toString());
+                const totalPaid = (booking.advancePayments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
+                const remaining = Number(booking.sellingPrice) - totalPaid;
                 return (
-                  <tr key={booking._id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 align-top">
                       <div className="flex items-center">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -555,8 +414,8 @@ export default function BookingPage() {
                         <div className="text-sm font-medium text-gray-900">{program?.name || "Unknown Program"}</div>
                         <div className="text-sm text-gray-500">{booking.selectedHotel.roomType} Room</div>
                         <div className="space-y-1 mt-2">
-                          {booking.selectedHotel.cities.map((city, index) => {
-                            const hotelName = booking.selectedHotel.hotelNames[index];
+                          {(booking.selectedHotel.cities || []).map((city, index) => {
+                            const hotelName = (booking.selectedHotel.hotelNames || [])[index];
                             if (!city || !hotelName) return null;
                             return (
                               <div key={index} className="flex items-center text-xs text-gray-600">
@@ -571,9 +430,9 @@ export default function BookingPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 align-top">
-                      <div className="text-sm text-gray-900">Selling: {booking.sellingPrice.toLocaleString()} MAD</div>
-                      <div className="text-sm text-gray-500">Base: {booking.basePrice.toLocaleString()} MAD</div>
-                      <div className="text-sm text-emerald-600 font-medium">Profit: {booking.profit.toLocaleString()} MAD</div>
+                      <div className="text-sm text-gray-900">Selling: {Number(booking.sellingPrice).toLocaleString()} MAD</div>
+                      <div className="text-sm text-gray-500">Base: {Number(booking.basePrice).toLocaleString()} MAD</div>
+                      <div className="text-sm text-emerald-600 font-medium">Profit: {Number(booking.profit).toLocaleString()} MAD</div>
                     </td>
                     <td className="px-6 py-4 align-top">
                       <div className="space-y-2">
@@ -581,22 +440,19 @@ export default function BookingPage() {
                           {getStatusText(booking.isFullyPaid)}
                         </span>
                         <div className="text-sm font-medium text-gray-900">Paid: {totalPaid.toLocaleString()} MAD</div>
-                        <div className="text-sm text-gray-500">Remaining: {booking.remainingBalance.toLocaleString()} MAD</div>
+                        <div className="text-sm text-gray-500">Remaining: {remaining.toLocaleString()} MAD</div>
                       </div>
                     </td>
                     <td className="px-6 py-4 align-top">
                       <div className="flex flex-col space-y-2">
                         <button onClick={() => setSelectedBookingForPayment(booking)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          {t("Manage Payments")}
+                          <CreditCard className="w-3 h-3 mr-1" /> {t("Manage Payments")}
                         </button>
                         <button onClick={() => handleEditBooking(booking)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
-                          <Edit2 className="w-3 h-3 mr-1" />
-                          {t("Edit Booking")}
+                          <Edit2 className="w-3 h-3 mr-1" /> {t("Edit Booking")}
                         </button>
-                        <button onClick={() => handleDeleteBooking(booking._id)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                          <Trash2 className="w-3 h-3 mr-1" />
-                          {t("Delete Booking")}
+                        <button onClick={() => handleDeleteBooking(booking.id)} className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                          <Trash2 className="w-3 h-3 mr-1" /> {t("Delete Booking")}
                         </button>
                       </div>
                     </td>
@@ -664,10 +520,8 @@ export default function BookingPage() {
           </button>
         </div>
       )}
-      </>
-      )}
 
-      <Modal isOpen={isBookingModalOpen} onClose={() => { setIsBookingModalOpen(false); setEditingBooking(null); }} title={editingBooking ? "Edit Booking" : t("addBooking")} size="xl">
+       <Modal isOpen={isBookingModalOpen} onClose={() => { setIsBookingModalOpen(false); setEditingBooking(null); }} title={editingBooking ? "Edit Booking" : t("addBooking")} size="xl">
         <BookingForm booking={editingBooking} programs={state.programs} onSave={handleSaveBooking} onCancel={() => { setIsBookingModalOpen(false); setEditingBooking(null); }} />
       </Modal>
 
@@ -688,46 +542,28 @@ export default function BookingPage() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium text-gray-900">{selectedBookingForPayment.clientNameFr}</h3>
               <button onClick={() => handleAddPayment(selectedBookingForPayment)} className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                <CreditCard className="w-4 h-4 mr-2" />
-                {t("addPayment")}
+                <CreditCard className="w-4 h-4 mr-2" /> {t("addPayment")}
               </button>
             </div>
-            <div className="space-y-3" key={selectedBookingForPayment.advancePayments.length}>
-              {selectedBookingForPayment.advancePayments.map((payment) => (
-                <div key={`${payment._id}-${payment.amount}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div className="space-y-3" key={(selectedBookingForPayment.advancePayments || []).length}>
+              {(selectedBookingForPayment.advancePayments || []).map((payment) => (
+                <div key={payment._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <div className="flex items-center">
-                      <span className="text-sm text-gray-900">{payment.amount.toLocaleString()} MAD</span>
+                      <span className="text-sm text-gray-900">{Number(payment.amount).toLocaleString()} MAD</span>
                       <span className="mx-2 text-gray-400">•</span>
                       <span className="text-sm text-gray-600 capitalize">{payment.method}</span>
                       <span className="mx-2 text-gray-400">•</span>
                       <span className="text-sm text-gray-600">{new Date(payment.date).toLocaleDateString()}</span>
                     </div>
-                    {payment.method === "cheque" && payment.chequeNumber && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        <span className="font-medium">Check #{payment.chequeNumber}</span>
-                        {payment.bankName && <span> • {payment.bankName}</span>}
-                        {payment.chequeCashingDate && (
-                          <span> • Cashing: {new Date(payment.chequeCashingDate).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                    )}
                   </div>
                   <div className="flex space-x-2">
-                    <button onClick={() => handleEditPayment(selectedBookingForPayment, payment)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeletePayment(selectedBookingForPayment._id, payment._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <button onClick={() => handleEditPayment(selectedBookingForPayment, payment)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDeletePayment(selectedBookingForPayment.id, payment._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </div>
               ))}
-              {selectedBookingForPayment.advancePayments.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No payments recorded yet
-                </div>
-              )}
+              {(!selectedBookingForPayment.advancePayments || selectedBookingForPayment.advancePayments.length === 0) && <div className="text-center py-8 text-gray-500">No payments recorded yet</div>}
             </div>
           </div>
         )}
