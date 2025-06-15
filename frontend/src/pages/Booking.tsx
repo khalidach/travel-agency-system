@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext";
+import { useAppContext } from "../context/AppContext.tsx"; // Added .tsx extension
 import {
   Plus,
   Edit2,
@@ -16,11 +16,11 @@ import {
   MapPin,
   Hotel
 } from "lucide-react";
-import Modal from "../components/Modal";
-import BookingForm, { BookingFormData } from "../components/BookingForm";
-import PaymentForm from "../components/PaymentForm";
-import type { Booking, Payment } from "../context/AppContext";
-import * as api from '../services/api';
+import Modal from "../components/Modal.tsx"; // Added .tsx extension
+import BookingForm, { BookingFormData } from "../components/BookingForm.tsx"; // Added .tsx extension
+import PaymentForm from "../components/PaymentForm.tsx"; // Added .tsx extension
+import type { Booking, Payment } from "../context/AppContext"; // type import does not need .tsx
+import * as api from '../services/api.ts'; // Added .ts extension
 import { toast } from "react-hot-toast";
 
 // Helper hook for advanced pagination logic
@@ -533,10 +533,10 @@ export default function BookingPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentBookings.map((booking) => {
-                  const program = state.programs.find((p) => p.id.toString() === (booking.tripId || '').toString()); // Changed _id to id and added toString()
-                  const totalPaid = (booking.advancePayments || []).reduce((sum, payment) => sum + Number(payment.amount), 0); // Added null check and ensured number conversion
+                  const program = state.programs.find((p) => p.id.toString() === (booking.tripId || '').toString());
+                  const totalPaid = (booking.advancePayments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
                   return (
-                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors"> {/* Changed _id to id */}
+                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 align-top">
                         <div className="flex items-center">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -555,10 +555,11 @@ export default function BookingPage() {
                           <div className="text-sm font-medium text-gray-900">{program?.name || "Unknown Program"}</div>
                           <div className="text-sm text-gray-500">{booking.packageId} Package</div>
                           <div className="space-y-1 mt-2">
-                            {(booking.selectedHotel.cities || []).map((city, index) => { // Added null check
-                              const hotelName = (booking.selectedHotel.hotelNames || [])[index]; // Added null check
+                            {(booking.selectedHotel.cities || []).map((city, index) => {
+                              const hotelName = (booking.selectedHotel.hotelNames || [])[index];
                               const roomType = (booking.selectedHotel.roomTypes || [])[index];
-                              if (!city || !hotelName) return null;
+                              // Ensure we return null/empty fragment if data is missing, to avoid creating text nodes
+                              if (!city || !hotelName) return null; 
                               return (
                                 <div key={index} className="flex items-center text-xs text-gray-600">
                                   <MapPin className="w-3 h-3 mr-1 text-gray-400" />
@@ -582,7 +583,7 @@ export default function BookingPage() {
                             {getStatusText(booking.isFullyPaid)}
                           </span>
                           <div className="text-sm font-medium text-gray-900">Paid: {totalPaid.toLocaleString()} MAD</div>
-                          <div className="text-sm text-gray-500">Remaining: {Number(booking.remainingBalance).toLocaleString()} MAD</div> {/* Ensured number conversion */}
+                          <div className="text-sm text-gray-500">Remaining: {Number(booking.remainingBalance).toLocaleString()} MAD</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 align-top">
@@ -690,12 +691,12 @@ export default function BookingPage() {
                   {t("addPayment")}
                 </button>
               </div>
-              <div className="space-y-3" key={(selectedBookingForPayment.advancePayments || []).length}> {/* Added null check */}
-                {(selectedBookingForPayment.advancePayments || []).map((payment) => ( // Added null check
+              <div className="space-y-3" key={(selectedBookingForPayment.advancePayments || []).length}>
+                {(selectedBookingForPayment.advancePayments || []).map((payment) => (
                   <div key={`${payment._id}-${payment.amount}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <div className="flex items-center">
-                        <span className="text-sm text-gray-900">{Number(payment.amount).toLocaleString()} MAD</span> {/* Ensured number conversion */}
+                        <span className="text-sm text-gray-900">{Number(payment.amount).toLocaleString()} MAD</span>
                         <span className="mx-2 text-gray-400">•</span>
                         <span className="text-sm text-gray-600 capitalize">{payment.method}</span>
                         <span className="mx-2 text-gray-400">•</span>
@@ -715,13 +716,13 @@ export default function BookingPage() {
                       <button onClick={() => handleEditPayment(selectedBookingForPayment, payment)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <Edit2 className="w-4 h-4" />
                       </button>
-                      <button onClick={() => handleDeletePayment(selectedBookingForPayment.id, payment._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"> {/* Changed _id to id */}
+                      <button onClick={() => handleDeletePayment(selectedBookingForPayment.id, payment._id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                 ))}
-                {(!selectedBookingForPayment.advancePayments || selectedBookingForPayment.advancePayments.length === 0) && ( // Added null check
+                {(!selectedBookingForPayment.advancePayments || selectedBookingForPayment.advancePayments.length === 0) && (
                   <div className="text-center py-8 text-gray-500">
                     No payments recorded yet
                   </div>
