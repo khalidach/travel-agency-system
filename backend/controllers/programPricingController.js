@@ -53,21 +53,35 @@ try {
 
   if (relatedBookings.length > 0) {
       const updatePromises = relatedBookings.map(booking => {
-          const hotelCosts = booking.selectedHotel.cities.reduce((total, city, index) => {
-              const hotelName = booking.selectedHotel.hotelNames[index];
+          // Robust hotel costs calculation
+          const hotelCosts = (booking.selectedHotel.cities || []).reduce((total, city, index) => {
+              const hotelName = (booking.selectedHotel.hotelNames || [])[index];
               const roomType = booking.selectedHotel.roomType;
-              const hotelPricingInfo = updatedProgramPricing.allHotels.find(h => h.name === hotelName && h.city === city);
-              if (hotelPricingInfo) {
-                  const pricePerNight = hotelPricingInfo.PricePerNights[roomType.toLowerCase()];
-                  const nights = hotelPricingInfo.nights;
-                  if(pricePerNight != null && nights) {
-                      return total + (pricePerNight * nights) / getGuestsPerRoom(roomType);
+
+              if (!hotelName || !roomType) return total;
+
+              const hotelPricingInfo = (updatedProgramPricing.allHotels || []).find(h => h.name === hotelName && h.city === city);
+
+              if (hotelPricingInfo && hotelPricingInfo.PricePerNights) {
+                  const pricePerNight = Number(hotelPricingInfo.PricePerNights[roomType.toLowerCase()] || 0);
+                  const nights = Number(hotelPricingInfo.nights || 0);
+                  const guests = getGuestsPerRoom(roomType);
+
+                  if (guests > 0) {
+                      return total + (pricePerNight * nights) / guests;
                   }
               }
               return total;
           }, 0);
-          const newBasePrice = Math.round(updatedProgramPricing.ticketAirline + updatedProgramPricing.visaFees + updatedProgramPricing.guideFees + hotelCosts);
-          const newProfit = booking.sellingPrice - newBasePrice;
+
+          // Ensure all components are numbers before summing them up
+          const ticketPrice = Number(updatedProgramPricing.ticketAirline || 0);
+          const visaPrice = Number(updatedProgramPricing.visaFees || 0);
+          const guidePrice = Number(updatedProgramPricing.guideFees || 0);
+
+          const newBasePrice = Math.round(ticketPrice + visaPrice + guidePrice + hotelCosts);
+          const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
+          
           return req.db.query('UPDATE bookings SET "basePrice" = $1, profit = $2 WHERE id = $3', [newBasePrice, newProfit, booking.id]);
       });
       await Promise.all(updatePromises);

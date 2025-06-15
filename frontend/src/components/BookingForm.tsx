@@ -72,7 +72,8 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     };
     const calculateHotelCosts = (): number => {
         if (!selectedProgram || !formData.selectedHotel.cities) return 0;
-        const pricing = state.programPricing.find((p) => p.programId === selectedProgram.id);
+        // Correctly compare program IDs by coercing them to the same type.
+        const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
         if (!pricing || !pricing.allHotels) return 0;
 
         return formData.selectedHotel.cities.reduce((total, city, index) => {
@@ -84,7 +85,10 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
             const pricePerNight = Number(hotel.PricePerNights[roomType as keyof typeof hotel.PricePerNights] || 0);
             const nights = Number((selectedProgram.cities || []).find((c) => c.name === city)?.nights || 0);
             if(!isNaN(pricePerNight) && !isNaN(nights) && nights > 0) {
-                return total + (pricePerNight * nights) / getGuestsPerRoom(roomType);
+                const guests = getGuestsPerRoom(roomType);
+                if (guests > 0) {
+                    return total + (pricePerNight * nights) / guests;
+                }
             }
           }
           return total;
@@ -93,8 +97,10 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
     const calculateTotalBasePrice = (): number => {
         if (!selectedProgram) return 0;
-        const pricing = state.programPricing.find((p) => p.programId === selectedProgram.id);
+        // Correctly compare program IDs by coercing them to the same type.
+        const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
         if (!pricing) return 0;
+
         const hotelCosts = calculateHotelCosts();
         const ticketAirline = Number(pricing.ticketAirline || 0);
         const visaFees = Number(pricing.visaFees || 0);
@@ -107,11 +113,12 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
     };
 
-    if(selectedProgram && formData.selectedHotel.hotelNames.every(name => name)){
+    // Calculate base price only when all necessary data is available.
+    if(selectedProgram && formData.packageId && formData.selectedHotel.hotelNames.every(name => name) && formData.selectedHotel.roomType){
         const newBasePrice = calculateTotalBasePrice();
         setFormData(prev => ({ ...prev, basePrice: newBasePrice, profit: prev.sellingPrice - newBasePrice }));
     }
-  }, [formData.tripId, formData.selectedHotel, selectedProgram, state.programPricing, formData.sellingPrice]);
+  }, [formData.tripId, formData.packageId, formData.selectedHotel, selectedProgram, state.programPricing, formData.sellingPrice]);
 
   const handleSellingPriceChange = (price: number) => {
     setFormData(prev => ({ ...prev, sellingPrice: price, profit: price - prev.basePrice }));
