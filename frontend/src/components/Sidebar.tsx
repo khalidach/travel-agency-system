@@ -12,8 +12,8 @@ import {
 
 const menuItems = [
   { key: "dashboard", path: "/", icon: BarChart3 },
-  { key: "program Pricing", path: "/program-pricing", icon: ShipWheel },
   { key: "programs", path: "/programs", icon: Package },
+  { key: "program Pricing", path: "/program-pricing", icon: ShipWheel },
   { key: "booking", path: "/booking", icon: Calendar },
   { key: "profitReport", path: "/profit-report", icon: TrendingUp },
 ];

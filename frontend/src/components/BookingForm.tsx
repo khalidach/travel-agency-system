@@ -23,7 +23,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     passportNumber: "",
     tripId: "",
     packageId: "",
-    selectedHotel: { cities: [], hotelNames: [], roomType: "Double" },
+    selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
     sellingPrice: 0,
     basePrice: 0,
     profit: 0,
@@ -43,6 +43,19 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         setSelectedProgram(program);
         if(pkg) setSelectedPackage(pkg);
       }
+      
+      // --- FIX START ---
+      // Correctly determine the room types when loading an existing booking.
+      let initialRoomTypes: string[] = [];
+      if (booking.selectedHotel.roomTypes && Array.isArray(booking.selectedHotel.roomTypes) && booking.selectedHotel.roomTypes.length > 0) {
+        // New format with multiple room types: Use it directly.
+        initialRoomTypes = booking.selectedHotel.roomTypes;
+      } else if ((booking.selectedHotel as any).roomType) {
+        // Old format with a single roomType: Create an array for backward compatibility.
+        initialRoomTypes = (booking.selectedHotel.cities || []).map(() => (booking.selectedHotel as any).roomType);
+      }
+      // --- FIX END ---
+
       setFormData({
         clientNameAr: booking.clientNameAr,
         clientNameFr: booking.clientNameFr,
@@ -50,7 +63,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         passportNumber: booking.passportNumber,
         tripId: booking.tripId,
         packageId: booking.packageId,
-        selectedHotel: booking.selectedHotel,
+        selectedHotel: { ...booking.selectedHotel, roomTypes: initialRoomTypes }, // Use the corrected room types
         sellingPrice: Number(booking.sellingPrice),
         basePrice: Number(booking.basePrice),
         profit: Number(booking.sellingPrice) - Number(booking.basePrice),
@@ -72,13 +85,14 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     };
     const calculateHotelCosts = (): number => {
         if (!selectedProgram || !formData.selectedHotel.cities) return 0;
-        // Correctly compare program IDs by coercing them to the same type.
         const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
         if (!pricing || !pricing.allHotels) return 0;
 
         return formData.selectedHotel.cities.reduce((total, city, index) => {
           const hotelName = formData.selectedHotel.hotelNames[index];
-          const roomType = formData.selectedHotel.roomType.toLowerCase();
+          const roomType = formData.selectedHotel.roomTypes[index]?.toLowerCase();
+          if (!roomType) return total; // Don't calculate if room type is not set
+
           const hotel = pricing.allHotels.find((h) => h.name === hotelName && h.city === city);
 
           if (hotel && hotel.PricePerNights) {
@@ -97,7 +111,6 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
     const calculateTotalBasePrice = (): number => {
         if (!selectedProgram) return 0;
-        // Correctly compare program IDs by coercing them to the same type.
         const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
         if (!pricing) return 0;
 
@@ -113,8 +126,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
     };
 
-    // Calculate base price only when all necessary data is available.
-    if(selectedProgram && formData.packageId && formData.selectedHotel.hotelNames.every(name => name) && formData.selectedHotel.roomType){
+    if(selectedProgram && formData.packageId && formData.selectedHotel.hotelNames.every(name => name) && formData.selectedHotel.roomTypes.every(rt => rt)){
         const newBasePrice = calculateTotalBasePrice();
         setFormData(prev => ({ ...prev, basePrice: newBasePrice, profit: prev.sellingPrice - newBasePrice }));
     }
@@ -142,7 +154,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
           ...prev,
           tripId: programIdStr,
           packageId: "",
-          selectedHotel: { cities: [], hotelNames: [], roomType: "Double" },
+          selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
         }));
         setError(null);
       };
@@ -151,25 +163,37 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         if (!selectedProgram) return;
         const pkg = (selectedProgram.packages || []).find((p) => p.name === packageName);
         if (pkg) {
+          const cities = (selectedProgram.cities || []).map(c => c.name);
           setSelectedPackage(pkg);
           setFormData((prev) => ({
             ...prev,
             packageId: packageName,
             selectedHotel: {
               ...prev.selectedHotel,
-              cities: (selectedProgram.cities || []).map(c => c.name),
-              hotelNames: (selectedProgram.cities || []).map(() => "")
+              cities: cities,
+              hotelNames: cities.map(() => ""),
+              roomTypes: cities.map(() => "Double"), // Default room type
             },
           }));
         }
       };
-
+      
       const updateHotelSelection = (cityIndex: number, hotelName: string) => {
         setFormData((prev) => ({
           ...prev,
           selectedHotel: {
             ...prev.selectedHotel,
             hotelNames: prev.selectedHotel.hotelNames.map((name, i) => i === cityIndex ? hotelName : name)
+          },
+        }));
+      };
+
+      const updateRoomTypeSelection = (cityIndex: number, roomType: string) => {
+        setFormData((prev) => ({
+          ...prev,
+          selectedHotel: {
+            ...prev.selectedHotel,
+            roomTypes: prev.selectedHotel.roomTypes.map((rt, i) => i === cityIndex ? roomType : rt)
           },
         }));
       };
@@ -233,31 +257,36 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
                     <p className="text-sm text-gray-600">{city.nights} {t("nights")}</p>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t("Select Hotel")}</label>
-                  <select
-                    value={formData.selectedHotel.hotelNames[cityIndex] || ""}
-                    onChange={(e) => updateHotelSelection(cityIndex, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    required
-                  >
-                    <option value="">{t("Select a hotel")}</option>
-                    {(selectedPackage.hotels[city.name] || []).map((hotel: string) => ( <option key={hotel} value={hotel}>{hotel}</option> ))}
-                  </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Select Hotel")}</label>
+                    <select
+                      value={formData.selectedHotel.hotelNames[cityIndex] || ""}
+                      onChange={(e) => updateHotelSelection(cityIndex, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      required
+                    >
+                      <option value="">{t("Select a hotel")}</option>
+                      {(selectedPackage.hotels[city.name] || []).map((hotel: string) => ( <option key={hotel} value={hotel}>{hotel}</option> ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t("Room Type")}</label>
+                    <select
+                      value={formData.selectedHotel.roomTypes[cityIndex] || "Double"}
+                      onChange={(e) => updateRoomTypeSelection(cityIndex, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      required
+                    >
+                      {availableRoomTypes.map((type) => ( <option key={type} value={type}>{type}</option>))}
+                    </select>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Room Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Room Type")}</label>
-        <select value={formData.selectedHotel.roomType} onChange={(e) => setFormData((prev) => ({ ...prev, selectedHotel: { ...prev.selectedHotel, roomType: e.target.value } }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
-          {availableRoomTypes.map((type) => ( <option key={type} value={type}>{type}</option> ))}
-        </select>
-      </div>
 
       {/* Pricing */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -56,7 +56,8 @@ try {
           // Robust hotel costs calculation
           const hotelCosts = (booking.selectedHotel.cities || []).reduce((total, city, index) => {
               const hotelName = (booking.selectedHotel.hotelNames || [])[index];
-              const roomType = booking.selectedHotel.roomType;
+              // UPDATED: Get room type from array by index
+              const roomType = (booking.selectedHotel.roomTypes || [])[index];
 
               if (!hotelName || !roomType) return total;
 

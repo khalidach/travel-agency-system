@@ -553,17 +553,18 @@ export default function BookingPage() {
                       <td className="px-6 py-4 align-top">
                         <div className="space-y-2">
                           <div className="text-sm font-medium text-gray-900">{program?.name || "Unknown Program"}</div>
-                          <div className="text-sm text-gray-500">{booking.selectedHotel.roomType} Room</div>
+                          <div className="text-sm text-gray-500">{booking.packageId} Package</div>
                           <div className="space-y-1 mt-2">
                             {(booking.selectedHotel.cities || []).map((city, index) => { // Added null check
                               const hotelName = (booking.selectedHotel.hotelNames || [])[index]; // Added null check
+                              const roomType = (booking.selectedHotel.roomTypes || [])[index];
                               if (!city || !hotelName) return null;
                               return (
                                 <div key={index} className="flex items-center text-xs text-gray-600">
                                   <MapPin className="w-3 h-3 mr-1 text-gray-400" />
                                   <span className="font-medium">{city}:</span>
                                   <Hotel className="w-3 h-3 ml-2 mr-1 text-gray-400" />
-                                  <span>{hotelName}</span>
+                                  <span>{hotelName} ({roomType})</span>
                                 </div>
                               );
                             })}

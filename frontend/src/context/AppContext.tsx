@@ -52,7 +52,7 @@ export interface Booking {
   selectedHotel: {
     cities: string[];
     hotelNames: string[];
-    roomType: string;
+    roomTypes: string[]; // Changed from roomType: string
   };
   sellingPrice: number;
   basePrice: number;
