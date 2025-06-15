@@ -78,7 +78,35 @@ export const addPayment = (bookingId: string, payment: any) => request(`/booking
 export const updatePayment = (bookingId: string, paymentId: string, payment: any) => request(`/bookings/${bookingId}/payments/${paymentId}`, { method: 'PUT', body: JSON.stringify(payment) });
 export const deletePayment = (bookingId: string, paymentId: string) => request(`/bookings/${bookingId}/payments/${paymentId}`, { method: 'DELETE' });
 
-// --- Export API ---
+// --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) => 
   request(`/bookings/export-excel/program/${programId}`, {}, true);
 
+export const exportBookingTemplate = () => 
+  request(`/bookings/export-template`, {}, true);
+
+export const importBookings = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Note: We don't set Content-Type header for multipart/form-data.
+  // The browser will set it automatically with the correct boundary.
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+  const headers: Record<string, string> = {};
+  if (user && user.token) {
+    headers['Authorization'] = `Bearer ${user.token}`;
+  }
+
+  return fetch(`${API_BASE_URL}/bookings/import-excel`, {
+    method: 'POST',
+    body: formData,
+    headers,
+  }).then(async (res) => {
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Import failed');
+    }
+    return res.json();
+  });
+};

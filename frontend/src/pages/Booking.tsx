@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppContext } from "../context/AppContext";
@@ -9,11 +9,12 @@ import {
   CreditCard,
   User,
   Calendar,
-  DollarSign,
-  MapPin,
-  Hotel,
   Download,
-  Archive, Briefcase, TrendingUp, TrendingDown, Users, ChevronLeft, ChevronRight
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  MapPin,
+  Hotel
 } from "lucide-react";
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
@@ -108,6 +109,11 @@ export default function BookingPage() {
   // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
+  
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     setProgramFilter(programId || 'all');
@@ -335,6 +341,59 @@ export default function BookingPage() {
   const getStatusText = (isFullyPaid: boolean) => {
     return isFullyPaid ? t("Fully Paid") : t("Pending Payment");
   };
+  
+  const handleExportTemplate = async () => {
+    toast.loading('Generating template...');
+    try {
+      const blob = await api.exportBookingTemplate();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Booking_Template.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success('Template downloaded!');
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to download template.');
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImportFile(e.target.files[0]);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      toast.error("Please select a file to import.");
+      return;
+    }
+    setIsImporting(true);
+    toast.loading('Importing bookings...');
+    try {
+      const result = await api.importBookings(importFile);
+      // Refresh bookings list after import
+      const updatedBookings = await api.getBookings();
+      dispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
+
+      toast.dismiss();
+      toast.success(result.message);
+    } catch (error) {
+      toast.dismiss();
+      const errorMessage = error instanceof Error ? error.message : 'Import failed.';
+      toast.error(errorMessage);
+    } finally {
+      setImportFile(null);
+      if(fileInputRef.current) fileInputRef.current.value = "";
+      setIsImporting(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -347,13 +406,44 @@ export default function BookingPage() {
           <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
           <p className="text-gray-600 mt-2">{pageDescription}</p>
         </div>
-        <button
-          onClick={handleAddBooking}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          {t("addBooking")}
-        </button>
+        <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
+          <button
+            onClick={handleExportTemplate}
+            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            Template
+          </button>
+          
+          <input type="file" accept=".xlsx" ref={fileInputRef} onChange={handleFileSelect} style={{ display: 'none' }} />
+          
+          {importFile ? (
+             <button
+                onClick={handleImport}
+                disabled={isImporting}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm disabled:bg-gray-400"
+              >
+                <Upload className="w-5 h-5 mr-2"/>
+                {isImporting ? 'Uploading...' : 'Upload File'}
+              </button>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <Upload className="w-5 h-5 mr-2"/>
+              Import
+            </button>
+          )}
+
+          <button
+            onClick={handleAddBooking}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            {t("addBooking")}
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
