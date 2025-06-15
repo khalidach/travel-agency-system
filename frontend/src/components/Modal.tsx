@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -18,6 +18,18 @@ export default function Modal({
   size = "md",
   level = 0,
 }: ModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to restore scroll when component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]); // This effect runs whenever the 'isOpen' prop changes
   if (!isOpen) return null;
 
   const sizeClasses = {
@@ -29,7 +41,7 @@ export default function Modal({
 
   return (
     <div
-      className={`fixed inset-0 overflow-y-auto`}
+      className={`fixed inset-0 `}
       style={{ zIndex: 50 + level * 10 }}
     >
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -39,7 +51,7 @@ export default function Modal({
           style={{ zIndex: 50 + level * 10 }}
         />
         <div
-          className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all`}
+          className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all max-h-[90vh] overflow-y-auto`}
           style={{ zIndex: 51 + level * 10 }}
         >
           <div className="flex items-center justify-between p-6 border-b border-gray-100">

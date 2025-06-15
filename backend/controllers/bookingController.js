@@ -6,14 +6,17 @@ const excel = require('exceljs');
 
 // Helper to sanitize names for Excel Named Ranges.
 const sanitizeName = (name) => {
-    if (!name) return '';
-    // This function creates a valid name for Excel's named ranges.
-    // It replaces invalid characters and ensures the name doesn't start with a number.
-    let sanitized = name.toString().replace(/[^a-zA-Z0-9_.]/g, '_');
-    if (/^[0-9]/.test(sanitized)) {
-        sanitized = 'N_' + sanitized;
-    }
-    return sanitized;
+  if (!name) return '';
+  // This function creates a valid name for Excel's named ranges.
+  // It replaces invalid characters and ensures the name doesn't start with a number.
+  
+  // UPDATED: Added the Arabic Unicode range \u0600-\u06FF to the regex
+  let sanitized = name.toString().replace(/[^a-zA-Z0-9_.\u0600-\u06FF]/g, '_');
+
+  if (/^[0-9]/.test(sanitized)) {
+      sanitized = 'N_' + sanitized;
+  }
+  return sanitized;
 };
 
 
