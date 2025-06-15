@@ -13,7 +13,7 @@ import {
   MapPin,
   Hotel,
   Download,
-  Archive, Briefcase, TrendingUp, TrendingDown, Users
+  Archive, Briefcase, TrendingUp, TrendingDown, Users, ChevronLeft, ChevronRight
 } from "lucide-react";
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
@@ -21,6 +21,63 @@ import PaymentForm from "../components/PaymentForm";
 import type { Booking, Payment } from "../context/AppContext";
 import * as api from '../services/api';
 import { toast } from "react-hot-toast";
+
+// Helper hook for advanced pagination logic
+const usePagination = ({
+  totalCount,
+  pageSize,
+  siblingCount = 1,
+  currentPage
+}: {
+  totalCount: number;
+  pageSize: number;
+  siblingCount?: number;
+  currentPage: number;
+}) => {
+  const paginationRange = useMemo(() => {
+    const totalPageCount = Math.ceil(totalCount / pageSize);
+
+    const totalPageNumbers = siblingCount + 5;
+
+    if (totalPageNumbers >= totalPageCount) {
+      return Array.from({ length: totalPageCount }, (_, i) => i + 1);
+    }
+
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+    const rightSiblingIndex = Math.min(
+      currentPage + siblingCount,
+      totalPageCount
+    );
+
+    const shouldShowLeftDots = leftSiblingIndex > 2;
+    const shouldShowRightDots = rightSiblingIndex < totalPageCount - 2;
+
+    const firstPageIndex = 1;
+    const lastPageIndex = totalPageCount;
+
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      let leftItemCount = 3 + 2 * siblingCount;
+      let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+      return [...leftRange, '...', totalPageCount];
+    }
+
+    if (shouldShowLeftDots && !shouldShowRightDots) {
+      let rightItemCount = 3 + 2 * siblingCount;
+      let rightRange = Array.from({ length: rightItemCount }, (_, i) => totalPageCount - rightItemCount + i + 1);
+      return [firstPageIndex, '...', ...rightRange];
+    }
+
+    if (shouldShowLeftDots && shouldShowRightDots) {
+      let middleRange = Array.from({ length: rightSiblingIndex - leftSiblingIndex + 1 }, (_, i) => leftSiblingIndex + i);
+      return [firstPageIndex, '...', ...middleRange, '...', lastPageIndex];
+    }
+    
+    return []; // Default empty array
+  }, [totalCount, pageSize, siblingCount, currentPage]);
+
+  return paginationRange;
+};
+
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -48,17 +105,24 @@ export default function BookingPage() {
   // State for async operations
   const [isExporting, setIsExporting] = useState(false);
 
+  // State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const bookingsPerPage = 10;
+
   useEffect(() => {
     setProgramFilter(programId || 'all');
   }, [programId]);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, programFilter]);
 
   const handleProgramFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProgramId = e.target.value;
     setProgramFilter(newProgramId);
     navigate(newProgramId === 'all' ? '/booking' : `/booking/program/${newProgramId}`);
   };
-
-  // Data is now loaded centrally by AppContext, so the local useEffect for fetching is no longer needed.
 
   const filteredBookings = state.bookings.filter((booking) => {
     const lowerSearchTerm = searchTerm.toLowerCase();
@@ -99,6 +163,28 @@ export default function BookingPage() {
       totalRemaining: stats.totalRevenue - stats.totalPaid,
     };
   }, [filteredBookings]);
+
+  // Pagination Logic
+  const reversedBookings = useMemo(() => [...filteredBookings].reverse(), [filteredBookings]);
+  const indexOfLastBooking = currentPage * bookingsPerPage;
+  const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
+  const currentBookings = useMemo(() => 
+    reversedBookings.slice(indexOfFirstBooking, indexOfLastBooking),
+    [reversedBookings, indexOfFirstBooking, indexOfLastBooking]
+  );
+  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: filteredBookings.length,
+    pageSize: bookingsPerPage
+  });
+
+  const paginate = (pageNumber: number) => {
+    if (pageNumber > 0 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
 
   const selectedProgram = programId ? state.programs.find(p => p._id === programId) : null;
   const pageTitle = selectedProgram
@@ -148,7 +234,7 @@ export default function BookingPage() {
       try {
         const updatedBooking = await api.deletePayment(bookingId, paymentId);
         dispatch({ type: "DELETE_PAYMENT", payload: { bookingId, updatedBooking } });
-        setSelectedBookingForPayment(updatedBooking); // Refresh the modal with updated data
+        setSelectedBookingForPayment(updatedBooking);
         toast.success('Payment deleted!');
       } catch (error) {
         toast.error('Failed to delete payment.');
@@ -195,14 +281,14 @@ export default function BookingPage() {
           updatedBooking = await api.addPayment(selectedBookingForPayment._id, payment);
           dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment._id, updatedBooking } });
         }
-        setSelectedBookingForPayment(updatedBooking); // Refresh modal with updated data
+        setSelectedBookingForPayment(updatedBooking);
         toast.success('Payment saved!');
       } catch (error) {
         toast.error('Failed to save payment.');
         console.error("Failed to save payment", error);
       }
     }
-    setIsPaymentModalOpen(false); // Close the form modal
+    setIsPaymentModalOpen(false);
     setEditingPayment(null);
   };
 
@@ -356,7 +442,7 @@ export default function BookingPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {[...filteredBookings].reverse().map((booking) => {
+              {currentBookings.map((booking) => {
                 const program = state.programs.find((p) => p._id === booking.tripId);
                 const totalPaid = booking.advancePayments.reduce((sum, payment) => sum + payment.amount, 0);
                 return (
@@ -430,23 +516,48 @@ export default function BookingPage() {
             </tbody>
           </table>
         </div>
-        {filteredBookings.length > 0 && (
-            <div className="bg-gray-50 px-6 py-4 border-t-2 font-mono">
-              <div className="grid grid-cols-5 text-sm">
-                  <div className="font-bold text-gray-800">Totals ({summaryStats.totalBookings} Bookings)</div>
-                  <div />
-                  <div>
-                      <p>Sell: <span className="font-semibold text-gray-700">{summaryStats.totalRevenue.toLocaleString()} MAD</span></p>
-                      <p>Cost: <span className="font-semibold text-gray-700">{summaryStats.totalCost.toLocaleString()} MAD</span></p>
-                      <p className="text-emerald-600">Profit: <span className="font-bold">{summaryStats.totalProfit.toLocaleString()} MAD</span></p>
-                  </div>
-                  <div>
-                      <p>Paid: <span className="font-semibold text-blue-600">{summaryStats.totalPaid.toLocaleString()} MAD</span></p>
-                      <p>Remaining: <span className="font-semibold text-orange-600">{summaryStats.totalRemaining.toLocaleString()} MAD</span></p>
-                  </div>
-                  <div />
-              </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200">
+            <button 
+              onClick={() => paginate(currentPage - 1)} 
+              disabled={currentPage === 1} 
+              className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1"/>
+              Previous
+            </button>
+            
+            <div className="flex items-center space-x-1">
+              {paginationRange.map((pageNumber, index) => {
+                if (typeof pageNumber === 'string') {
+                  return <span key={index} className="px-3 py-1 text-sm text-gray-400">...</span>;
+                }
+                return (
+                  <button
+                    key={index}
+                    onClick={() => paginate(pageNumber)}
+                    className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                      currentPage === pageNumber
+                        ? 'bg-blue-600 text-white font-bold shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {pageNumber}
+                  </button>
+                );
+              })}
             </div>
+
+            <button 
+              onClick={() => paginate(currentPage + 1)} 
+              disabled={currentPage === totalPages} 
+              className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1"/>
+            </button>
+          </div>
         )}
       </div>
 

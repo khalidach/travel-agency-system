@@ -62,7 +62,7 @@ exports.deleteBooking = async (req, res) => {
         return res.status(401).json({ message: 'User not authorized' });
     }
     
-    await booking.remove();
+    await booking.deleteOne();
     res.json({ message: 'Booking deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -154,6 +154,8 @@ exports.exportBookingsToExcel = async (req, res) => {
     }
 
     const bookings = await Booking.find({ tripId: programId, user: req.user.id });
+    bookings.sort((a, b) => (a.phoneNumber || '').localeCompare(b.phoneNumber || ''));
+
     const program = await Program.findById(programId);
 
     if (!program) {
@@ -248,6 +250,30 @@ exports.exportBookingsToExcel = async (req, res) => {
             };
         });
     });
+
+    // Merge phone number cells
+    let mergeStart = -1;
+    for (let i = 2; i <= bookings.length + 1; i++) {
+        const currentPhoneCell = worksheet.getCell(`E${i}`);
+        const prevPhoneCell = i > 2 ? worksheet.getCell(`E${i - 1}`) : null;
+
+        if (prevPhoneCell && currentPhoneCell.value === prevPhoneCell.value && currentPhoneCell.value) {
+            if (mergeStart === -1) {
+                mergeStart = i - 1;
+            }
+        } else {
+            if (mergeStart !== -1) {
+                worksheet.mergeCells(`E${mergeStart}:E${i - 1}`);
+                worksheet.getCell(`E${mergeStart}`).alignment = { vertical: 'middle', horizontal: 'left' };
+                mergeStart = -1;
+            }
+        }
+    }
+    if (mergeStart !== -1) {
+        worksheet.mergeCells(`E${mergeStart}:E${bookings.length + 1}`);
+        worksheet.getCell(`E${mergeStart}`).alignment = { vertical: 'middle', horizontal: 'left' };
+    }
+
 
     // Add empty row for spacing
     const spacingRow = worksheet.addRow([]);
