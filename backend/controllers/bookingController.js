@@ -187,15 +187,19 @@ exports.exportBookingsToExcel = async (req, res) => {
 
     // Define columns
     worksheet.columns = [
-      { header: 'ID', key: 'id' }, { header: 'Name (French)', key: 'clientNameFr' },
-      { header: 'Name (Arabic)', key: 'clientNameAr' }, { header: 'Passport Number', key: 'passportNumber' },
-      { header: 'Phone Number', key: 'phoneNumber' }, { header: 'Package', key: 'packageId' },
-      { header: 'Hotels Chosen', key: 'hotels' }, { header: 'Room Type', key: 'roomType' },
-      { header: 'Base Price', key: 'basePrice' },
-      { header: 'Sell Price', key: 'sellingPrice' },
-      { header: 'Profit', key: 'profit' },
-      { header: 'Paid', key: 'paid' },
-      { header: 'Remaining', key: 'remaining' },
+      { header: 'ID', key: 'id', width: 5 },
+      { header: 'Prenom/Nom', key: 'clientNameFr', width: 25 },
+      { header: 'الاسم/النسب', key: 'clientNameAr', width: 25 },
+      { header: 'Passport Number', key: 'passportNumber', width: 20 },
+      { header: 'Phone Number', key: 'phoneNumber', width: 20 },
+      { header: 'الباقة', key: 'packageId', width: 20 },
+      { header: 'الفندق المختار', key: 'hotels' },
+      { header: 'نوع الغرفة', key: 'roomType', width: 20 },
+      { header: 'Prix Cost', key: 'basePrice', width: 20 },
+      { header: 'Prix Vente', key: 'sellingPrice', width: 20 },
+      { header: 'Bénéfice', key: 'profit', width: 20 },
+      { header: 'Payé', key: 'paid', width: 20 },
+      { header: 'Reste', key: 'remaining', width: 20 },
     ];
     
     // Style the header row
@@ -226,11 +230,19 @@ exports.exportBookingsToExcel = async (req, res) => {
         }
 
         const row = worksheet.addRow({
-            id: index + 1, clientNameFr: booking.clientNameFr, clientNameAr: booking.clientNameAr,
-            passportNumber: booking.passportNumber, phoneNumber: booking.phoneNumber, packageId: booking.packageId,
-            hotels: (booking.selectedHotel.hotelNames || []).join(', '), roomType: (booking.selectedHotel.roomTypes || []).join(', '),
-            basePrice: booking.basePrice, sellingPrice: booking.sellingPrice, profit: booking.profit,
-            paid: totalPaid, remaining: booking.remainingBalance
+            id: index + 1,
+            clientNameFr: booking.clientNameFr,
+            clientNameAr: booking.clientNameAr,
+            passportNumber: booking.passportNumber,
+            phoneNumber: booking.phoneNumber,
+            packageId: booking.packageId,
+            hotels: (booking.selectedHotel.hotelNames || []).join(', '),
+            roomType: (booking.selectedHotel.roomTypes || []).join(', '),
+            basePrice: Number(booking.basePrice),
+            sellingPrice: Number(booking.sellingPrice),
+            profit: Number(booking.profit),
+            paid: totalPaid,
+            remaining: Number(booking.remainingBalance)
         });
         
         row.font = { size: 12 };
@@ -254,36 +266,34 @@ exports.exportBookingsToExcel = async (req, res) => {
         cell.alignment = { ...cell.alignment, vertical: 'middle' };
     }
 
-    // NEW STABLE Auto-fit Logic
-    worksheet.columns.forEach(column => {
-        let maxLength = 0;
-        const isCurrencyColumn = ['basePrice', 'sellingPrice', 'profit', 'paid', 'remaining'].includes(column.key);
+    // Add a blank row for spacing
+    worksheet.addRow([]);
 
-        // Check header length
-        if (column.header) {
-            maxLength = column.header.toString().length;
-        }
+    const lastDataRowNumber = bookings.length + 1;
+    
+    // Add the totals row
+    const totalsRow = worksheet.addRow({});
+    const totalRowNumber = totalsRow.number;
+    worksheet.mergeCells(`A${totalRowNumber}:H${totalRowNumber}`);
+    const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
+    totalLabelCell.value = 'Total';
+    totalLabelCell.font = { bold: true, size: 14 };
+    totalLabelCell.alignment = { vertical: 'middle', horizontal: 'center' };
 
-        // Iterate over all cells in this column
-        column.eachCell({ includeEmpty: true }, cell => {
-            if (cell.value) {
-                let cellLength = 0;
-                // Check if this is a currency column and the value is a number
-                if (isCurrencyColumn && typeof cell.value === 'number') {
-                    // Manually format the number to get an accurate length
-                    cellLength = (cell.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " MAD").length;
-                } else {
-                    cellLength = cell.value.toString().length;
-                }
-                
-                if (cellLength > maxLength) {
-                    maxLength = cellLength;
-                }
-            }
-        });
-        
-        // Apply the calculated width with extra padding
-        column.width = maxLength + 5;
+    worksheet.getCell(`I${totalRowNumber}`).value = { formula: `SUM(I2:I${lastDataRowNumber})` };
+    worksheet.getCell(`J${totalRowNumber}`).value = { formula: `SUM(J2:J${lastDataRowNumber})` };
+    worksheet.getCell(`K${totalRowNumber}`).value = { formula: `SUM(K2:K${lastDataRowNumber})` };
+    worksheet.getCell(`L${totalRowNumber}`).value = { formula: `SUM(L2:L${lastDataRowNumber})` };
+    worksheet.getCell(`M${totalRowNumber}`).value = { formula: `SUM(M2:M${lastDataRowNumber})` };
+
+    // Style the totals row
+    totalsRow.font = { bold: true, size: 14 };
+    totalsRow.height = 30;
+    ['I', 'J', 'K', 'L', 'M'].forEach(col => {
+        const cell = worksheet.getCell(`${col}${totalRowNumber}`);
+        cell.numFmt = '#,##0.00 "MAD"';
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } }; // Light gray fill
     });
 
     const fileName = `${program.name.replace(/\s/g, '_')}_bookings.xlsx`;
@@ -298,6 +308,7 @@ exports.exportBookingsToExcel = async (req, res) => {
     res.status(500).json({ message: 'Failed to export bookings to Excel.' });
   }
 };
+
 exports.exportBookingTemplate = async (req, res) => {
     try {
         const workbook = new excel.Workbook();
