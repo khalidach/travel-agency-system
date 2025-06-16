@@ -171,12 +171,15 @@ export default function BookingPage() {
   }, [filteredBookings]);
 
   // Pagination Logic
-  const reversedBookings = useMemo(() => [...filteredBookings].reverse(), [filteredBookings]);
+  const sortedBookings = useMemo(() => {
+    return [...filteredBookings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [filteredBookings]);
+
   const indexOfLastBooking = currentPage * bookingsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
-  const currentBookings = useMemo(() => 
-    reversedBookings.slice(indexOfFirstBooking, indexOfLastBooking),
-    [reversedBookings, indexOfFirstBooking, indexOfLastBooking]
+  const currentBookings = useMemo(() =>
+    sortedBookings.slice(indexOfFirstBooking, indexOfLastBooking),
+    [sortedBookings, indexOfFirstBooking, indexOfLastBooking]
   );
   const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
 
