@@ -185,21 +185,21 @@ exports.exportBookingsToExcel = async (req, res) => {
       views: [{ rightToLeft: false }]
     });
 
-    // Define columns
+    // Define columns without width
     worksheet.columns = [
-      { header: 'ID', key: 'id', width: 5 },
-      { header: 'Prenom/Nom', key: 'clientNameFr', width: 25 },
-      { header: 'الاسم/النسب', key: 'clientNameAr', width: 25 },
-      { header: 'Passport Number', key: 'passportNumber', width: 20 },
-      { header: 'Phone Number', key: 'phoneNumber', width: 20 },
-      { header: 'الباقة', key: 'packageId', width: 20 },
+      { header: 'ID', key: 'id' },
+      { header: 'Prenom/Nom', key: 'clientNameFr' },
+      { header: 'الاسم/النسب', key: 'clientNameAr' },
+      { header: 'Passport Number', key: 'passportNumber' },
+      { header: 'Phone Number', key: 'phoneNumber' },
+      { header: 'الباقة', key: 'packageId' },
       { header: 'الفندق المختار', key: 'hotels' },
-      { header: 'نوع الغرفة', key: 'roomType', width: 20 },
-      { header: 'Prix Cost', key: 'basePrice', width: 20 },
-      { header: 'Prix Vente', key: 'sellingPrice', width: 20 },
-      { header: 'Bénéfice', key: 'profit', width: 20 },
-      { header: 'Payé', key: 'paid', width: 20 },
-      { header: 'Reste', key: 'remaining', width: 20 },
+      { header: 'نوع الغرفة', key: 'roomType' },
+      { header: 'Prix Cost', key: 'basePrice' },
+      { header: 'Prix Vente', key: 'sellingPrice' },
+      { header: 'Bénéfice', key: 'profit' },
+      { header: 'Payé', key: 'paid' },
+      { header: 'Reste', key: 'remaining' },
     ];
     
     // Style the header row
@@ -294,6 +294,28 @@ exports.exportBookingsToExcel = async (req, res) => {
         cell.numFmt = '#,##0.00 "MAD"';
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD3D3D3' } }; // Light gray fill
+    });
+
+    // --- Auto-fit column widths (Hybrid Approach) ---
+    const MIN_WIDTH = 18; // Increased minimum width
+    const PADDING = 5;    // Increased padding
+
+    worksheet.columns.forEach(column => {
+        const priceColumns = ['basePrice', 'sellingPrice', 'profit', 'paid', 'remaining'];
+        if (priceColumns.includes(column.key)) {
+            // For price columns, set a fixed generous width to handle large totals
+            column.width = 22;
+        } else {
+            // For other columns, calculate width based on content
+            let maxColumnLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const cellLength = cell.value ? cell.value.toString().length : 0;
+                if (cellLength > maxColumnLength) {
+                    maxColumnLength = cellLength;
+                }
+            });
+            column.width = Math.max(MIN_WIDTH, maxColumnLength + PADDING);
+        }
     });
 
     const fileName = `${program.name.replace(/\s/g, '_')}_bookings.xlsx`;
