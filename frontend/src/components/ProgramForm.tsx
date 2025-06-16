@@ -22,6 +22,27 @@ interface FormData {
   packages: Package[];
 }
 
+// Helper function to standardize room type casing
+function standardizeRoomType(type: string): string {
+    if (!type) return "Double"; // Default if type is somehow missing
+    const lowerType = type.toLowerCase();
+    switch (lowerType) {
+      case "double":
+        return "Double";
+      case "triple":
+        return "Triple";
+      case "quad":
+        return "Quad";
+      case "quintuple":
+        return "Quintuple";
+      default:
+        // If it's an unknown type, default to Double but log a warning
+        console.warn(`Unknown room type "${type}" encountered. Defaulting to Double.`);
+        return "Double";
+    }
+}
+
+
 export default function ProgramForm({
   program,
   onSave,
@@ -52,12 +73,24 @@ export default function ProgramForm({
 
   useEffect(() => {
     if (program) {
+      // When loading a program, standardize the room types within its packages
+      const standardizedPackages = program.packages.map(pkg => ({
+        ...pkg,
+        prices: pkg.prices.map(price => ({
+          ...price,
+          roomTypes: price.roomTypes.map(rt => ({
+            ...rt,
+            type: standardizeRoomType(rt.type),
+          }))
+        }))
+      }));
+
       setFormData({
         name: program.name,
         type: program.type,
         duration: program.duration,
         cities: program.cities,
-        packages: program.packages,
+        packages: standardizedPackages,
       });
     }
   }, [program]);
@@ -185,30 +218,31 @@ export default function ProgramForm({
     const cities = formData.cities.filter((city) => city.name.trim());
     const options: string[] = [];
 
-    if (cities.length === 1) {
-      const cityHotels = pkg.hotels[cities[0].name] || [];
-      cityHotels.forEach((hotel) => {
+    const generateCombinations = (cityIndex: number, currentCombination: string[]) => {
+      if (cityIndex === cities.length) {
+        if (currentCombination.length > 0) {
+          options.push(currentCombination.join('_'));
+        }
+        return;
+      }
+
+      const cityHotels = pkg.hotels[cities[cityIndex].name] || [];
+      if (cityHotels.length === 0) {
+        generateCombinations(cityIndex + 1, currentCombination);
+        return;
+      }
+      
+      cityHotels.forEach(hotel => {
         if (hotel.trim()) {
-          options.push(hotel);
+          generateCombinations(cityIndex + 1, [...currentCombination, hotel]);
         }
       });
-    } else if (cities.length >= 2) {
-      for (let i = 0; i < cities.length - 1; i++) {
-        for (let j = i + 1; j < cities.length; j++) {
-          const city1Hotels = pkg.hotels[cities[i].name] || [];
-          const city2Hotels = pkg.hotels[cities[j].name] || [];
-
-          city1Hotels.forEach((hotel1) => {
-            if (hotel1.trim()) {
-              city2Hotels.forEach((hotel2) => {
-                if (hotel2.trim()) {
-                  options.push(`${hotel1}_${hotel2}`);
-                }
-              });
-            }
-          });
-        }
-      }
+    };
+    
+    if (cities.length > 0) {
+        generateCombinations(0, []);
+    } else {
+        // Handle single city case differently if needed, though the recursive approach covers it.
     }
 
     return options;
@@ -223,13 +257,10 @@ export default function ProgramForm({
             (p) => p.hotelCombination === hotelOption
           );
           if (!existingPrice) {
-            const isMultiCity = hotelOption.includes("_");
-            const defaultRoomTypes = isMultiCity
-              ? [{ type: "Double", sellingPrice: 0 }]
-              : availableRoomTypes.map((type) => ({
+            const defaultRoomTypes = availableRoomTypes.map((type) => ({
                   type,
                   sellingPrice: 0,
-                }));
+            }));
 
             return {
               ...pkg,
@@ -662,7 +693,7 @@ export default function ProgramForm({
                                 Room Type
                               </label>
                               <select
-                                value={roomType.type}
+                                value={standardizeRoomType(roomType.type)}
                                 onChange={(e) =>
                                   updateRoomPrice(
                                     packageIndex,
