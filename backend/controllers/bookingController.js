@@ -167,7 +167,7 @@ exports.exportBookingsToExcel = async (req, res) => {
       return res.status(400).json({ message: 'A specific program must be selected for export.' });
     }
 
-    const { rows: bookings } = await req.db.query('SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "clientNameFr"', [programId, req.user.id]);
+    const { rows: bookings } = await req.db.query('SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "phoneNumber", "clientNameFr"', [programId, req.user.id]);
     
     if (bookings.length === 0) {
         return res.status(404).json({ message: 'No bookings found for this program.' });
@@ -185,18 +185,20 @@ exports.exportBookingsToExcel = async (req, res) => {
       views: [{ rightToLeft: false }]
     });
 
+    // Define columns
     worksheet.columns = [
-      { header: 'ID', key: 'id', width: 5 }, { header: 'Name (French)', key: 'clientNameFr', width: 25 },
-      { header: 'Name (Arabic)', key: 'clientNameAr', width: 25 }, { header: 'Passport Number', key: 'passportNumber', width: 20 },
-      { header: 'Phone Number', key: 'phoneNumber', width: 20 }, { header: 'Package', key: 'packageId', width: 20 },
-      { header: 'Hotels Chosen', key: 'hotels', width: 40 }, { header: 'Room Type', key: 'roomType', width: 15 },
-      { header: 'Base Price', key: 'basePrice', style: { numFmt: '#,##0.00 "MAD"' }, width: 15 },
-      { header: 'Sell Price', key: 'sellingPrice', style: { numFmt: '#,##0.00 "MAD"' }, width: 15 },
-      { header: 'Profit', key: 'profit', style: { numFmt: '#,##0.00 "MAD"' }, width: 15 },
-      { header: 'Paid', key: 'paid', style: { numFmt: '#,##0.00 "MAD"' }, width: 15 },
-      { header: 'Remaining', key: 'remaining', style: { numFmt: '#,##0.00 "MAD"' }, width: 15 },
+      { header: 'ID', key: 'id' }, { header: 'Name (French)', key: 'clientNameFr' },
+      { header: 'Name (Arabic)', key: 'clientNameAr' }, { header: 'Passport Number', key: 'passportNumber' },
+      { header: 'Phone Number', key: 'phoneNumber' }, { header: 'Package', key: 'packageId' },
+      { header: 'Hotels Chosen', key: 'hotels' }, { header: 'Room Type', key: 'roomType' },
+      { header: 'Base Price', key: 'basePrice' },
+      { header: 'Sell Price', key: 'sellingPrice' },
+      { header: 'Profit', key: 'profit' },
+      { header: 'Paid', key: 'paid' },
+      { header: 'Remaining', key: 'remaining' },
     ];
     
+    // Style the header row
     const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF'} };
     headerRow.height = 35;
@@ -206,8 +208,23 @@ exports.exportBookingsToExcel = async (req, res) => {
         cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
     });
 
+    let lastPhoneNumber = null;
+    let mergeStartRow = 2;
+
+    // Add data rows and apply styles
     bookings.forEach((booking, index) => {
         const totalPaid = (booking.advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
+        const currentRowNum = index + 2;
+
+        if (lastPhoneNumber !== null && booking.phoneNumber !== lastPhoneNumber) {
+            if (currentRowNum - 1 > mergeStartRow) {
+                worksheet.mergeCells(`E${mergeStartRow}:E${currentRowNum - 1}`);
+                const cell = worksheet.getCell(`E${mergeStartRow}`);
+                cell.alignment = { ...cell.alignment, vertical: 'middle' };
+            }
+            mergeStartRow = currentRowNum;
+        }
+
         const row = worksheet.addRow({
             id: index + 1, clientNameFr: booking.clientNameFr, clientNameAr: booking.clientNameAr,
             passportNumber: booking.passportNumber, phoneNumber: booking.phoneNumber, packageId: booking.packageId,
@@ -218,10 +235,55 @@ exports.exportBookingsToExcel = async (req, res) => {
         
         row.font = { size: 12 };
         row.height = 25;
-        row.eachCell(cell => {
+        
+        row.eachCell({ includeEmpty: true }, (cell) => {
             cell.alignment = { vertical: 'middle', horizontal: 'center' };
             cell.border = { top: { style: 'thin', color: { argb: 'FFDDDDDD'} }, left: { style: 'thin', color: { argb: 'FFDDDDDD'} }, bottom: { style: 'thin', color: { argb: 'FFDDDDDD'} }, right: { style: 'thin', color: { argb: 'FFDDDDDD'} } };
+            const columnKey = worksheet.getColumn(cell.col).key;
+            if (['basePrice', 'sellingPrice', 'profit', 'paid', 'remaining'].includes(columnKey)) {
+                cell.numFmt = '#,##0.00 "MAD"';
+            }
         });
+
+        lastPhoneNumber = booking.phoneNumber;
+    });
+
+    if (bookings.length > 0 && bookings.length + 1 > mergeStartRow) {
+        worksheet.mergeCells(`E${mergeStartRow}:E${bookings.length + 1}`);
+        const cell = worksheet.getCell(`E${mergeStartRow}`);
+        cell.alignment = { ...cell.alignment, vertical: 'middle' };
+    }
+
+    // NEW STABLE Auto-fit Logic
+    worksheet.columns.forEach(column => {
+        let maxLength = 0;
+        const isCurrencyColumn = ['basePrice', 'sellingPrice', 'profit', 'paid', 'remaining'].includes(column.key);
+
+        // Check header length
+        if (column.header) {
+            maxLength = column.header.toString().length;
+        }
+
+        // Iterate over all cells in this column
+        column.eachCell({ includeEmpty: true }, cell => {
+            if (cell.value) {
+                let cellLength = 0;
+                // Check if this is a currency column and the value is a number
+                if (isCurrencyColumn && typeof cell.value === 'number') {
+                    // Manually format the number to get an accurate length
+                    cellLength = (cell.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " MAD").length;
+                } else {
+                    cellLength = cell.value.toString().length;
+                }
+                
+                if (cellLength > maxLength) {
+                    maxLength = cellLength;
+                }
+            }
+        });
+        
+        // Apply the calculated width with extra padding
+        column.width = maxLength + 5;
     });
 
     const fileName = `${program.name.replace(/\s/g, '_')}_bookings.xlsx`;
@@ -236,7 +298,6 @@ exports.exportBookingsToExcel = async (req, res) => {
     res.status(500).json({ message: 'Failed to export bookings to Excel.' });
   }
 };
-
 exports.exportBookingTemplate = async (req, res) => {
     try {
         const workbook = new excel.Workbook();
