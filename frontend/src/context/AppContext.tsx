@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
 import * as api from '../services/api';
 
-// --- INTERFACES (UPDATED FOR POSTGRESQL) ---
+// --- INTERFACES (UPDATED FOR POSTGRESQL & NEW REQUIREMENTS) ---
 export interface User {
-  id: number; // Changed from _id: string
+  id: number;
   username: string;
-  agencyName: string; // Switched to camelCase
+  agencyName: string;
   token: string;
 }
 
@@ -14,13 +14,23 @@ export interface CityData {
   nights: number;
 }
 
+// Defines a room type for a program, including the number of guests.
+export interface RoomTypeDefinition {
+  name: string;
+  guests: number;
+  isDefault: boolean;
+}
+
 export interface Program {
-  id: number; // Changed from _id: string
+  id: number;
   name: string;
   type: "Hajj" | "Umrah" | "Tourism";
   duration: number;
   cities: CityData[];
   packages: Package[];
+  // roomTypes are now defined within each PriceStructure, so this can be removed if not needed globally.
+  // For simplicity and to facilitate pricing, we'll assume room types are defined per program.
+  roomTypes: RoomTypeDefinition[]; 
 }
 
 export interface Package {
@@ -28,17 +38,20 @@ export interface Package {
   hotels: {
     [city: string]: string[];
   };
+  // The 'prices' array is kept, as it links hotel combinations to room type definitions.
   prices: PriceStructure[];
 }
 
 export interface PriceStructure {
   hotelCombination: string;
-  roomTypes: RoomPrice[];
+  // This will now define the room types available for THIS specific hotel combination.
+  roomTypes: RoomPrice[]; 
 }
 
+// UPDATED: This now defines the number of guests for a room type within a PriceStructure.
 export interface RoomPrice {
   type: string;
-  sellingPrice: number;
+  guests: number; // Changed from sellingPrice: number
 }
 
 export interface RelatedPerson {
@@ -47,7 +60,7 @@ export interface RelatedPerson {
 }
 
 export interface Booking {
-  id: number; // Changed from _id: string
+  id: number;
   clientNameAr: string;
   clientNameFr: string;
   phoneNumber: string;
@@ -57,7 +70,7 @@ export interface Booking {
   selectedHotel: {
     cities: string[];
     hotelNames: string[];
-    roomTypes: string[]; // Changed from roomType: string
+    roomTypes: string[];
   };
   sellingPrice: number;
   basePrice: number;
@@ -70,8 +83,8 @@ export interface Booking {
 }
 
 export interface Payment {
-  _id: string; // MongoDB IDs can still exist in the JSONB field, so we keep this for payments
-  id: string; // Keeping both for safety
+  _id: string;
+  id: string;
   amount: number;
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
@@ -84,18 +97,16 @@ export interface HotelPrice {
   name: string;
   city: string;
   nights: number;
+  // UPDATED: PricePerNights is now a dynamic map to hold price per room type name.
   PricePerNights: {
-    double: number;
-    triple: number;
-    quad: number;
-    quintuple: number;
+    [roomTypeName: string]: number;
   };
 }
 
 export interface ProgramPricing {
-  id: number; // Changed from _id: string
+  id: number;
   selectProgram: string;
-  programId: string;
+  programId: number; // Changed to number for consistency
   ticketAirline: number;
   visaFees: number;
   guideFees: number;
@@ -121,17 +132,17 @@ type AppAction =
   | { type: "SET_PROGRAM_PRICING"; payload: ProgramPricing[] }
   | { type: "ADD_PROGRAM"; payload: Program }
   | { type: "UPDATE_PROGRAM"; payload: Program }
-  | { type: "DELETE_PROGRAM"; payload: number } // Changed to number
+  | { type: "DELETE_PROGRAM"; payload: number }
   | { type: "ADD_BOOKING"; payload: Booking }
   | { type: "UPDATE_BOOKING"; payload: Booking }
-  | { type: "DELETE_BOOKING"; payload: number } // Changed to number
-  | { type: "ADD_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
-  | { type: "UPDATE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
-  | { type: "DELETE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } } // Changed to number
+  | { type: "DELETE_BOOKING"; payload: number }
+  | { type: "ADD_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
+  | { type: "UPDATE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
+  | { type: "DELETE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
   | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
   | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
-  | { type: "DELETE_PROGRAM_PRICING"; payload: number }; // Changed to number
+  | { type: "DELETE_PROGRAM_PRICING"; payload: number };
 
 
 const userFromStorage = localStorage.getItem('user');
@@ -150,7 +161,6 @@ const initialState: AppState = {
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "LOGIN":
-      // The login response now provides `agencyName` directly
       localStorage.setItem('user', JSON.stringify(action.payload));
       return { ...state, isAuthenticated: true, user: action.payload, loading: true };
     case "LOGOUT":

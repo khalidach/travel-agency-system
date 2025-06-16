@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import type { Program, ProgramPricing, HotelPrice } from "../context/AppContext";
@@ -14,14 +14,24 @@ const emptyPricing: Omit<ProgramPricing, 'id'> = {
     allHotels: [],
 };
 
-
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
   const { state, dispatch } = useAppContext();
   const { programs, programPricing } = state;
   const [currentPricing, setCurrentPricing] = useState<ProgramPricing | Omit<ProgramPricing, 'id'>>(emptyPricing);
-
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
+
+  // Memoize the list of unique room types for the selected program
+  const uniqueRoomTypesForProgram = useMemo(() => {
+    if (!selectedProgram) return [];
+    const allRoomTypeNames = new Set<string>();
+    selectedProgram.packages.forEach(pkg => {
+      pkg.prices.forEach(price => {
+        price.roomTypes.forEach(rt => allRoomTypeNames.add(rt.type));
+      });
+    });
+    return Array.from(allRoomTypeNames);
+  }, [selectedProgram]);
 
   const handleProgramSelect = (programIdStr: string) => {
     const programId = parseInt(programIdStr, 10);
@@ -32,19 +42,27 @@ export default function ProgramPricingPage() {
       return;
     }
 
-    const hotelsList = program.cities.flatMap((city) => {
-      const cityHotels = new Set<string>();
-      program.packages.forEach(pkg => {
-        const hotels = pkg.hotels[city.name] || [];
-        hotels.forEach(hotel => cityHotels.add(hotel));
-      });
+    // Get a unique list of all hotels across all packages for the program
+    const uniqueHotels = new Map<string, { city: string; nights: number }>();
+    program.packages.forEach(pkg => {
+        (program.cities || []).forEach(city => {
+            (pkg.hotels[city.name] || []).forEach(hotelName => {
+                const key = `${city.name}-${hotelName}`;
+                if (!uniqueHotels.has(key)) {
+                    uniqueHotels.set(key, { city: city.name, nights: city.nights });
+                }
+            });
+        });
+    });
 
-      return Array.from(cityHotels).map((hotelName) => ({
-        name: hotelName,
-        city: city.name,
-        nights: city.nights,
-        PricePerNights: { double: 0, triple: 0, quad: 0, quintuple: 0 },
-      }));
+    const hotelsList: HotelPrice[] = Array.from(uniqueHotels.entries()).map(([key, data]) => {
+        const [city, name] = key.split('-');
+        return {
+            name,
+            city,
+            nights: data.nights,
+            PricePerNights: {}, // Initialize as an empty object
+        };
     });
 
     setSelectedProgram(program);
@@ -62,25 +80,8 @@ export default function ProgramPricingPage() {
       console.error('Program not found');
       return;
     }
-
     setSelectedProgram(program);
-
-    const programHotels = program.cities.flatMap((city) => {
-      const cityHotels = new Set<string>();
-      program.packages.forEach(pkg => {
-        const hotels = pkg.hotels[city.name] || [];
-        hotels.forEach(hotel => cityHotels.add(hotel));
-      });
-      return Array.from(cityHotels).map((hotelName) => ({ name: hotelName, city: city.name, nights: city.nights }));
-    });
-
-    const existingPrices = new Map(pricing.allHotels.map((hotel) => [`${hotel.city}-${hotel.name}`, hotel.PricePerNights]));
-    const synchronizedHotels = programHotels.map((hotel) => ({
-      ...hotel,
-      PricePerNights: existingPrices.get(`${hotel.city}-${hotel.name}`) || { double: 0, triple: 0, quad: 0, quintuple: 0 },
-    }));
-
-    setCurrentPricing({ ...pricing, allHotels: synchronizedHotels });
+    setCurrentPricing({ ...pricing });
   };
 
   const handleDeletePricing = async (id: number) => {
@@ -97,10 +98,11 @@ export default function ProgramPricingPage() {
   const handleHotelPriceChange = (hotelIndex: number, roomType: string, value: string) => {
     setCurrentPricing((prev) => {
       const newHotels = [...(prev.allHotels || [])];
-      newHotels[hotelIndex] = {
-        ...newHotels[hotelIndex],
-        PricePerNights: { ...newHotels[hotelIndex].PricePerNights, [roomType]: value === '' ? 0 : Number(value) }
-      };
+      // Ensure PricePerNights exists
+      if (!newHotels[hotelIndex].PricePerNights) {
+        newHotels[hotelIndex].PricePerNights = {};
+      }
+      newHotels[hotelIndex].PricePerNights[roomType] = value === '' ? 0 : Number(value);
       return { ...prev, allHotels: newHotels };
     });
   };
@@ -134,21 +136,13 @@ export default function ProgramPricingPage() {
     <div className="max-w-4xl mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">{t("Program Pricing")}</h1>
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Select Program")}
-        </label>
-        <select
-          value={selectedProgram?.id || ""}
-          onChange={(e) => handleProgramSelect(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-        >
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Select Program")}</label>
+        <select value={selectedProgram?.id || ""} onChange={(e) => handleProgramSelect(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
           <option value="">{t("Select a program")}</option>
           {programs
             .filter(program => !programPricing.some(p => p.programId === program.id) || (currentPricing && 'id' in currentPricing && currentPricing.programId === program.id))
             .map((program: Program) => (
-              <option key={program.id} value={program.id}>
-                {program.name}
-              </option>
+              <option key={program.id} value={program.id}>{program.name}</option>
             ))}
         </select>
       </div>
@@ -157,22 +151,22 @@ export default function ProgramPricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t("Flight Ticket Price")}</label>
-              <input type="number" value={currentPricing.ticketAirline} onChange={(e) => setCurrentPricing(prev => ({ ...prev, ticketAirline: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <input type="number" value={currentPricing.ticketAirline || ''} onChange={(e) => setCurrentPricing(prev => ({ ...prev, ticketAirline: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t("Visa Fees")}</label>
-              <input type="number" value={currentPricing.visaFees} onChange={(e) => setCurrentPricing(prev => ({ ...prev, visaFees: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <input type="number" value={currentPricing.visaFees || ''} onChange={(e) => setCurrentPricing(prev => ({ ...prev, visaFees: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">{t("Guide Fees")}</label>
-              <input type="number" value={currentPricing.guideFees} onChange={(e) => setCurrentPricing(prev => ({ ...prev, guideFees: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+              <input type="number" value={currentPricing.guideFees || ''} onChange={(e) => setCurrentPricing(prev => ({ ...prev, guideFees: Number(e.target.value) }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
             </div>
           </div>
 
           <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">{t("Hotels")}</h2>
             {(currentPricing.allHotels || []).map((hotel, index) => (
-              <div key={index} className="mb-6 p-4 border rounded-lg">
+              <div key={`${hotel.city}-${hotel.name}`} className="mb-6 p-4 border rounded-lg">
                 <div className="flex justify-between items-center mb-3">
                   <div>
                     <h3 className="font-medium">{hotel.name}</h3>
@@ -180,10 +174,18 @@ export default function ProgramPricingPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(hotel.PricePerNights).map(([type, price]) => (
-                    <div key={type}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t(type.charAt(0).toUpperCase() + type.slice(1))}</label>
-                      <input type="number" min="0" step="any" value={price === 0 ? '' : price} onChange={(e) => handleHotelPriceChange(index, type, e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  {uniqueRoomTypesForProgram.map(roomType => (
+                    <div key={roomType}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">{t(roomType)} Price</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="any" 
+                        value={hotel.PricePerNights?.[roomType] || ''} 
+                        onChange={(e) => handleHotelPriceChange(index, roomType, e.target.value)} 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg" 
+                        placeholder="Price/Night"
+                      />
                     </div>
                   ))}
                 </div>
@@ -225,7 +227,7 @@ export default function ProgramPricingPage() {
                       <div key={idx} className="text-sm border-t pt-2">
                         <div className="font-medium">{hotel.name} ({hotel.city} - {hotel.nights} {t("nights")})</div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-gray-600">
-                          {(Object.entries(hotel.PricePerNights) as [string, number][]).map(([type, price]) => <div key={type}>{type}: {price}</div>)}
+                          {hotel.PricePerNights && Object.entries(hotel.PricePerNights).map(([type, price]) => <div key={type} className="capitalize">{type}: {price}</div>)}
                         </div>
                       </div>
                     ))}

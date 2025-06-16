@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
-import type { Booking, Program, Package, Payment, RelatedPerson } from "../context/AppContext";
+import type { Booking, Program, Package, Payment, RelatedPerson, PriceStructure } from "../context/AppContext";
 import { X } from "lucide-react";
 
-
-export type BookingFormData = Omit<Booking, 'id' | 'isFullyPaid' | 'remainingBalance' | 'advancePayments'>;
+export type BookingFormData = Omit<Booking, 'id' | 'isFullyPaid' | 'remainingBalance' | 'advancePayments' | 'createdAt'> & {
+    createdAt: string;
+};
 
 interface BookingFormProps {
   booking?: Booking | null;
@@ -37,9 +38,10 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
 
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [availableRoomTypes] = useState(["Double", "Triple", "Quad", "Quintuple"]);
+  const [selectedPriceStructure, setSelectedPriceStructure] = useState<PriceStructure | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Effect for populating form when editing a booking ---
   useEffect(() => {
     if (booking) {
       const program = programs.find((p) => p.id.toString() === (booking.tripId || '').toString());
@@ -49,13 +51,6 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         if(pkg) setSelectedPackage(pkg);
       }
       
-      let initialRoomTypes: string[] = [];
-      if (booking.selectedHotel.roomTypes && Array.isArray(booking.selectedHotel.roomTypes) && booking.selectedHotel.roomTypes.length > 0) {
-        initialRoomTypes = booking.selectedHotel.roomTypes;
-      } else if ((booking.selectedHotel as any).roomType) {
-        initialRoomTypes = (booking.selectedHotel.cities || []).map(() => (booking.selectedHotel as any).roomType);
-      }
-
       setFormData({
         clientNameAr: booking.clientNameAr,
         clientNameFr: booking.clientNameFr,
@@ -63,7 +58,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         passportNumber: booking.passportNumber,
         tripId: booking.tripId,
         packageId: booking.packageId,
-        selectedHotel: { ...booking.selectedHotel, roomTypes: initialRoomTypes },
+        selectedHotel: booking.selectedHotel,
         sellingPrice: Number(booking.sellingPrice),
         basePrice: Number(booking.basePrice),
         profit: Number(booking.sellingPrice) - Number(booking.basePrice),
@@ -73,11 +68,126 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     }
   }, [booking, programs]);
 
+  // --- Effect for calculating base price ---
+  useEffect(() => {
+    const calculateTotalBasePrice = (): number => {
+        if (!selectedProgram || !selectedPriceStructure) return 0;
+        const pricing = state.programPricing.find((p) => p.programId === selectedProgram.id);
+        if (!pricing || !pricing.allHotels) return 0;
+
+        const hotelCosts = formData.selectedHotel.cities.reduce((total, city, index) => {
+            const hotelName = formData.selectedHotel.hotelNames[index];
+            const roomTypeName = formData.selectedHotel.roomTypes[index];
+            if (!roomTypeName) return total;
+
+            const roomDef = selectedPriceStructure.roomTypes.find(rt => rt.type === roomTypeName);
+            const guests = roomDef ? roomDef.guests : 1;
+
+            const hotelPricingInfo = pricing.allHotels.find((h) => h.name === hotelName && h.city === city);
+            if (hotelPricingInfo && hotelPricingInfo.PricePerNights) {
+                const pricePerNight = Number(hotelPricingInfo.PricePerNights[roomTypeName] || 0);
+                const cityInfo = selectedProgram.cities.find((c) => c.name === city);
+                const nights = cityInfo ? cityInfo.nights : 0;
+                
+                if (pricePerNight > 0 && nights > 0 && guests > 0) {
+                    return total + (pricePerNight * nights) / guests;
+                }
+            }
+            return total;
+        }, 0);
+
+        const ticketAirline = Number(pricing.ticketAirline || 0);
+        const visaFees = Number(pricing.visaFees || 0);
+        const guideFees = Number(pricing.guideFees || 0);
+        
+        return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
+    };
+
+    if (selectedProgram && selectedPriceStructure) {
+        const newBasePrice = calculateTotalBasePrice();
+        setFormData(prev => ({ ...prev, basePrice: newBasePrice, profit: prev.sellingPrice - newBasePrice }));
+    }
+  }, [formData.selectedHotel, formData.sellingPrice, selectedProgram, selectedPriceStructure, state.programPricing]);
+  
+  // --- Effect to determine the price structure based on selected hotels ---
+  useEffect(() => {
+    if (selectedPackage && selectedProgram?.cities.length === formData.selectedHotel.hotelNames.length && formData.selectedHotel.hotelNames.every(h => h)) {
+      const hotelCombination = formData.selectedHotel.hotelNames.join('_');
+      const priceStructure = selectedPackage.prices.find(p => p.hotelCombination === hotelCombination);
+      setSelectedPriceStructure(priceStructure || null);
+    } else {
+      setSelectedPriceStructure(null);
+    }
+  }, [formData.selectedHotel.hotelNames, selectedPackage, selectedProgram]);
+
+
+  const handleSellingPriceChange = (price: number) => {
+    setFormData(prev => ({ ...prev, sellingPrice: price, profit: price - prev.basePrice }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProgram || !selectedPackage || !selectedPriceStructure) {
+      setError("A valid program, package, and hotel combination must be selected.");
+      return;
+    }
+    onSave(formData, booking?.advancePayments || []);
+  };
+
+  const handleProgramChange = (programIdStr: string) => {
+    const programId = parseInt(programIdStr, 10);
+    const program = programs.find((p) => p.id === programId);
+    setSelectedProgram(program || null);
+    setSelectedPackage(null);
+    setSelectedPriceStructure(null);
+    setFormData((prev) => ({
+      ...prev,
+      tripId: programIdStr,
+      packageId: "",
+      selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
+    }));
+    setError(null);
+  };
+
+  const handlePackageChange = (packageName: string) => {
+    if (!selectedProgram) return;
+    const pkg = (selectedProgram.packages || []).find((p) => p.name === packageName);
+    setSelectedPackage(pkg || null);
+    setSelectedPriceStructure(null);
+    if (pkg) {
+      const cities = (selectedProgram.cities || []).map(c => c.name);
+      setFormData((prev) => ({
+        ...prev,
+        packageId: packageName,
+        selectedHotel: { cities, hotelNames: Array(cities.length).fill(""), roomTypes: Array(cities.length).fill("") },
+      }));
+    }
+  };
+  
+  const updateHotelSelection = (cityIndex: number, hotelName: string) => {
+    const newHotelNames = [...formData.selectedHotel.hotelNames];
+    newHotelNames[cityIndex] = hotelName;
+
+    // Reset room types when hotel combination changes
+    setFormData((prev) => ({
+      ...prev,
+      selectedHotel: { ...prev.selectedHotel, hotelNames: newHotelNames, roomTypes: Array(prev.selectedHotel.cities.length).fill("") },
+    }));
+  };
+
+  const updateRoomTypeSelection = (cityIndex: number, roomType: string) => {
+    const newRoomTypes = [...formData.selectedHotel.roomTypes];
+    newRoomTypes[cityIndex] = roomType;
+    setFormData((prev) => ({
+      ...prev,
+      selectedHotel: { ...prev.selectedHotel, roomTypes: newRoomTypes },
+    }));
+  };
+
+  // --- Related Persons Logic ---
   const availablePeople = useMemo(() => {
     const selectedIDs = new Set((formData.relatedPersons || []).map(p => p.ID));
-    if (booking) {
-      selectedIDs.add(booking.id);
-    }
+    if (booking) selectedIDs.add(booking.id);
     return state.bookings.filter(b => !selectedIDs.has(b.id) && b.clientNameFr.toLowerCase().includes(search.toLowerCase()));
   }, [state.bookings, formData.relatedPersons, search, booking]);
 
@@ -92,141 +202,10 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     setFormData(prev => ({ ...prev, relatedPersons: (prev.relatedPersons || []).filter(p => p.ID !== personId) }));
   };
 
-  useEffect(() => {
-    const getGuestsPerRoom = (roomType: string): number => {
-        if (!roomType) return 2;
-        switch (roomType.toLowerCase()) {
-          case "double": return 2;
-          case "triple": return 3;
-          case "quad": return 4;
-          case "quintuple": return 5;
-          default: return 2;
-        }
-    };
-    const calculateHotelCosts = (): number => {
-        if (!selectedProgram || !formData.selectedHotel.cities) return 0;
-        const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
-        if (!pricing || !pricing.allHotels) return 0;
-
-        return formData.selectedHotel.cities.reduce((total, city, index) => {
-          const hotelName = formData.selectedHotel.hotelNames[index];
-          const roomType = formData.selectedHotel.roomTypes[index]?.toLowerCase();
-          if (!roomType) return total;
-
-          const hotel = pricing.allHotels.find((h) => h.name === hotelName && h.city === city);
-
-          if (hotel && hotel.PricePerNights) {
-            const pricePerNight = Number(hotel.PricePerNights[roomType as keyof typeof hotel.PricePerNights] || 0);
-            const nights = Number((selectedProgram.cities || []).find((c) => c.name === city)?.nights || 0);
-            if(!isNaN(pricePerNight) && !isNaN(nights) && nights > 0) {
-                const guests = getGuestsPerRoom(roomType);
-                if (guests > 0) {
-                    return total + (pricePerNight * nights) / guests;
-                }
-            }
-          }
-          return total;
-        }, 0);
-    };
-
-    const calculateTotalBasePrice = (): number => {
-        if (!selectedProgram) return 0;
-        const pricing = state.programPricing.find((p) => p.programId.toString() === selectedProgram.id.toString());
-        if (!pricing) return 0;
-
-        const hotelCosts = calculateHotelCosts();
-        const ticketAirline = Number(pricing.ticketAirline || 0);
-        const visaFees = Number(pricing.visaFees || 0);
-        const guideFees = Number(pricing.guideFees || 0);
-        
-        if(isNaN(ticketAirline) || isNaN(visaFees) || isNaN(guideFees) || isNaN(hotelCosts)) {
-            return 0;
-        }
-        
-        return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
-    };
-
-    if(selectedProgram && formData.packageId && formData.selectedHotel.hotelNames.every(name => name) && formData.selectedHotel.roomTypes.every(rt => rt)){
-        const newBasePrice = calculateTotalBasePrice();
-        setFormData(prev => ({ ...prev, basePrice: newBasePrice, profit: prev.sellingPrice - newBasePrice }));
-    }
-  }, [formData.tripId, formData.packageId, formData.selectedHotel, selectedProgram, state.programPricing, formData.sellingPrice]);
-
-  const handleSellingPriceChange = (price: number) => {
-    setFormData(prev => ({ ...prev, sellingPrice: price, profit: price - prev.basePrice }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProgram || !selectedPackage) {
-      setError("Program and package must be selected");
-      return;
-    }
-    onSave(formData, booking?.advancePayments || []);
-  };
-
-    const handleProgramChange = (programIdStr: string) => {
-        const programId = parseInt(programIdStr, 10);
-        const program = programs.find((p) => p.id === programId);
-        setSelectedProgram(program || null);
-        setSelectedPackage(null);
-        setFormData((prev) => ({
-          ...prev,
-          tripId: programIdStr,
-          packageId: "",
-          selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
-        }));
-        setError(null);
-      };
-
-      const handlePackageChange = (packageName: string) => {
-        if (!selectedProgram) return;
-        const pkg = (selectedProgram.packages || []).find((p) => p.name === packageName);
-        if (pkg) {
-          const cities = (selectedProgram.cities || []).map(c => c.name);
-          setSelectedPackage(pkg);
-          setFormData((prev) => ({
-            ...prev,
-            packageId: packageName,
-            selectedHotel: {
-              ...prev.selectedHotel,
-              cities: cities,
-              hotelNames: cities.map(() => ""),
-              roomTypes: cities.map(() => "Double"),
-            },
-          }));
-        }
-      };
-      
-      const updateHotelSelection = (cityIndex: number, hotelName: string) => {
-        setFormData((prev) => ({
-          ...prev,
-          selectedHotel: {
-            ...prev.selectedHotel,
-            hotelNames: prev.selectedHotel.hotelNames.map((name, i) => i === cityIndex ? hotelName : name)
-          },
-        }));
-      };
-
-      const updateRoomTypeSelection = (cityIndex: number, roomType: string) => {
-        setFormData((prev) => ({
-          ...prev,
-          selectedHotel: {
-            ...prev.selectedHotel,
-            roomTypes: prev.selectedHotel.roomTypes.map((rt, i) => i === cityIndex ? roomType : rt)
-          },
-        }));
-      };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
-          {error}
-        </div>
-      )}
+      {error && <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">{error}</div>}
 
-      {/* Client Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("Client Name (French)")}</label>
@@ -246,42 +225,21 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         <input type="tel" value={formData.phoneNumber} onChange={(e) => setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required />
       </div>
 
-       {/* Related Persons */}
        <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">{t("Related People")}</label>
         <div className="relative">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
-            onFocus={() => setShowDropdown(true)}
-            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-            placeholder="Search for a client to add..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          />
+          <input type="text" value={search} onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onBlur={() => setTimeout(() => setShowDropdown(false), 200)} placeholder="Search for a client to add..." className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
           {showDropdown && availablePeople.length > 0 && (
             <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
-              {availablePeople.map(person => (
-                <li key={person.id} onClick={() => addRelatedPerson(person)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                  {person.clientNameFr} ({person.passportNumber})
-                </li>
-              ))}
+              {availablePeople.map(person => ( <li key={person.id} onClick={() => addRelatedPerson(person)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">{person.clientNameFr} ({person.passportNumber})</li>))}
             </ul>
           )}
         </div>
         <div className="mt-2 flex flex-wrap gap-2">
-            {(formData.relatedPersons || []).map(person => (
-                <div key={person.ID} className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-                    <span>{person.clientName}</span>
-                    <button type="button" onClick={() => removeRelatedPerson(person.ID)} className="ml-2 text-blue-600 hover:text-blue-800">
-                        <X size={16} />
-                    </button>
-                </div>
-            ))}
+            {(formData.relatedPersons || []).map(person => (<div key={person.ID} className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"><span>{person.clientName}</span><button type="button" onClick={() => removeRelatedPerson(person.ID)} className="ml-2 text-blue-600 hover:text-blue-800"><X size={16} /></button></div>))}
         </div>
        </div>
 
-      {/* Program Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("Travel Program")}</label>
@@ -299,41 +257,26 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         </div>
       </div>
 
-      {/* Hotel Selection by City */}
-      {selectedPackage && !error && (
+      {selectedPackage && (
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">{t("Hotel Selection")}</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{t("Hotel & Room Selection")}</h3>
           <div className="space-y-4">
             {(selectedProgram?.cities || []).map((city, cityIndex) => (
               <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{city.name}</h4>
-                    <p className="text-sm text-gray-600">{city.nights} {t("nights")}</p>
-                  </div>
-                </div>
+                <h4 className="font-medium text-gray-900 mb-3">{city.name} ({city.nights} {t("nights")})</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t("Select Hotel")}</label>
-                    <select
-                      value={formData.selectedHotel.hotelNames[cityIndex] || ""}
-                      onChange={(e) => updateHotelSelection(cityIndex, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    >
+                    <select value={formData.selectedHotel.hotelNames[cityIndex] || ""} onChange={(e) => updateHotelSelection(cityIndex, e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
                       <option value="">{t("Select a hotel")}</option>
                       {(selectedPackage.hotels[city.name] || []).map((hotel: string) => ( <option key={hotel} value={hotel}>{hotel}</option> ))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t("Room Type")}</label>
-                    <select
-                      value={formData.selectedHotel.roomTypes[cityIndex] || "Double"}
-                      onChange={(e) => updateRoomTypeSelection(cityIndex, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
-                    >
-                      {availableRoomTypes.map((type) => ( <option key={type} value={type}>{type}</option>))}
+                    <select value={formData.selectedHotel.roomTypes[cityIndex] || ""} onChange={(e) => updateRoomTypeSelection(cityIndex, e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required disabled={!selectedPriceStructure}>
+                      <option value="">{t(selectedPriceStructure ? "Select a room type" : "Select all hotels first")}</option>
+                      {selectedPriceStructure?.roomTypes.map((rt) => ( <option key={rt.type} value={rt.type}>{rt.type} ({rt.guests} guests)</option>))}
                     </select>
                   </div>
                 </div>
@@ -343,11 +286,10 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         </div>
       )}
 
-      {/* Pricing */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("Base Price")} (MAD)</label>
-          <input type="number" value={formData.basePrice} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readOnly />
+          <input type="number" value={formData.basePrice} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("Selling Price")} (MAD)</label>
@@ -355,14 +297,13 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{t("Profit")} (MAD)</label>
-          <input type="number" value={formData.profit} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readOnly />
+          <input type="number" value={formData.profit} className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" readOnly />
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
-        <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">{t("Cancel")}</button>
-        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">{booking ? t("Update") : t("Save")}</button>
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">{t("Cancel")}</button>
+        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{booking ? t("Update") : t("Save")}</button>
       </div>
     </form>
   );
