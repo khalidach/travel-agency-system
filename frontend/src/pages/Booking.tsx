@@ -14,12 +14,14 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
-  Hotel
+  Hotel,
+  X,
+  Users // Icon for related people
 } from "lucide-react";
 import Modal from "../components/Modal.tsx"; // Added .tsx extension
 import BookingForm, { BookingFormData } from "../components/BookingForm.tsx"; // Added .tsx extension
 import PaymentForm from "../components/PaymentForm.tsx"; // Added .tsx extension
-import type { Booking, Payment } from "../context/AppContext"; // type import does not need .tsx
+import type { Booking, Payment, RelatedPerson } from "../context/AppContext"; // type import does not need .tsx
 import * as api from '../services/api.ts'; // Added .ts extension
 import { toast } from "react-hot-toast";
 
@@ -79,6 +81,8 @@ const usePagination = ({
   return paginationRange;
 };
 
+// Define a type for bookings that may have an `isRelated` flag for styling
+type DisplayBooking = Booking & { isRelated?: boolean };
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -91,7 +95,7 @@ export default function BookingPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [editingPayment, setEditingPayment] = useState<{
-    bookingId: number; // Changed from string to number
+    bookingId: number; 
     payment: Payment;
   } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] = useState<
@@ -102,6 +106,7 @@ export default function BookingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>(programId || "all");
+  const [sortOrder, setSortOrder] = useState('newest'); 
   
   // State for async operations
   const [isExporting, setIsExporting] = useState(false);
@@ -122,7 +127,7 @@ export default function BookingPage() {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, programFilter]);
+  }, [searchTerm, statusFilter, programFilter, sortOrder]);
 
   const handleProgramFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newProgramId = e.target.value;
@@ -134,7 +139,7 @@ export default function BookingPage() {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
       booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-      (booking.clientNameAr || '').includes(searchTerm) || // Added null check
+      (booking.clientNameAr || '').includes(searchTerm) || 
       booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
 
     const matchesStatus =
@@ -143,7 +148,7 @@ export default function BookingPage() {
       (statusFilter === 'pending' && !booking.isFullyPaid);
 
     const matchesProgram =
-      programFilter === 'all' || (booking.tripId || '').toString() === programFilter; // Added null check and toString()
+      programFilter === 'all' || (booking.tripId || '').toString() === programFilter; 
 
     return matchesSearch && matchesStatus && matchesProgram;
   });
@@ -158,9 +163,9 @@ export default function BookingPage() {
     };
 
     for (const booking of filteredBookings) {
-      stats.totalRevenue += Number(booking.sellingPrice); // Ensured number conversion
-      stats.totalCost += Number(booking.basePrice); // Ensured number conversion
-      stats.totalPaid += (booking.advancePayments || []).reduce((sum, p) => sum + Number(p.amount), 0); // Ensured number conversion and null check
+      stats.totalRevenue += Number(booking.sellingPrice); 
+      stats.totalCost += Number(booking.basePrice); 
+      stats.totalPaid += (booking.advancePayments || []).reduce((sum, p) => sum + Number(p.amount), 0);
     }
 
     return {
@@ -170,10 +175,54 @@ export default function BookingPage() {
     };
   }, [filteredBookings]);
 
-  // Pagination Logic
-  const sortedBookings = useMemo(() => {
-    return [...filteredBookings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [filteredBookings]);
+  // UPDATED: Sorting and Grouping Logic
+  const sortedBookings: DisplayBooking[] = useMemo(() => {
+    const bookings = [...filteredBookings];
+    
+    if (sortOrder === 'family') {
+        const bookingsMap = new Map(state.bookings.map(b => [b.id, b]));
+        const result: DisplayBooking[] = [];
+        const processed = new Set<number>();
+        
+        // Sort main persons by creation date to have a consistent order
+        bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        bookings.forEach(booking => {
+            if (processed.has(booking.id)) return;
+
+            // Check if it's a main person with related persons
+            if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+                result.push(booking);
+                processed.add(booking.id);
+
+                // Add related people immediately after the main person
+                booking.relatedPersons.forEach(relatedInfo => {
+                    const relatedBooking = bookingsMap.get(relatedInfo.ID);
+                    if (relatedBooking && !processed.has(relatedBooking.id)) {
+                        result.push({ ...relatedBooking, isRelated: true }); // Flag for styling
+                        processed.add(relatedBooking.id);
+                    }
+                });
+            }
+        });
+
+        // Add all other individuals who were not part of a family group
+        bookings.forEach(booking => {
+            if (!processed.has(booking.id)) {
+                result.push(booking);
+                processed.add(booking.id);
+            }
+        });
+        return result;
+
+    } else if (sortOrder === 'oldest') {
+        return bookings.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    
+    // Default to 'newest'
+    return bookings.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [filteredBookings, sortOrder, state.bookings]);
+
 
   const indexOfLastBooking = currentPage * bookingsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
@@ -181,11 +230,11 @@ export default function BookingPage() {
     sortedBookings.slice(indexOfFirstBooking, indexOfLastBooking),
     [sortedBookings, indexOfFirstBooking, indexOfLastBooking]
   );
-  const totalPages = Math.ceil(filteredBookings.length / bookingsPerPage);
+  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
 
   const paginationRange = usePagination({
     currentPage,
-    totalCount: filteredBookings.length,
+    totalCount: sortedBookings.length,
     pageSize: bookingsPerPage
   });
 
@@ -195,7 +244,7 @@ export default function BookingPage() {
     }
   };
 
-  const selectedProgram = programId ? state.programs.find(p => p.id.toString() === programId) : null; // Changed _id to id and added toString()
+  const selectedProgram = programId ? state.programs.find(p => p.id.toString() === programId) : null; 
   const pageTitle = selectedProgram
     ? `${t("booking")} for ${selectedProgram.name}`
     : t("booking");
@@ -213,8 +262,8 @@ export default function BookingPage() {
     setIsBookingModalOpen(true);
   };
 
-  const handleDeleteBooking = async (bookingId: number) => { // Changed to number
-    if (window.confirm("Are you sure you want to delete this booking?")) {
+  const handleDeleteBooking = async (bookingId: number) => {
+    if (window.confirm("Are you sure you want to delete this booking? This action cannot be undone.")) {
       try {
         await api.deleteBooking(bookingId);
         dispatch({ type: "DELETE_BOOKING", payload: bookingId });
@@ -234,11 +283,11 @@ export default function BookingPage() {
 
   const handleEditPayment = (booking: Booking, payment: Payment) => {
     setSelectedBookingForPayment(booking);
-    setEditingPayment({ bookingId: booking.id, payment }); // Changed _id to id
+    setEditingPayment({ bookingId: booking.id, payment }); 
     setIsPaymentModalOpen(true);
   };
 
-  const handleDeletePayment = async (bookingId: number, paymentId: string) => { // Changed bookingId to number
+  const handleDeletePayment = async (bookingId: number, paymentId: string) => {
     if (window.confirm("Are you sure you want to delete this payment?")) {
       try {
         const updatedBooking = await api.deletePayment(bookingId, paymentId);
@@ -258,11 +307,11 @@ export default function BookingPage() {
         ...bookingData,
         advancePayments: initialPayments,
         remainingBalance: bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0),
-        isFullyPaid: (bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0)) <= 0, // Recalculate isFullyPaid
+        isFullyPaid: (bookingData.sellingPrice - initialPayments.reduce((sum, p) => sum + p.amount, 0)) <= 0,
       };
 
       if (editingBooking) {
-        const updatedBooking = await api.updateBooking(editingBooking.id, bookingToSave); // Changed _id to id
+        const updatedBooking = await api.updateBooking(editingBooking.id, bookingToSave);
         dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
         toast.success('Booking updated!');
       } else {
@@ -284,11 +333,11 @@ export default function BookingPage() {
       try {
         let updatedBooking;
         if (editingPayment) {
-          updatedBooking = await api.updatePayment(selectedBookingForPayment.id, editingPayment.payment._id, payment); // Changed _id to id
-          dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } }); // Changed _id to id
+          updatedBooking = await api.updatePayment(selectedBookingForPayment.id, editingPayment.payment._id, payment); 
+          dispatch({ type: "UPDATE_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } }); 
         } else {
-          updatedBooking = await api.addPayment(selectedBookingForPayment.id, payment); // Changed _id to id
-          dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } }); // Changed _id to id
+          updatedBooking = await api.addPayment(selectedBookingForPayment.id, payment); 
+          dispatch({ type: "ADD_PAYMENT", payload: { bookingId: selectedBookingForPayment.id, updatedBooking } });
         }
         setSelectedBookingForPayment(updatedBooking);
         toast.success('Payment saved!');
@@ -311,7 +360,7 @@ export default function BookingPage() {
     toast.loading('Exporting to Excel...');
 
     try {
-      const program = state.programs.find(p => p.id.toString() === programFilter); // Changed _id to id and added toString()
+      const program = state.programs.find(p => p.id.toString() === programFilter); 
       const blob = await api.exportBookingsToExcel(programFilter);
 
       const url = window.URL.createObjectURL(blob);
@@ -380,7 +429,6 @@ export default function BookingPage() {
     toast.loading('Importing bookings...');
     try {
       const result = await api.importBookings(importFile);
-      // Refresh bookings list after import
       const updatedBookings = await api.getBookings();
       dispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
 
@@ -491,6 +539,15 @@ export default function BookingPage() {
               />
             </div>
             <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="newest">Sort by Newest</option>
+              <option value="oldest">Sort by Oldest</option>
+              <option value="family">Sort by Family</option>
+            </select>
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -506,7 +563,7 @@ export default function BookingPage() {
             >
               <option value="all">{t("allPrograms")}</option>
               {state.programs.map((program) => (
-                <option key={program.id} value={program.id}> {/* Changed _id to id */}
+                <option key={program.id} value={program.id}> 
                   {program.name}
                 </option>
               ))}
@@ -539,11 +596,11 @@ export default function BookingPage() {
                   const program = state.programs.find((p) => p.id.toString() === (booking.tripId || '').toString());
                   const totalPaid = (booking.advancePayments || []).reduce((sum, payment) => sum + Number(payment.amount), 0);
                   return (
-                    <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 align-top">
+                    <tr key={booking.id} className={`hover:bg-gray-50 transition-colors ${booking.isRelated ? 'bg-blue-50' : ''}`}>
+                      <td className={`px-6 py-4 align-top ${booking.isRelated ? 'pl-12' : ''}`}>
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <User className="w-5 h-5 text-white" />
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${booking.relatedPersons && booking.relatedPersons.length > 0 ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-blue-500 to-blue-600'}`}>
+                            {booking.isRelated ? <User className="w-5 h-5 text-white"/> : <Users className="w-5 h-5 text-white" />}
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{booking.clientNameFr}</div>
@@ -561,7 +618,6 @@ export default function BookingPage() {
                             {(booking.selectedHotel.cities || []).map((city, index) => {
                               const hotelName = (booking.selectedHotel.hotelNames || [])[index];
                               const roomType = (booking.selectedHotel.roomTypes || [])[index];
-                              // Ensure we return null/empty fragment if data is missing, to avoid creating text nodes
                               if (!city || !hotelName) return null; 
                               return (
                                 <div key={index} className="flex items-center text-xs text-gray-600">

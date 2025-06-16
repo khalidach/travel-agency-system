@@ -41,6 +41,11 @@ export interface RoomPrice {
   sellingPrice: number;
 }
 
+export interface RelatedPerson {
+  ID: number;
+  clientName: string;
+}
+
 export interface Booking {
   id: number; // Changed from _id: string
   clientNameAr: string;
@@ -61,6 +66,7 @@ export interface Booking {
   isFullyPaid: boolean;
   profit: number;
   createdAt: string;
+  relatedPersons?: RelatedPerson[];
 }
 
 export interface Payment {

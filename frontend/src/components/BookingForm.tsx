@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
-import type { Booking, Program, Package, Payment } from "../context/AppContext";
+import type { Booking, Program, Package, Payment, RelatedPerson } from "../context/AppContext";
+import { X } from "lucide-react";
+
 
 export type BookingFormData = Omit<Booking, 'id' | 'isFullyPaid' | 'remainingBalance' | 'advancePayments'>;
 
@@ -15,6 +17,8 @@ interface BookingFormProps {
 export default function BookingForm({ booking, programs, onSave, onCancel }: BookingFormProps) {
   const { t } = useTranslation();
   const { state } = useAppContext();
+  const [search, setSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const [formData, setFormData] = useState<BookingFormData>({
     clientNameAr: "",
@@ -28,6 +32,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
     basePrice: 0,
     profit: 0,
     createdAt: new Date().toISOString().split("T")[0],
+    relatedPersons: [],
   });
 
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
@@ -44,17 +49,12 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         if(pkg) setSelectedPackage(pkg);
       }
       
-      // --- FIX START ---
-      // Correctly determine the room types when loading an existing booking.
       let initialRoomTypes: string[] = [];
       if (booking.selectedHotel.roomTypes && Array.isArray(booking.selectedHotel.roomTypes) && booking.selectedHotel.roomTypes.length > 0) {
-        // New format with multiple room types: Use it directly.
         initialRoomTypes = booking.selectedHotel.roomTypes;
       } else if ((booking.selectedHotel as any).roomType) {
-        // Old format with a single roomType: Create an array for backward compatibility.
         initialRoomTypes = (booking.selectedHotel.cities || []).map(() => (booking.selectedHotel as any).roomType);
       }
-      // --- FIX END ---
 
       setFormData({
         clientNameAr: booking.clientNameAr,
@@ -63,14 +63,34 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         passportNumber: booking.passportNumber,
         tripId: booking.tripId,
         packageId: booking.packageId,
-        selectedHotel: { ...booking.selectedHotel, roomTypes: initialRoomTypes }, // Use the corrected room types
+        selectedHotel: { ...booking.selectedHotel, roomTypes: initialRoomTypes },
         sellingPrice: Number(booking.sellingPrice),
         basePrice: Number(booking.basePrice),
         profit: Number(booking.sellingPrice) - Number(booking.basePrice),
         createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
+        relatedPersons: booking.relatedPersons || [],
       });
     }
   }, [booking, programs]);
+
+  const availablePeople = useMemo(() => {
+    const selectedIDs = new Set((formData.relatedPersons || []).map(p => p.ID));
+    if (booking) {
+      selectedIDs.add(booking.id);
+    }
+    return state.bookings.filter(b => !selectedIDs.has(b.id) && b.clientNameFr.toLowerCase().includes(search.toLowerCase()));
+  }, [state.bookings, formData.relatedPersons, search, booking]);
+
+  const addRelatedPerson = (person: Booking) => {
+    const newPerson: RelatedPerson = { ID: person.id, clientName: person.clientNameFr };
+    setFormData(prev => ({ ...prev, relatedPersons: [...(prev.relatedPersons || []), newPerson] }));
+    setSearch('');
+    setShowDropdown(false);
+  };
+
+  const removeRelatedPerson = (personId: number) => {
+    setFormData(prev => ({ ...prev, relatedPersons: (prev.relatedPersons || []).filter(p => p.ID !== personId) }));
+  };
 
   useEffect(() => {
     const getGuestsPerRoom = (roomType: string): number => {
@@ -91,7 +111,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         return formData.selectedHotel.cities.reduce((total, city, index) => {
           const hotelName = formData.selectedHotel.hotelNames[index];
           const roomType = formData.selectedHotel.roomTypes[index]?.toLowerCase();
-          if (!roomType) return total; // Don't calculate if room type is not set
+          if (!roomType) return total;
 
           const hotel = pricing.allHotels.find((h) => h.name === hotelName && h.city === city);
 
@@ -172,7 +192,7 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
               ...prev.selectedHotel,
               cities: cities,
               hotelNames: cities.map(() => ""),
-              roomTypes: cities.map(() => "Double"), // Default room type
+              roomTypes: cities.map(() => "Double"),
             },
           }));
         }
@@ -225,6 +245,41 @@ export default function BookingForm({ booking, programs, onSave, onCancel }: Boo
         <label className="block text-sm font-medium text-gray-700 mb-2">{t("Phone Number")}</label>
         <input type="tel" value={formData.phoneNumber} onChange={(e) => setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required />
       </div>
+
+       {/* Related Persons */}
+       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">{t("Related People")}</label>
+        <div className="relative">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setShowDropdown(true); }}
+            onFocus={() => setShowDropdown(true)}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+            placeholder="Search for a client to add..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          />
+          {showDropdown && availablePeople.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
+              {availablePeople.map(person => (
+                <li key={person.id} onClick={() => addRelatedPerson(person)} className="px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                  {person.clientNameFr} ({person.passportNumber})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+            {(formData.relatedPersons || []).map(person => (
+                <div key={person.ID} className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                    <span>{person.clientName}</span>
+                    <button type="button" onClick={() => removeRelatedPerson(person.ID)} className="ml-2 text-blue-600 hover:text-blue-800">
+                        <X size={16} />
+                    </button>
+                </div>
+            ))}
+        </div>
+       </div>
 
       {/* Program Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

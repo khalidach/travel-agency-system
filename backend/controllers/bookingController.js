@@ -27,15 +27,15 @@ exports.getAllBookings = async (req, res) => {
 };
 
 exports.createBooking = async (req, res) => {
-  const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments } = req.body;
+  const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments, relatedPersons } = req.body;
   try {
     const totalPaid = (advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
     const remainingBalance = sellingPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      'INSERT INTO bookings ("userId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *',
-      [req.user.id, clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid]
+      'INSERT INTO bookings ("userId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *',
+      [req.user.id, clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid, JSON.stringify(relatedPersons || [])]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -46,15 +46,15 @@ exports.createBooking = async (req, res) => {
 
 exports.updateBooking = async (req, res) => {
   const { id } = req.params;
-  const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments } = req.body;
+  const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments, relatedPersons } = req.body;
   try {
     const totalPaid = (advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
     const remainingBalance = sellingPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13 WHERE id = $14 AND "userId" = $15 RETURNING *',
-      [clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid, id, req.user.id]
+      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14 WHERE id = $15 AND "userId" = $16 RETURNING *',
+      [clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid, JSON.stringify(relatedPersons || []), id, req.user.id]
     );
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Booking not found or user not authorized' });
