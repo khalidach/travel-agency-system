@@ -1,5 +1,11 @@
-import React, { createContext, useContext, useReducer, ReactNode, useEffect } from "react";
-import * as api from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  ReactNode,
+  useEffect,
+} from "react";
+import * as api from "../services/api";
 
 // --- INTERFACES (UPDATED FOR POSTGRESQL & NEW REQUIREMENTS) ---
 export interface User {
@@ -30,7 +36,7 @@ export interface Program {
   packages: Package[];
   // roomTypes are now defined within each PriceStructure, so this can be removed if not needed globally.
   // For simplicity and to facilitate pricing, we'll assume room types are defined per program.
-  roomTypes: RoomTypeDefinition[]; 
+  roomTypes: RoomTypeDefinition[];
 }
 
 export interface Package {
@@ -45,7 +51,7 @@ export interface Package {
 export interface PriceStructure {
   hotelCombination: string;
   // This will now define the room types available for THIS specific hotel combination.
-  roomTypes: RoomPrice[]; 
+  roomTypes: RoomPrice[];
 }
 
 // UPDATED: This now defines the number of guests for a room type within a PriceStructure.
@@ -125,6 +131,7 @@ interface AppState {
 
 type AppAction =
   | { type: "LOGIN"; payload: User }
+  | { type: "REFRESH_TOKEN"; payload: User } // Add this action type
   | { type: "LOGOUT" }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_PROGRAMS"; payload: Program[] }
@@ -136,16 +143,24 @@ type AppAction =
   | { type: "ADD_BOOKING"; payload: Booking }
   | { type: "UPDATE_BOOKING"; payload: Booking }
   | { type: "DELETE_BOOKING"; payload: number }
-  | { type: "ADD_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
-  | { type: "UPDATE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
-  | { type: "DELETE_PAYMENT"; payload: { bookingId: number; updatedBooking: Booking } }
+  | {
+      type: "ADD_PAYMENT";
+      payload: { bookingId: number; updatedBooking: Booking };
+    }
+  | {
+      type: "UPDATE_PAYMENT";
+      payload: { bookingId: number; updatedBooking: Booking };
+    }
+  | {
+      type: "DELETE_PAYMENT";
+      payload: { bookingId: number; updatedBooking: Booking };
+    }
   | { type: "SET_LANGUAGE"; payload: "en" | "ar" | "fr" }
   | { type: "ADD_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "UPDATE_PROGRAM_PRICING"; payload: ProgramPricing }
   | { type: "DELETE_PROGRAM_PRICING"; payload: number };
 
-
-const userFromStorage = localStorage.getItem('user');
+const userFromStorage = localStorage.getItem("user");
 const initialUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
 const initialState: AppState = {
@@ -161,11 +176,33 @@ const initialState: AppState = {
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "LOGIN":
-      localStorage.setItem('user', JSON.stringify(action.payload));
-      return { ...state, isAuthenticated: true, user: action.payload, loading: true };
+      localStorage.setItem("user", JSON.stringify(action.payload));
+      return {
+        ...state,
+        isAuthenticated: true,
+        user: action.payload,
+        loading: true,
+      };
+
+    // Add this new case
+    case "REFRESH_TOKEN":
+      localStorage.setItem("user", JSON.stringify(action.payload));
+      return {
+        ...state,
+        user: action.payload, // Update user/token without changing isAuthenticated
+      };
+
     case "LOGOUT":
-      localStorage.removeItem('user');
-      return { ...initialState, isAuthenticated: false, user: null, loading: false, programs: [], bookings: [], programPricing: [] };
+      localStorage.removeItem("user");
+      return {
+        ...initialState,
+        isAuthenticated: false,
+        user: null,
+        loading: false,
+        programs: [],
+        bookings: [],
+        programPricing: [],
+      };
     case "SET_LOADING":
       return { ...state, loading: action.payload };
     case "SET_PROGRAMS":
@@ -173,7 +210,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_BOOKINGS":
       return { ...state, bookings: action.payload };
     case "SET_PROGRAM_PRICING":
-        return { ...state, programPricing: action.payload };
+      return { ...state, programPricing: action.payload };
     case "ADD_PROGRAM":
       return { ...state, programs: [...state.programs, action.payload] };
     case "UPDATE_PROGRAM":
@@ -189,14 +226,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         programs: state.programs.filter((p) => p.id !== action.payload),
       };
     case "ADD_BOOKING":
-       return { ...state, bookings: [...state.bookings, action.payload] };
+      return { ...state, bookings: [...state.bookings, action.payload] };
     case "UPDATE_BOOKING":
-        return {
-            ...state,
-            bookings: state.bookings.map((b) =>
-              b.id === action.payload.id ? action.payload : b
-            ),
-          };
+      return {
+        ...state,
+        bookings: state.bookings.map((b) =>
+          b.id === action.payload.id ? action.payload : b
+        ),
+      };
     case "DELETE_BOOKING":
       return {
         ...state,
@@ -205,14 +242,19 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case "ADD_PAYMENT":
     case "UPDATE_PAYMENT":
     case "DELETE_PAYMENT":
-        return {
-            ...state,
-            bookings: state.bookings.map(b => b.id === action.payload.bookingId ? action.payload.updatedBooking : b)
-        };
+      return {
+        ...state,
+        bookings: state.bookings.map((b) =>
+          b.id === action.payload.bookingId ? action.payload.updatedBooking : b
+        ),
+      };
     case "SET_LANGUAGE":
       return { ...state, currentLanguage: action.payload };
     case "ADD_PROGRAM_PRICING":
-        return { ...state, programPricing: [...state.programPricing, action.payload] };
+      return {
+        ...state,
+        programPricing: [...state.programPricing, action.payload],
+      };
     case "UPDATE_PROGRAM_PRICING":
       return {
         ...state,
@@ -253,25 +295,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
       } catch (error) {
         console.error("Failed to fetch initial data", error);
-        if (error instanceof Error && error.message.includes('401')) {
-          dispatch({ type: 'LOGOUT' });
+        if (error instanceof Error && error.message.includes("401")) {
+          dispatch({ type: "LOGOUT" });
         }
       } finally {
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
-    
+
     const handleAuthError = () => {
-        dispatch({ type: 'LOGOUT' });
+      dispatch({ type: "LOGOUT" });
     };
-    window.addEventListener('auth-error', handleAuthError);
+    window.addEventListener("auth-error", handleAuthError);
 
     if (state.isAuthenticated) {
       fetchData();
     }
 
     return () => {
-        window.removeEventListener('auth-error', handleAuthError);
+      window.removeEventListener("auth-error", handleAuthError);
     };
   }, [state.isAuthenticated]);
 

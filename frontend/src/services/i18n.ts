@@ -8,6 +8,7 @@ const resources = {
       dashboard: "Dashboard",
       programs: "Programs",
       booking: "Booking",
+      programPricing: "Program Pricing",
       profitReport: "Profit Report",
 
       // Common
@@ -46,7 +47,7 @@ const resources = {
       chequeNumber: "Cheque Number",
       bankName: "Bank Name",
       checkCashingDate: "Check Cashing Date",
-      
+
       // Profit Report
       bookings: "Bookings",
       totalSales: "Total Sales",
@@ -58,6 +59,7 @@ const resources = {
       dashboard: "لوحة التحكم",
       programs: "البرامج",
       booking: "الحجوزات",
+      programPricing: "تسعير البرنامج",
       profitReport: "تقرير الأرباح",
 
       // Common
