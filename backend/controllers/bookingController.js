@@ -3,22 +3,12 @@ const excel = require('exceljs');
 // Helper to sanitize names for Excel Named Ranges.
 const sanitizeName = (name) => {
     if (!name) return '';
-    // Replace common special characters with underscores.
-    // This pattern is replicated in the Excel SUBSTITUTE formula.
-    let sanitized = name.toString()
-      .replace(/\s/g, '_')
-      .replace(/\//g, '_')
-      .replace(/-/g, '_')
-      .replace(/&/g, '_')
-      .replace(/\(/g, '_')
-      .replace(/\)/g, '_');
-      
-    // Ensure it does not start with a number or invalid character.
-    if (!/^[a-zA-Z_]/.test(sanitized)) {
+    // Replace spaces with underscores, as spaces are not allowed in Excel named ranges.
+    let sanitized = name.toString().replace(/\s/g, '_');
+    if (/^[0-9]/.test(sanitized)) {
         sanitized = 'N_' + sanitized;
     }
-    // Excel has a limit on name length, truncate if necessary.
-    return sanitized.substring(0, 250);
+    return sanitized;
 };
 
 
@@ -328,119 +318,143 @@ exports.exportBookingsToExcel = async (req, res) => {
       res.status(500).json({ message: 'Failed to export bookings to Excel.' });
     }
   };
-
+ 
   exports.exportBookingTemplate = async (req, res) => {
     try {
         const workbook = new excel.Workbook();
         const templateSheet = workbook.addWorksheet('Booking Template');
         const validationSheet = workbook.addWorksheet('Lists');
-        validationSheet.state = 'veryHidden';
+        validationSheet.state = 'hidden';
 
         const { rows: programs } = await req.db.query('SELECT * FROM programs WHERE "userId" = $1', [req.user.id]);
+
+        // This static list is removed, as we will now generate dynamic lists.
+        // const roomTypes = ['Double', 'Triple', 'Quad', 'Quintuple'];
+
+        // --- Create all necessary Named Ranges for the dropdowns ---
         
-        // This is a fixed list now, as room types are defined per hotel combination
-        const defaultRoomTypes = ['Double', 'Triple', 'Quad', 'Quintuple'];
-        validationSheet.getColumn('A').values = ['DefaultRoomTypes', ...defaultRoomTypes];
-        workbook.definedNames.add('Lists!$A$2:$A$6', 'DefaultRoomTypes');
-
-
-        // --- Create all necessary named ranges for dependent dropdowns ---
-        let listColumnIndex = 1; 
-
-        // 1. Programs List
+        // Create Program list
         const programNames = programs.map(p => p.name);
-        validationSheet.getColumn(++listColumnIndex).values = ['Programs', ...programNames];
+        validationSheet.getColumn('A').values = ['Programs', ...programNames];
         if (programNames.length > 0) {
-            workbook.definedNames.add('Lists!$B$2:$B$' + (programNames.length + 1), 'Programs');
+            workbook.definedNames.add('Lists!$A$2:$A$' + (programNames.length + 1), 'Programs');
         }
 
+        let listColumnIndex = 1; // Start from column B
         programs.forEach(program => {
-            const programSanitized = sanitizeName(program.name);
+            const programNameSanitized = sanitizeName(program.name);
             
-            // 2. Packages List (for each program)
+            // Create Package lists (dependent on Program)
             const packageNames = (program.packages || []).map(p => p.name);
             if (packageNames.length > 0) {
-                const col = validationSheet.getColumn(++listColumnIndex);
-                const rangeName = `${programSanitized}_Packages`;
+                listColumnIndex++;
+                const col = validationSheet.getColumn(listColumnIndex);
+                const rangeName = `${programNameSanitized}_Packages`;
                 col.values = [rangeName, ...packageNames];
-                workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${packageNames.length + 1}`, rangeName);
+                try {
+                    workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${packageNames.length + 1}`, rangeName);
+                } catch (e) { console.warn(`Could not create named range for Package: ${rangeName}.`); }
             }
-            
-            // 3. Hotel & Room Type Lists
+
             (program.packages || []).forEach(pkg => {
-                const packageSanitized = sanitizeName(pkg.name);
-                // Hotels per city
+                const packageNameSanitized = sanitizeName(pkg.name);
+                
+                // Create Hotel lists (dependent on Package)
                 (program.cities || []).forEach(city => {
                     const hotels = pkg.hotels[city.name] || [];
                     if (hotels.length > 0) {
-                        const col = validationSheet.getColumn(++listColumnIndex);
-                        const rangeName = `${packageSanitized}_${sanitizeName(city.name)}_Hotels`;
+                        listColumnIndex++;
+                        const col = validationSheet.getColumn(listColumnIndex);
+                        const rangeName = `${packageNameSanitized}_${sanitizeName(city.name)}_Hotels`;
                         col.values = [rangeName, ...hotels];
-                        workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`, rangeName);
+                        try {
+                            workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`, rangeName);
+                        } catch(e) { console.warn(`Could not create named range for Hotel: ${rangeName}.`); }
                     }
                 });
-                // Room types per hotel combination
+
+                // *** NEW: Create Room Type lists based on the full hotel combination ***
                 (pkg.prices || []).forEach(price => {
                     const roomTypesForCombo = (price.roomTypes || []).map(rt => rt.type);
                     if (roomTypesForCombo.length > 0) {
-                        const col = validationSheet.getColumn(++listColumnIndex);
-                        const rangeName = `${sanitizeName(price.hotelCombination)}_Rooms`;
+                        listColumnIndex++;
+                        const col = validationSheet.getColumn(listColumnIndex);
+                        // hotelCombination is already underscore-separated, but we sanitize to be safe.
+                        const sanitizedCombination = sanitizeName(price.hotelCombination);
+                        const rangeName = `${sanitizedCombination}_Rooms`;
                         col.values = [rangeName, ...roomTypesForCombo];
-                        workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${roomTypesForCombo.length + 1}`, rangeName);
+                         try {
+                           workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${roomTypesForCombo.length + 1}`, rangeName);
+                        } catch(e) { console.warn(`Could not create named range for RoomType: ${rangeName}.`); }
                     }
                 });
             });
         });
 
-        // --- Setup the template sheet ---
-        const allCityNames = [...new Set(programs.flatMap(p => (p.cities || []).map(c => c.name)))];
+        // --- Setup Template Sheet Columns and Headers ---
         const headers = [
             { header: 'Client Name (French)', key: 'clientNameFr', width: 25 }, { header: 'Client Name (Arabic)', key: 'clientNameAr', width: 25 },
             { header: 'Passport Number', key: 'passportNumber', width: 20 }, { header: 'Phone Number', key: 'phoneNumber', width: 20 },
             { header: 'Program', key: 'program', width: 30 }, { header: 'Package', key: 'package', width: 20 },
         ];
         
-        const hotelHeaders = allCityNames.map((name, index) => ({ header: `${name} Hotel`, key: `hotel_${index}`, width: 25 }));
-        const roomTypeHeaders = allCityNames.map((name, index) => ({ header: `${name} Room Type`, key: `roomType_${index}`, width: 20 }));
+        const allCityNames = [...new Set(programs.flatMap(p => (p.cities || []).map(c => c.name)))];
+        const hotelHeaders = allCityNames.map(name => ({ header: `${name} Hotel`, key: `hotel_${sanitizeName(name)}`, width: 25 }));
+        const roomTypeHeaders = allCityNames.map(name => ({ header: `${name} Room Type`, key: `roomType_${sanitizeName(name)}`, width: 20 }));
 
         templateSheet.columns = [...headers, ...hotelHeaders, ...roomTypeHeaders, { header: 'Selling Price', key: 'sellingPrice', width: 15 }];
         
         const headerRow = templateSheet.getRow(1);
         headerRow.font = { bold: true };
 
-        // Apply data validation formulas
+
+        // --- Apply Data Validation Formulas to Template Sheet ---
         for (let i = 2; i <= 101; i++) {
+            // Program & Package validation (Your original working logic)
             templateSheet.getCell(`E${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: ['=Programs'] };
             templateSheet.getCell(`F${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [`=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_Packages")`] };
             
-            let hotelFormulaParts = [];
-            hotelHeaders.forEach((h, index) => {
-                const citySanitized = sanitizeName(allCityNames[index]);
+            // Hotel validation (Your original working logic)
+            hotelHeaders.forEach(h => {
+                const cityNameSanitized = sanitizeName(h.header.replace(' Hotel', ''));
                 const columnLetter = templateSheet.getColumn(h.key).letter;
-                const formula = `=INDIRECT(SUBSTITUTE($F${i}," ","_")&"_${citySanitized}_Hotels")`;
-                templateSheet.getCell(`${columnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [formula] };
-                hotelFormulaParts.push(`SUBSTITUTE(${columnLetter}${i}," ","_")`);
+                if (columnLetter) {
+                    const hotelFormula = `=INDIRECT(SUBSTITUTE(F${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
+                    templateSheet.getCell(`${columnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [hotelFormula] };
+                }
             });
-            
-            // This formula now correctly builds the hotel combination string to find the room types
-            const hotelCombinationFormula = hotelFormulaParts.join('&"_"&');
 
-            roomTypeHeaders.forEach((h, index) => {
+            // *** MODIFIED DYNAMIC ROOM TYPE LOGIC ***
+            // 1. Get the letters of all hotel columns (e.g., ['G', 'H'])
+            const hotelColumnLetters = hotelHeaders.map(h => templateSheet.getColumn(h.key).letter);
+            
+            // 2. Create an array of formula parts to sanitize each hotel cell
+            //    e.g., ['SUBSTITUTE(G2," ","_")', 'SUBSTITUTE(H2," ","_")']
+            const hotelCombinationFormulaParts = hotelColumnLetters.map(letter => `SUBSTITUTE(${letter}${i}," ","_")`);
+            
+            // 3. Join them with underscores to create the dynamic lookup key
+            //    e.g., 'SUBSTITUTE(G2," ","_")&"_"&SUBSTITUTE(H2," ","_")'
+            const hotelCombinationFormula = hotelCombinationFormulaParts.join('&"_"&');
+            
+            // 4. Apply the final formula to all room type columns
+            roomTypeHeaders.forEach(h => {
                 const columnLetter = templateSheet.getColumn(h.key).letter;
-                const formula = `=INDIRECT(${hotelCombinationFormula}&"_Rooms")`;
-                templateSheet.getCell(`${columnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [formula] };
+                if (columnLetter) {
+                    const roomFormula = `=INDIRECT(${hotelCombinationFormula}&"_Rooms")`;
+                    templateSheet.getCell(`${columnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [roomFormula] };
+                }
             });
         }
-        
+
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=Booking_Template.xlsx');
         await workbook.xlsx.write(res);
         res.end();
 
-  } catch (error) {
-    console.error('Failed to export template:', error);
-    res.status(500).json({ message: 'Failed to export booking template.' });
-  }
+    } catch (error) {
+        console.error('Failed to export template:', error);
+        res.status(500).json({ message: 'Failed to export booking template.' });
+    }
 };
 
 
