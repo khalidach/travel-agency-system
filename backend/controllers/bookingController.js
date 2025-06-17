@@ -43,27 +43,26 @@ exports.createBooking = async (req, res) => {
 };
 
 exports.updateBooking = async (req, res) => {
-  const { id } = req.params;
-  const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments, relatedPersons } = req.body;
-  try {
-    const totalPaid = (advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
-    const remainingBalance = sellingPrice - totalPaid;
-    const isFullyPaid = remainingBalance <= 0;
-
-    const { rows } = await req.db.query(
-      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14, "updatedAt" = NOW() WHERE id = $15 AND "userId" = $16 RETURNING *',
-      [clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid, JSON.stringify(relatedPersons || []), id, req.user.id]
-    );
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Booking not found or user not authorized' });
+    const { id } = req.params;
+    const { clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, selectedHotel, sellingPrice, basePrice, profit, advancePayments, relatedPersons } = req.body;
+    try {
+      const totalPaid = (advancePayments || []).reduce((sum, p) => sum + p.amount, 0);
+      const remainingBalance = sellingPrice - totalPaid;
+      const isFullyPaid = remainingBalance <= 0;
+  
+      const { rows } = await req.db.query(
+        'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14 WHERE id = $15 AND "userId" = $16 RETURNING *',
+        [clientNameAr, clientNameFr, phoneNumber, passportNumber, tripId, packageId, JSON.stringify(selectedHotel), sellingPrice, basePrice, profit, JSON.stringify(advancePayments || []), remainingBalance, isFullyPaid, JSON.stringify(relatedPersons || []), id, req.user.id]
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ message: 'Booking not found or user not authorized' });
+      }
+      res.json(rows[0]);
+    } catch (error) {
+      console.error('Update Booking Error:', error);
+      res.status(400).json({ message: error.message });
     }
-    res.json(rows[0]);
-  } catch (error) {
-    console.error('Update Booking Error:', error);
-    res.status(400).json({ message: error.message });
-  }
-};
-
+  };
 exports.deleteBooking = async (req, res) => {
   const { id } = req.params;
   try {
@@ -324,27 +323,26 @@ exports.exportBookingsToExcel = async (req, res) => {
         const workbook = new excel.Workbook();
         const templateSheet = workbook.addWorksheet('Booking Template');
         const validationSheet = workbook.addWorksheet('Lists');
-        validationSheet.state = 'hidden';
+        validationSheet.state = 'hidden'; // This sheet will be hidden in the final Excel file
 
         const { rows: programs } = await req.db.query('SELECT * FROM programs WHERE "userId" = $1', [req.user.id]);
 
-        // This static list is removed, as we will now generate dynamic lists.
-        // const roomTypes = ['Double', 'Triple', 'Quad', 'Quintuple'];
+        // --- Create Named Ranges for the dropdowns ---
 
-        // --- Create all necessary Named Ranges for the dropdowns ---
-        
-        // Create Program list
+        // 1. Create Program list (no change from original)
         const programNames = programs.map(p => p.name);
         validationSheet.getColumn('A').values = ['Programs', ...programNames];
         if (programNames.length > 0) {
             workbook.definedNames.add('Lists!$A$2:$A$' + (programNames.length + 1), 'Programs');
         }
 
-        let listColumnIndex = 1; // Start from column B
+        let listColumnIndex = 1; // Start from column B for dynamic lists
+        const hotelRoomTypesMap = new Map(); // Map to store unique room types for each individual hotel
+
         programs.forEach(program => {
             const programNameSanitized = sanitizeName(program.name);
-            
-            // Create Package lists (dependent on Program)
+
+            // 2. Create Package lists for each program (no change from original)
             const packageNames = (program.packages || []).map(p => p.name);
             if (packageNames.length > 0) {
                 listColumnIndex++;
@@ -358,8 +356,8 @@ exports.exportBookingsToExcel = async (req, res) => {
 
             (program.packages || []).forEach(pkg => {
                 const packageNameSanitized = sanitizeName(pkg.name);
-                
-                // Create Hotel lists (dependent on Package)
+
+                // 3. Create Hotel lists for each city within a package (no change from original)
                 (program.cities || []).forEach(city => {
                     const hotels = pkg.hotels[city.name] || [];
                     if (hotels.length > 0) {
@@ -373,23 +371,37 @@ exports.exportBookingsToExcel = async (req, res) => {
                     }
                 });
 
-                // *** NEW: Create Room Type lists based on the full hotel combination ***
+                // 4. [UPDATED LOGIC] Collect unique room types for each INDIVIDUAL hotel.
+                // This replaces the old logic of looking at hotel combinations.
                 (pkg.prices || []).forEach(price => {
                     const roomTypesForCombo = (price.roomTypes || []).map(rt => rt.type);
                     if (roomTypesForCombo.length > 0) {
-                        listColumnIndex++;
-                        const col = validationSheet.getColumn(listColumnIndex);
-                        // hotelCombination is already underscore-separated, but we sanitize to be safe.
-                        const sanitizedCombination = sanitizeName(price.hotelCombination);
-                        const rangeName = `${sanitizedCombination}_Rooms`;
-                        col.values = [rangeName, ...roomTypesForCombo];
-                         try {
-                           workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${roomTypesForCombo.length + 1}`, rangeName);
-                        } catch(e) { console.warn(`Could not create named range for RoomType: ${rangeName}.`); }
+                        const individualHotels = price.hotelCombination.split('_');
+                        individualHotels.forEach(hotelName => {
+                            if (!hotelRoomTypesMap.has(hotelName)) {
+                                hotelRoomTypesMap.set(hotelName, new Set());
+                            }
+                            // Add all room types from the combo to the individual hotel's set
+                            roomTypesForCombo.forEach(rt => hotelRoomTypesMap.get(hotelName).add(rt));
+                        });
                     }
                 });
             });
         });
+        
+        // 5. [NEW LOGIC] Create a named range for each hotel's unique room types.
+        for (const [hotelName, roomTypesSet] of hotelRoomTypesMap.entries()) {
+            const roomTypes = Array.from(roomTypesSet);
+             if (roomTypes.length > 0) {
+                listColumnIndex++;
+                const col = validationSheet.getColumn(listColumnIndex);
+                const rangeName = `${sanitizeName(hotelName)}_Rooms`; // e.g., ManbarAlMisk_Rooms
+                col.values = [rangeName, ...roomTypes];
+                try {
+                    workbook.definedNames.add(`Lists!$${col.letter}$2:$${col.letter}$${roomTypes.length + 1}`, rangeName);
+                } catch(e) { console.warn(`Could not create named range for RoomType: ${rangeName}.`); }
+            }
+        }
 
         // --- Setup Template Sheet Columns and Headers ---
         const headers = [
@@ -407,14 +419,13 @@ exports.exportBookingsToExcel = async (req, res) => {
         const headerRow = templateSheet.getRow(1);
         headerRow.font = { bold: true };
 
-
         // --- Apply Data Validation Formulas to Template Sheet ---
         for (let i = 2; i <= 101; i++) {
-            // Program & Package validation (Your original working logic)
+            // Program & Package validation (no change)
             templateSheet.getCell(`E${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: ['=Programs'] };
             templateSheet.getCell(`F${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [`=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_Packages")`] };
             
-            // Hotel validation (Your original working logic)
+            // Hotel validation (no change)
             hotelHeaders.forEach(h => {
                 const cityNameSanitized = sanitizeName(h.header.replace(' Hotel', ''));
                 const columnLetter = templateSheet.getColumn(h.key).letter;
@@ -424,28 +435,24 @@ exports.exportBookingsToExcel = async (req, res) => {
                 }
             });
 
-            // *** MODIFIED DYNAMIC ROOM TYPE LOGIC ***
-            // 1. Get the letters of all hotel columns (e.g., ['G', 'H'])
-            const hotelColumnLetters = hotelHeaders.map(h => templateSheet.getColumn(h.key).letter);
-            
-            // 2. Create an array of formula parts to sanitize each hotel cell
-            //    e.g., ['SUBSTITUTE(G2," ","_")', 'SUBSTITUTE(H2," ","_")']
-            const hotelCombinationFormulaParts = hotelColumnLetters.map(letter => `SUBSTITUTE(${letter}${i}," ","_")`);
-            
-            // 3. Join them with underscores to create the dynamic lookup key
-            //    e.g., 'SUBSTITUTE(G2," ","_")&"_"&SUBSTITUTE(H2," ","_")'
-            const hotelCombinationFormula = hotelCombinationFormulaParts.join('&"_"&');
-            
-            // 4. Apply the final formula to all room type columns
+            // [CORRECTED LOGIC] Apply room type validation based on the individual hotel column for that city.
             roomTypeHeaders.forEach(h => {
-                const columnLetter = templateSheet.getColumn(h.key).letter;
-                if (columnLetter) {
-                    const roomFormula = `=INDIRECT(${hotelCombinationFormula}&"_Rooms")`;
-                    templateSheet.getCell(`${columnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [roomFormula] };
+                const cityNameSanitized = sanitizeName(h.header.replace(' Room Type', ''));
+                const hotelColumnKey = `hotel_${cityNameSanitized}`;
+                const hotelColumn = templateSheet.getColumn(hotelColumnKey);
+                
+                if (hotelColumn) {
+                    const hotelColumnLetter = hotelColumn.letter;
+                    const roomTypeColumnLetter = templateSheet.getColumn(h.key).letter;
+                    
+                    // This new formula creates the dependency on the correct, single hotel cell.
+                    const roomFormula = `=INDIRECT(SUBSTITUTE(${hotelColumnLetter}${i}," ","_")&"_Rooms")`;
+                    templateSheet.getCell(`${roomTypeColumnLetter}${i}`).dataValidation = { type: 'list', allowBlank: true, formulae: [roomFormula] };
                 }
             });
         }
 
+        // --- Finalize and send the file ---
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=Booking_Template.xlsx');
         await workbook.xlsx.write(res);
