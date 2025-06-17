@@ -46,15 +46,10 @@ const resources = {
       chequeNumber: "Cheque Number",
       bankName: "Bank Name",
       checkCashingDate: "Check Cashing Date",
+      
       // Profit Report
       bookings: "Bookings",
       totalSales: "Total Sales",
-      totalProfit: "Total Profit",
-
-      // Payment
-      chequeNumber: "Cheque Number",
-      bankName: "Bank Name",
-      checkCashingDate: "Check Cashing Date",
     },
   },
   ar: {
@@ -101,7 +96,6 @@ const resources = {
       // Profit Report
       bookings: "الحجوزات",
       totalSales: "إجمالي المبيعات",
-      totalProfit: "إجمالي الأرباح",
     },
   },
   fr: {
@@ -148,7 +142,6 @@ const resources = {
       // Profit Report
       bookings: "Réservations",
       totalSales: "Ventes Totales",
-      totalProfit: "Profit Total",
     },
   },
 };
