@@ -1,11 +1,7 @@
 // backend/routes/bookingRoutes.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const multer = require('multer');
-
-// Configure multer for temporary file storage
-const upload = multer({ dest: 'temp/' });
-
+const multer = require("multer");
 const {
   getAllBookings,
   createBooking,
@@ -15,27 +11,41 @@ const {
   updatePayment,
   deletePayment,
   exportBookingsToExcel,
-  exportBookingTemplate,     // New function
-  importBookingsFromExcel    // New function
-} = require('../controllers/bookingController');
+  exportBookingTemplate,
+  importBookingsFromExcel,
+} = require("../controllers/bookingController");
+const {
+  bookingValidation,
+  paymentValidation,
+  handleValidationErrors,
+} = require("../middleware/validationMiddleware");
+
+const upload = multer({ dest: "temp/" });
 
 // Booking routes
-router.get('/', getAllBookings);
-router.post('/', createBooking);
-router.put('/:id', updateBooking);
-router.delete('/:id', deleteBooking);
+router.get("/", getAllBookings);
+router.post("/", bookingValidation, handleValidationErrors, createBooking);
+router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
+router.delete("/:id", deleteBooking);
 
-// New routes for Excel template and import
-router.get('/export-template', exportBookingTemplate);
-router.post('/import-excel', upload.single('file'), importBookingsFromExcel);
-
-
-// Existing route for exporting bookings to Excel
-router.get('/export-excel/program/:programId', exportBookingsToExcel);
+// Excel and Template routes
+router.get("/export-template", exportBookingTemplate);
+router.post("/import-excel", upload.single("file"), importBookingsFromExcel);
+router.get("/export-excel/program/:programId", exportBookingsToExcel);
 
 // Payment routes (nested under bookings)
-router.post('/:bookingId/payments', addPayment);
-router.put('/:bookingId/payments/:paymentId', updatePayment);
-router.delete('/:bookingId/payments/:paymentId', deletePayment);
+router.post(
+  "/:bookingId/payments",
+  paymentValidation,
+  handleValidationErrors,
+  addPayment
+);
+router.put(
+  "/:bookingId/payments/:paymentId",
+  paymentValidation,
+  handleValidationErrors,
+  updatePayment
+);
+router.delete("/:bookingId/payments/:paymentId", deletePayment);
 
 module.exports = router;
