@@ -1,18 +1,18 @@
 // backend/server.js
-const express = require('express');
-const { Pool } = require('pg');
-const cors = require('cors');
-const path = require('path');
-require('dotenv').config();
+const express = require("express");
+const { Pool } = require("pg");
+const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
 
 // Import middleware
-const { protect } = require('./middleware/authMiddleware');
+const { protect } = require("./middleware/authMiddleware");
 
 // Import routes
-const authRoutes = require('./routes/authRoutes');
-const programRoutes = require('./routes/programRoutes');
-const programPricingRoutes = require('./routes/programPricingRoutes');
-const bookingRoutes = require('./routes/bookingRoutes');
+const authRoutes = require("./routes/authRoutes");
+const programRoutes = require("./routes/programRoutes");
+const programPricingRoutes = require("./routes/programPricingRoutes");
+const bookingRoutes = require("./routes/bookingRoutes");
 
 const app = express();
 
@@ -22,12 +22,13 @@ app.use(express.json());
 
 // Connect to PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.MONGODB_URI, // Rename this to SUPABASE_URL in your .env
+  connectionString: process.env.DATABASE_URL, // Rename this to SUPABASE_URL in your .env
 });
 
-pool.connect()
-  .then(() => console.log('Connected to PostgreSQL'))
-  .catch((err) => console.error('PostgreSQL connection error:', err));
+pool
+  .connect()
+  .then(() => console.log("Connected to PostgreSQL"))
+  .catch((err) => console.error("PostgreSQL connection error:", err));
 
 // Make the database pool available to all routes
 app.use((req, res, next) => {
@@ -36,25 +37,24 @@ app.use((req, res, next) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
+app.use("/api/auth", authRoutes);
 // Apply protect middleware to all data routes
-app.use('/api/programs', protect, programRoutes);
-app.use('/api/program-pricing', protect, programPricingRoutes);
-app.use('/api/bookings', protect, bookingRoutes);
-
+app.use("/api/programs", protect, programRoutes);
+app.use("/api/program-pricing", protect, programPricingRoutes);
+app.use("/api/bookings", protect, bookingRoutes);
 
 // Serve static files from the frontend build directory
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
 // Handle client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  res.status(500).json({ message: "Something went wrong!" });
 });
 
 const PORT = process.env.PORT || 5000;
