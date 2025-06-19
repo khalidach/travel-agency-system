@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext.tsx"; // Added .tsx extension
+import { useBookingsContext } from "../context/BookingsContext";
+import { useProgramsContext } from "../context/ProgramsContext";
 import {
   Plus,
   Edit2,
@@ -15,13 +16,13 @@ import {
   ChevronRight,
   MapPin,
   Hotel,
-  Users, // Icon for related people
+  Users,
 } from "lucide-react";
-import Modal from "../components/Modal.tsx"; // Added .tsx extension
-import BookingForm, { BookingFormData } from "../components/BookingForm.tsx"; // Added .tsx extension
-import PaymentForm from "../components/PaymentForm.tsx"; // Added .tsx extension
-import type { Booking, Payment } from "../context/AppContext"; // type import does not need .tsx
-import * as api from "../services/api.ts"; // Added .ts extension
+import Modal from "../components/Modal";
+import BookingForm, { BookingFormData } from "../components/BookingForm";
+import PaymentForm from "../components/PaymentForm";
+import type { Booking, Payment } from "../context/models";
+import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 
 // Helper hook for advanced pagination logic
@@ -38,7 +39,6 @@ const usePagination = ({
 }) => {
   const paginationRange = useMemo(() => {
     const totalPageCount = Math.ceil(totalCount / pageSize);
-
     const totalPageNumbers = siblingCount + 5;
 
     if (totalPageNumbers >= totalPageCount) {
@@ -80,55 +80,61 @@ const usePagination = ({
       return [firstPageIndex, "...", ...middleRange, "...", lastPageIndex];
     }
 
-    return []; // Default empty array
+    return [];
   }, [totalCount, pageSize, siblingCount, currentPage]);
 
   return paginationRange;
 };
 
-// Define a type for bookings that may have an `isRelated` flag for styling
 type DisplayBooking = Booking & { isRelated?: boolean };
 
 export default function BookingPage() {
   const { t } = useTranslation();
-  const { state, dispatch } = useAppContext();
+  const { state: bookingsState, dispatch: bookingsDispatch } =
+    useBookingsContext();
+  const { state: programsState, dispatch: programsDispatch } =
+    useProgramsContext();
 
   useEffect(() => {
     const fetchData = async () => {
-      dispatch({ type: "SET_LOADING", payload: true });
+      bookingsDispatch({ type: "SET_LOADING", payload: true });
+      programsDispatch({ type: "SET_LOADING", payload: true });
       try {
-        if (state.programs.length === 0) {
+        if (programsState.programs.length === 0) {
           const programs = await api.getPrograms();
-          dispatch({ type: "SET_PROGRAMS", payload: programs });
+          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
         }
-        if (state.bookings.length === 0) {
+        if (bookingsState.bookings.length === 0) {
           const bookings = await api.getBookings();
-          dispatch({ type: "SET_BOOKINGS", payload: bookings });
+          bookingsDispatch({ type: "SET_BOOKINGS", payload: bookings });
         }
-        // Add this block to fetch program pricing
-        if (state.programPricing.length === 0) {
+        if (programsState.programPricing.length === 0) {
           const programPricing = await api.getProgramPricing();
-          dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
+          programsDispatch({
+            type: "SET_PROGRAM_PRICING",
+            payload: programPricing,
+          });
         }
       } catch (error) {
         console.error("Failed to fetch booking data", error);
+        toast.error("Failed to load necessary data.");
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
+        bookingsDispatch({ type: "SET_LOADING", payload: false });
+        programsDispatch({ type: "SET_LOADING", payload: false });
       }
     };
     fetchData();
-    // Add state.programPricing.length to the dependency array
   }, [
-    dispatch,
-    state.programs.length,
-    state.bookings.length,
-    state.programPricing.length,
+    bookingsDispatch,
+    programsDispatch,
+    programsState.programs.length,
+    bookingsState.bookings.length,
+    programsState.programPricing.length,
   ]);
 
   const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();
 
-  // State for managing modals and UI
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -139,21 +145,15 @@ export default function BookingPage() {
   const [selectedBookingForPayment, setSelectedBookingForPayment] =
     useState<Booking | null>(null);
 
-  // State for filtering and searching
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>(
     programId || "all"
   );
   const [sortOrder, setSortOrder] = useState("newest");
-
-  // State for async operations
   const [isExporting, setIsExporting] = useState(false);
-
-  // State for pagination
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
-
   const [importFile, setImportFile] = useState<File | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -162,7 +162,6 @@ export default function BookingPage() {
     setProgramFilter(programId || "all");
   }, [programId]);
 
-  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, programFilter, sortOrder]);
@@ -177,7 +176,7 @@ export default function BookingPage() {
     );
   };
 
-  const filteredBookings = state.bookings.filter((booking) => {
+  const filteredBookings = bookingsState.bookings.filter((booking) => {
     const lowerSearchTerm = searchTerm.toLowerCase();
     const matchesSearch =
       booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
@@ -196,7 +195,6 @@ export default function BookingPage() {
     return matchesSearch && matchesStatus && matchesProgram;
   });
 
-  // Calculate summary stats for the filtered bookings
   const summaryStats = useMemo(() => {
     const stats = {
       totalBookings: filteredBookings.length,
@@ -221,16 +219,13 @@ export default function BookingPage() {
     };
   }, [filteredBookings]);
 
-  // UPDATED: Sorting and Grouping Logic
   const sortedBookings: DisplayBooking[] = useMemo(() => {
     const bookings = [...filteredBookings];
 
     if (sortOrder === "family") {
-      const bookingsMap = new Map(state.bookings.map((b) => [b.id, b]));
+      const bookingsMap = new Map(bookingsState.bookings.map((b) => [b.id, b]));
       const result: DisplayBooking[] = [];
       const processed = new Set<number>();
-
-      // Sort main persons by creation date to have a consistent order
       bookings.sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -238,24 +233,19 @@ export default function BookingPage() {
 
       bookings.forEach((booking) => {
         if (processed.has(booking.id)) return;
-
-        // Check if it's a main person with related persons
         if (booking.relatedPersons && booking.relatedPersons.length > 0) {
           result.push(booking);
           processed.add(booking.id);
-
-          // Add related people immediately after the main person
           booking.relatedPersons.forEach((relatedInfo) => {
             const relatedBooking = bookingsMap.get(relatedInfo.ID);
             if (relatedBooking && !processed.has(relatedBooking.id)) {
-              result.push({ ...relatedBooking, isRelated: true }); // Flag for styling
+              result.push({ ...relatedBooking, isRelated: true });
               processed.add(relatedBooking.id);
             }
           });
         }
       });
 
-      // Add all other individuals who were not part of a family group
       bookings.forEach((booking) => {
         if (!processed.has(booking.id)) {
           result.push(booking);
@@ -269,13 +259,11 @@ export default function BookingPage() {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
     }
-
-    // Default to 'newest'
     return bookings.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [filteredBookings, sortOrder, state.bookings]);
+  }, [filteredBookings, sortOrder, bookingsState.bookings]);
 
   const indexOfLastBooking = currentPage * bookingsPerPage;
   const indexOfFirstBooking = indexOfLastBooking - bookingsPerPage;
@@ -298,7 +286,7 @@ export default function BookingPage() {
   };
 
   const selectedProgram = programId
-    ? state.programs.find((p) => p.id.toString() === programId)
+    ? programsState.programs.find((p) => p.id.toString() === programId)
     : null;
   const pageTitle = selectedProgram
     ? `${t("booking")} for ${selectedProgram.name}`
@@ -325,11 +313,10 @@ export default function BookingPage() {
     ) {
       try {
         await api.deleteBooking(bookingId);
-        dispatch({ type: "DELETE_BOOKING", payload: bookingId });
+        bookingsDispatch({ type: "DELETE_BOOKING", payload: bookingId });
         toast.success("Booking deleted!");
       } catch (error) {
         toast.error("Failed to delete booking.");
-        console.error("Failed to delete booking", error);
       }
     }
   };
@@ -350,7 +337,7 @@ export default function BookingPage() {
     if (window.confirm("Are you sure you want to delete this payment?")) {
       try {
         const updatedBooking = await api.deletePayment(bookingId, paymentId);
-        dispatch({
+        bookingsDispatch({
           type: "DELETE_PAYMENT",
           payload: { bookingId, updatedBooking },
         });
@@ -358,7 +345,6 @@ export default function BookingPage() {
         toast.success("Payment deleted!");
       } catch (error) {
         toast.error("Failed to delete payment.");
-        console.error("Failed to delete payment", error);
       }
     }
   };
@@ -385,11 +371,11 @@ export default function BookingPage() {
           editingBooking.id,
           bookingToSave
         );
-        dispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
+        bookingsDispatch({ type: "UPDATE_BOOKING", payload: updatedBooking });
         toast.success("Booking updated!");
       } else {
         const newBooking = await api.createBooking(bookingToSave);
-        dispatch({ type: "ADD_BOOKING", payload: newBooking });
+        bookingsDispatch({ type: "ADD_BOOKING", payload: newBooking });
         toast.success("Booking created!");
       }
       setIsBookingModalOpen(false);
@@ -398,7 +384,6 @@ export default function BookingPage() {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to save booking";
       toast.error(errorMessage);
-      console.error("Failed to save booking", error);
     }
   };
 
@@ -412,7 +397,7 @@ export default function BookingPage() {
             editingPayment.payment._id,
             payment
           );
-          dispatch({
+          bookingsDispatch({
             type: "UPDATE_PAYMENT",
             payload: {
               bookingId: selectedBookingForPayment.id,
@@ -424,7 +409,7 @@ export default function BookingPage() {
             selectedBookingForPayment.id,
             payment
           );
-          dispatch({
+          bookingsDispatch({
             type: "ADD_PAYMENT",
             payload: {
               bookingId: selectedBookingForPayment.id,
@@ -436,7 +421,6 @@ export default function BookingPage() {
         toast.success("Payment saved!");
       } catch (error) {
         toast.error("Failed to save payment.");
-        console.error("Failed to save payment", error);
       }
     }
     setIsPaymentModalOpen(false);
@@ -448,16 +432,13 @@ export default function BookingPage() {
       toast.error("Please select a specific program to export.");
       return;
     }
-
     setIsExporting(true);
     toast.loading("Exporting to Excel...");
-
     try {
-      const program = state.programs.find(
+      const program = programsState.programs.find(
         (p) => p.id.toString() === programFilter
       );
       const blob = await api.exportBookingsToExcel(programFilter);
-
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -469,7 +450,6 @@ export default function BookingPage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-
       toast.dismiss();
       toast.success("Export successful!");
     } catch (error) {
@@ -477,21 +457,17 @@ export default function BookingPage() {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to export bookings.";
       toast.error(errorMessage);
-      console.error("Failed to export bookings", error);
     } finally {
       setIsExporting(false);
     }
   };
 
-  const getStatusColor = (isFullyPaid: boolean) => {
-    return isFullyPaid
+  const getStatusColor = (isFullyPaid: boolean) =>
+    isFullyPaid
       ? "bg-emerald-100 text-emerald-700"
       : "bg-orange-100 text-orange-700";
-  };
-
-  const getStatusText = (isFullyPaid: boolean) => {
-    return t(isFullyPaid ? "Fully Paid" : "Pending Payment");
-  };
+  const getStatusText = (isFullyPaid: boolean) =>
+    t(isFullyPaid ? "Fully Paid" : "Pending Payment");
 
   const handleExportTemplate = async () => {
     toast.loading("Generating template...");
@@ -529,8 +505,7 @@ export default function BookingPage() {
     try {
       const result = await api.importBookings(importFile);
       const updatedBookings = await api.getBookings();
-      dispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
-
+      bookingsDispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
       toast.dismiss();
       toast.success(result.message);
     } catch (error) {
@@ -547,7 +522,7 @@ export default function BookingPage() {
 
   return (
     <div className="space-y-6">
-      {state.loading ? (
+      {bookingsState.loading || programsState.loading ? (
         <div className="flex items-center justify-center h-full">
           Loading...
         </div>
@@ -566,7 +541,6 @@ export default function BookingPage() {
                 <Download className="w-5 h-5 mr-2" />
                 Template
               </button>
-
               <input
                 type="file"
                 accept=".xlsx"
@@ -574,7 +548,6 @@ export default function BookingPage() {
                 onChange={handleFileSelect}
                 style={{ display: "none" }}
               />
-
               {importFile ? (
                 <button
                   onClick={handleImport}
@@ -593,7 +566,6 @@ export default function BookingPage() {
                   Import
                 </button>
               )}
-
               <button
                 onClick={handleAddBooking}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
@@ -604,7 +576,6 @@ export default function BookingPage() {
             </div>
           </div>
 
-          {/* Summary Cards */}
           {filteredBookings.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
               <div className="bg-white p-4 rounded-xl shadow-sm border">
@@ -694,7 +665,7 @@ export default function BookingPage() {
                 className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">{t("allPrograms")}</option>
-                {state.programs.map((program) => (
+                {programsState.programs.map((program) => (
                   <option key={program.id} value={program.id}>
                     {program.name}
                   </option>
@@ -735,7 +706,7 @@ export default function BookingPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {currentBookings.map((booking) => {
-                    const program = state.programs.find(
+                    const program = programsState.programs.find(
                       (p) =>
                         p.id.toString() === (booking.tripId || "").toString()
                     );
@@ -902,7 +873,6 @@ export default function BookingPage() {
                   <ChevronLeft className="w-4 h-4 mr-1" />
                   Previous
                 </button>
-
                 <div className="flex items-center space-x-1">
                   {paginationRange.map((pageNumber, index) => {
                     if (typeof pageNumber === "string") {
@@ -930,7 +900,6 @@ export default function BookingPage() {
                     );
                   })}
                 </div>
-
                 <button
                   onClick={() => paginate(currentPage + 1)}
                   disabled={currentPage === totalPages}
@@ -977,7 +946,7 @@ export default function BookingPage() {
       >
         <BookingForm
           booking={editingBooking}
-          programs={state.programs}
+          programs={programsState.programs}
           onSave={handleSaveBooking}
           onCancel={() => {
             setIsBookingModalOpen(false);

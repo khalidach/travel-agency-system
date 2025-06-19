@@ -8,7 +8,9 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
 
-import { AppProvider, useAppContext } from "./context/AppContext";
+import { AuthProvider, useAuthContext } from "./context/AuthContext";
+import { ProgramsProvider } from "./context/ProgramsContext";
+import { BookingsProvider } from "./context/BookingsContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Programs from "./pages/Programs";
@@ -20,7 +22,7 @@ import useIdleTimeout from "./services/useIdleTimeout";
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
-  const { state } = useAppContext();
+  const { state } = useAuthContext();
 
   // Logout user after 1 hour of inactivity
   const IDLE_TIMEOUT = 60 * 60 * 1000;
@@ -30,7 +32,7 @@ function AppRoutes() {
 
   useIdleTimeout(IDLE_TIMEOUT, REFRESH_INTERVAL);
 
-  if (state.loading && state.isAuthenticated) {
+  if (state.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div>Loading...</div>
@@ -73,12 +75,16 @@ function AppRoutes() {
 function App() {
   return (
     <I18nextProvider i18n={i18n}>
-      <AppProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-        <Toaster position="bottom-right" />
-      </AppProvider>
+      <AuthProvider>
+        <ProgramsProvider>
+          <BookingsProvider>
+            <Router>
+              <AppRoutes />
+            </Router>
+            <Toaster position="bottom-right" />
+          </BookingsProvider>
+        </ProgramsProvider>
+      </AuthProvider>
     </I18nextProvider>
   );
 }

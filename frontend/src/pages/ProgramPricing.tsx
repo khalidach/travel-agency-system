@@ -1,13 +1,11 @@
-import  { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppContext } from "../context/AppContext";
-import type {
-  Program,
-  ProgramPricing,
-  HotelPrice,
-} from "../context/AppContext";
+import { useProgramsContext } from "../context/ProgramsContext";
+import { useBookingsContext } from "../context/BookingsContext";
+import type { Program, ProgramPricing, HotelPrice } from "../context/models";
 import { Pencil, Trash2 } from "lucide-react";
 import * as api from "../services/api";
+import { toast } from "react-hot-toast";
 
 const emptyPricing: Omit<ProgramPricing, "id"> = {
   selectProgram: "",
@@ -20,36 +18,45 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
 
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
-  const { state, dispatch } = useAppContext();
+  const { state: programsState, dispatch: programsDispatch } =
+    useProgramsContext();
+  const { dispatch: bookingsDispatch } = useBookingsContext();
 
   useEffect(() => {
     const fetchData = async () => {
-      dispatch({ type: "SET_LOADING", payload: true });
+      programsDispatch({ type: "SET_LOADING", payload: true });
       try {
-        if (state.programs.length === 0) {
+        if (programsState.programs.length === 0) {
           const programs = await api.getPrograms();
-          dispatch({ type: "SET_PROGRAMS", payload: programs });
+          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
         }
-        if (state.programPricing.length === 0) {
+        if (programsState.programPricing.length === 0) {
           const programPricing = await api.getProgramPricing();
-          dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
+          programsDispatch({
+            type: "SET_PROGRAM_PRICING",
+            payload: programPricing,
+          });
         }
       } catch (error) {
         console.error("Failed to fetch program pricing data", error);
+        toast.error("Failed to load pricing data.");
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
+        programsDispatch({ type: "SET_LOADING", payload: false });
       }
     };
     fetchData();
-  }, [dispatch, state.programs.length, state.programPricing.length]);
+  }, [
+    programsDispatch,
+    programsState.programs.length,
+    programsState.programPricing.length,
+  ]);
 
-  const { programs, programPricing } = state;
+  const { programs, programPricing } = programsState;
   const [currentPricing, setCurrentPricing] = useState<
     ProgramPricing | Omit<ProgramPricing, "id">
   >(emptyPricing);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
 
-  // Memoize the list of unique room types for the selected program
   const uniqueRoomTypesForProgram = useMemo(() => {
     if (!selectedProgram) return [];
     const allRoomTypeNames = new Set<string>();
@@ -70,7 +77,6 @@ export default function ProgramPricingPage() {
       return;
     }
 
-    // Get a unique list of all hotels across all packages for the program
     const uniqueHotels = new Map<string, { city: string; nights: number }>();
     program.packages.forEach((pkg) => {
       (program.cities || []).forEach((city) => {
@@ -86,12 +92,7 @@ export default function ProgramPricingPage() {
     const hotelsList: HotelPrice[] = Array.from(uniqueHotels.entries()).map(
       ([key, data]) => {
         const [city, name] = key.split("-");
-        return {
-          name,
-          city,
-          nights: data.nights,
-          PricePerNights: {}, // Initialize as an empty object
-        };
+        return { name, city, nights: data.nights, PricePerNights: {} };
       }
     );
 
@@ -118,9 +119,11 @@ export default function ProgramPricingPage() {
     if (window.confirm("Are you sure you want to delete this pricing?")) {
       try {
         await api.deleteProgramPricing(id);
-        dispatch({ type: "DELETE_PROGRAM_PRICING", payload: id });
+        programsDispatch({ type: "DELETE_PROGRAM_PRICING", payload: id });
+        toast.success("Pricing deleted successfully.");
       } catch (error) {
         console.error("Failed to delete program pricing", error);
+        toast.error("Failed to delete pricing.");
       }
     }
   };
@@ -132,7 +135,6 @@ export default function ProgramPricingPage() {
   ) => {
     setCurrentPricing((prev) => {
       const newHotels = [...(prev.allHotels || [])];
-      // Ensure PricePerNights exists
       if (!newHotels[hotelIndex].PricePerNights) {
         newHotels[hotelIndex].PricePerNights = {};
       }
@@ -152,37 +154,47 @@ export default function ProgramPricingPage() {
           currentPricing.id,
           currentPricing
         );
-        dispatch({ type: "UPDATE_PROGRAM_PRICING", payload: updatedPricing });
+        programsDispatch({
+          type: "UPDATE_PROGRAM_PRICING",
+          payload: updatedPricing,
+        });
+        // After updating prices, refetch bookings to update their base costs and profits
         const updatedBookings = await api.getBookings();
-        dispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
+        bookingsDispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
+        toast.success("Pricing updated successfully.");
       } else {
         updatedPricing = await api.createProgramPricing(currentPricing);
-        dispatch({ type: "ADD_PROGRAM_PRICING", payload: updatedPricing });
+        programsDispatch({
+          type: "ADD_PROGRAM_PRICING",
+          payload: updatedPricing,
+        });
+        toast.success("Pricing saved successfully.");
       }
       setCurrentPricing(emptyPricing);
       setSelectedProgram(null);
     } catch (error) {
       console.error("Failed to save program pricing", error);
+      toast.error("Failed to save pricing.");
     }
   };
 
-  if (state.loading) {
+  if (programsState.loading) {
     return <div>Loading...</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-6">{t("Program Pricing")}</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("programPricing")}</h1>
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Select Program")}
+          Select Program
         </label>
         <select
           value={selectedProgram?.id || ""}
           onChange={(e) => handleProgramSelect(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
         >
-          <option value="">{t("Select a program")}</option>
+          <option value="">Select a program</option>
           {programs
             .filter(
               (program) =>
@@ -203,7 +215,7 @@ export default function ProgramPricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("Flight Ticket Price")}
+                Flight Ticket Price
               </label>
               <input
                 type="number"
@@ -219,7 +231,7 @@ export default function ProgramPricingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("Visa Fees")}
+                Visa Fees
               </label>
               <input
                 type="number"
@@ -235,7 +247,7 @@ export default function ProgramPricingPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("Guide Fees")}
+                Guide Fees
               </label>
               <input
                 type="number"
@@ -252,7 +264,7 @@ export default function ProgramPricingPage() {
           </div>
 
           <div className="mt-8">
-            <h2 className="text-xl font-semibold mb-4">{t("Hotels")}</h2>
+            <h2 className="text-xl font-semibold mb-4">Hotels</h2>
             {(currentPricing.allHotels || []).map((hotel, index) => (
               <div
                 key={`${hotel.city}-${hotel.name}`}
@@ -300,16 +312,14 @@ export default function ProgramPricingPage() {
               onClick={handleSave}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              {t("id" in currentPricing ? "Update Pricing" : "Save Pricing")}
+              {"id" in currentPricing ? "Update Pricing" : "Save Pricing"}
             </button>
           </div>
         </>
       )}
       {programPricing.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4">
-            {t("Previous Pricing")}
-          </h2>
+          <h2 className="text-xl font-semibold mb-4">Previous Pricing</h2>
           <div className="space-y-4">
             {[...programPricing].reverse().map((pricing: ProgramPricing) => (
               <div key={pricing.id} className="p-4 border rounded-lg">

@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useAppContext } from "../context/AppContext";
+import { useProgramsContext } from "../context/ProgramsContext";
+import { useBookingsContext } from "../context/BookingsContext";
 import {
   BarChart,
   Bar,
@@ -25,36 +26,44 @@ import * as api from "../services/api";
 export default function ProfitReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { state, dispatch } = useAppContext();
+  const { state: programsState, dispatch: programsDispatch } =
+    useProgramsContext();
+  const { state: bookingsState, dispatch: bookingsDispatch } =
+    useBookingsContext();
 
   useEffect(() => {
     const fetchData = async () => {
-      dispatch({ type: "SET_LOADING", payload: true });
+      programsDispatch({ type: "SET_LOADING", payload: true });
+      bookingsDispatch({ type: "SET_LOADING", payload: true });
       try {
-        if (state.programs.length === 0) {
+        if (programsState.programs.length === 0) {
           const programs = await api.getPrograms();
-          dispatch({ type: "SET_PROGRAMS", payload: programs });
+          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
         }
-        if (state.bookings.length === 0) {
+        if (bookingsState.bookings.length === 0) {
           const bookings = await api.getBookings();
-          dispatch({ type: "SET_BOOKINGS", payload: bookings });
+          bookingsDispatch({ type: "SET_BOOKINGS", payload: bookings });
         }
       } catch (error) {
         console.error("Failed to fetch profit report data", error);
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
+        programsDispatch({ type: "SET_LOADING", payload: false });
+        bookingsDispatch({ type: "SET_LOADING", payload: false });
       }
     };
     fetchData();
-  }, [dispatch, state.programs.length, state.bookings.length]);
+  }, [
+    programsDispatch,
+    bookingsDispatch,
+    programsState.programs.length,
+    bookingsState.bookings.length,
+  ]);
 
   const [filterType, setFilterType] = useState<string>("all");
 
-  // Calculate profit data by program
   const profitData = useMemo(() => {
-    const programProfits = state.programs.map((program) => {
-      // Match bookings where tripId (string) equals program.id (number)
-      const programBookings = state.bookings.filter(
+    const programProfits = programsState.programs.map((program) => {
+      const programBookings = bookingsState.bookings.filter(
         (booking) => booking.tripId === program.id.toString()
       );
       const totalBookings = programBookings.length;
@@ -72,7 +81,7 @@ export default function ProfitReport() {
       );
 
       return {
-        id: program.id, // Use program.id
+        id: program.id,
         programName: program.name,
         type: program.type,
         bookings: totalBookings,
@@ -88,9 +97,8 @@ export default function ProfitReport() {
       filteredData = filteredData.filter((item) => item.type === filterType);
     }
     return filteredData.sort((a, b) => b.totalProfit - a.totalProfit);
-  }, [state.programs, state.bookings, filterType]);
+  }, [programsState.programs, bookingsState.bookings, filterType]);
 
-  // Calculate totals
   const totals = useMemo(() => {
     return profitData.reduce(
       (acc, item) => ({
@@ -103,9 +111,8 @@ export default function ProfitReport() {
     );
   }, [profitData]);
 
-  // Monthly trend data
   const monthlyTrend = useMemo(() => {
-    const monthlyData = state.bookings.reduce((acc: any, booking) => {
+    const monthlyData = bookingsState.bookings.reduce((acc: any, booking) => {
       const date = new Date(booking.createdAt);
       const monthKey = `${date.getFullYear()}-${String(
         date.getMonth() + 1
@@ -125,11 +132,10 @@ export default function ProfitReport() {
     return Object.values(monthlyData).sort((a: any, b: any) =>
       a.month.localeCompare(b.month)
     );
-  }, [state.bookings]);
+  }, [bookingsState.bookings]);
 
   return (
     <div className="space-y-8">
-      {/* Header and Summary Cards ... (No changes needed) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
@@ -205,7 +211,6 @@ export default function ProfitReport() {
         </div>
       </div>
 
-      {/* Filters ... (No changes needed) */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center space-x-2">
@@ -225,7 +230,6 @@ export default function ProfitReport() {
         </div>
       </div>
 
-      {/* Charts Row and Detailed Table ... (Logic updated to use .id) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
@@ -316,9 +320,9 @@ export default function ProfitReport() {
             <tbody className="bg-white divide-y divide-gray-200">
               {profitData.map((item) => (
                 <tr
-                  key={item.id} // Use .id
+                  key={item.id}
                   className="hover:bg-blue-50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/booking/program/${item.id}`)} // Use .id
+                  onClick={() => navigate(`/booking/program/${item.id}`)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">

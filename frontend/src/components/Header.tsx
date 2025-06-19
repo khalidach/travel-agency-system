@@ -1,19 +1,21 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAppContext } from '../context/AppContext';
-import { Globe, User, LogOut } from 'lucide-react';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { useAuthContext } from "../context/AuthContext"; // Updated
+import { Globe, User, LogOut } from "lucide-react";
 
 export default function Header() {
   const { t, i18n } = useTranslation();
-  const { state, dispatch } = useAppContext();
+  const { state, dispatch } = useAuthContext(); // Updated
 
-  const changeLanguage = (lang: 'en' | 'ar' | 'fr') => {
+  const changeLanguage = (lang: "en" | "ar" | "fr") => {
     i18n.changeLanguage(lang);
-    dispatch({ type: 'SET_LANGUAGE', payload: lang });
+    // Note: The 'SET_LANGUAGE' action was part of the old AppContext.
+    // This can be moved to a separate 'SettingsContext' or managed by i18n exclusively.
+    // For now, we remove the dispatch call as it doesn't belong in AuthContext.
   };
 
   const handleLogout = () => {
-    dispatch({ type: 'LOGOUT' });
+    dispatch({ type: "LOGOUT" });
   };
 
   return (
@@ -22,7 +24,7 @@ export default function Header() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">
-              Welcome, {state.user?.agencyName || 'User'}
+              Welcome, {state.user?.agencyName || "User"}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
               Here's your travel management dashboard
@@ -34,31 +36,31 @@ export default function Header() {
             <div className="relative">
               <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
                 <button
-                  onClick={() => changeLanguage('en')}
+                  onClick={() => changeLanguage("en")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === 'en'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                    i18n.language === "en"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   EN
                 </button>
                 <button
-                  onClick={() => changeLanguage('ar')}
+                  onClick={() => changeLanguage("ar")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === 'ar'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                    i18n.language === "ar"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   العربية
                 </button>
                 <button
-                  onClick={() => changeLanguage('fr')}
+                  onClick={() => changeLanguage("fr")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === 'fr'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                    i18n.language === "fr"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
                   FR
@@ -72,7 +74,9 @@ export default function Header() {
                 <User className="w-5 h-5 text-white" />
               </div>
               <div className="hidden md:block">
-                <p className="text-sm font-medium text-gray-900">{state.user?.agencyName}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {state.user?.agencyName}
+                </p>
                 <p className="text-xs text-gray-500">{state.user?.username}</p>
               </div>
               <button

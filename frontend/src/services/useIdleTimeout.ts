@@ -1,10 +1,10 @@
 import { useEffect, useCallback } from "react";
-import { useAppContext } from "../context/AppContext";
+import { useAuthContext } from "../context/AuthContext"; // Updated
 import * as api from "./api";
 import { toast } from "react-hot-toast";
 
 const useIdleTimeout = (idleTimeout: number, refreshInterval: number) => {
-  const { dispatch, state } = useAppContext();
+  const { state, dispatch } = useAuthContext(); // Updated
 
   const handleLogout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
@@ -30,22 +30,17 @@ const useIdleTimeout = (idleTimeout: number, refreshInterval: number) => {
     let idleTimer: ReturnType<typeof setTimeout>;
     let tokenRefreshTimer: ReturnType<typeof setInterval>;
 
-    // This timer resets on any user activity. If it ever completes, the user is logged out.
     const resetIdleTimer = () => {
       clearTimeout(idleTimer);
       idleTimer = setTimeout(handleLogout, idleTimeout);
     };
 
-    // Add event listeners to reset the idle timer.
     const events = ["mousemove", "keydown", "click", "scroll"];
     events.forEach((event) => window.addEventListener(event, resetIdleTimer));
-    resetIdleTimer(); // Start the first idle timer
+    resetIdleTimer();
 
-    // This interval timer periodically refreshes the token in the background.
-    // This keeps the session alive as long as the tab is open and the user is active.
     tokenRefreshTimer = setInterval(handleRefreshToken, refreshInterval);
 
-    // Cleanup function
     return () => {
       clearTimeout(idleTimer);
       clearInterval(tokenRefreshTimer);

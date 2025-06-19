@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-
 import { Plane, Lock, User } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useAppContext } from "../context/AppContext";
+import { useAuthContext } from "../context/AuthContext"; // Updated: Using the new AuthContext
 import * as api from "../services/api";
 
 export default function LoginPage() {
-  const { dispatch } = useAppContext();
+  const { dispatch } = useAuthContext(); // Updated: Using the new AuthContext
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +19,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const userData = await api.login(username, password);
-      dispatch({ type: "LOGIN", payload: userData });
+      dispatch({ type: "LOGIN", payload: userData }); // This dispatch now comes from AuthContext
       toast.success("Login successful!");
     } catch (error) {
       const errorMessage =

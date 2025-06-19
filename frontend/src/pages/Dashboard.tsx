@@ -1,6 +1,7 @@
-import  { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppContext } from "../context/AppContext";
+import { useProgramsContext } from "../context/ProgramsContext";
+import { useBookingsContext } from "../context/BookingsContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
   Users,
@@ -17,28 +18,38 @@ import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { state, dispatch } = useAppContext();
+  const { state: programsState, dispatch: programsDispatch } =
+    useProgramsContext();
+  const { state: bookingsState, dispatch: bookingsDispatch } =
+    useBookingsContext();
 
   useEffect(() => {
     const fetchData = async () => {
-      dispatch({ type: "SET_LOADING", payload: true });
+      programsDispatch({ type: "SET_LOADING", payload: true });
+      bookingsDispatch({ type: "SET_LOADING", payload: true });
       try {
-        if (state.programs.length === 0) {
+        if (programsState.programs.length === 0) {
           const programs = await api.getPrograms();
-          dispatch({ type: "SET_PROGRAMS", payload: programs });
+          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
         }
-        if (state.bookings.length === 0) {
+        if (bookingsState.bookings.length === 0) {
           const bookings = await api.getBookings();
-          dispatch({ type: "SET_BOOKINGS", payload: bookings });
+          bookingsDispatch({ type: "SET_BOOKINGS", payload: bookings });
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
+        programsDispatch({ type: "SET_LOADING", payload: false });
+        bookingsDispatch({ type: "SET_LOADING", payload: false });
       }
     };
     fetchData();
-  }, [dispatch, state.programs.length, state.bookings.length]);
+  }, [
+    programsDispatch,
+    bookingsDispatch,
+    programsState.programs.length,
+    bookingsState.bookings.length,
+  ]);
 
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({
@@ -76,7 +87,7 @@ export default function Dashboard() {
           break;
       }
 
-      const filteredBookings = state.bookings.filter((booking) => {
+      const filteredBookings = bookingsState.bookings.filter((booking) => {
         const bookingDate = new Date(booking.createdAt);
         return bookingDate >= startDate && bookingDate <= endDate;
       });
@@ -96,7 +107,7 @@ export default function Dashboard() {
           0
         ),
       };
-    }, [state.bookings, dateFilter, customDateRange]);
+    }, [bookingsState.bookings, dateFilter, customDateRange]);
 
   const metrics = [
     { title: t("totalBookings"), value: totalBookings },
@@ -108,17 +119,17 @@ export default function Dashboard() {
   const programTypeData = [
     {
       name: "Hajj",
-      value: state.programs.filter((p) => p.type === "Hajj").length,
+      value: programsState.programs.filter((p) => p.type === "Hajj").length,
       color: "#3b82f6",
     },
     {
       name: "Umrah",
-      value: state.programs.filter((p) => p.type === "Umrah").length,
+      value: programsState.programs.filter((p) => p.type === "Umrah").length,
       color: "#059669",
     },
     {
       name: "Tourism",
-      value: state.programs.filter((p) => p.type === "Tourism").length,
+      value: programsState.programs.filter((p) => p.type === "Tourism").length,
       color: "#ea580c",
     },
   ];
@@ -126,13 +137,13 @@ export default function Dashboard() {
   const topStats = [
     {
       title: t("totalBookings"),
-      value: state.bookings.length,
+      value: bookingsState.bookings.length,
       icon: Users,
       color: "bg-blue-500",
     },
     {
       title: t("totalRevenue"),
-      value: `${state.bookings
+      value: `${bookingsState.bookings
         .reduce((sum, b) => sum + Number(b.sellingPrice), 0)
         .toLocaleString()} MAD`,
       icon: DollarSign,
@@ -140,7 +151,7 @@ export default function Dashboard() {
     },
     {
       title: t("totalProfit"),
-      value: `${state.bookings
+      value: `${bookingsState.bookings
         .reduce((sum, b) => sum + Number(b.profit), 0)
         .toLocaleString()} MAD`,
       icon: TrendingUp,
@@ -148,18 +159,21 @@ export default function Dashboard() {
     },
     {
       title: t("activePrograms"),
-      value: state.programs.length,
+      value: programsState.programs.length,
       icon: Package,
       color: "bg-purple-500",
     },
   ];
 
-  const fullyPaidBookings = state.bookings.filter((b) => b.isFullyPaid).length;
-  const pendingPayments = state.bookings.filter((b) => !b.isFullyPaid).length;
+  const fullyPaidBookings = bookingsState.bookings.filter(
+    (b) => b.isFullyPaid
+  ).length;
+  const pendingPayments = bookingsState.bookings.filter(
+    (b) => !b.isFullyPaid
+  ).length;
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">{t("dashboard")}</h1>
         <p className="text-gray-600 mt-2">
@@ -167,7 +181,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Top Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {topStats.map((stat, index) => {
           const Icon = stat.icon;
@@ -196,7 +209,6 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Main Content Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="pb-4 border-b border-gray-200">
@@ -405,7 +417,7 @@ export default function Dashboard() {
             Recent Bookings
           </h3>
           <div className="space-y-3">
-            {state.bookings.slice(0, 3).map((booking) => (
+            {bookingsState.bookings.slice(0, 3).map((booking) => (
               <div
                 key={booking.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
