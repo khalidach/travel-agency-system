@@ -1,23 +1,43 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useAppContext } from '../context/AppContext';
-import { Plus, Edit2, Trash2, MapPin, Calendar, Users } from 'lucide-react';
-import Modal from '../components/Modal';
-import ProgramForm from '../components/ProgramForm';
-import type { Program } from '../context/AppContext';
-import * as api from '../services/api';
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useAppContext } from "../context/AppContext";
+import { Plus, Edit2, Trash2, MapPin, Calendar, Users } from "lucide-react";
+import Modal from "../components/Modal";
+import ProgramForm from "../components/ProgramForm";
+import type { Program } from "../context/AppContext";
+import * as api from "../services/api";
 
 export default function Programs() {
   const { t } = useTranslation();
   const { state, dispatch } = useAppContext();
+
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      if (state.programs.length === 0) {
+        dispatch({ type: "SET_LOADING", payload: true });
+        try {
+          const programs = await api.getPrograms();
+          dispatch({ type: "SET_PROGRAMS", payload: programs });
+        } catch (error) {
+          console.error("Failed to fetch programs", error);
+        } finally {
+          dispatch({ type: "SET_LOADING", payload: false });
+        }
+      }
+    };
+    fetchPrograms();
+  }, [dispatch, state.programs.length]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
 
-  const filteredPrograms = state.programs.filter(program => {
-    const matchesSearch = program.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || program.type === filterType;
+  const filteredPrograms = state.programs.filter((program) => {
+    const matchesSearch = program.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || program.type === filterType;
     return matchesSearch && matchesType;
   });
 
@@ -31,11 +51,12 @@ export default function Programs() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProgram = async (programId: number) => { // Changed to number
-    if (window.confirm('Are you sure you want to delete this program?')) {
+  const handleDeleteProgram = async (programId: number) => {
+    // Changed to number
+    if (window.confirm("Are you sure you want to delete this program?")) {
       try {
         await api.deleteProgram(programId);
-        dispatch({ type: 'DELETE_PROGRAM', payload: programId });
+        dispatch({ type: "DELETE_PROGRAM", payload: programId });
       } catch (error) {
         console.error("Failed to delete program", error);
       }
@@ -45,25 +66,32 @@ export default function Programs() {
   const handleSaveProgram = async (program: Program) => {
     try {
       if (editingProgram) {
-        const updatedProgram = await api.updateProgram(editingProgram.id, program); // Use .id
-        dispatch({ type: 'UPDATE_PROGRAM', payload: updatedProgram });
+        const updatedProgram = await api.updateProgram(
+          editingProgram.id,
+          program
+        ); // Use .id
+        dispatch({ type: "UPDATE_PROGRAM", payload: updatedProgram });
       } else {
         const newProgram = await api.createProgram(program);
-        dispatch({ type: 'ADD_PROGRAM', payload: newProgram });
+        dispatch({ type: "ADD_PROGRAM", payload: newProgram });
       }
       setIsModalOpen(false);
       setEditingProgram(null);
     } catch (error) {
-        console.error("Failed to save program", error);
+      console.error("Failed to save program", error);
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'Hajj': return 'bg-blue-100 text-blue-700';
-      case 'Umrah': return 'bg-emerald-100 text-emerald-700';
-      case 'Tourism': return 'bg-orange-100 text-orange-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case "Hajj":
+        return "bg-blue-100 text-blue-700";
+      case "Umrah":
+        return "bg-emerald-100 text-emerald-700";
+      case "Tourism":
+        return "bg-orange-100 text-orange-700";
+      default:
+        return "bg-gray-100 text-gray-700";
     }
   };
 
@@ -76,15 +104,17 @@ export default function Programs() {
       {/* Header and Filters ... (no changes needed here) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('programs')}</h1>
-          <p className="text-gray-600 mt-2">Manage your travel programs and packages</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t("programs")}</h1>
+          <p className="text-gray-600 mt-2">
+            Manage your travel programs and packages
+          </p>
         </div>
         <button
           onClick={handleAddProgram}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus className="w-5 h-5 mr-2" />
-          {t('addProgram')}
+          {t("addProgram")}
         </button>
       </div>
 
@@ -93,7 +123,7 @@ export default function Programs() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder={`${t('search')} programs...`}
+              placeholder={`${t("search")} programs...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -115,11 +145,22 @@ export default function Programs() {
       {/* Programs Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...filteredPrograms].reverse().map((program) => (
-          <div key={program.id} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"> {/* Use .id */}
+          <div
+            key={program.id}
+            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+          >
+            {" "}
+            {/* Use .id */}
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{program.name}</h3>
-                <span className={`inline-block px-3 py-1 text-sm font-medium rounded-full mt-2 ${getTypeColor(program.type)}`}>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {program.name}
+                </h3>
+                <span
+                  className={`inline-block px-3 py-1 text-sm font-medium rounded-full mt-2 ${getTypeColor(
+                    program.type
+                  )}`}
+                >
                   {program.type}
                 </span>
               </div>
@@ -138,7 +179,6 @@ export default function Programs() {
                 </button>
               </div>
             </div>
-
             <div className="space-y-3">
               <div className="flex items-center text-sm text-gray-600">
                 <Calendar className="w-4 h-4 mr-2" />
@@ -146,18 +186,25 @@ export default function Programs() {
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <MapPin className="w-4 h-4 mr-2" />
-                <span>{program.cities.map(city => city.name).join(', ')}</span>
+                <span>
+                  {program.cities.map((city) => city.name).join(", ")}
+                </span>
               </div>
               <div className="flex items-center text-sm text-gray-600">
                 <Users className="w-4 h-4 mr-2" />
-                <span>{program.packages.length} package{program.packages.length !== 1 ? 's' : ''}</span>
+                <span>
+                  {program.packages.length} package
+                  {program.packages.length !== 1 ? "s" : ""}
+                </span>
               </div>
             </div>
-
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="flex flex-wrap gap-2">
                 {program.packages.map((pkg, index) => (
-                  <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md">
+                  <span
+                    key={index}
+                    className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
+                  >
                     {pkg.name}
                   </span>
                 ))}
@@ -167,11 +214,9 @@ export default function Programs() {
         ))}
       </div>
 
-       {/* No programs found and Modal sections... (no changes needed here) */}
-       {filteredPrograms.length === 0 && (
-        <div className="text-center py-12">
-          {/* ... */}
-        </div>
+      {/* No programs found and Modal sections... (no changes needed here) */}
+      {filteredPrograms.length === 0 && (
+        <div className="text-center py-12">{/* ... */}</div>
       )}
 
       <Modal
@@ -180,7 +225,7 @@ export default function Programs() {
           setIsModalOpen(false);
           setEditingProgram(null);
         }}
-        title={editingProgram ? t('editProgram') : t('addProgram')}
+        title={editingProgram ? t("editProgram") : t("addProgram")}
         size="xl"
       >
         <ProgramForm

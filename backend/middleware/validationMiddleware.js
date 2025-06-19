@@ -53,11 +53,11 @@ const programPricingValidation = [
     .isFloat({ gt: 0 })
     .withMessage("Ticket price must be a positive number."),
   body("visaFees")
-    .isFloat({ gt: 0 })
-    .withMessage("Visa fees must be a positive number."),
+    .isFloat({ gte: 0 }) // Changed from gt to gte
+    .withMessage("Visa fees must be a non-negative number."), // Updated message for clarity
   body("guideFees")
-    .isFloat({ gt: 0 })
-    .withMessage("Guide fees must be a positive number."),
+    .isFloat({ gte: 0 }) // Changed from gt to gte
+    .withMessage("Guide fees must be a non-negative number."), // Updated message for clarity
   body("allHotels").isArray().withMessage("Hotels must be an array."),
 ];
 
