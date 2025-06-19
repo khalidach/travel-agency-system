@@ -283,23 +283,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [programs, bookings, programPricing] = await Promise.all([
-          api.getPrograms(),
-          api.getBookings(),
-          api.getProgramPricing(),
-        ]);
-        dispatch({ type: "SET_PROGRAMS", payload: programs });
-        dispatch({ type: "SET_BOOKINGS", payload: bookings });
-        dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
-      } catch (error) {
-        console.error("Failed to fetch initial data", error);
-        if (error instanceof Error && error.message.includes("401")) {
+    const initializeSession = async () => {
+      if (state.isAuthenticated) {
+        try {
+          // Attempt to refresh the token on load
+          const refreshedUserData = await api.refreshToken();
+          dispatch({ type: "REFRESH_TOKEN", payload: refreshedUserData });
+
+          // If refresh is successful, then fetch data
+          const [programs, bookings, programPricing] = await Promise.all([
+            api.getPrograms(),
+            api.getBookings(),
+            api.getProgramPricing(),
+          ]);
+          dispatch({ type: "SET_PROGRAMS", payload: programs });
+          dispatch({ type: "SET_BOOKINGS", payload: bookings });
+          dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
+        } catch (error) {
+          // If refresh fails, log the user out
+          console.error("Session expired, logging out.", error);
           dispatch({ type: "LOGOUT" });
+        } finally {
+          dispatch({ type: "SET_LOADING", payload: false });
         }
-      } finally {
-        dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
@@ -308,9 +314,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("auth-error", handleAuthError);
 
-    if (state.isAuthenticated) {
-      fetchData();
-    }
+    initializeSession();
 
     return () => {
       window.removeEventListener("auth-error", handleAuthError);
