@@ -15,13 +15,12 @@ import {
   ChevronRight,
   MapPin,
   Hotel,
-  X,
   Users, // Icon for related people
 } from "lucide-react";
 import Modal from "../components/Modal.tsx"; // Added .tsx extension
 import BookingForm, { BookingFormData } from "../components/BookingForm.tsx"; // Added .tsx extension
 import PaymentForm from "../components/PaymentForm.tsx"; // Added .tsx extension
-import type { Booking, Payment, RelatedPerson } from "../context/AppContext"; // type import does not need .tsx
+import type { Booking, Payment } from "../context/AppContext"; // type import does not need .tsx
 import * as api from "../services/api.ts"; // Added .ts extension
 import { toast } from "react-hot-toast";
 
@@ -106,6 +105,11 @@ export default function BookingPage() {
           const bookings = await api.getBookings();
           dispatch({ type: "SET_BOOKINGS", payload: bookings });
         }
+        // Add this block to fetch program pricing
+        if (state.programPricing.length === 0) {
+          const programPricing = await api.getProgramPricing();
+          dispatch({ type: "SET_PROGRAM_PRICING", payload: programPricing });
+        }
       } catch (error) {
         console.error("Failed to fetch booking data", error);
       } finally {
@@ -113,7 +117,13 @@ export default function BookingPage() {
       }
     };
     fetchData();
-  }, [dispatch, state.programs.length, state.bookings.length]);
+    // Add state.programPricing.length to the dependency array
+  }, [
+    dispatch,
+    state.programs.length,
+    state.bookings.length,
+    state.programPricing.length,
+  ]);
 
   const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();

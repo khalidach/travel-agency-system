@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import  { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import type {

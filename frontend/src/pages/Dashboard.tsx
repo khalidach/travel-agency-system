@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import  { useMemo, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAppContext } from "../context/AppContext";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";

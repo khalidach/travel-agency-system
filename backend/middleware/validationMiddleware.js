@@ -85,7 +85,7 @@ const bookingValidation = [
   body("tripId").notEmpty().withMessage("A travel program must be selected."),
   body("packageId").notEmpty().withMessage("A package must be selected."),
   body("sellingPrice")
-    .isFloat({ gt: 0 })
+    .isFloat({ gte: 0 })
     .withMessage("Selling price must be a positive number."),
 ];
 
