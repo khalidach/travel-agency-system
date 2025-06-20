@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { useProgramsContext } from "../context/ProgramsContext";
-import { useBookingsContext } from "../context/BookingsContext";
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -22,48 +21,35 @@ import {
   Package,
 } from "lucide-react";
 import * as api from "../services/api";
+import type { Program, Booking } from "../context/models";
 
 export default function ProfitReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { state: programsState, dispatch: programsDispatch } =
-    useProgramsContext();
-  const { state: bookingsState, dispatch: bookingsDispatch } =
-    useBookingsContext();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      programsDispatch({ type: "SET_LOADING", payload: true });
-      bookingsDispatch({ type: "SET_LOADING", payload: true });
-      try {
-        if (programsState.programs.length === 0) {
-          const programs = await api.getPrograms();
-          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
-        }
-        if (bookingsState.bookings.length === 0) {
-          const bookings = await api.getBookings();
-          bookingsDispatch({ type: "SET_BOOKINGS", payload: bookings });
-        }
-      } catch (error) {
-        console.error("Failed to fetch profit report data", error);
-      } finally {
-        programsDispatch({ type: "SET_LOADING", payload: false });
-        bookingsDispatch({ type: "SET_LOADING", payload: false });
-      }
-    };
-    fetchData();
-  }, [
-    programsDispatch,
-    bookingsDispatch,
-    programsState.programs.length,
-    bookingsState.bookings.length,
-  ]);
+  const {
+    data: programs = [],
+    isLoading: isLoadingPrograms,
+    isError: isErrorPrograms,
+  } = useQuery<Program[]>({
+    queryKey: ["programs"],
+    queryFn: api.getPrograms,
+  });
+
+  const {
+    data: bookings = [],
+    isLoading: isLoadingBookings,
+    isError: isErrorBookings,
+  } = useQuery<Booking[]>({
+    queryKey: ["bookings"],
+    queryFn: api.getBookings,
+  });
 
   const [filterType, setFilterType] = useState<string>("all");
 
   const profitData = useMemo(() => {
-    const programProfits = programsState.programs.map((program) => {
-      const programBookings = bookingsState.bookings.filter(
+    const programProfits = programs.map((program) => {
+      const programBookings = bookings.filter(
         (booking) => booking.tripId === program.id.toString()
       );
       const totalBookings = programBookings.length;
@@ -97,7 +83,7 @@ export default function ProfitReport() {
       filteredData = filteredData.filter((item) => item.type === filterType);
     }
     return filteredData.sort((a, b) => b.totalProfit - a.totalProfit);
-  }, [programsState.programs, bookingsState.bookings, filterType]);
+  }, [programs, bookings, filterType]);
 
   const totals = useMemo(() => {
     return profitData.reduce(
@@ -112,7 +98,7 @@ export default function ProfitReport() {
   }, [profitData]);
 
   const monthlyTrend = useMemo(() => {
-    const monthlyData = bookingsState.bookings.reduce((acc: any, booking) => {
+    const monthlyData = bookings.reduce((acc: any, booking) => {
       const date = new Date(booking.createdAt);
       const monthKey = `${date.getFullYear()}-${String(
         date.getMonth() + 1
@@ -132,7 +118,15 @@ export default function ProfitReport() {
     return Object.values(monthlyData).sort((a: any, b: any) =>
       a.month.localeCompare(b.month)
     );
-  }, [bookingsState.bookings]);
+  }, [bookings]);
+
+  if (isLoadingPrograms || isLoadingBookings) {
+    return <div>Loading...</div>;
+  }
+
+  if (isErrorPrograms || isErrorBookings) {
+    return <div>Error loading report data.</div>;
+  }
 
   return (
     <div className="space-y-8">

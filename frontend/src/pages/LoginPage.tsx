@@ -1,33 +1,35 @@
 import React, { useState } from "react";
 import { Plane, Lock, User } from "lucide-react";
 import { toast } from "react-hot-toast";
-import { useAuthContext } from "../context/AuthContext"; // Updated: Using the new AuthContext
+import { useAuthContext } from "../context/AuthContext";
 import * as api from "../services/api";
+import { useMutation } from "@tanstack/react-query";
 
 export default function LoginPage() {
-  const { dispatch } = useAuthContext(); // Updated: Using the new AuthContext
+  const { dispatch } = useAuthContext();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const { mutate: loginUser, isPending } = useMutation({
+    mutationFn: () => api.login(username, password),
+    onSuccess: (userData) => {
+      dispatch({ type: "LOGIN", payload: userData });
+      toast.success("Login successful!");
+    },
+    onError: (error) => {
+      const errorMessage =
+        error instanceof Error ? error.message : "Invalid credentials.";
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!username || !password) {
       toast.error("Please enter username and password.");
       return;
     }
-    setIsLoading(true);
-    try {
-      const userData = await api.login(username, password);
-      dispatch({ type: "LOGIN", payload: userData }); // This dispatch now comes from AuthContext
-      toast.success("Login successful!");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Invalid credentials.";
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
+    loginUser();
   };
 
   return (
@@ -79,10 +81,10 @@ export default function LoginPage() {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isPending}
             className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-sm disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Logging in..." : "Login"}
+            {isPending ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>

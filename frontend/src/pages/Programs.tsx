@@ -1,39 +1,76 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useProgramsContext } from "../context/ProgramsContext";
-import { Plus, Edit2, Trash2, MapPin, Calendar, Users, Package } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  MapPin,
+  Calendar,
+  Users,
+  Package,
+} from "lucide-react";
 import Modal from "../components/Modal";
 import ProgramForm from "../components/ProgramForm";
 import type { Program } from "../context/models";
 import * as api from "../services/api";
+import { toast } from "react-hot-toast";
 
 export default function Programs() {
   const { t } = useTranslation();
-  const { state, dispatch } = useProgramsContext();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchPrograms = async () => {
-      if (state.programs.length === 0) {
-        dispatch({ type: "SET_LOADING", payload: true });
-        try {
-          const programs = await api.getPrograms();
-          dispatch({ type: "SET_PROGRAMS", payload: programs });
-        } catch (error) {
-          console.error("Failed to fetch programs", error);
-        } finally {
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
-      }
-    };
-    fetchPrograms();
-  }, [dispatch, state.programs.length]);
+  const {
+    data: programs = [],
+    isLoading,
+    isError,
+  } = useQuery<Program[]>({
+    queryKey: ["programs"],
+    queryFn: api.getPrograms,
+  });
+
+  const { mutate: createProgram } = useMutation({
+    mutationFn: api.createProgram,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      toast.success("Program created successfully!");
+      setIsModalOpen(false);
+    },
+    onError: () => {
+      toast.error("Failed to create program.");
+    },
+  });
+
+  const { mutate: updateProgram } = useMutation({
+    mutationFn: (program: Program) => api.updateProgram(program.id, program),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      toast.success("Program updated successfully!");
+      setIsModalOpen(false);
+      setEditingProgram(null);
+    },
+    onError: () => {
+      toast.error("Failed to update program.");
+    },
+  });
+
+  const { mutate: deleteProgram } = useMutation({
+    mutationFn: api.deleteProgram,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      toast.success("Program deleted successfully!");
+    },
+    onError: () => {
+      toast.error("Failed to delete program.");
+    },
+  });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
-  const filteredPrograms = state.programs.filter((program) => {
+  const filteredPrograms = programs.filter((program) => {
     const matchesSearch = program.name
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -51,33 +88,17 @@ export default function Programs() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteProgram = async (programId: number) => {
+  const handleDeleteProgram = (programId: number) => {
     if (window.confirm("Are you sure you want to delete this program?")) {
-      try {
-        await api.deleteProgram(programId);
-        dispatch({ type: "DELETE_PROGRAM", payload: programId });
-      } catch (error) {
-        console.error("Failed to delete program", error);
-      }
+      deleteProgram(programId);
     }
   };
 
-  const handleSaveProgram = async (program: Program) => {
-    try {
-      if (editingProgram) {
-        const updatedProgram = await api.updateProgram(
-          editingProgram.id,
-          program
-        );
-        dispatch({ type: "UPDATE_PROGRAM", payload: updatedProgram });
-      } else {
-        const newProgram = await api.createProgram(program);
-        dispatch({ type: "ADD_PROGRAM", payload: newProgram });
-      }
-      setIsModalOpen(false);
-      setEditingProgram(null);
-    } catch (error) {
-      console.error("Failed to save program", error);
+  const handleSaveProgram = (program: Program) => {
+    if (editingProgram) {
+      updateProgram(program);
+    } else {
+      createProgram(program);
     }
   };
 
@@ -94,8 +115,11 @@ export default function Programs() {
     }
   };
 
-  if (state.loading) {
+  if (isLoading) {
     return <div>Loading...</div>;
+  }
+  if (isError) {
+    return <div>Error loading programs.</div>;
   }
 
   return (
@@ -188,14 +212,14 @@ export default function Programs() {
               <div className="flex items-center text-sm text-gray-600">
                 <Users className="w-4 h-4 mr-2" />
                 <span>
-                  {program.packages.length} package
-                  {program.packages.length !== 1 ? "s" : ""}
+                  {(program.packages ?? []).length} package
+                  {(program.packages ?? []).length !== 1 ? "s" : ""}
                 </span>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-100">
               <div className="flex flex-wrap gap-2">
-                {program.packages.map((pkg, index) => (
+                {(program.packages ?? []).map((pkg, index) => (
                   <span
                     key={index}
                     className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"

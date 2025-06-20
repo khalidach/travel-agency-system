@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useProgramsContext } from "../context/ProgramsContext";
-import { useBookingsContext } from "../context/BookingsContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Program, ProgramPricing, HotelPrice } from "../context/models";
 import { Pencil, Trash2 } from "lucide-react";
 import * as api from "../services/api";
@@ -18,40 +17,61 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
 
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
-  const { state: programsState, dispatch: programsDispatch } =
-    useProgramsContext();
-  const { dispatch: bookingsDispatch } = useBookingsContext();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      programsDispatch({ type: "SET_LOADING", payload: true });
-      try {
-        if (programsState.programs.length === 0) {
-          const programs = await api.getPrograms();
-          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
-        }
-        if (programsState.programPricing.length === 0) {
-          const programPricing = await api.getProgramPricing();
-          programsDispatch({
-            type: "SET_PROGRAM_PRICING",
-            payload: programPricing,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch program pricing data", error);
-        toast.error("Failed to load pricing data.");
-      } finally {
-        programsDispatch({ type: "SET_LOADING", payload: false });
-      }
-    };
-    fetchData();
-  }, [
-    programsDispatch,
-    programsState.programs.length,
-    programsState.programPricing.length,
-  ]);
+  const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
+    Program[]
+  >({
+    queryKey: ["programs"],
+    queryFn: api.getPrograms,
+  });
 
-  const { programs, programPricing } = programsState;
+  const { data: programPricing = [], isLoading: isLoadingPricing } = useQuery<
+    ProgramPricing[]
+  >({
+    queryKey: ["programPricing"],
+    queryFn: api.getProgramPricing,
+  });
+
+  const { mutate: createPricing, isPending: isCreating } = useMutation({
+    mutationFn: api.createProgramPricing,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programPricing"] });
+      toast.success("Pricing saved successfully.");
+      setCurrentPricing(emptyPricing);
+      setSelectedProgram(null);
+    },
+    onError: () => {
+      toast.error("Failed to save pricing.");
+    },
+  });
+
+  const { mutate: updatePricing, isPending: isUpdating } = useMutation({
+    mutationFn: (data: ProgramPricing) =>
+      api.updateProgramPricing(data.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programPricing"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      toast.success("Pricing updated successfully.");
+      setCurrentPricing(emptyPricing);
+      setSelectedProgram(null);
+    },
+    onError: () => {
+      toast.error("Failed to update pricing.");
+    },
+  });
+
+  const { mutate: deletePricing } = useMutation({
+    mutationFn: api.deleteProgramPricing,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["programPricing"] });
+      toast.success("Pricing deleted successfully.");
+    },
+    onError: () => {
+      toast.error("Failed to delete pricing.");
+    },
+  });
+
   const [currentPricing, setCurrentPricing] = useState<
     ProgramPricing | Omit<ProgramPricing, "id">
   >(emptyPricing);
@@ -108,7 +128,7 @@ export default function ProgramPricingPage() {
   const handleEditPricing = (pricing: ProgramPricing) => {
     const program = programs.find((p) => p.id === pricing.programId);
     if (!program) {
-      console.error("Program not found");
+      toast.error("Associated program not found for this pricing.");
       return;
     }
     setSelectedProgram(program);
@@ -117,14 +137,7 @@ export default function ProgramPricingPage() {
 
   const handleDeletePricing = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this pricing?")) {
-      try {
-        await api.deleteProgramPricing(id);
-        programsDispatch({ type: "DELETE_PROGRAM_PRICING", payload: id });
-        toast.success("Pricing deleted successfully.");
-      } catch (error) {
-        console.error("Failed to delete program pricing", error);
-        toast.error("Failed to delete pricing.");
-      }
+      deletePricing(id);
     }
   };
 
@@ -144,41 +157,16 @@ export default function ProgramPricingPage() {
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const isEditing = "id" in currentPricing;
-
-    try {
-      let updatedPricing;
-      if (isEditing) {
-        updatedPricing = await api.updateProgramPricing(
-          currentPricing.id,
-          currentPricing
-        );
-        programsDispatch({
-          type: "UPDATE_PROGRAM_PRICING",
-          payload: updatedPricing,
-        });
-        // After updating prices, refetch bookings to update their base costs and profits
-        const updatedBookings = await api.getBookings();
-        bookingsDispatch({ type: "SET_BOOKINGS", payload: updatedBookings });
-        toast.success("Pricing updated successfully.");
-      } else {
-        updatedPricing = await api.createProgramPricing(currentPricing);
-        programsDispatch({
-          type: "ADD_PROGRAM_PRICING",
-          payload: updatedPricing,
-        });
-        toast.success("Pricing saved successfully.");
-      }
-      setCurrentPricing(emptyPricing);
-      setSelectedProgram(null);
-    } catch (error) {
-      console.error("Failed to save program pricing", error);
-      toast.error("Failed to save pricing.");
+    if (isEditing) {
+      updatePricing(currentPricing as ProgramPricing);
+    } else {
+      createPricing(currentPricing);
     }
   };
 
-  if (programsState.loading) {
+  if (isLoadingPrograms || isLoadingPricing) {
     return <div>Loading...</div>;
   }
 
@@ -310,9 +298,14 @@ export default function ProgramPricingPage() {
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              disabled={isCreating || isUpdating}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
             >
-              {"id" in currentPricing ? "Update Pricing" : "Save Pricing"}
+              {isCreating || isUpdating
+                ? "Saving..."
+                : "id" in currentPricing
+                ? "Update Pricing"
+                : "Save Pricing"}
             </button>
           </div>
         </>

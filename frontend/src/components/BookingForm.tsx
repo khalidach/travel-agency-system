@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useProgramsContext } from "../context/ProgramsContext";
-import { useBookingsContext } from "../context/BookingsContext";
+import { useQuery } from "@tanstack/react-query";
 import type {
   Booking,
   Program,
@@ -9,7 +8,9 @@ import type {
   Payment,
   RelatedPerson,
   PriceStructure,
+  ProgramPricing,
 } from "../context/models";
+import * as api from "../services/api";
 import { X } from "lucide-react";
 
 export type BookingFormData = Omit<
@@ -33,8 +34,17 @@ export default function BookingForm({
   onCancel,
 }: BookingFormProps) {
   const { t } = useTranslation();
-  const { state: programsState } = useProgramsContext();
-  const { state: bookingsState } = useBookingsContext();
+
+  const { data: allBookings = [] } = useQuery<Booking[]>({
+    queryKey: ["bookings"],
+    queryFn: api.getBookings,
+  });
+
+  const { data: programPricing = [] } = useQuery<ProgramPricing[]>({
+    queryKey: ["programPricing"],
+    queryFn: api.getProgramPricing,
+  });
+
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -92,7 +102,7 @@ export default function BookingForm({
   useEffect(() => {
     const calculateTotalBasePrice = (): number => {
       if (!selectedProgram || !selectedPriceStructure) return 0;
-      const pricing = programsState.programPricing.find(
+      const pricing = programPricing.find(
         (p) => p.programId === selectedProgram.id
       );
       if (!pricing || !pricing.allHotels) return 0;
@@ -149,7 +159,7 @@ export default function BookingForm({
     formData.sellingPrice,
     selectedProgram,
     selectedPriceStructure,
-    programsState.programPricing,
+    programPricing,
   ]);
 
   useEffect(() => {
@@ -252,12 +262,12 @@ export default function BookingForm({
       (formData.relatedPersons || []).map((p) => p.ID)
     );
     if (booking) selectedIDs.add(booking.id);
-    return bookingsState.bookings.filter(
+    return allBookings.filter(
       (b) =>
         !selectedIDs.has(b.id) &&
         b.clientNameFr.toLowerCase().includes(search.toLowerCase())
     );
-  }, [bookingsState.bookings, formData.relatedPersons, search, booking]);
+  }, [allBookings, formData.relatedPersons, search, booking]);
 
   const addRelatedPerson = (person: Booking) => {
     const newPerson: RelatedPerson = {

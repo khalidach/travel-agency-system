@@ -9,8 +9,6 @@ import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
-import { ProgramsProvider } from "./context/ProgramsContext";
-import { BookingsProvider } from "./context/BookingsContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Programs from "./pages/Programs";
@@ -76,14 +74,10 @@ function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
-        <ProgramsProvider>
-          <BookingsProvider>
-            <Router>
-              <AppRoutes />
-            </Router>
-            <Toaster position="bottom-right" />
-          </BookingsProvider>
-        </ProgramsProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+        <Toaster position="bottom-right" />
       </AuthProvider>
     </I18nextProvider>
   );

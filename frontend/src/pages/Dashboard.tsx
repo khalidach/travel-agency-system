@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useProgramsContext } from "../context/ProgramsContext";
-import { useBookingsContext } from "../context/BookingsContext";
+import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
   Users,
@@ -15,41 +14,28 @@ import {
 import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
+import type { Program, Booking } from "../context/models";
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { state: programsState, dispatch: programsDispatch } =
-    useProgramsContext();
-  const { state: bookingsState, dispatch: bookingsDispatch } =
-    useBookingsContext();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      programsDispatch({ type: "SET_LOADING", payload: true });
-      bookingsDispatch({ type: "SET_LOADING", payload: true });
-      try {
-        if (programsState.programs.length === 0) {
-          const programs = await api.getPrograms();
-          programsDispatch({ type: "SET_PROGRAMS", payload: programs });
-        }
-        if (bookingsState.bookings.length === 0) {
-          const bookings = await api.getBookings();
-          bookingsDispatch({ type: "SET_BOOKINGS", payload: bookings });
-        }
-      } catch (error) {
-        console.error("Failed to fetch dashboard data", error);
-      } finally {
-        programsDispatch({ type: "SET_LOADING", payload: false });
-        bookingsDispatch({ type: "SET_LOADING", payload: false });
-      }
-    };
-    fetchData();
-  }, [
-    programsDispatch,
-    bookingsDispatch,
-    programsState.programs.length,
-    bookingsState.bookings.length,
-  ]);
+  const {
+    data: programs = [],
+    isLoading: isLoadingPrograms,
+    isError: isErrorPrograms,
+  } = useQuery<Program[]>({
+    queryKey: ["programs"],
+    queryFn: api.getPrograms,
+  });
+
+  const {
+    data: bookings = [],
+    isLoading: isLoadingBookings,
+    isError: isErrorBookings,
+  } = useQuery<Booking[]>({
+    queryKey: ["bookings"],
+    queryFn: api.getBookings,
+  });
 
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({
@@ -87,7 +73,7 @@ export default function Dashboard() {
           break;
       }
 
-      const filteredBookings = bookingsState.bookings.filter((booking) => {
+      const filteredBookings = bookings.filter((booking) => {
         const bookingDate = new Date(booking.createdAt);
         return bookingDate >= startDate && bookingDate <= endDate;
       });
@@ -107,7 +93,7 @@ export default function Dashboard() {
           0
         ),
       };
-    }, [bookingsState.bookings, dateFilter, customDateRange]);
+    }, [bookings, dateFilter, customDateRange]);
 
   const metrics = [
     { title: t("totalBookings"), value: totalBookings },
@@ -119,17 +105,17 @@ export default function Dashboard() {
   const programTypeData = [
     {
       name: "Hajj",
-      value: programsState.programs.filter((p) => p.type === "Hajj").length,
+      value: programs.filter((p) => p.type === "Hajj").length,
       color: "#3b82f6",
     },
     {
       name: "Umrah",
-      value: programsState.programs.filter((p) => p.type === "Umrah").length,
+      value: programs.filter((p) => p.type === "Umrah").length,
       color: "#059669",
     },
     {
       name: "Tourism",
-      value: programsState.programs.filter((p) => p.type === "Tourism").length,
+      value: programs.filter((p) => p.type === "Tourism").length,
       color: "#ea580c",
     },
   ];
@@ -137,13 +123,13 @@ export default function Dashboard() {
   const topStats = [
     {
       title: t("totalBookings"),
-      value: bookingsState.bookings.length,
+      value: bookings.length,
       icon: Users,
       color: "bg-blue-500",
     },
     {
       title: t("totalRevenue"),
-      value: `${bookingsState.bookings
+      value: `${bookings
         .reduce((sum, b) => sum + Number(b.sellingPrice), 0)
         .toLocaleString()} MAD`,
       icon: DollarSign,
@@ -151,7 +137,7 @@ export default function Dashboard() {
     },
     {
       title: t("totalProfit"),
-      value: `${bookingsState.bookings
+      value: `${bookings
         .reduce((sum, b) => sum + Number(b.profit), 0)
         .toLocaleString()} MAD`,
       icon: TrendingUp,
@@ -159,18 +145,22 @@ export default function Dashboard() {
     },
     {
       title: t("activePrograms"),
-      value: programsState.programs.length,
+      value: programs.length,
       icon: Package,
       color: "bg-purple-500",
     },
   ];
 
-  const fullyPaidBookings = bookingsState.bookings.filter(
-    (b) => b.isFullyPaid
-  ).length;
-  const pendingPayments = bookingsState.bookings.filter(
-    (b) => !b.isFullyPaid
-  ).length;
+  const fullyPaidBookings = bookings.filter((b) => b.isFullyPaid).length;
+  const pendingPayments = bookings.filter((b) => !b.isFullyPaid).length;
+
+  if (isLoadingPrograms || isLoadingBookings) {
+    return <div>Loading...</div>;
+  }
+
+  if (isErrorPrograms || isErrorBookings) {
+    return <div>Error loading dashboard data.</div>;
+  }
 
   return (
     <div className="space-y-8">
@@ -417,7 +407,7 @@ export default function Dashboard() {
             Recent Bookings
           </h3>
           <div className="space-y-3">
-            {bookingsState.bookings.slice(0, 3).map((booking) => (
+            {bookings.slice(0, 3).map((booking) => (
               <div
                 key={booking.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
