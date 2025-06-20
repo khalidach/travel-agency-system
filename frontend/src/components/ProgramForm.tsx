@@ -28,6 +28,21 @@ interface FormData {
   packages: Package[];
 }
 
+function getGuestsForType(type: string): number {
+  switch (type.toLowerCase()) {
+    case "double":
+      return 2;
+    case "triple":
+      return 3;
+    case "quad":
+      return 4;
+    case "quintuple":
+      return 5;
+    default:
+      return 1;
+  }
+}
+
 export default function ProgramForm({
   program,
   onSave,
@@ -194,7 +209,7 @@ export default function ProgramForm({
           if (!existingPrice) {
             const defaultRoomTypes = availableRoomTypes.map((type) => ({
               type,
-              guests: 1, // Simplified, can be expanded
+              guests: getGuestsForType(type), // Simplified, can be expanded
             }));
             return {
               ...pkg,

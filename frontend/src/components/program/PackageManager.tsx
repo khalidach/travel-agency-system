@@ -3,22 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Hotel, Users } from "lucide-react";
 import type { Package, CityData, RoomPrice } from "../../context/models";
 
-// Helper functions can be kept here or moved to a utils file
-function getGuestsForType(type: string): number {
-  switch (type.toLowerCase()) {
-    case "double":
-      return 2;
-    case "triple":
-      return 3;
-    case "quad":
-      return 4;
-    case "quintuple":
-      return 5;
-    default:
-      return 1;
-  }
-}
-
 function isDefaultRoomType(type: string): boolean {
   return ["Double", "Triple", "Quad", "Quintuple"].includes(type);
 }
