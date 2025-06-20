@@ -48,7 +48,8 @@ export const refreshToken = async () => {
 };
 
 // --- Program API ---
-export const getPrograms = () => request("/programs");
+export const getPrograms = (page = 1, limit = 10) =>
+  request(`/programs?page=${page}&limit=${limit}`);
 export const createProgram = (program: any) =>
   request("/programs", { method: "POST", body: JSON.stringify(program) });
 export const updateProgram = (id: number, program: any) =>
@@ -57,7 +58,8 @@ export const deleteProgram = (id: number) =>
   request(`/programs/${id}`, { method: "DELETE" });
 
 // --- Program Pricing API ---
-export const getProgramPricing = () => request("/program-pricing");
+export const getProgramPricing = (page = 1, limit = 10) =>
+  request(`/program-pricing?page=${page}&limit=${limit}`);
 export const createProgramPricing = (pricing: any) =>
   request("/program-pricing", {
     method: "POST",
@@ -72,7 +74,8 @@ export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
 
 // --- Booking API ---
-export const getBookings = () => request("/bookings");
+export const getBookings = (page = 1, limit = 10) =>
+  request(`/bookings?page=${page}&limit=${limit}`);
 export const createBooking = (booking: any) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
 export const updateBooking = (id: number, booking: any) =>

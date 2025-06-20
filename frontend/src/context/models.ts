@@ -101,3 +101,15 @@ export interface ProgramPricing {
   guideFees: number;
   allHotels: HotelPrice[];
 }
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: Pagination;
+}

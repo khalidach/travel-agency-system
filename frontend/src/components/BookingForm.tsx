@@ -10,6 +10,7 @@ import type {
   RelatedPerson,
   PriceStructure,
   ProgramPricing,
+  PaginatedResponse,
 } from "../context/models";
 import * as api from "../services/api";
 import { X } from "lucide-react";
@@ -46,15 +47,19 @@ export default function BookingForm({
 }: BookingFormProps) {
   const { t } = useTranslation();
 
-  const { data: allBookings = [] } = useQuery<Booking[]>({
-    queryKey: ["bookings"],
-    queryFn: api.getBookings,
+  const { data: bookingResponse } = useQuery<PaginatedResponse<Booking>>({
+    queryKey: ["bookings", "all"],
+    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
   });
+  const allBookings = bookingResponse?.data ?? [];
 
-  const { data: programPricing = [] } = useQuery<ProgramPricing[]>({
-    queryKey: ["programPricing"],
-    queryFn: api.getProgramPricing,
-  });
+  const { data: pricingResponse } = useQuery<PaginatedResponse<ProgramPricing>>(
+    {
+      queryKey: ["programPricing", "all"],
+      queryFn: () => api.getProgramPricing(1, 10000), // Fetch all pricing
+    }
+  );
+  const programPricing = pricingResponse?.data ?? [];
 
   // React Hook Form setup
   const {

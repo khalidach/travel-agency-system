@@ -9,26 +9,34 @@ import {
   Calendar,
   Users,
   Package,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import ProgramForm from "../components/ProgramForm";
-import ProgramsSkeleton from "../components/skeletons/ProgramsSkeleton"; // Import the skeleton
-import type { Program } from "../context/models";
+import ProgramsSkeleton from "../components/skeletons/ProgramsSkeleton";
+import type { Program, PaginatedResponse } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+import { usePagination } from "../hooks/usePagination";
 
 export default function Programs() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const programsPerPage = 6;
 
   const {
-    data: programs = [],
+    data: programResponse,
     isLoading,
     isError,
-  } = useQuery<Program[]>({
-    queryKey: ["programs"],
-    queryFn: api.getPrograms,
+  } = useQuery<PaginatedResponse<Program>>({
+    queryKey: ["programs", currentPage],
+    queryFn: () => api.getPrograms(currentPage, programsPerPage),
   });
+
+  const programs = programResponse?.data ?? [];
+  const pagination = programResponse?.pagination;
 
   const { mutate: createProgram } = useMutation({
     mutationFn: api.createProgram,
@@ -79,6 +87,12 @@ export default function Programs() {
     return matchesSearch && matchesType;
   });
 
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: pagination?.totalCount ?? 0,
+    pageSize: programsPerPage,
+  });
+
   const handleAddProgram = () => {
     setEditingProgram(null);
     setIsModalOpen(true);
@@ -116,7 +130,6 @@ export default function Programs() {
     }
   };
 
-  // --- UPDATED LOADING STATE ---
   if (isLoading) {
     return <ProgramsSkeleton />;
   }
@@ -168,7 +181,7 @@ export default function Programs() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...filteredPrograms].reverse().map((program) => (
+        {filteredPrograms.map((program) => (
           <div
             key={program.id}
             className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
@@ -236,7 +249,56 @@ export default function Programs() {
         ))}
       </div>
 
-      {filteredPrograms.length === 0 && (
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Previous
+          </button>
+          <div className="flex items-center space-x-1">
+            {paginationRange.map((pageNumber, index) => {
+              if (typeof pageNumber === "string") {
+                return (
+                  <span key={index} className="px-3 py-1 text-sm text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <button
+                  key={index}
+                  onClick={() => setCurrentPage(pageNumber)}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    currentPage === pageNumber
+                      ? "bg-blue-600 text-white font-bold shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() =>
+              setCurrentPage((prev) =>
+                Math.min(prev + 1, pagination.totalPages)
+              )
+            }
+            disabled={currentPage === pagination.totalPages}
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </button>
+        </div>
+      )}
+
+      {filteredPrograms.length === 0 && !isLoading && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="w-12 h-12 text-gray-400" />

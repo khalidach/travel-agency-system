@@ -1,10 +1,16 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Program, ProgramPricing, HotelPrice } from "../context/models";
-import { Pencil, Trash2 } from "lucide-react";
+import type {
+  Program,
+  ProgramPricing,
+  HotelPrice,
+  PaginatedResponse,
+} from "../context/models";
+import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+import { usePagination } from "../hooks/usePagination";
 
 const emptyPricing: Omit<ProgramPricing, "id"> = {
   selectProgram: "",
@@ -18,20 +24,25 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const pricingPerPage = 5;
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
   >({
     queryKey: ["programs"],
-    queryFn: api.getPrograms,
+    queryFn: () => api.getPrograms(1, 1000).then((res) => res.data), // Fetch all programs for the dropdown
   });
 
-  const { data: programPricing = [], isLoading: isLoadingPricing } = useQuery<
-    ProgramPricing[]
+  const { data: pricingResponse, isLoading: isLoadingPricing } = useQuery<
+    PaginatedResponse<ProgramPricing>
   >({
-    queryKey: ["programPricing"],
-    queryFn: api.getProgramPricing,
+    queryKey: ["programPricing", currentPage],
+    queryFn: () => api.getProgramPricing(currentPage, pricingPerPage),
   });
+
+  const programPricing = pricingResponse?.data ?? [];
+  const pagination = pricingResponse?.pagination;
 
   const { mutate: createPricing, isPending: isCreating } = useMutation({
     mutationFn: api.createProgramPricing,
@@ -87,6 +98,12 @@ export default function ProgramPricingPage() {
     });
     return Array.from(allRoomTypeNames);
   }, [selectedProgram]);
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: pagination?.totalCount ?? 0,
+    pageSize: pricingPerPage,
+  });
 
   const handleProgramSelect = (programIdStr: string) => {
     const programId = parseInt(programIdStr, 10);
@@ -314,7 +331,7 @@ export default function ProgramPricingPage() {
         <div className="mt-12">
           <h2 className="text-xl font-semibold mb-4">Previous Pricing</h2>
           <div className="space-y-4">
-            {[...programPricing].reverse().map((pricing: ProgramPricing) => (
+            {programPricing.map((pricing: ProgramPricing) => (
               <div key={pricing.id} className="p-4 border rounded-lg">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -372,6 +389,51 @@ export default function ProgramPricingPage() {
               </div>
             ))}
           </div>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex justify-between items-center mt-6">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </button>
+              <div className="flex items-center space-x-1">
+                {paginationRange.map((page, i) =>
+                  typeof page === "string" ? (
+                    <span key={`dots-${i}`} className="px-3 py-1">
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 text-sm rounded-lg ${
+                        currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+              </div>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) =>
+                    Math.min(prev + 1, pagination.totalPages)
+                  )
+                }
+                disabled={currentPage === pagination.totalPages}
+                className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -26,7 +26,12 @@ import { usePagination } from "../hooks/usePagination";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 
 // Types and API
-import type { Booking, Payment, Program } from "../context/models";
+import type {
+  Booking,
+  Payment,
+  Program,
+  PaginatedResponse,
+} from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 
@@ -54,17 +59,28 @@ export default function BookingPage() {
   });
 
   const filters = watch();
+  const [currentPage, setCurrentPage] = useState(1);
+  const bookingsPerPage = 10;
 
   // --- Data Fetching ---
-  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<
-    Booking[]
-  >({ queryKey: ["bookings"], queryFn: api.getBookings });
+  // CORRECTED: Fetch ALL bookings to enable accurate filtering and summary calculation.
+  const { data: bookingResponse, isLoading: isLoadingBookings } = useQuery<
+    PaginatedResponse<Booking>
+  >({
+    queryKey: ["bookings", "all"],
+    queryFn: () => api.getBookings(1, 10000), // Fetch a large number to get all bookings
+  });
+  const allBookings = bookingResponse?.data ?? [];
 
-  const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
-    Program[]
-  >({ queryKey: ["programs"], queryFn: api.getPrograms });
+  const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
+    PaginatedResponse<Program>
+  >({
+    queryKey: ["programs", "all"],
+    queryFn: () => api.getPrograms(1, 1000), // Fetch all programs for dropdowns
+  });
+  const programs = programResponse?.data ?? [];
 
-  // --- Mutations ---
+  // --- Mutations (No changes here) ---
   const { mutate: createBooking } = useMutation({
     mutationFn: (data: {
       bookingData: BookingFormData;
@@ -122,13 +138,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
-        oldData
-          ? oldData.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-          : []
-      );
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment added!");
       setIsPaymentModalOpen(false);
@@ -145,13 +155,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
-        oldData
-          ? oldData.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-          : []
-      );
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment updated!");
       setIsPaymentModalOpen(false);
@@ -166,13 +170,7 @@ export default function BookingPage() {
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
-      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
-        oldData
-          ? oldData.map((b) =>
-              b.id === updatedBooking.id ? updatedBooking : b
-            )
-          : []
-      );
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment deleted!");
     },
@@ -196,7 +194,7 @@ export default function BookingPage() {
     },
   });
 
-  // --- Local UI State ---
+  // --- Local UI State (No changes here) ---
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -207,12 +205,10 @@ export default function BookingPage() {
   const [selectedBookingForPayment, setSelectedBookingForPayment] =
     useState<Booking | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const bookingsPerPage = 10;
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Effects ---
+  // --- Effects (No changes here) ---
   useEffect(() => {
     setValue("programFilter", programId || "all");
   }, [programId, setValue]);
@@ -227,9 +223,11 @@ export default function BookingPage() {
   ]);
 
   // --- Memoized Calculations ---
+
+  // CORRECTED: Apply filters to the complete list of all bookings
   const filteredBookings = useMemo(
     () =>
-      bookings.filter((booking) => {
+      allBookings.filter((booking) => {
         const lowerSearchTerm = filters.searchTerm.toLowerCase();
         const matchesSearch =
           booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
@@ -244,13 +242,13 @@ export default function BookingPage() {
           (booking.tripId || "").toString() === filters.programFilter;
         return matchesSearch && matchesStatus && matchesProgram;
       }),
-    [bookings, filters]
+    [allBookings, filters]
   );
 
   const sortedBookings = useMemo(() => {
     const bookingsCopy = [...filteredBookings];
     if (filters.sortOrder === "family") {
-      const bookingsMap = new Map(bookings.map((b) => [b.id, b]));
+      const bookingsMap = new Map(bookingsCopy.map((b) => [b.id, b]));
       const result: (Booking & { isRelated?: boolean })[] = [];
       const processed = new Set<number>();
       bookingsCopy.sort(
@@ -290,8 +288,9 @@ export default function BookingPage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [filteredBookings, filters.sortOrder, bookings]);
+  }, [filteredBookings, filters.sortOrder]);
 
+  // CORRECTED: Paginate the fully filtered and sorted list
   const currentBookings = useMemo(
     () =>
       sortedBookings.slice(
@@ -301,12 +300,15 @@ export default function BookingPage() {
     [sortedBookings, currentPage]
   );
 
+  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
+
   const paginationRange = usePagination({
     currentPage,
     totalCount: sortedBookings.length,
     pageSize: bookingsPerPage,
   });
 
+  // CORRECTED: Calculate summary stats based on the complete filtered list
   const summaryStats = useMemo(() => {
     const stats = {
       totalBookings: filteredBookings.length,
@@ -329,7 +331,7 @@ export default function BookingPage() {
     };
   }, [filteredBookings]);
 
-  // --- Event Handlers ---
+  // --- Event Handlers (No changes here) ---
   const handleProgramFilterChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -486,7 +488,7 @@ export default function BookingPage() {
   const pageDescription = selectedProgramDetails
     ? `View all bookings, payments, and financial details for ${selectedProgramDetails.name}.`
     : "Manage all customer bookings and payments";
-  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
+
   const paginate = (pageNumber: number) => {
     if (pageNumber > 0 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
@@ -611,7 +613,7 @@ export default function BookingPage() {
         </div>
       )}
 
-      {filteredBookings.length === 0 && (
+      {filteredBookings.length === 0 && !isLoadingBookings && (
         <div className="text-center py-12 bg-white rounded-2xl">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-12 h-12 text-gray-400" />

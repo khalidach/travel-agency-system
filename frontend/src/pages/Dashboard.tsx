@@ -14,29 +14,31 @@ import {
 import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
-import type { Program, Booking } from "../context/models";
-import DashboardSkeleton from "../components/skeletons/DashboardSkeleton"; // Make sure you have this skeleton component
+import type { Program, Booking, PaginatedResponse } from "../context/models";
+import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 
 export default function Dashboard() {
   const { t } = useTranslation();
 
   const {
-    data: programs = [],
+    data: programResponse,
     isLoading: isLoadingPrograms,
     isError: isErrorPrograms,
-  } = useQuery<Program[]>({
-    queryKey: ["programs"],
-    queryFn: api.getPrograms,
+  } = useQuery<PaginatedResponse<Program>>({
+    queryKey: ["programs", "all"],
+    queryFn: () => api.getPrograms(1, 10000), // Fetch all programs
   });
+  const programs = programResponse?.data ?? [];
 
   const {
-    data: bookings = [],
+    data: bookingResponse,
     isLoading: isLoadingBookings,
     isError: isErrorBookings,
-  } = useQuery<Booking[]>({
-    queryKey: ["bookings"],
-    queryFn: api.getBookings,
+  } = useQuery<PaginatedResponse<Booking>>({
+    queryKey: ["bookings", "all"],
+    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
   });
+  const bookings = bookingResponse?.data ?? [];
 
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({

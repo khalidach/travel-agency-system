@@ -21,29 +21,31 @@ import {
   Package,
 } from "lucide-react";
 import * as api from "../services/api";
-import type { Program, Booking } from "../context/models";
+import type { Program, Booking, PaginatedResponse } from "../context/models";
 
 export default function ProfitReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   const {
-    data: programs = [],
+    data: programResponse,
     isLoading: isLoadingPrograms,
     isError: isErrorPrograms,
-  } = useQuery<Program[]>({
-    queryKey: ["programs"],
-    queryFn: api.getPrograms,
+  } = useQuery<PaginatedResponse<Program>>({
+    queryKey: ["programs", "all"],
+    queryFn: () => api.getPrograms(1, 10000), // Fetch all programs
   });
+  const programs = programResponse?.data ?? [];
 
   const {
-    data: bookings = [],
+    data: bookingResponse,
     isLoading: isLoadingBookings,
     isError: isErrorBookings,
-  } = useQuery<Booking[]>({
-    queryKey: ["bookings"],
-    queryFn: api.getBookings,
+  } = useQuery<PaginatedResponse<Booking>>({
+    queryKey: ["bookings", "all"],
+    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
   });
+  const bookings = bookingResponse?.data ?? [];
 
   const [filterType, setFilterType] = useState<string>("all");
 
