@@ -1,17 +1,36 @@
 // backend/services/BookingService.js
 
 /**
- * Retrieves all bookings for a specific user.
+ * Retrieves a paginated list of bookings for a specific user.
  * @param {object} db - The database connection pool.
  * @param {number} userId - The ID of the user.
- * @returns {Promise<Array>} A promise that resolves to an array of bookings.
+ * @param {number} page - The current page.
+ * @param {number} limit - The number of items per page.
+ * @returns {Promise<{bookings: Array, totalCount: number}>} A promise that resolves to an object with bookings and the total count.
  */
-exports.getAllBookings = async (db, userId) => {
-  const { rows } = await db.query(
-    'SELECT * FROM bookings WHERE "userId" = $1 ORDER BY "createdAt" DESC',
+exports.getAllBookings = async (db, userId, page, limit) => {
+  const offset = (page - 1) * limit;
+
+  // Query for the paginated bookings
+  const bookingsPromise = db.query(
+    'SELECT * FROM bookings WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+    [userId, limit, offset]
+  );
+
+  // Query for the total count of bookings
+  const totalCountPromise = db.query(
+    'SELECT COUNT(*) FROM bookings WHERE "userId" = $1',
     [userId]
   );
-  return rows;
+
+  const [bookingsResult, totalCountResult] = await Promise.all([
+    bookingsPromise,
+    totalCountPromise,
+  ]);
+
+  const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+
+  return { bookings: bookingsResult.rows, totalCount };
 };
 
 /**

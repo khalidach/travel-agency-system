@@ -3,11 +3,36 @@ const ProgramPricingService = require("../services/ProgramPricingService");
 
 exports.getAllProgramPricing = async (req, res) => {
   try {
-    const { rows } = await req.db.query(
-      'SELECT * FROM program_pricing WHERE "userId" = $1',
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "10", 10);
+    const offset = (page - 1) * limit;
+
+    const pricingPromise = req.db.query(
+      'SELECT * FROM program_pricing WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+      [req.user.id, limit, offset]
+    );
+
+    const totalCountPromise = req.db.query(
+      'SELECT COUNT(*) FROM program_pricing WHERE "userId" = $1',
       [req.user.id]
     );
-    res.json(rows);
+
+    const [pricingResult, totalCountResult] = await Promise.all([
+      pricingPromise,
+      totalCountPromise,
+    ]);
+
+    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+
+    res.json({
+      data: pricingResult.rows,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error) {
     console.error("Get All Pricing Error:", error);
     res.status(500).json({ message: error.message });

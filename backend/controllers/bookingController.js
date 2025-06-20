@@ -6,8 +6,25 @@ const ExcelService = require("../services/ExcelService");
 
 exports.getAllBookings = async (req, res) => {
   try {
-    const bookings = await BookingService.getAllBookings(req.db, req.user.id);
-    res.json(bookings);
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "10", 10);
+
+    const { bookings, totalCount } = await BookingService.getAllBookings(
+      req.db,
+      req.user.id,
+      page,
+      limit
+    );
+
+    res.json({
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error) {
     console.error("Get All Bookings Error:", error);
     res.status(500).json({ message: error.message });
