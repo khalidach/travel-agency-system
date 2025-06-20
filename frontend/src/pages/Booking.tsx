@@ -37,26 +37,11 @@ type FilterFormData = {
   programFilter: string;
 };
 
-// Define the shape of the paginated response
-interface PaginatedBookingsResponse {
-  data: Booking[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-  };
-}
-
 export default function BookingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();
-
-  // --- UI State ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const bookingsPerPage = 10;
 
   // --- React Hook Form for Filters ---
   const { register, watch, setValue } = useForm<FilterFormData>({
@@ -71,33 +56,13 @@ export default function BookingPage() {
   const filters = watch();
 
   // --- Data Fetching ---
-  const { data: paginatedResponse, isLoading: isLoadingBookings } =
-    useQuery<PaginatedBookingsResponse>({
-      queryKey: ["bookings", currentPage, filters],
-      queryFn: () => api.getBookings(currentPage, bookingsPerPage),
-      keepPreviousData: true,
-    });
-
-  const bookings = useMemo(
-    () => paginatedResponse?.data ?? [],
-    [paginatedResponse]
-  );
-  const paginationInfo = useMemo(
-    () => paginatedResponse?.pagination,
-    [paginatedResponse]
-  );
-
-  const { data: allBookings = [] } = useQuery<Booking[]>({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(),
-  });
+  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<
+    Booking[]
+  >({ queryKey: ["bookings"], queryFn: api.getBookings });
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
-  >({
-    queryKey: ["programs"],
-    queryFn: () => api.getPrograms(),
-  });
+  >({ queryKey: ["programs"], queryFn: api.getPrograms });
 
   // --- Mutations ---
   const { mutate: createBooking } = useMutation({
@@ -156,8 +121,15 @@ export default function BookingPage() {
       bookingId: number;
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    onSuccess: (updatedBooking) => {
+      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
+        oldData
+          ? oldData.map((b) =>
+              b.id === updatedBooking.id ? updatedBooking : b
+            )
+          : []
+      );
+      setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment added!");
       setIsPaymentModalOpen(false);
     },
@@ -172,8 +144,15 @@ export default function BookingPage() {
       paymentId: string;
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    onSuccess: (updatedBooking) => {
+      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
+        oldData
+          ? oldData.map((b) =>
+              b.id === updatedBooking.id ? updatedBooking : b
+            )
+          : []
+      );
+      setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment updated!");
       setIsPaymentModalOpen(false);
       setEditingPayment(null);
@@ -186,8 +165,15 @@ export default function BookingPage() {
   const { mutate: deletePayment } = useMutation({
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    onSuccess: (updatedBooking) => {
+      queryClient.setQueryData(["bookings"], (oldData: Booking[] | undefined) =>
+        oldData
+          ? oldData.map((b) =>
+              b.id === updatedBooking.id ? updatedBooking : b
+            )
+          : []
+      );
+      setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment deleted!");
     },
     onError: () => {
@@ -221,6 +207,8 @@ export default function BookingPage() {
   const [selectedBookingForPayment, setSelectedBookingForPayment] =
     useState<Booking | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const bookingsPerPage = 10;
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -231,36 +219,46 @@ export default function BookingPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.searchTerm, filters.sortOrder, filters.statusFilter]);
+  }, [
+    filters.searchTerm,
+    filters.sortOrder,
+    filters.statusFilter,
+    filters.programFilter,
+  ]);
 
   // --- Memoized Calculations ---
-  const filteredAndSortedBookings = useMemo(() => {
-    let processedBookings = [...bookings];
+  const filteredBookings = useMemo(
+    () =>
+      bookings.filter((booking) => {
+        const lowerSearchTerm = filters.searchTerm.toLowerCase();
+        const matchesSearch =
+          booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
+          (booking.clientNameAr || "").includes(filters.searchTerm) ||
+          booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
+        const matchesStatus =
+          filters.statusFilter === "all" ||
+          (filters.statusFilter === "paid" && booking.isFullyPaid) ||
+          (filters.statusFilter === "pending" && !booking.isFullyPaid);
+        const matchesProgram =
+          filters.programFilter === "all" ||
+          (booking.tripId || "").toString() === filters.programFilter;
+        return matchesSearch && matchesStatus && matchesProgram;
+      }),
+    [bookings, filters]
+  );
 
-    // Client-side filtering on the current page of data
-    processedBookings = processedBookings.filter((booking) => {
-      const lowerSearchTerm = filters.searchTerm.toLowerCase();
-      const matchesSearch =
-        booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-        (booking.clientNameAr || "").includes(filters.searchTerm) ||
-        booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
-      const matchesStatus =
-        filters.statusFilter === "all" ||
-        (filters.statusFilter === "paid" && booking.isFullyPaid) ||
-        (filters.statusFilter === "pending" && !booking.isFullyPaid);
-      const matchesProgram =
-        filters.programFilter === "all" ||
-        (booking.tripId || "").toString() === filters.programFilter;
-      return matchesSearch && matchesStatus && matchesProgram;
-    });
-
-    // Sorting logic
+  const sortedBookings = useMemo(() => {
+    const bookingsCopy = [...filteredBookings];
     if (filters.sortOrder === "family") {
-      const bookingsMap = new Map(allBookings.map((b) => [b.id, b]));
+      const bookingsMap = new Map(bookings.map((b) => [b.id, b]));
       const result: (Booking & { isRelated?: boolean })[] = [];
       const processed = new Set<number>();
+      bookingsCopy.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
-      processedBookings.forEach((booking) => {
+      bookingsCopy.forEach((booking) => {
         if (processed.has(booking.id)) return;
         if (booking.relatedPersons && booking.relatedPersons.length > 0) {
           result.push(booking);
@@ -275,7 +273,7 @@ export default function BookingPage() {
         }
       });
 
-      processedBookings.forEach((booking) => {
+      bookingsCopy.forEach((booking) => {
         if (!processed.has(booking.id)) {
           result.push(booking);
           processed.add(booking.id);
@@ -283,39 +281,40 @@ export default function BookingPage() {
       });
       return result;
     } else if (filters.sortOrder === "oldest") {
-      return processedBookings.sort(
+      return bookingsCopy.sort(
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
     }
-
-    return processedBookings.sort(
+    return bookingsCopy.sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [bookings, allBookings, filters]);
+  }, [filteredBookings, filters.sortOrder, bookings]);
+
+  const currentBookings = useMemo(
+    () =>
+      sortedBookings.slice(
+        (currentPage - 1) * bookingsPerPage,
+        currentPage * bookingsPerPage
+      ),
+    [sortedBookings, currentPage]
+  );
 
   const paginationRange = usePagination({
     currentPage,
-    totalCount: paginationInfo?.totalCount || 0,
+    totalCount: sortedBookings.length,
     pageSize: bookingsPerPage,
   });
 
   const summaryStats = useMemo(() => {
-    const relevantBookings =
-      filters.programFilter === "all"
-        ? allBookings
-        : allBookings.filter(
-            (b) => (b.tripId || "").toString() === filters.programFilter
-          );
-
     const stats = {
-      totalBookings: relevantBookings.length,
+      totalBookings: filteredBookings.length,
       totalRevenue: 0,
       totalCost: 0,
       totalPaid: 0,
     };
-    for (const booking of relevantBookings) {
+    for (const booking of filteredBookings) {
       stats.totalRevenue += Number(booking.sellingPrice);
       stats.totalCost += Number(booking.basePrice);
       stats.totalPaid += (booking.advancePayments || []).reduce(
@@ -328,7 +327,7 @@ export default function BookingPage() {
       totalProfit: stats.totalRevenue - stats.totalCost,
       totalRemaining: stats.totalRevenue - stats.totalPaid,
     };
-  }, [allBookings, filters.programFilter]);
+  }, [filteredBookings]);
 
   // --- Event Handlers ---
   const handleProgramFilterChange = (
@@ -339,7 +338,6 @@ export default function BookingPage() {
     navigate(
       newProgramId === "all" ? "/booking" : `/booking/program/${newProgramId}`
     );
-    setCurrentPage(1);
   };
 
   const handleAddBooking = () => {
@@ -378,9 +376,7 @@ export default function BookingPage() {
   };
 
   const handleManagePayments = (booking: Booking) => {
-    // Find the latest version of the booking from the query cache
-    const currentBookingState = allBookings.find((b) => b.id === booking.id);
-    setSelectedBookingForPayment(currentBookingState || booking);
+    setSelectedBookingForPayment(booking);
   };
 
   const handleAddPayment = (booking: Booking) => {
@@ -490,7 +486,7 @@ export default function BookingPage() {
   const pageDescription = selectedProgramDetails
     ? `View all bookings, payments, and financial details for ${selectedProgramDetails.name}.`
     : "Manage all customer bookings and payments";
-  const totalPages = paginationInfo?.totalPages || 1;
+  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
   const paginate = (pageNumber: number) => {
     if (pageNumber > 0 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
@@ -551,7 +547,7 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {allBookings.length > 0 && <BookingSummary stats={summaryStats} />}
+      {filteredBookings.length > 0 && <BookingSummary stats={summaryStats} />}
 
       <BookingFilters
         register={register}
@@ -563,7 +559,7 @@ export default function BookingPage() {
       />
 
       <BookingTable
-        bookings={filteredAndSortedBookings}
+        bookings={currentBookings}
         programs={programs}
         onEditBooking={handleEditBooking}
         onDeleteBooking={handleDeleteBooking}
@@ -615,7 +611,7 @@ export default function BookingPage() {
         </div>
       )}
 
-      {bookings.length === 0 && !isLoadingBookings && (
+      {filteredBookings.length === 0 && (
         <div className="text-center py-12 bg-white rounded-2xl">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-12 h-12 text-gray-400" />
@@ -674,10 +670,7 @@ export default function BookingPage() {
               setIsPaymentModalOpen(false);
               setEditingPayment(null);
             }}
-            remainingBalance={
-              allBookings.find((b) => b.id === selectedBookingForPayment.id)
-                ?.remainingBalance || 0
-            }
+            remainingBalance={selectedBookingForPayment.remainingBalance || 0}
           />
         )}
       </Modal>
@@ -705,76 +698,72 @@ export default function BookingPage() {
             </div>
             <div
               className="space-y-3"
-              key={
-                (
-                  allBookings.find((b) => b.id === selectedBookingForPayment.id)
-                    ?.advancePayments || []
-                ).length
-              }
+              key={(selectedBookingForPayment.advancePayments || []).length}
             >
-              {(
-                allBookings.find((b) => b.id === selectedBookingForPayment.id)
-                  ?.advancePayments || []
-              ).map((payment) => (
-                <div
-                  key={`${payment._id}-${payment.amount}`}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div>
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-900">
-                        {Number(payment.amount).toLocaleString()} MAD
-                      </span>
-                      <span className="mx-2 text-gray-400">•</span>
-                      <span className="text-sm text-gray-600 capitalize">
-                        {payment.method}
-                      </span>
-                      <span className="mx-2 text-gray-400">•</span>
-                      <span className="text-sm text-gray-600">
-                        {new Date(payment.date).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {payment.method === "cheque" && payment.chequeNumber && (
-                      <div className="text-sm text-gray-500 mt-1">
-                        <span className="font-medium">
-                          Check #{payment.chequeNumber}
+              {(selectedBookingForPayment.advancePayments || []).map(
+                (payment) => (
+                  <div
+                    key={`${payment._id}-${payment.amount}`}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
+                    <div>
+                      <div className="flex items-center">
+                        <span className="text-sm text-gray-900">
+                          {Number(payment.amount).toLocaleString()} MAD
                         </span>
-                        {payment.bankName && <span> • {payment.bankName}</span>}
-                        {payment.chequeCashingDate && (
-                          <span>
-                            {" "}
-                            • Cashing:{" "}
-                            {new Date(
-                              payment.chequeCashingDate
-                            ).toLocaleDateString()}
-                          </span>
-                        )}
+                        <span className="mx-2 text-gray-400">•</span>
+                        <span className="text-sm text-gray-600 capitalize">
+                          {payment.method}
+                        </span>
+                        <span className="mx-2 text-gray-400">•</span>
+                        <span className="text-sm text-gray-600">
+                          {new Date(payment.date).toLocaleDateString()}
+                        </span>
                       </div>
-                    )}
+                      {payment.method === "cheque" && payment.chequeNumber && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          <span className="font-medium">
+                            Check #{payment.chequeNumber}
+                          </span>
+                          {payment.bankName && (
+                            <span> • {payment.bankName}</span>
+                          )}
+                          {payment.chequeCashingDate && (
+                            <span>
+                              {" "}
+                              • Cashing:{" "}
+                              {new Date(
+                                payment.chequeCashingDate
+                              ).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() =>
+                          handleEditPayment(selectedBookingForPayment, payment)
+                        }
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeletePayment(
+                            selectedBookingForPayment.id,
+                            payment._id
+                          )
+                        }
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() =>
-                        handleEditPayment(selectedBookingForPayment, payment)
-                      }
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleDeletePayment(
-                          selectedBookingForPayment.id,
-                          payment._id
-                        )
-                      }
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              )}
               {(!selectedBookingForPayment.advancePayments ||
                 selectedBookingForPayment.advancePayments.length === 0) && (
                 <div className="text-center py-8 text-gray-500">

@@ -24,7 +24,6 @@ export type BookingFormData = Omit<
 interface BookingFormProps {
   booking?: Booking | null;
   programs: Program[];
-  allBookings: Booking[];
   onSave: (bookingData: BookingFormData, initialPayments: Payment[]) => void;
   onCancel: () => void;
 }
@@ -42,15 +41,19 @@ interface FormState {
 export default function BookingForm({
   booking,
   programs,
-  allBookings,
   onSave,
   onCancel,
 }: BookingFormProps) {
   const { t } = useTranslation();
 
+  const { data: allBookings = [] } = useQuery<Booking[]>({
+    queryKey: ["bookings"],
+    queryFn: api.getBookings,
+  });
+
   const { data: programPricing = [] } = useQuery<ProgramPricing[]>({
     queryKey: ["programPricing"],
-    queryFn: () => api.getProgramPricing(),
+    queryFn: api.getProgramPricing,
   });
 
   // React Hook Form setup

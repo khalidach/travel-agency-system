@@ -1,4 +1,3 @@
-// frontend/src/services/api.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // --- Auth API ---
@@ -49,8 +48,7 @@ export const refreshToken = async () => {
 };
 
 // --- Program API ---
-export const getPrograms = (page?: number, limit?: number) =>
-  request(`/programs${page && limit ? `?page=${page}&limit=${limit}` : ""}`);
+export const getPrograms = () => request("/programs");
 export const createProgram = (program: any) =>
   request("/programs", { method: "POST", body: JSON.stringify(program) });
 export const updateProgram = (id: number, program: any) =>
@@ -59,10 +57,7 @@ export const deleteProgram = (id: number) =>
   request(`/programs/${id}`, { method: "DELETE" });
 
 // --- Program Pricing API ---
-export const getProgramPricing = (page?: number, limit?: number) =>
-  request(
-    `/program-pricing${page && limit ? `?page=${page}&limit=${limit}` : ""}`
-  );
+export const getProgramPricing = () => request("/program-pricing");
 export const createProgramPricing = (pricing: any) =>
   request("/program-pricing", {
     method: "POST",
@@ -77,8 +72,7 @@ export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
 
 // --- Booking API ---
-export const getBookings = (page?: number, limit?: number) =>
-  request(`/bookings${page && limit ? `?page=${page}&limit=${limit}` : ""}`);
+export const getBookings = () => request("/bookings");
 export const createBooking = (booking: any) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
 export const updateBooking = (id: number, booking: any) =>
