@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import type {
   Booking,
   Program,
@@ -47,58 +48,68 @@ export default function BookingForm({
 
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState<BookingFormData>({
-    clientNameAr: "",
-    clientNameFr: "",
-    phoneNumber: "",
-    passportNumber: "",
-    tripId: "",
-    packageId: "",
-    selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
-    sellingPrice: 0,
-    basePrice: 0,
-    profit: 0,
-    createdAt: new Date().toISOString().split("T")[0],
-    relatedPersons: [],
+  const {
+    control,
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<BookingFormData>({
+    defaultValues: {
+      clientNameAr: "",
+      clientNameFr: "",
+      phoneNumber: "",
+      passportNumber: "",
+      tripId: "",
+      packageId: "",
+      selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
+      sellingPrice: 0,
+      basePrice: 0,
+      profit: 0,
+      createdAt: new Date().toISOString().split("T")[0],
+      relatedPersons: [],
+    },
   });
 
-  const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [selectedPriceStructure, setSelectedPriceStructure] =
-    useState<PriceStructure | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const formData = watch();
+  const selectedProgram = useMemo(
+    () => programs.find((p) => p.id.toString() === formData.tripId),
+    [formData.tripId, programs]
+  );
+  const selectedPackage = useMemo(
+    () => selectedProgram?.packages.find((p) => p.name === formData.packageId),
+    [formData.packageId, selectedProgram]
+  );
+
+  const selectedPriceStructure = useMemo(() => {
+    if (
+      !selectedPackage ||
+      !formData.selectedHotel.hotelNames ||
+      formData.selectedHotel.hotelNames.some((h) => !h)
+    )
+      return null;
+    const hotelCombination = formData.selectedHotel.hotelNames.join("_");
+    return (
+      selectedPackage.prices.find(
+        (p) => p.hotelCombination === hotelCombination
+      ) || null
+    );
+  }, [formData.selectedHotel.hotelNames, selectedPackage]);
 
   useEffect(() => {
     if (booking) {
-      const program = programs.find(
-        (p) => p.id.toString() === (booking.tripId || "").toString()
-      );
-      if (program) {
-        const pkg = (program.packages || []).find(
-          (p) => p.name === booking.packageId
-        );
-        setSelectedProgram(program);
-        if (pkg) setSelectedPackage(pkg);
-      }
-
-      setFormData({
-        clientNameAr: booking.clientNameAr,
-        clientNameFr: booking.clientNameFr,
-        phoneNumber: booking.phoneNumber,
-        passportNumber: booking.passportNumber,
-        tripId: booking.tripId,
-        packageId: booking.packageId,
-        selectedHotel: booking.selectedHotel,
-        sellingPrice: Number(booking.sellingPrice),
-        basePrice: Number(booking.basePrice),
-        profit: Number(booking.sellingPrice) - Number(booking.basePrice),
+      reset({
+        ...booking,
         createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
-        relatedPersons: booking.relatedPersons || [],
       });
     }
-  }, [booking, programs]);
+  }, [booking, reset]);
 
+  // Calculate base price and profit
   useEffect(() => {
     const calculateTotalBasePrice = (): number => {
       if (!selectedProgram || !selectedPriceStructure) return 0;
@@ -129,7 +140,6 @@ export default function BookingForm({
               (c) => c.name === city
             );
             const nights = cityInfo ? cityInfo.nights : 0;
-
             if (pricePerNight > 0 && nights > 0 && guests > 0) {
               return total + (pricePerNight * nights) / guests;
             }
@@ -142,17 +152,13 @@ export default function BookingForm({
       const ticketAirline = Number(pricing.ticketAirline || 0);
       const visaFees = Number(pricing.visaFees || 0);
       const guideFees = Number(pricing.guideFees || 0);
-
       return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
     };
 
     if (selectedProgram && selectedPriceStructure) {
       const newBasePrice = calculateTotalBasePrice();
-      setFormData((prev) => ({
-        ...prev,
-        basePrice: newBasePrice,
-        profit: prev.sellingPrice - newBasePrice,
-      }));
+      setValue("basePrice", newBasePrice);
+      setValue("profit", formData.sellingPrice - newBasePrice);
     }
   }, [
     formData.selectedHotel,
@@ -160,101 +166,18 @@ export default function BookingForm({
     selectedProgram,
     selectedPriceStructure,
     programPricing,
+    setValue,
   ]);
 
-  useEffect(() => {
-    if (
-      selectedPackage &&
-      selectedProgram?.cities.length ===
-        formData.selectedHotel.hotelNames.length &&
-      formData.selectedHotel.hotelNames.every((h) => h)
-    ) {
-      const hotelCombination = formData.selectedHotel.hotelNames.join("_");
-      const priceStructure = selectedPackage.prices.find(
-        (p) => p.hotelCombination === hotelCombination
-      );
-      setSelectedPriceStructure(priceStructure || null);
-    } else {
-      setSelectedPriceStructure(null);
-    }
-  }, [formData.selectedHotel.hotelNames, selectedPackage, selectedProgram]);
-
-  const handleSellingPriceChange = (price: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      sellingPrice: price,
-      profit: price - prev.basePrice,
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (data: BookingFormData) => {
     if (!selectedProgram || !selectedPackage || !selectedPriceStructure) {
       setError(
         "A valid program, package, and hotel combination must be selected."
       );
       return;
     }
-    onSave(formData, booking?.advancePayments || []);
-  };
-
-  const handleProgramChange = (programIdStr: string) => {
-    const programId = parseInt(programIdStr, 10);
-    const program = programs.find((p) => p.id === programId);
-    setSelectedProgram(program || null);
-    setSelectedPackage(null);
-    setSelectedPriceStructure(null);
-    setFormData((prev) => ({
-      ...prev,
-      tripId: programIdStr,
-      packageId: "",
-      selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
-    }));
     setError(null);
-  };
-
-  const handlePackageChange = (packageName: string) => {
-    if (!selectedProgram) return;
-    const pkg = (selectedProgram.packages || []).find(
-      (p) => p.name === packageName
-    );
-    setSelectedPackage(pkg || null);
-    setSelectedPriceStructure(null);
-    if (pkg) {
-      const cities = (selectedProgram.cities || []).map((c) => c.name);
-      setFormData((prev) => ({
-        ...prev,
-        packageId: packageName,
-        selectedHotel: {
-          cities,
-          hotelNames: Array(cities.length).fill(""),
-          roomTypes: Array(cities.length).fill(""),
-        },
-      }));
-    }
-  };
-
-  const updateHotelSelection = (cityIndex: number, hotelName: string) => {
-    const newHotelNames = [...formData.selectedHotel.hotelNames];
-    newHotelNames[cityIndex] = hotelName;
-
-    setFormData((prev) => ({
-      ...prev,
-      selectedHotel: {
-        ...prev.selectedHotel,
-        hotelNames: newHotelNames,
-        roomTypes: Array(prev.selectedHotel.cities.length).fill(""),
-      },
-    }));
-  };
-
-  const updateRoomTypeSelection = (cityIndex: number, roomType: string) => {
-    const newRoomTypes = [...formData.selectedHotel.roomTypes];
-    newRoomTypes[cityIndex] = roomType;
-    setFormData((prev) => ({
-      ...prev,
-      selectedHotel: { ...prev.selectedHotel, roomTypes: newRoomTypes },
-    }));
+    onSave(data, booking?.advancePayments || []);
   };
 
   const availablePeople = useMemo(() => {
@@ -274,44 +197,37 @@ export default function BookingForm({
       ID: person.id,
       clientName: person.clientNameFr,
     };
-    setFormData((prev) => ({
-      ...prev,
-      relatedPersons: [...(prev.relatedPersons || []), newPerson],
-    }));
+    const currentRelated = formData.relatedPersons || [];
+    setValue("relatedPersons", [...currentRelated, newPerson]);
     setSearch("");
     setShowDropdown(false);
   };
 
   const removeRelatedPerson = (personId: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      relatedPersons: (prev.relatedPersons || []).filter(
-        (p) => p.ID !== personId
-      ),
-    }));
+    const currentRelated = formData.relatedPersons || [];
+    setValue(
+      "relatedPersons",
+      currentRelated.filter((p) => p.ID !== personId)
+    );
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
           {error}
         </div>
       )}
 
+      {/* Client Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("Client Name (French)")}
           </label>
           <input
-            type="text"
-            value={formData.clientNameFr}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, clientNameFr: e.target.value }))
-            }
+            {...register("clientNameFr", { required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            required
           />
         </div>
         <div>
@@ -319,14 +235,9 @@ export default function BookingForm({
             {t("Client Name (Arabic)")}
           </label>
           <input
-            type="text"
-            value={formData.clientNameAr}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, clientNameAr: e.target.value }))
-            }
+            {...register("clientNameAr", { required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             dir="rtl"
-            required
           />
         </div>
       </div>
@@ -335,13 +246,8 @@ export default function BookingForm({
           {t("Passport Number")}
         </label>
         <input
-          type="text"
-          value={formData.passportNumber}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, passportNumber: e.target.value }))
-          }
+          {...register("passportNumber", { required: true })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          required
         />
       </div>
       <div>
@@ -350,15 +256,12 @@ export default function BookingForm({
         </label>
         <input
           type="tel"
-          value={formData.phoneNumber}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, phoneNumber: e.target.value }))
-          }
+          {...register("phoneNumber", { required: true })}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          required
         />
       </div>
 
+      {/* Related People */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {t("Related People")}
@@ -409,16 +312,24 @@ export default function BookingForm({
         </div>
       </div>
 
+      {/* Program and Package Selection */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("Travel Program")}
           </label>
           <select
-            value={formData.tripId}
-            onChange={(e) => handleProgramChange(e.target.value)}
+            {...register("tripId", { required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            required
+            onChange={(e) => {
+              setValue("tripId", e.target.value);
+              setValue("packageId", "");
+              setValue("selectedHotel", {
+                cities: [],
+                hotelNames: [],
+                roomTypes: [],
+              });
+            }}
           >
             <option value="">{t("Select a program")}</option>
             {programs.map((program) => (
@@ -433,11 +344,24 @@ export default function BookingForm({
             {t("Package")}
           </label>
           <select
-            value={formData.packageId || ""}
-            onChange={(e) => handlePackageChange(e.target.value)}
+            {...register("packageId", { required: true })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             disabled={!selectedProgram}
-            required
+            onChange={(e) => {
+              const newPackageName = e.target.value;
+              setValue("packageId", newPackageName);
+              const program = programs.find(
+                (p) => p.id.toString() === formData.tripId
+              );
+              if (program) {
+                const cities = (program.cities || []).map((c) => c.name);
+                setValue("selectedHotel", {
+                  cities,
+                  hotelNames: Array(cities.length).fill(""),
+                  roomTypes: Array(cities.length).fill(""),
+                });
+              }
+            }}
           >
             <option value="">{t("Select a package")}</option>
             {(selectedProgram?.packages || []).map((pkg) => (
@@ -449,6 +373,7 @@ export default function BookingForm({
         </div>
       </div>
 
+      {/* Hotel & Room Selection */}
       {selectedPackage && (
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -466,12 +391,10 @@ export default function BookingForm({
                       {t("Select Hotel")}
                     </label>
                     <select
-                      value={formData.selectedHotel.hotelNames[cityIndex] || ""}
-                      onChange={(e) =>
-                        updateHotelSelection(cityIndex, e.target.value)
-                      }
+                      {...register(`selectedHotel.hotelNames.${cityIndex}`, {
+                        required: true,
+                      })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
                     >
                       <option value="">{t("Select a hotel")}</option>
                       {(selectedPackage.hotels[city.name] || []).map(
@@ -488,12 +411,10 @@ export default function BookingForm({
                       {t("Room Type")}
                     </label>
                     <select
-                      value={formData.selectedHotel.roomTypes[cityIndex] || ""}
-                      onChange={(e) =>
-                        updateRoomTypeSelection(cityIndex, e.target.value)
-                      }
+                      {...register(`selectedHotel.roomTypes.${cityIndex}`, {
+                        required: true,
+                      })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      required
                       disabled={!selectedPriceStructure}
                     >
                       <option value="">
@@ -517,6 +438,7 @@ export default function BookingForm({
         </div>
       )}
 
+      {/* Pricing */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -524,7 +446,7 @@ export default function BookingForm({
           </label>
           <input
             type="number"
-            value={formData.basePrice}
+            {...register("basePrice")}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
             readOnly
           />
@@ -535,11 +457,8 @@ export default function BookingForm({
           </label>
           <input
             type="number"
-            value={formData.sellingPrice}
-            onChange={(e) => handleSellingPriceChange(Number(e.target.value))}
+            {...register("sellingPrice", { valueAsNumber: true, min: 0 })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            min="0"
-            step="0.01"
             required
           />
         </div>
@@ -549,11 +468,23 @@ export default function BookingForm({
           </label>
           <input
             type="number"
-            value={formData.profit}
+            {...register("profit")}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
             readOnly
           />
         </div>
+      </div>
+
+      {/* Created At Date */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Booking Date
+        </label>
+        <input
+          type="date"
+          {...register("createdAt", { required: true })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+        />
       </div>
 
       <div className="flex justify-end space-x-3 pt-6 border-t mt-6">

@@ -1,30 +1,16 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { useFormContext, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, MapPin } from "lucide-react";
 
-interface City {
-  name: string;
-  nights: number;
-}
-
-interface CityManagerProps {
-  cities: City[];
-  onAddCity: () => void;
-  onUpdateCity: (
-    index: number,
-    field: keyof City,
-    value: string | number
-  ) => void;
-  onRemoveCity: (index: number) => void;
-}
-
-export default function CityManager({
-  cities,
-  onAddCity,
-  onUpdateCity,
-  onRemoveCity,
-}: CityManagerProps) {
+export default function CityManager() {
   const { t } = useTranslation();
+  const { control, register } = useFormContext();
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "cities",
+  });
 
   return (
     <div>
@@ -34,39 +20,36 @@ export default function CityManager({
         </label>
         <button
           type="button"
-          onClick={onAddCity}
+          onClick={() => append({ name: "", nights: 1 })}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-1" /> Add City
         </button>
       </div>
       <div className="space-y-2">
-        {cities.map((city, index) => (
-          <div key={index} className="flex items-center space-x-2">
+        {fields.map((item, index) => (
+          <div key={item.id} className="flex items-center space-x-2">
             <MapPin className="w-4 h-4 text-gray-400" />
             <input
-              type="text"
-              value={city.name}
-              onChange={(e) => onUpdateCity(index, "name", e.target.value)}
+              {...register(`cities.${index}.name`, { required: true })}
               placeholder="Enter city name"
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-              required
             />
             <input
               type="number"
-              value={city.nights}
-              onChange={(e) =>
-                onUpdateCity(index, "nights", parseInt(e.target.value, 10))
-              }
+              {...register(`cities.${index}.nights`, {
+                valueAsNumber: true,
+                min: 1,
+              })}
               placeholder="Nights"
               className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
               min="1"
               required
             />
-            {cities.length > 1 && (
+            {fields.length > 1 && (
               <button
                 type="button"
-                onClick={() => onRemoveCity(index)}
+                onClick={() => remove(index)}
                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
               >
                 <Trash2 className="w-4 h-4" />

@@ -2,14 +2,10 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import type { Program } from "../../context/models";
+import { UseFormRegister } from "react-hook-form";
 
 interface BookingFiltersProps {
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
-  sortOrder: string;
-  setSortOrder: (value: string) => void;
-  statusFilter: string;
-  setStatusFilter: (value: string) => void;
+  register: UseFormRegister<any>; // react-hook-form register function
   programFilter: string;
   handleProgramFilterChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   programs: Program[];
@@ -18,12 +14,7 @@ interface BookingFiltersProps {
 }
 
 export default function BookingFilters({
-  searchTerm,
-  setSearchTerm,
-  sortOrder,
-  setSortOrder,
-  statusFilter,
-  setStatusFilter,
+  register,
   programFilter,
   handleProgramFilterChange,
   programs,
@@ -39,14 +30,12 @@ export default function BookingFilters({
           <input
             type="text"
             placeholder={`${t("search")} bookings...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            {...register("searchTerm")}
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
         <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
+          {...register("sortOrder")}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="newest">Sort by Newest</option>
@@ -54,8 +43,7 @@ export default function BookingFilters({
           <option value="family">Sort by Family</option>
         </select>
         <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          {...register("statusFilter")}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="all">All Status</option>
@@ -63,6 +51,7 @@ export default function BookingFilters({
           <option value="pending">Pending Payment</option>
         </select>
         <select
+          {...register("programFilter")}
           value={programFilter}
           onChange={handleProgramFilterChange}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

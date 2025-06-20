@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import {
   Plus,
   CreditCard,
@@ -14,7 +15,7 @@ import {
   Calendar,
 } from "lucide-react";
 
-// Refactored Components and Hooks
+// Components and Hooks
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
@@ -22,12 +23,19 @@ import BookingSummary from "../components/booking/BookingSummary";
 import BookingFilters from "../components/booking/BookingFilters";
 import BookingTable from "../components/booking/BookingTable";
 import { usePagination } from "../hooks/usePagination";
-import BookingSkeleton from "../components/skeletons/BookingSkeleton"; // Import the skeleton
+import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 
 // Types and API
 import type { Booking, Payment, Program } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+
+type FilterFormData = {
+  searchTerm: string;
+  sortOrder: string;
+  statusFilter: string;
+  programFilter: string;
+};
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -35,20 +43,26 @@ export default function BookingPage() {
   const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();
 
-  // --- Data Fetching with React Query ---
+  // --- React Hook Form for Filters ---
+  const { register, watch, setValue } = useForm<FilterFormData>({
+    defaultValues: {
+      searchTerm: "",
+      sortOrder: "newest",
+      statusFilter: "all",
+      programFilter: programId || "all",
+    },
+  });
+
+  const filters = watch();
+
+  // --- Data Fetching ---
   const { data: bookings = [], isLoading: isLoadingBookings } = useQuery<
     Booking[]
-  >({
-    queryKey: ["bookings"],
-    queryFn: api.getBookings,
-  });
+  >({ queryKey: ["bookings"], queryFn: api.getBookings });
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
-  >({
-    queryKey: ["programs"],
-    queryFn: api.getPrograms,
-  });
+  >({ queryKey: ["programs"], queryFn: api.getPrograms });
 
   // --- Mutations ---
   const { mutate: createBooking } = useMutation({
@@ -182,7 +196,7 @@ export default function BookingPage() {
     },
   });
 
-  // --- Local State ---
+  // --- Local UI State ---
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -192,50 +206,45 @@ export default function BookingPage() {
   } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] =
     useState<Booking | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [programFilter, setProgramFilter] = useState<string>(
-    programId || "all"
-  );
-  const [sortOrder, setSortOrder] = useState("newest");
   const [isExporting, setIsExporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Effects and Memoized Calculations ---
+  // --- Effects ---
   useEffect(() => {
-    setProgramFilter(programId || "all");
-  }, [programId]);
+    setValue("programFilter", programId || "all");
+  }, [programId, setValue]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, programFilter, sortOrder]);
+  }, [filters]);
 
+  // --- Memoized Calculations ---
   const filteredBookings = useMemo(
     () =>
       bookings.filter((booking) => {
-        const lowerSearchTerm = searchTerm.toLowerCase();
+        const lowerSearchTerm = filters.searchTerm.toLowerCase();
         const matchesSearch =
           booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-          (booking.clientNameAr || "").includes(searchTerm) ||
+          (booking.clientNameAr || "").includes(filters.searchTerm) ||
           booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
         const matchesStatus =
-          statusFilter === "all" ||
-          (statusFilter === "paid" && booking.isFullyPaid) ||
-          (statusFilter === "pending" && !booking.isFullyPaid);
+          filters.statusFilter === "all" ||
+          (filters.statusFilter === "paid" && booking.isFullyPaid) ||
+          (filters.statusFilter === "pending" && !booking.isFullyPaid);
         const matchesProgram =
-          programFilter === "all" ||
-          (booking.tripId || "").toString() === programFilter;
+          filters.programFilter === "all" ||
+          (booking.tripId || "").toString() === filters.programFilter;
         return matchesSearch && matchesStatus && matchesProgram;
       }),
-    [bookings, searchTerm, statusFilter, programFilter]
+    [bookings, filters]
   );
 
   const sortedBookings = useMemo(() => {
     const bookingsCopy = [...filteredBookings];
-    if (sortOrder === "family") {
+    if (filters.sortOrder === "family") {
       const bookingsMap = new Map(bookings.map((b) => [b.id, b]));
       const result: (Booking & { isRelated?: boolean })[] = [];
       const processed = new Set<number>();
@@ -266,7 +275,7 @@ export default function BookingPage() {
         }
       });
       return result;
-    } else if (sortOrder === "oldest") {
+    } else if (filters.sortOrder === "oldest") {
       return bookingsCopy.sort(
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -276,7 +285,7 @@ export default function BookingPage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [filteredBookings, sortOrder, bookings]);
+  }, [filteredBookings, filters.sortOrder, bookings]);
 
   const currentBookings = useMemo(
     () =>
@@ -320,7 +329,7 @@ export default function BookingPage() {
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
     const newProgramId = e.target.value;
-    setProgramFilter(newProgramId);
+    setValue("programFilter", newProgramId);
     navigate(
       newProgramId === "all" ? "/booking" : `/booking/program/${newProgramId}`
     );
@@ -398,18 +407,20 @@ export default function BookingPage() {
   };
 
   const handleExport = async () => {
-    if (programFilter === "all" || isExporting) {
+    if (filters.programFilter === "all" || isExporting) {
       toast.error("Please select a specific program to export.");
       return;
     }
     setIsExporting(true);
     toast.loading("Exporting to Excel...");
     try {
-      const blob = await api.exportBookingsToExcel(programFilter);
+      const blob = await api.exportBookingsToExcel(filters.programFilter);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const program = programs.find((p) => p.id.toString() === programFilter);
+      const program = programs.find(
+        (p) => p.id.toString() === filters.programFilter
+      );
       a.download = program
         ? `${program.name.replace(/\s/g, "_")}_bookings.xlsx`
         : "bookings.xlsx";
@@ -534,13 +545,8 @@ export default function BookingPage() {
       {filteredBookings.length > 0 && <BookingSummary stats={summaryStats} />}
 
       <BookingFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        programFilter={programFilter}
+        register={register}
+        programFilter={filters.programFilter}
         handleProgramFilterChange={handleProgramFilterChange}
         programs={programs}
         handleExport={handleExport}
