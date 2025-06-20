@@ -27,26 +27,29 @@ const useIdleTimeout = (idleTimeout: number, refreshInterval: number) => {
       return;
     }
 
-    let idleTimer: ReturnType<typeof setTimeout>;
-    let tokenRefreshTimer: ReturnType<typeof setInterval>;
+    let idleLogoutTimer: ReturnType<typeof setTimeout>;
+    let tokenRefreshTimer: ReturnType<typeof setTimeout>;
 
-    const resetIdleTimer = () => {
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(handleLogout, idleTimeout);
+    const resetTimers = () => {
+      // Clear existing timers
+      clearTimeout(idleLogoutTimer);
+      clearTimeout(tokenRefreshTimer);
+
+      // Reset timers
+      idleLogoutTimer = setTimeout(handleLogout, idleTimeout);
+      tokenRefreshTimer = setTimeout(handleRefreshToken, refreshInterval);
     };
 
     const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
-    resetIdleTimer();
+    events.forEach((event) => window.addEventListener(event, resetTimers));
 
-    tokenRefreshTimer = setInterval(handleRefreshToken, refreshInterval);
+    // Initialize timers
+    resetTimers();
 
     return () => {
-      clearTimeout(idleTimer);
-      clearInterval(tokenRefreshTimer);
-      events.forEach((event) =>
-        window.removeEventListener(event, resetIdleTimer)
-      );
+      clearTimeout(idleLogoutTimer);
+      clearTimeout(tokenRefreshTimer);
+      events.forEach((event) => window.removeEventListener(event, resetTimers));
     };
   }, [
     state.isAuthenticated,
