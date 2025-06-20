@@ -4,93 +4,30 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
+  CreditCard,
   Edit2,
   Trash2,
-  CreditCard,
-  User,
-  Calendar,
   Download,
   Upload,
   ChevronLeft,
   ChevronRight,
-  MapPin,
-  Hotel,
-  Users,
-  X,
+  Calendar,
 } from "lucide-react";
+
+// Refactored Components and Hooks
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
-import type {
-  Booking,
-  Payment,
-  Program,
-  ProgramPricing,
-} from "../context/models";
+import BookingSummary from "../components/booking/BookingSummary";
+import BookingFilters from "../components/booking/BookingFilters";
+import BookingTable from "../components/booking/BookingTable";
+import { usePagination } from "../hooks/usePagination";
+import BookingSkeleton from "../components/skeletons/BookingSkeleton"; // Import the skeleton
+
+// Types and API
+import type { Booking, Payment, Program } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
-
-// Helper hook for advanced pagination logic
-const usePagination = ({
-  totalCount,
-  pageSize,
-  siblingCount = 1,
-  currentPage,
-}: {
-  totalCount: number;
-  pageSize: number;
-  siblingCount?: number;
-  currentPage: number;
-}) => {
-  const paginationRange = useMemo(() => {
-    const totalPageCount = Math.ceil(totalCount / pageSize);
-    const totalPageNumbers = siblingCount + 5;
-
-    if (totalPageNumbers >= totalPageCount) {
-      return Array.from({ length: totalPageCount }, (_, i) => i + 1);
-    }
-
-    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
-    const rightSiblingIndex = Math.min(
-      currentPage + siblingCount,
-      totalPageCount
-    );
-
-    const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPageCount - 2;
-
-    const firstPageIndex = 1;
-    const lastPageIndex = totalPageCount;
-
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-      let leftItemCount = 3 + 2 * siblingCount;
-      let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
-      return [...leftRange, "...", totalPageCount];
-    }
-
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-      let rightItemCount = 3 + 2 * siblingCount;
-      let rightRange = Array.from(
-        { length: rightItemCount },
-        (_, i) => totalPageCount - rightItemCount + i + 1
-      );
-      return [firstPageIndex, "...", ...rightRange];
-    }
-
-    if (shouldShowLeftDots && shouldShowRightDots) {
-      let middleRange = Array.from(
-        { length: rightSiblingIndex - leftSiblingIndex + 1 },
-        (_, i) => leftSiblingIndex + i
-      );
-      return [firstPageIndex, "...", ...middleRange, "...", lastPageIndex];
-    }
-    return [];
-  }, [totalCount, pageSize, siblingCount, currentPage]);
-
-  return paginationRange;
-};
-
-type DisplayBooking = Booking & { isRelated?: boolean };
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -128,7 +65,7 @@ export default function BookingPage() {
       toast.success("Booking created!");
       setIsBookingModalOpen(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to create booking.");
     },
   });
@@ -149,7 +86,7 @@ export default function BookingPage() {
       setIsBookingModalOpen(false);
       setEditingBooking(null);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to update booking.");
     },
   });
@@ -236,7 +173,7 @@ export default function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       toast.success(result.message);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Import failed.");
     },
     onSettled: () => {
@@ -255,7 +192,6 @@ export default function BookingPage() {
   } | null>(null);
   const [selectedBookingForPayment, setSelectedBookingForPayment] =
     useState<Booking | null>(null);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [programFilter, setProgramFilter] = useState<string>(
@@ -268,7 +204,7 @@ export default function BookingPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- Effects ---
+  // --- Effects and Memoized Calculations ---
   useEffect(() => {
     setProgramFilter(programId || "all");
   }, [programId]);
@@ -277,7 +213,6 @@ export default function BookingPage() {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, programFilter, sortOrder]);
 
-  // --- Memoized Calculations ---
   const filteredBookings = useMemo(
     () =>
       bookings.filter((booking) => {
@@ -298,11 +233,11 @@ export default function BookingPage() {
     [bookings, searchTerm, statusFilter, programFilter]
   );
 
-  const sortedBookings: DisplayBooking[] = useMemo(() => {
+  const sortedBookings = useMemo(() => {
     const bookingsCopy = [...filteredBookings];
     if (sortOrder === "family") {
       const bookingsMap = new Map(bookings.map((b) => [b.id, b]));
-      const result: DisplayBooking[] = [];
+      const result: (Booking & { isRelated?: boolean })[] = [];
       const processed = new Set<number>();
       bookingsCopy.sort(
         (a, b) =>
@@ -349,7 +284,7 @@ export default function BookingPage() {
         (currentPage - 1) * bookingsPerPage,
         currentPage * bookingsPerPage
       ),
-    [sortedBookings, currentPage, bookingsPerPage]
+    [sortedBookings, currentPage]
   );
 
   const paginationRange = usePagination({
@@ -380,14 +315,7 @@ export default function BookingPage() {
     };
   }, [filteredBookings]);
 
-  // --- Conditional Return for Loading State ---
-  if (isLoadingBookings || isLoadingPrograms) {
-    return (
-      <div className="flex items-center justify-center h-full">Loading...</div>
-    );
-  }
-
-  // --- Event Handlers and Render Logic ---
+  // --- Event Handlers ---
   const handleProgramFilterChange = (
     e: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -408,7 +336,7 @@ export default function BookingPage() {
     setIsBookingModalOpen(true);
   };
 
-  const handleDeleteBookingClick = (bookingId: number) => {
+  const handleDeleteBooking = (bookingId: number) => {
     if (
       window.confirm(
         "Are you sure you want to delete this booking? This action cannot be undone."
@@ -433,13 +361,17 @@ export default function BookingPage() {
     }
   };
 
-  const handleAddPaymentClick = (booking: Booking) => {
+  const handleManagePayments = (booking: Booking) => {
+    setSelectedBookingForPayment(booking);
+  };
+
+  const handleAddPayment = (booking: Booking) => {
     setSelectedBookingForPayment(booking);
     setEditingPayment(null);
     setIsPaymentModalOpen(true);
   };
 
-  const handleEditPaymentClick = (booking: Booking, payment: Payment) => {
+  const handleEditPayment = (booking: Booking, payment: Payment) => {
     setSelectedBookingForPayment(booking);
     setEditingPayment({ bookingId: booking.id, payment });
     setIsPaymentModalOpen(true);
@@ -459,7 +391,7 @@ export default function BookingPage() {
     }
   };
 
-  const handleDeletePaymentClick = (bookingId: number, paymentId: string) => {
+  const handleDeletePayment = (bookingId: number, paymentId: string) => {
     if (window.confirm("Are you sure you want to delete this payment?")) {
       deletePayment({ bookingId, paymentId });
     }
@@ -538,22 +470,16 @@ export default function BookingPage() {
   const pageDescription = selectedProgramDetails
     ? `View all bookings, payments, and financial details for ${selectedProgramDetails.name}.`
     : "Manage all customer bookings and payments";
-
   const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
-
   const paginate = (pageNumber: number) => {
     if (pageNumber > 0 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
     }
   };
 
-  const getStatusColor = (isFullyPaid: boolean) =>
-    isFullyPaid
-      ? "bg-emerald-100 text-emerald-700"
-      : "bg-orange-100 text-orange-700";
-
-  const getStatusText = (isFullyPaid: boolean) =>
-    t(isFullyPaid ? "Fully Paid" : "Pending Payment");
+  if (isLoadingBookings || isLoadingPrograms) {
+    return <BookingSkeleton />;
+  }
 
   return (
     <div className="space-y-6">
@@ -605,325 +531,77 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {filteredBookings.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Bookings</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {summaryStats.totalBookings}
-            </p>
+      {filteredBookings.length > 0 && <BookingSummary stats={summaryStats} />}
+
+      <BookingFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        sortOrder={sortOrder}
+        setSortOrder={setSortOrder}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        programFilter={programFilter}
+        handleProgramFilterChange={handleProgramFilterChange}
+        programs={programs}
+        handleExport={handleExport}
+        isExporting={isExporting}
+      />
+
+      <BookingTable
+        bookings={currentBookings}
+        programs={programs}
+        onEditBooking={handleEditBooking}
+        onDeleteBooking={handleDeleteBooking}
+        onManagePayments={handleManagePayments}
+      />
+
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Previous
+          </button>
+          <div className="flex items-center space-x-1">
+            {paginationRange.map((pageNumber, index) => {
+              if (typeof pageNumber === "string") {
+                return (
+                  <span key={index} className="px-3 py-1 text-sm text-gray-400">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <button
+                  key={index}
+                  onClick={() => paginate(pageNumber)}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    currentPage === pageNumber
+                      ? "bg-blue-600 text-white font-bold shadow-sm"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              );
+            })}
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {summaryStats.totalRevenue.toLocaleString()}{" "}
-              <span className="text-sm">MAD</span>
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Cost</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {summaryStats.totalCost.toLocaleString()}{" "}
-              <span className="text-sm">MAD</span>
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Profit</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-1">
-              {summaryStats.totalProfit.toLocaleString()}{" "}
-              <span className="text-sm">MAD</span>
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Paid</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">
-              {summaryStats.totalPaid.toLocaleString()}{" "}
-              <span className="text-sm">MAD</span>
-            </p>
-          </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border">
-            <p className="text-sm font-medium text-gray-500">Total Remaining</p>
-            <p className="text-2xl font-bold text-orange-600 mt-1">
-              {summaryStats.totalRemaining.toLocaleString()}{" "}
-              <span className="text-sm">MAD</span>
-            </p>
-          </div>
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </button>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder={`${t("search")} bookings...`}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="newest">Sort by Newest</option>
-            <option value="oldest">Sort by Oldest</option>
-            <option value="family">Sort by Family</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Status</option>
-            <option value="paid">Fully Paid</option>
-            <option value="pending">Pending Payment</option>
-          </select>
-          <select
-            value={programFilter}
-            onChange={handleProgramFilterChange}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">{t("allPrograms")}</option>
-            {programs.map((program) => (
-              <option key={program.id} value={program.id}>
-                {program.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleExport}
-            disabled={programFilter === "all" || isExporting}
-            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {isExporting ? "Exporting..." : "Export to Excel"}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Client
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Program & Hotels
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price Details
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Payment Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentBookings.map((booking) => {
-                const program = programs.find(
-                  (p) => p.id.toString() === (booking.tripId || "").toString()
-                );
-                const totalPaid = (booking.advancePayments || []).reduce(
-                  (sum, payment) => sum + Number(payment.amount),
-                  0
-                );
-                return (
-                  <tr
-                    key={booking.id}
-                    className={`hover:bg-gray-50 transition-colors ${
-                      booking.isRelated ? "bg-blue-50" : ""
-                    }`}
-                  >
-                    <td
-                      className={`px-6 py-4 align-top ${
-                        booking.isRelated ? "pl-12" : ""
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            booking.relatedPersons &&
-                            booking.relatedPersons.length > 0
-                              ? "bg-gradient-to-br from-purple-500 to-purple-600"
-                              : "bg-gradient-to-br from-blue-500 to-blue-600"
-                          }`}
-                        >
-                          {booking.isRelated ? (
-                            <User className="w-5 h-5 text-white" />
-                          ) : (
-                            <Users className="w-5 h-5 text-white" />
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {booking.clientNameFr}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {booking.clientNameAr}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {booking.passportNumber}
-                          </div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            <span className="font-medium">Tel:</span>{" "}
-                            {booking.phoneNumber}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-900">
-                          {program?.name || "Unknown Program"}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {booking.packageId} Package
-                        </div>
-                        <div className="space-y-1 mt-2">
-                          {(booking.selectedHotel.cities || []).map(
-                            (city, index) => {
-                              const hotelName = (booking.selectedHotel
-                                .hotelNames || [])[index];
-                              const roomType = (booking.selectedHotel
-                                .roomTypes || [])[index];
-                              if (!city || !hotelName) return null;
-                              return (
-                                <div
-                                  key={index}
-                                  className="flex items-center text-xs text-gray-600"
-                                >
-                                  <MapPin className="w-3 h-3 mr-1 text-gray-400" />
-                                  <span className="font-medium">{city}:</span>
-                                  <Hotel className="w-3 h-3 ml-2 mr-1 text-gray-400" />
-                                  <span>
-                                    {hotelName} ({roomType})
-                                  </span>
-                                </div>
-                              );
-                            }
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="text-sm text-gray-900">
-                        Selling: {Number(booking.sellingPrice).toLocaleString()}{" "}
-                        MAD
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Base: {Number(booking.basePrice).toLocaleString()} MAD
-                      </div>
-                      <div className="text-sm text-emerald-600 font-medium">
-                        Profit: {Number(booking.profit).toLocaleString()} MAD
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="space-y-2">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            booking.isFullyPaid
-                          )}`}
-                        >
-                          {getStatusText(booking.isFullyPaid)}
-                        </span>
-                        <div className="text-sm font-medium text-gray-900">
-                          Paid: {totalPaid.toLocaleString()} MAD
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Remaining:{" "}
-                          {Number(booking.remainingBalance).toLocaleString()}{" "}
-                          MAD
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="flex flex-col space-y-2">
-                        <button
-                          onClick={() => setSelectedBookingForPayment(booking)}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <CreditCard className="w-3 h-3 mr-1" />{" "}
-                          {t("Manage Payments")}
-                        </button>
-                        <button
-                          onClick={() => handleEditBooking(booking)}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                        >
-                          <Edit2 className="w-3 h-3 mr-1" /> {t("Edit Booking")}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteBookingClick(booking.id)}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                        >
-                          <Trash2 className="w-3 h-3 mr-1" />{" "}
-                          {t("Delete Booking")}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {totalPages > 1 && (
-          <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200">
-            <button
-              onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </button>
-            <div className="flex items-center space-x-1">
-              {paginationRange.map((pageNumber, index) => {
-                if (typeof pageNumber === "string") {
-                  return (
-                    <span
-                      key={index}
-                      className="px-3 py-1 text-sm text-gray-400"
-                    >
-                      ...
-                    </span>
-                  );
-                }
-                return (
-                  <button
-                    key={index}
-                    onClick={() => paginate(pageNumber)}
-                    className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                      currentPage === pageNumber
-                        ? "bg-blue-600 text-white font-bold shadow-sm"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
-          </div>
-        )}
-      </div>
-
       {filteredBookings.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 bg-white rounded-2xl">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-12 h-12 text-gray-400" />
           </div>
@@ -988,9 +666,7 @@ export default function BookingPage() {
 
       <Modal
         isOpen={!!selectedBookingForPayment && !isPaymentModalOpen}
-        onClose={() => {
-          setSelectedBookingForPayment(null);
-        }}
+        onClose={() => setSelectedBookingForPayment(null)}
         title={t("managePayments")}
         size="xl"
         level={0}
@@ -1002,7 +678,7 @@ export default function BookingPage() {
                 {selectedBookingForPayment.clientNameFr}
               </h3>
               <button
-                onClick={() => handleAddPaymentClick(selectedBookingForPayment)}
+                onClick={() => handleAddPayment(selectedBookingForPayment)}
                 className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -1056,10 +732,7 @@ export default function BookingPage() {
                     <div className="flex space-x-2">
                       <button
                         onClick={() =>
-                          handleEditPaymentClick(
-                            selectedBookingForPayment,
-                            payment
-                          )
+                          handleEditPayment(selectedBookingForPayment, payment)
                         }
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
@@ -1067,7 +740,7 @@ export default function BookingPage() {
                       </button>
                       <button
                         onClick={() =>
-                          handleDeletePaymentClick(
+                          handleDeletePayment(
                             selectedBookingForPayment.id,
                             payment._id
                           )

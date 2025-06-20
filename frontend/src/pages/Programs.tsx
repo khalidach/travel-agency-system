@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Modal from "../components/Modal";
 import ProgramForm from "../components/ProgramForm";
+import ProgramsSkeleton from "../components/skeletons/ProgramsSkeleton"; // Import the skeleton
 import type { Program } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -115,9 +116,11 @@ export default function Programs() {
     }
   };
 
+  // --- UPDATED LOADING STATE ---
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <ProgramsSkeleton />;
   }
+
   if (isError) {
     return <div>Error loading programs.</div>;
   }

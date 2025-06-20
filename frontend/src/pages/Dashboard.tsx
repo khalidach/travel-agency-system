@@ -15,6 +15,7 @@ import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
 import type { Program, Booking } from "../context/models";
+import DashboardSkeleton from "../components/skeletons/DashboardSkeleton"; // Make sure you have this skeleton component
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -155,7 +156,7 @@ export default function Dashboard() {
   const pendingPayments = bookings.filter((b) => !b.isFullyPaid).length;
 
   if (isLoadingPrograms || isLoadingBookings) {
-    return <div>Loading...</div>;
+    return <DashboardSkeleton />;
   }
 
   if (isErrorPrograms || isErrorBookings) {
