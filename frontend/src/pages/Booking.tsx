@@ -219,7 +219,12 @@ export default function BookingPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [
+    filters.searchTerm,
+    filters.sortOrder,
+    filters.statusFilter,
+    filters.programFilter,
+  ]);
 
   // --- Memoized Calculations ---
   const filteredBookings = useMemo(
