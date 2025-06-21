@@ -1,46 +1,75 @@
-// backend/services/BookingService.js
+const ProgramPricingService = require("./ProgramPricingService"); // We need this to get pricing info
 
-/**
- * Retrieves a paginated list of bookings for a specific user.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} page - The current page.
- * @param {number} limit - The number of items per page.
- * @returns {Promise<{bookings: Array, totalCount: number}>} A promise that resolves to an object with bookings and the total count.
- */
-exports.getAllBookings = async (db, userId, page, limit) => {
-  const offset = (page - 1) * limit;
+const calculateBasePrice = async (
+  db,
+  userId,
+  tripId,
+  packageId,
+  selectedHotel
+) => {
+  const { rows: programs } = await db.query(
+    'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+    [tripId, userId]
+  );
+  if (programs.length === 0)
+    throw new Error("Program not found for base price calculation.");
+  const program = programs[0];
 
-  // Query for the paginated bookings
-  const bookingsPromise = db.query(
-    'SELECT * FROM bookings WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-    [userId, limit, offset]
+  const { rows: pricings } = await db.query(
+    'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
+    [tripId, userId]
+  );
+  if (pricings.length === 0) return 0; // Return 0 if no pricing is set up
+  const pricing = pricings[0];
+
+  const bookingPackage = (program.packages || []).find(
+    (p) => p.name === packageId
+  );
+  if (!bookingPackage) return 0;
+
+  const hotelCombination = (selectedHotel.hotelNames || []).join("_");
+  const priceStructure = (bookingPackage.prices || []).find(
+    (p) => p.hotelCombination === hotelCombination
+  );
+  if (!priceStructure) return 0;
+
+  const guestMap = new Map(
+    priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
   );
 
-  // Query for the total count of bookings
-  const totalCountPromise = db.query(
-    'SELECT COUNT(*) FROM bookings WHERE "userId" = $1',
-    [userId]
+  const hotelCosts = (selectedHotel.cities || []).reduce(
+    (total, city, index) => {
+      const hotelName = selectedHotel.hotelNames[index];
+      const roomTypeName = selectedHotel.roomTypes[index];
+      const hotelPricingInfo = (pricing.allHotels || []).find(
+        (h) => h.name === hotelName && h.city === city
+      );
+      const cityInfo = (program.cities || []).find((c) => c.name === city);
+
+      if (hotelPricingInfo && cityInfo && roomTypeName) {
+        const pricePerNight = Number(
+          hotelPricingInfo.PricePerNights?.[roomTypeName] || 0
+        );
+        const nights = Number(cityInfo.nights || 0);
+        const guests = Number(guestMap.get(roomTypeName) || 1);
+        if (guests > 0) {
+          return total + (pricePerNight * nights) / guests;
+        }
+      }
+      return total;
+    },
+    0
   );
 
-  const [bookingsResult, totalCountResult] = await Promise.all([
-    bookingsPromise,
-    totalCountPromise,
-  ]);
+  const ticketPrice = Number(pricing.ticketAirline || 0);
+  const visaPrice = Number(pricing.visaFees || 0);
+  const guidePrice = Number(pricing.guideFees || 0);
 
-  const totalCount = parseInt(totalCountResult.rows[0].count, 10);
-
-  return { bookings: bookingsResult.rows, totalCount };
+  return Math.round(ticketPrice + visaPrice + guidePrice + hotelCosts);
 };
 
-/**
- * Creates a new booking in the database.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user creating the booking.
- * @param {object} bookingData - The data for the new booking.
- * @returns {Promise<object>} A promise that resolves to the newly created booking.
- */
-exports.createBooking = async (db, userId, bookingData) => {
+const createBooking = async (db, user, bookingData) => {
+  const { role, id, adminId } = user;
   const {
     clientNameAr,
     clientNameFr,
@@ -50,22 +79,32 @@ exports.createBooking = async (db, userId, bookingData) => {
     packageId,
     selectedHotel,
     sellingPrice,
-    basePrice,
-    profit,
     advancePayments,
     relatedPersons,
   } = bookingData;
+
+  const basePrice = await calculateBasePrice(
+    db,
+    adminId,
+    tripId,
+    packageId,
+    selectedHotel
+  );
+  const profit = sellingPrice - basePrice;
+
   const totalPaid = (advancePayments || []).reduce(
     (sum, p) => sum + p.amount,
     0
   );
   const remainingBalance = sellingPrice - totalPaid;
   const isFullyPaid = remainingBalance <= 0;
+  const employeeId = role === "admin" ? null : id;
 
   const { rows } = await db.query(
-    'INSERT INTO bookings ("userId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW()) RETURNING *',
+    'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW()) RETURNING *',
     [
-      userId,
+      adminId,
+      employeeId,
       clientNameAr,
       clientNameFr,
       phoneNumber,
@@ -85,15 +124,7 @@ exports.createBooking = async (db, userId, bookingData) => {
   return rows[0];
 };
 
-/**
- * Updates an existing booking.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} bookingId - The ID of the booking to update.
- * @param {object} bookingData - The new data for the booking.
- * @returns {Promise<object>} A promise that resolves to the updated booking.
- */
-exports.updateBooking = async (db, userId, bookingId, bookingData) => {
+const updateBooking = async (db, user, bookingId, bookingData) => {
   const {
     clientNameAr,
     clientNameFr,
@@ -103,11 +134,19 @@ exports.updateBooking = async (db, userId, bookingId, bookingData) => {
     packageId,
     selectedHotel,
     sellingPrice,
-    basePrice,
-    profit,
     advancePayments,
     relatedPersons,
   } = bookingData;
+
+  const basePrice = await calculateBasePrice(
+    db,
+    user.adminId,
+    tripId,
+    packageId,
+    selectedHotel
+  );
+  const profit = sellingPrice - basePrice;
+
   const totalPaid = (advancePayments || []).reduce(
     (sum, p) => sum + p.amount,
     0
@@ -133,7 +172,7 @@ exports.updateBooking = async (db, userId, bookingId, bookingData) => {
       isFullyPaid,
       JSON.stringify(relatedPersons || []),
       bookingId,
-      userId,
+      user.adminId,
     ]
   );
   if (rows.length === 0) {
@@ -142,43 +181,59 @@ exports.updateBooking = async (db, userId, bookingId, bookingData) => {
   return rows[0];
 };
 
-/**
- * Deletes a booking from the database.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} bookingId - The ID of the booking to delete.
- * @returns {Promise<object>} A promise that resolves to a confirmation message.
- */
-exports.deleteBooking = async (db, userId, bookingId) => {
-  const { rowCount } = await db.query(
-    'DELETE FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, userId]
+// --- Other functions (getAllBookings, deleteBooking, payment functions) remain the same ---
+
+const getAllBookings = async (db, id, page, limit, idColumn) => {
+  const offset = (page - 1) * limit;
+  const bookingsPromise = db.query(
+    `SELECT * FROM bookings WHERE "${idColumn}" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
+    [id, limit, offset]
   );
+  const totalCountPromise = db.query(
+    `SELECT COUNT(*) FROM bookings WHERE "${idColumn}" = $1`,
+    [id]
+  );
+  const [bookingsResult, totalCountResult] = await Promise.all([
+    bookingsPromise,
+    totalCountPromise,
+  ]);
+  const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+  return { bookings: bookingsResult.rows, totalCount };
+};
+
+const deleteBooking = async (db, user, bookingId) => {
+  const { role, id, adminId } = user;
+  let query;
+  let params;
+
+  if (role === "employee") {
+    query = 'DELETE FROM bookings WHERE id = $1 AND "employeeId" = $2';
+    params = [bookingId, id];
+  } else {
+    query = 'DELETE FROM bookings WHERE id = $1 AND "userId" = $2';
+    params = [bookingId, adminId];
+  }
+
+  const { rowCount } = await db.query(query, params);
   if (rowCount === 0) {
     throw new Error("Booking not found or user not authorized");
   }
   return { message: "Booking deleted successfully" };
 };
 
-/**
- * Adds a payment to a booking.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} bookingId - The ID of the booking to add the payment to.
- * @param {object} paymentData - The payment details.
- * @returns {Promise<object>} A promise that resolves to the updated booking.
- */
-exports.addPayment = async (db, userId, bookingId, paymentData) => {
+const findBookingForUser = async (db, user, bookingId) => {
   const { rows } = await db.query(
     'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, userId]
+    [bookingId, user.adminId]
   );
-  if (rows.length === 0) throw new Error("Booking not found");
+  if (rows.length === 0) throw new Error("Booking not found or not authorized");
+  return rows[0];
+};
 
-  const booking = rows[0];
+const addPayment = async (db, user, bookingId, paymentData) => {
+  const booking = await findBookingForUser(db, user, bookingId);
   const newPayment = { ...paymentData, _id: new Date().getTime().toString() };
   const advancePayments = [...(booking.advancePayments || []), newPayment];
-
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
   const remainingBalance = booking.sellingPrice - totalPaid;
   const isFullyPaid = remainingBalance <= 0;
@@ -190,29 +245,8 @@ exports.addPayment = async (db, userId, bookingId, paymentData) => {
   return updatedRows[0];
 };
 
-/**
- * Updates a payment for a booking.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} bookingId - The ID of the booking.
- * @param {string} paymentId - The ID of the payment to update.
- * @param {object} paymentData - The new payment details.
- * @returns {Promise<object>} A promise that resolves to the updated booking.
- */
-exports.updatePayment = async (
-  db,
-  userId,
-  bookingId,
-  paymentId,
-  paymentData
-) => {
-  const { rows } = await db.query(
-    'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, userId]
-  );
-  if (rows.length === 0) throw new Error("Booking not found");
-
-  const booking = rows[0];
+const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
+  const booking = await findBookingForUser(db, user, bookingId);
   const advancePayments = (booking.advancePayments || []).map((p) =>
     p._id === paymentId ? { ...p, ...paymentData, _id: p._id } : p
   );
@@ -227,22 +261,8 @@ exports.updatePayment = async (
   return updatedRows[0];
 };
 
-/**
- * Deletes a payment from a booking.
- * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user.
- * @param {number} bookingId - The ID of the booking.
- * @param {string} paymentId - The ID of the payment to delete.
- * @returns {Promise<object>} A promise that resolves to the updated booking.
- */
-exports.deletePayment = async (db, userId, bookingId, paymentId) => {
-  const { rows } = await db.query(
-    'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, userId]
-  );
-  if (rows.length === 0) throw new Error("Booking not found");
-
-  const booking = rows[0];
+const deletePayment = async (db, user, bookingId, paymentId) => {
+  const booking = await findBookingForUser(db, user, bookingId);
   const advancePayments = (booking.advancePayments || []).filter(
     (p) => p._id !== paymentId
   );
@@ -255,4 +275,14 @@ exports.deletePayment = async (db, userId, bookingId, paymentId) => {
     [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId]
   );
   return updatedRows[0];
+};
+
+module.exports = {
+  getAllBookings,
+  createBooking,
+  updateBooking,
+  deleteBooking,
+  addPayment,
+  updatePayment,
+  deletePayment,
 };

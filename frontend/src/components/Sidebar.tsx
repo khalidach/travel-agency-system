@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuthContext } from "../context/AuthContext";
 import {
   BarChart3,
   Package,
@@ -7,19 +8,52 @@ import {
   TrendingUp,
   Plane,
   ShipWheel,
+  Users,
 } from "lucide-react";
 
-const menuItems = [
-  { key: "dashboard", path: "/", icon: BarChart3 },
-  { key: "programs", path: "/programs", icon: Package },
-  { key: "programPricing", path: "/program-pricing", icon: ShipWheel },
-  { key: "booking", path: "/booking", icon: Calendar },
-  { key: "profitReport", path: "/profit-report", icon: TrendingUp },
+const allMenuItems = [
+  {
+    key: "dashboard",
+    path: "/",
+    icon: BarChart3,
+    roles: ["admin", "manager", "employee"],
+  },
+  {
+    key: "programs",
+    path: "/programs",
+    icon: Package,
+    roles: ["admin", "manager", "employee"],
+  },
+  {
+    key: "programPricing",
+    path: "/program-pricing",
+    icon: ShipWheel,
+    roles: ["admin", "manager"],
+  },
+  {
+    key: "booking",
+    path: "/booking",
+    icon: Calendar,
+    roles: ["admin", "manager", "employee"],
+  },
+  {
+    key: "profitReport",
+    path: "/profit-report",
+    icon: TrendingUp,
+    roles: ["admin", "manager"],
+  },
+  { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
 ];
 
 export default function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { state } = useAuthContext();
+  const userRole = state.user?.role;
+
+  const menuItems = allMenuItems.filter((item) =>
+    item.roles.includes(userRole || "")
+  );
 
   return (
     <div className="w-64 bg-white shadow-xl border-r border-gray-100 flex flex-col">

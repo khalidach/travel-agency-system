@@ -3,6 +3,15 @@ export interface User {
   username: string;
   agencyName: string;
   token: string;
+  role: "admin" | "manager" | "employee";
+  adminId?: number;
+}
+
+export interface Employee {
+  id: number;
+  username: string;
+  role: "manager" | "employee";
+  adminId: number;
 }
 
 export interface CityData {
@@ -24,6 +33,8 @@ export interface Program {
   cities: CityData[];
   packages: Package[];
   roomTypes: RoomTypeDefinition[];
+  userId: number;
+  employeeId?: number;
 }
 
 export interface Package {
@@ -70,6 +81,8 @@ export interface Booking {
   profit: number;
   createdAt: string;
   relatedPersons?: RelatedPerson[];
+  userId: number;
+  employeeId?: number;
 }
 
 export interface Payment {

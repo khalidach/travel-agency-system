@@ -14,6 +14,7 @@ import type {
 } from "../context/models";
 import * as api from "../services/api";
 import { X } from "lucide-react";
+import { useAuthContext } from "../context/AuthContext";
 
 export type BookingFormData = Omit<
   Booking,
@@ -29,7 +30,6 @@ interface BookingFormProps {
   onCancel: () => void;
 }
 
-// Additional form state that's not part of the main form data
 interface FormState {
   search: string;
   showDropdown: boolean;
@@ -46,22 +46,23 @@ export default function BookingForm({
   onCancel,
 }: BookingFormProps) {
   const { t } = useTranslation();
+  const { state: authState } = useAuthContext();
+  const userRole = authState.user?.role;
 
   const { data: bookingResponse } = useQuery<PaginatedResponse<Booking>>({
     queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
+    queryFn: () => api.getBookings(1, 10000),
   });
   const allBookings = bookingResponse?.data ?? [];
 
   const { data: pricingResponse } = useQuery<PaginatedResponse<ProgramPricing>>(
     {
       queryKey: ["programPricing", "all"],
-      queryFn: () => api.getProgramPricing(1, 10000), // Fetch all pricing
+      queryFn: () => api.getProgramPricing(1, 10000),
     }
   );
   const programPricing = pricingResponse?.data ?? [];
 
-  // React Hook Form setup
   const {
     control,
     handleSubmit,
@@ -86,7 +87,6 @@ export default function BookingForm({
     },
   });
 
-  // Additional state that's not part of the main form
   const [formState, setFormState] = React.useState<FormState>({
     search: "",
     showDropdown: false,
@@ -96,12 +96,9 @@ export default function BookingForm({
     error: null,
   });
 
-  // Watch form values
   const watchedValues = watch();
-  const { tripId, packageId, selectedHotel, sellingPrice, basePrice } =
-    watchedValues;
+  const { selectedHotel, sellingPrice, basePrice } = watchedValues;
 
-  // Initialize form with booking data
   useEffect(() => {
     if (booking) {
       const program = programs.find(
@@ -112,7 +109,6 @@ export default function BookingForm({
         const pkg = (program.packages || []).find(
           (p) => p.name === booking.packageId
         );
-
         setFormState((prev) => ({
           ...prev,
           selectedProgram: program,
@@ -137,7 +133,6 @@ export default function BookingForm({
     }
   }, [booking, programs, reset]);
 
-  // Calculate total base price
   const calculateTotalBasePrice = React.useCallback((): number => {
     if (!formState.selectedProgram || !formState.selectedPriceStructure)
       return 0;
@@ -188,8 +183,9 @@ export default function BookingForm({
     programPricing,
   ]);
 
-  // Update base price when dependencies change
   useEffect(() => {
+    // Always calculate the base price and profit in the background.
+    // The UI will determine if these fields are shown.
     if (formState.selectedProgram && formState.selectedPriceStructure) {
       const newBasePrice = calculateTotalBasePrice();
       setValue("basePrice", newBasePrice);
@@ -204,7 +200,6 @@ export default function BookingForm({
     setValue,
   ]);
 
-  // Update price structure when hotel selection changes
   useEffect(() => {
     if (
       formState.selectedPackage &&
@@ -250,6 +245,13 @@ export default function BookingForm({
       }));
       return;
     }
+    // For employees, ensure basePrice and profit are not sent as part of their direct submission
+    // if there are any lingering client-side values. Backend should handle final calculation.
+    if (userRole === "employee") {
+      data.basePrice = calculateTotalBasePrice();
+      data.profit = data.sellingPrice - data.basePrice;
+    }
+
     onSave(data, booking?.advancePayments || []);
   };
 
@@ -652,24 +654,11 @@ export default function BookingForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Base Price")} (MAD)
-          </label>
-          <Controller
-            name="basePrice"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                readOnly
-              />
-            )}
-          />
-        </div>
+      <div
+        className={`grid grid-cols-1 ${
+          userRole !== "employee" ? "md:grid-cols-3" : ""
+        } gap-4`}
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("Selling Price")} (MAD)
@@ -683,7 +672,7 @@ export default function BookingForm({
                 {...field}
                 type="number"
                 onChange={(e) => {
-                  field.onChange(e);
+                  field.onChange(e.target.value);
                   handleSellingPriceChange(Number(e.target.value));
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -698,23 +687,45 @@ export default function BookingForm({
             </p>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Profit")} (MAD)
-          </label>
-          <Controller
-            name="profit"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                readOnly
+
+        {(userRole === "admin" || userRole === "manager") && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t("Base Price")} (MAD)
+              </label>
+              <Controller
+                name="basePrice"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                    readOnly
+                  />
+                )}
               />
-            )}
-          />
-        </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t("Profit")} (MAD)
+              </label>
+              <Controller
+                name="profit"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                    readOnly
+                  />
+                )}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex justify-end space-x-3 pt-6 border-t mt-6">

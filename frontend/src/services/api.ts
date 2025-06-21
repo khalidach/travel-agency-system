@@ -39,10 +39,10 @@ async function request(
     throw new Error(errorData.message || "Something went wrong");
   }
   if (returnsBlob) return response.blob();
+  if (response.status === 204) return; // For DELETE requests with no content
   return response.json();
 }
 
-// Add this new function
 export const refreshToken = async () => {
   return request("/auth/refresh", { method: "POST" });
 };
@@ -100,6 +100,18 @@ export const updatePayment = (
   });
 export const deletePayment = (bookingId: number, paymentId: string) =>
   request(`/bookings/${bookingId}/payments/${paymentId}`, { method: "DELETE" });
+
+// --- Employee API (New) ---
+export const getEmployees = () => request("/employees");
+export const createEmployee = (employeeData: any) =>
+  request("/employees", { method: "POST", body: JSON.stringify(employeeData) });
+export const updateEmployee = (id: number, employeeData: any) =>
+  request(`/employees/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(employeeData),
+  });
+export const deleteEmployee = (id: number) =>
+  request(`/employees/${id}`, { method: "DELETE" });
 
 // --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) =>

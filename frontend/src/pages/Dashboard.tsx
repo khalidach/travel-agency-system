@@ -10,15 +10,20 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
+  Wallet,
+  Receipt,
 } from "lucide-react";
 import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
 import type { Program, Booking, PaginatedResponse } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
+import { useAuthContext } from "../context/AuthContext";
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const { state } = useAuthContext();
+  const userRole = state.user?.role;
 
   const {
     data: programResponse,
@@ -26,7 +31,7 @@ export default function Dashboard() {
     isError: isErrorPrograms,
   } = useQuery<PaginatedResponse<Program>>({
     queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 10000), // Fetch all programs
+    queryFn: () => api.getPrograms(1, 10000),
   });
   const programs = programResponse?.data ?? [];
 
@@ -36,7 +41,7 @@ export default function Dashboard() {
     isError: isErrorBookings,
   } = useQuery<PaginatedResponse<Booking>>({
     queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
+    queryFn: () => api.getBookings(1, 10000),
   });
   const bookings = bookingResponse?.data ?? [];
 
@@ -46,63 +51,144 @@ export default function Dashboard() {
     end: "",
   });
 
-  const { totalBookings, totalRevenue, totalCost, totalProfit } =
-    useMemo(() => {
-      const now = new Date();
-      let startDate: Date;
-      let endDate: Date = endOfDay(now);
+  const dateFilteredStats = useMemo(() => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = endOfDay(now);
 
-      switch (dateFilter) {
-        case "today":
-          startDate = startOfDay(now);
-          break;
-        case "month":
-          startDate = startOfDay(subDays(now, 30));
-          break;
-        case "year":
-          startDate = startOfDay(subYears(now, 1));
-          break;
-        case "custom":
-          startDate = customDateRange.start
-            ? startOfDay(new Date(customDateRange.start))
-            : startOfDay(subDays(now, 7));
-          endDate = customDateRange.end
-            ? endOfDay(new Date(customDateRange.end))
-            : endOfDay(now);
-          break;
-        case "7days":
-        default:
-          startDate = startOfDay(subDays(now, 7));
-          break;
-      }
+    switch (dateFilter) {
+      case "today":
+        startDate = startOfDay(now);
+        break;
+      case "month":
+        startDate = startOfDay(subDays(now, 30));
+        break;
+      case "year":
+        startDate = startOfDay(subYears(now, 1));
+        break;
+      case "custom":
+        startDate = customDateRange.start
+          ? startOfDay(new Date(customDateRange.start))
+          : startOfDay(subDays(now, 7));
+        endDate = customDateRange.end
+          ? endOfDay(new Date(customDateRange.end))
+          : endOfDay(now);
+        break;
+      case "7days":
+      default:
+        startDate = startOfDay(subDays(now, 7));
+        break;
+    }
 
-      const filteredBookings = bookings.filter((booking) => {
-        const bookingDate = new Date(booking.createdAt);
-        return bookingDate >= startDate && bookingDate <= endDate;
-      });
+    const filteredBookings = bookings.filter((booking) => {
+      const bookingDate = new Date(booking.createdAt);
+      return bookingDate >= startDate && bookingDate <= endDate;
+    });
 
-      return {
-        totalBookings: filteredBookings.length,
-        totalRevenue: filteredBookings.reduce(
-          (sum, b) => sum + Number(b.sellingPrice),
+    const totalPaid = filteredBookings.reduce(
+      (sum, b) =>
+        sum +
+        (b.advancePayments || []).reduce(
+          (pSum, p) => pSum + Number(p.amount),
           0
         ),
-        totalCost: filteredBookings.reduce(
-          (sum, b) => sum + Number(b.basePrice),
-          0
-        ),
-        totalProfit: filteredBookings.reduce(
-          (sum, b) => sum + Number(b.profit),
-          0
-        ),
-      };
-    }, [bookings, dateFilter, customDateRange]);
+      0
+    );
+    const totalRevenue = filteredBookings.reduce(
+      (sum, b) => sum + Number(b.sellingPrice),
+      0
+    );
 
-  const metrics = [
-    { title: t("totalBookings"), value: totalBookings },
-    { title: t("totalRevenue"), value: `${totalRevenue.toLocaleString()} MAD` },
-    { title: "Total Costs", value: `${totalCost.toLocaleString()} MAD` },
-    { title: t("totalProfit"), value: `${totalProfit.toLocaleString()} MAD` },
+    return {
+      totalBookings: filteredBookings.length,
+      totalRevenue: totalRevenue,
+      totalCost: filteredBookings.reduce(
+        (sum, b) => sum + Number(b.basePrice),
+        0
+      ),
+      totalProfit: filteredBookings.reduce(
+        (sum, b) => sum + Number(b.profit),
+        0
+      ),
+      totalPaid: totalPaid,
+      totalRemaining: totalRevenue - totalPaid,
+    };
+  }, [bookings, dateFilter, customDateRange]);
+
+  const allTimeStats = useMemo(
+    () => ({
+      totalBookings: bookings.length,
+      totalRevenue: bookings.reduce(
+        (sum, b) => sum + Number(b.sellingPrice),
+        0
+      ),
+      totalProfit: bookings.reduce((sum, b) => sum + Number(b.profit), 0),
+      activePrograms: programs.length,
+    }),
+    [bookings, programs]
+  );
+
+  const topStats = [
+    {
+      title: t("totalBookings"),
+      value: allTimeStats.totalBookings,
+      icon: Users,
+      color: "bg-blue-500",
+      roles: ["admin", "manager", "employee"],
+    },
+    {
+      title: t("totalRevenue"),
+      value: `${allTimeStats.totalRevenue.toLocaleString()} MAD`,
+      icon: DollarSign,
+      color: "bg-emerald-500",
+      roles: ["admin", "manager"],
+    },
+    {
+      title: t("totalProfit"),
+      value: `${allTimeStats.totalProfit.toLocaleString()} MAD`,
+      icon: TrendingUp,
+      color: "bg-orange-500",
+      roles: ["admin", "manager"],
+    },
+    {
+      title: t("activePrograms"),
+      value: allTimeStats.activePrograms,
+      icon: Package,
+      color: "bg-purple-500",
+      roles: ["admin", "manager", "employee"],
+    },
+  ];
+
+  const visibleTopStats = topStats.filter((stat) =>
+    stat.roles.includes(userRole || "")
+  );
+
+  const adminManagerMetrics = [
+    { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+    {
+      title: t("totalRevenue"),
+      value: `${dateFilteredStats.totalRevenue.toLocaleString()} MAD`,
+    },
+    {
+      title: "Total Costs",
+      value: `${dateFilteredStats.totalCost.toLocaleString()} MAD`,
+    },
+    {
+      title: t("totalProfit"),
+      value: `${dateFilteredStats.totalProfit.toLocaleString()} MAD`,
+    },
+  ];
+
+  const employeeMetrics = [
+    { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+    {
+      title: "Total Paid",
+      value: `${dateFilteredStats.totalPaid.toLocaleString()} MAD`,
+    },
+    {
+      title: "Total Remaining",
+      value: `${dateFilteredStats.totalRemaining.toLocaleString()} MAD`,
+    },
   ];
 
   const programTypeData = [
@@ -120,37 +206,6 @@ export default function Dashboard() {
       name: "Tourism",
       value: programs.filter((p) => p.type === "Tourism").length,
       color: "#ea580c",
-    },
-  ];
-
-  const topStats = [
-    {
-      title: t("totalBookings"),
-      value: bookings.length,
-      icon: Users,
-      color: "bg-blue-500",
-    },
-    {
-      title: t("totalRevenue"),
-      value: `${bookings
-        .reduce((sum, b) => sum + Number(b.sellingPrice), 0)
-        .toLocaleString()} MAD`,
-      icon: DollarSign,
-      color: "bg-emerald-500",
-    },
-    {
-      title: t("totalProfit"),
-      value: `${bookings
-        .reduce((sum, b) => sum + Number(b.profit), 0)
-        .toLocaleString()} MAD`,
-      icon: TrendingUp,
-      color: "bg-orange-500",
-    },
-    {
-      title: t("activePrograms"),
-      value: programs.length,
-      icon: Package,
-      color: "bg-purple-500",
     },
   ];
 
@@ -174,8 +229,12 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {topStats.map((stat, index) => {
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+          userRole === "employee" ? "lg:grid-cols-2" : "lg:grid-cols-4"
+        }`}
+      >
+        {visibleTopStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
@@ -287,10 +346,12 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-
           <table className="w-full mt-4">
             <tbody>
-              {metrics.map((metric) => (
+              {(userRole === "admin" || userRole === "manager"
+                ? adminManagerMetrics
+                : employeeMetrics
+              ).map((metric) => (
                 <tr
                   key={metric.title}
                   className="border-b last:border-b-0 border-gray-100"
@@ -367,15 +428,17 @@ export default function Dashboard() {
                 Add Program
               </span>
             </Link>
-            <Link
-              to="/profit-report"
-              className="w-full flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <TrendingUp className="w-5 h-5 text-orange-500 mr-3" />
-              <span className="text-sm font-medium text-gray-700">
-                View Reports
-              </span>
-            </Link>
+            {(userRole === "admin" || userRole === "manager") && (
+              <Link
+                to="/profit-report"
+                className="w-full flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                <TrendingUp className="w-5 h-5 text-orange-500 mr-3" />
+                <span className="text-sm font-medium text-gray-700">
+                  View Reports
+                </span>
+              </Link>
+            )}
           </div>
         </div>
 

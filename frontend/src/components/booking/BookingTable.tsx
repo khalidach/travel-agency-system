@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
+import { useAuthContext } from "../../context/AuthContext";
 import {
   CreditCard,
   Edit2,
@@ -27,6 +28,8 @@ export default function BookingTable({
   onManagePayments,
 }: BookingTableProps) {
   const { t } = useTranslation();
+  const { state } = useAuthContext();
+  const userRole = state.user?.role;
 
   const getStatusColor = (isFullyPaid: boolean) =>
     isFullyPaid
@@ -151,12 +154,16 @@ export default function BookingTable({
                       Selling: {Number(booking.sellingPrice).toLocaleString()}{" "}
                       MAD
                     </div>
-                    <div className="text-sm text-gray-500">
-                      Base: {Number(booking.basePrice).toLocaleString()} MAD
-                    </div>
-                    <div className="text-sm text-emerald-600 font-medium">
-                      Profit: {Number(booking.profit).toLocaleString()} MAD
-                    </div>
+                    {(userRole === "admin" || userRole === "manager") && (
+                      <>
+                        <div className="text-sm text-gray-500">
+                          Base: {Number(booking.basePrice).toLocaleString()} MAD
+                        </div>
+                        <div className="text-sm text-emerald-600 font-medium">
+                          Profit: {Number(booking.profit).toLocaleString()} MAD
+                        </div>
+                      </>
+                    )}
                   </td>
                   <td className="px-6 py-4 align-top">
                     <div className="space-y-2">

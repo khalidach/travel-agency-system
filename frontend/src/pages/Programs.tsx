@@ -19,10 +19,13 @@ import type { Program, PaginatedResponse } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
+import { useAuthContext } from "../context/AuthContext";
 
 export default function Programs() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { state } = useAuthContext();
+  const currentUser = state.user;
   const [currentPage, setCurrentPage] = useState(1);
   const programsPerPage = 6;
 
@@ -39,7 +42,7 @@ export default function Programs() {
   const pagination = programResponse?.pagination;
 
   const { mutate: createProgram } = useMutation({
-    mutationFn: api.createProgram,
+    mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program created successfully!");
@@ -58,19 +61,19 @@ export default function Programs() {
       setIsModalOpen(false);
       setEditingProgram(null);
     },
-    onError: () => {
-      toast.error("Failed to update program.");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to update program.");
     },
   });
 
   const { mutate: deleteProgram } = useMutation({
-    mutationFn: api.deleteProgram,
+    mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program deleted successfully!");
     },
-    onError: () => {
-      toast.error("Failed to delete program.");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete program.");
     },
   });
 
@@ -181,72 +184,79 @@ export default function Programs() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPrograms.map((program) => (
-          <div
-            key={program.id}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {program.name}
-                </h3>
-                <span
-                  className={`inline-block px-3 py-1 text-sm font-medium rounded-full mt-2 ${getTypeColor(
-                    program.type
-                  )}`}
-                >
-                  {program.type}
-                </span>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => handleEditProgram(program)}
-                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteProgram(program.id)}
-                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center text-sm text-gray-600">
-                <Calendar className="w-4 h-4 mr-2" />
-                <span>{program.duration} days</span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <MapPin className="w-4 h-4 mr-2" />
-                <span>
-                  {program.cities.map((city) => city.name).join(", ")}
-                </span>
-              </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <Users className="w-4 h-4 mr-2" />
-                <span>
-                  {(program.packages ?? []).length} package
-                  {(program.packages ?? []).length !== 1 ? "s" : ""}
-                </span>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <div className="flex flex-wrap gap-2">
-                {(program.packages ?? []).map((pkg, index) => (
+        {filteredPrograms.map((program) => {
+          const canModify =
+            currentUser?.role === "admin" ||
+            currentUser?.id === program.employeeId;
+          return (
+            <div
+              key={program.id}
+              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {program.name}
+                  </h3>
                   <span
-                    key={index}
-                    className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
+                    className={`inline-block px-3 py-1 text-sm font-medium rounded-full mt-2 ${getTypeColor(
+                      program.type
+                    )}`}
                   >
-                    {pkg.name}
+                    {program.type}
                   </span>
-                ))}
+                </div>
+                {canModify && (
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleEditProgram(program)}
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProgram(program.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span>{program.duration} days</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <span>
+                    {program.cities.map((city) => city.name).join(", ")}
+                  </span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Users className="w-4 h-4 mr-2" />
+                  <span>
+                    {(program.packages ?? []).length} package
+                    {(program.packages ?? []).length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-wrap gap-2">
+                  {(program.packages ?? []).map((pkg, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
+                    >
+                      {pkg.name}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {pagination && pagination.totalPages > 1 && (

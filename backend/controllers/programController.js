@@ -2,18 +2,19 @@
 
 exports.getAllPrograms = async (req, res) => {
   try {
+    const { adminId } = req.user;
     const page = parseInt(req.query.page || "1", 10);
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
     const programsPromise = req.db.query(
       'SELECT * FROM programs WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [req.user.id, limit, offset]
+      [adminId, limit, offset]
     );
 
     const totalCountPromise = req.db.query(
       'SELECT COUNT(*) FROM programs WHERE "userId" = $1',
-      [req.user.id]
+      [adminId]
     );
 
     const [programsResult, totalCountResult] = await Promise.all([
@@ -40,11 +41,15 @@ exports.getAllPrograms = async (req, res) => {
 
 exports.createProgram = async (req, res) => {
   const { name, type, duration, cities, packages } = req.body;
+  const userId = req.user.adminId;
+  const employeeId = req.user.role !== "admin" ? req.user.id : null;
+
   try {
     const { rows } = await req.db.query(
-      'INSERT INTO programs ("userId", name, type, duration, cities, packages) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO programs ("userId", "employeeId", name, type, duration, cities, packages) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [
-        req.user.id,
+        userId,
+        employeeId,
         name,
         type,
         duration,
@@ -62,9 +67,32 @@ exports.createProgram = async (req, res) => {
 exports.updateProgram = async (req, res) => {
   const { id } = req.params;
   const { name, type, duration, cities, packages } = req.body;
+
   try {
+    const programResult = await req.db.query(
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [id, req.user.adminId]
+    );
+
+    if (programResult.rows.length === 0) {
+      return res
+        .status(404)
+        .json({
+          message: "Program not found or you are not authorized to access it.",
+        });
+    }
+
+    const program = programResult.rows[0];
+
+    // An admin can edit any program. An employee/manager can only edit their own.
+    if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "You can only edit programs that you have created." });
+    }
+
     const { rows } = await req.db.query(
-      'UPDATE programs SET name = $1, type = $2, duration = $3, cities = $4, packages = $5, "updatedAt" = NOW() WHERE id = $6 AND "userId" = $7 RETURNING *',
+      'UPDATE programs SET name = $1, type = $2, duration = $3, cities = $4, packages = $5, "updatedAt" = NOW() WHERE id = $6 RETURNING *',
       [
         name,
         type,
@@ -72,14 +100,8 @@ exports.updateProgram = async (req, res) => {
         JSON.stringify(cities),
         JSON.stringify(packages),
         id,
-        req.user.id,
       ]
     );
-    if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Program not found or user not authorized" });
-    }
     res.json(rows[0]);
   } catch (error) {
     console.error("Update Program Error:", error);
@@ -90,15 +112,32 @@ exports.updateProgram = async (req, res) => {
 exports.deleteProgram = async (req, res) => {
   const { id } = req.params;
   try {
-    const { rowCount } = await req.db.query(
-      'DELETE FROM programs WHERE id = $1 AND "userId" = $2',
-      [id, req.user.id]
+    const programResult = await req.db.query(
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [id, req.user.adminId]
     );
-    if (rowCount === 0) {
+
+    if (programResult.rows.length === 0) {
       return res
         .status(404)
-        .json({ message: "Program not found or user not authorized" });
+        .json({
+          message: "Program not found or you are not authorized to access it.",
+        });
     }
+
+    const program = programResult.rows[0];
+
+    // An admin can delete any program. An employee/manager can only delete their own.
+    if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
+      return res
+        .status(403)
+        .json({
+          message: "You can only delete programs that you have created.",
+        });
+    }
+
+    await req.db.query("DELETE FROM programs WHERE id = $1", [id]);
+
     res.json({ message: "Program deleted successfully" });
   } catch (error) {
     console.error("Delete Program Error:", error);

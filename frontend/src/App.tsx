@@ -20,11 +20,13 @@ const Programs = lazy(() => import("./pages/Programs"));
 const Booking = lazy(() => import("./pages/Booking"));
 const ProfitReport = lazy(() => import("./pages/ProfitReport"));
 const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
+const EmployeesPage = lazy(() => import("./pages/Employees")); // New
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
   const { state } = useAuthContext();
+  const userRole = state.user?.role;
 
   // Logout user after 1 hour of inactivity
   const IDLE_TIMEOUT = 60 * 60 * 1000;
@@ -58,13 +60,23 @@ function AppRoutes() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/programs" element={<Programs />} />
-                  <Route path="/program-pricing" element={<ProgramPricing />} />
+                  {(userRole === "admin" || userRole === "manager") && (
+                    <Route
+                      path="/program-pricing"
+                      element={<ProgramPricing />}
+                    />
+                  )}
                   <Route path="/booking" element={<Booking />} />
                   <Route
                     path="/booking/program/:programId"
                     element={<Booking />}
                   />
-                  <Route path="/profit-report" element={<ProfitReport />} />
+                  {(userRole === "admin" || userRole === "manager") && (
+                    <Route path="/profit-report" element={<ProfitReport />} />
+                  )}
+                  {userRole === "admin" && (
+                    <Route path="/employees" element={<EmployeesPage />} />
+                  )}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

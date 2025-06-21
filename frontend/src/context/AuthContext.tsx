@@ -33,6 +33,7 @@ const initialState: AuthState = {
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case "LOGIN":
+    case "REFRESH_TOKEN":
       localStorage.setItem("user", JSON.stringify(action.payload));
       return {
         ...state,
@@ -40,9 +41,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         user: action.payload,
         loading: false,
       };
-    case "REFRESH_TOKEN":
-      localStorage.setItem("user", JSON.stringify(action.payload));
-      return { ...state, user: action.payload };
     case "LOGOUT":
       localStorage.removeItem("user");
       return {

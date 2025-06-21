@@ -13,6 +13,7 @@ const authRoutes = require("./routes/authRoutes");
 const programRoutes = require("./routes/programRoutes");
 const programPricingRoutes = require("./routes/programPricingRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
+const employeeRoutes = require("./routes/employeeRoutes"); // New
 
 const app = express();
 
@@ -22,7 +23,7 @@ app.use(express.json());
 
 // Connect to PostgreSQL
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Rename this to SUPABASE_URL in your .env
+  connectionString: process.env.DATABASE_URL,
 });
 
 pool
@@ -42,6 +43,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
 app.use("/api/bookings", protect, bookingRoutes);
+app.use("/api/employees", protect, employeeRoutes); // New
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
