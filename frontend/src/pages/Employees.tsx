@@ -6,6 +6,7 @@ import Modal from "../components/Modal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Employee, Booking, PaginatedResponse } from "../context/models";
+import { useAuthContext } from "../context/AuthContext";
 
 // Form for adding/editing an employee
 const EmployeeForm = ({
@@ -99,6 +100,7 @@ const EmployeeForm = ({
 export default function EmployeesPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { state } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -137,7 +139,9 @@ export default function EmployeesPage() {
       toast.success("Employee created successfully!");
       setIsModalOpen(false);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create employee.");
+    },
   });
 
   const { mutate: updateEmployee } = useMutation({
@@ -184,18 +188,28 @@ export default function EmployeesPage() {
     }
   };
 
+  const employeeLimit = state.user?.totalEmployees ?? 2;
+  const canAddEmployee = employees.length < employeeLimit;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
           <p className="text-gray-600 mt-2">
-            Manage your agency's staff and roles.
+            Manage your agency's staff and roles. You can create up to{" "}
+            {employeeLimit} employees.
           </p>
         </div>
         <button
           onClick={openAddModal}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
+          disabled={!canAddEmployee}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+          title={
+            !canAddEmployee
+              ? `Employee limit of ${employeeLimit} reached`
+              : "Add a new employee"
+          }
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Employee

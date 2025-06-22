@@ -1,10 +1,14 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-const generateToken = (id, role, adminId) => {
-  return jwt.sign({ id, role, adminId }, process.env.JWT_SECRET, {
-    expiresIn: "1h",
-  });
+const generateToken = (id, role, adminId, totalEmployees) => {
+  return jwt.sign(
+    { id, role, adminId, totalEmployees },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "1h",
+    }
+  );
 };
 
 const loginUser = async (req, res) => {
@@ -23,7 +27,8 @@ const loginUser = async (req, res) => {
           username: user.username,
           agencyName: user.agencyName,
           role: "admin", // Admins are in the users table
-          token: generateToken(user.id, "admin", user.id),
+          totalEmployees: user.totalEmployees,
+          token: generateToken(user.id, "admin", user.id, user.totalEmployees),
         });
       }
     }
@@ -37,18 +42,25 @@ const loginUser = async (req, res) => {
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
       const adminResult = await req.db.query(
-        'SELECT "agencyName" FROM users WHERE id = $1',
+        'SELECT "agencyName", "totalEmployees" FROM users WHERE id = $1',
         [employee.adminId]
       );
 
       if (await bcrypt.compare(password, employee.password)) {
+        const adminData = adminResult.rows[0] || {};
         return res.json({
           id: employee.id,
           username: employee.username,
-          agencyName: adminResult.rows[0]?.agencyName || "Agency",
+          agencyName: adminData.agencyName || "Agency",
           role: employee.role,
           adminId: employee.adminId,
-          token: generateToken(employee.id, employee.role, employee.adminId),
+          totalEmployees: adminData.totalEmployees,
+          token: generateToken(
+            employee.id,
+            employee.role,
+            employee.adminId,
+            adminData.totalEmployees
+          ),
         });
       }
     }
@@ -62,14 +74,15 @@ const loginUser = async (req, res) => {
 };
 
 const refreshToken = async (req, res) => {
-  const { id, role, adminId, agencyName } = req.user;
+  const { id, role, adminId, agencyName, totalEmployees } = req.user;
   res.json({
     id,
     username: req.user.username,
     agencyName,
     role,
     adminId,
-    token: generateToken(id, role, adminId),
+    totalEmployees,
+    token: generateToken(id, role, adminId, totalEmployees),
   });
 };
 

@@ -20,7 +20,7 @@ const protect = async (req, res, next) => {
       // Attach full user/employee details for convenience in other routes
       if (decoded.role === "admin") {
         const { rows } = await req.db.query(
-          'SELECT id, username, "agencyName" FROM users WHERE id = $1',
+          'SELECT id, username, "agencyName", "totalEmployees" FROM users WHERE id = $1',
           [decoded.id]
         );
         if (rows.length > 0) req.user = { ...req.user, ...rows[0] };
@@ -31,13 +31,14 @@ const protect = async (req, res, next) => {
         );
         if (rows.length > 0) {
           const adminRes = await req.db.query(
-            'SELECT "agencyName" FROM users WHERE id = $1',
+            'SELECT "agencyName", "totalEmployees" FROM users WHERE id = $1',
             [rows[0].adminId]
           );
           req.user = {
             ...req.user,
             ...rows[0],
             agencyName: adminRes.rows[0]?.agencyName,
+            totalEmployees: adminRes.rows[0]?.totalEmployees,
           };
         }
       }

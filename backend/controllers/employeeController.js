@@ -13,6 +13,27 @@ exports.createEmployee = async (req, res) => {
   }
 
   try {
+    // Check employee limit by fetching the admin's specific limit from the users table
+    const adminUser = await req.db.query(
+      'SELECT "totalEmployees" FROM users WHERE id = $1',
+      [adminId]
+    );
+    // Default to 2 if the column is somehow null
+    const employeeLimit = adminUser.rows[0]?.totalEmployees ?? 2;
+
+    const countResult = await req.db.query(
+      'SELECT COUNT(*) FROM employees WHERE "adminId" = $1',
+      [adminId]
+    );
+    const employeeCount = parseInt(countResult.rows[0].count, 10);
+
+    // Enforce the dynamic limit per admin
+    if (employeeCount >= employeeLimit) {
+      return res
+        .status(403)
+        .json({ message: `You can only create ${employeeLimit} employees.` });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 

@@ -5,6 +5,7 @@ export interface User {
   token: string;
   role: "admin" | "manager" | "employee";
   adminId?: number;
+  totalEmployees?: number;
 }
 
 export interface Employee {
