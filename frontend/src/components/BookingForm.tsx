@@ -270,6 +270,7 @@ export default function BookingForm({
     setValue("tripId", programIdStr);
     setValue("packageId", "");
     setValue("selectedHotel", { cities: [], hotelNames: [], roomTypes: [] });
+    setValue("relatedPersons", []); // Clear related people on program change
   };
 
   const handlePackageChange = (packageName: string) => {
@@ -319,16 +320,33 @@ export default function BookingForm({
   };
 
   const availablePeople = useMemo(() => {
+    if (!formState.selectedProgram) {
+      return [];
+    }
+
+    const programBookings = allBookings.filter(
+      (b) => b.tripId === formState.selectedProgram?.id.toString()
+    );
+
     const selectedIDs = new Set(
       (watchedValues.relatedPersons || []).map((p) => p.ID)
     );
-    if (booking) selectedIDs.add(booking.id);
-    return allBookings.filter(
+    if (booking) {
+      selectedIDs.add(booking.id);
+    }
+
+    return programBookings.filter(
       (b) =>
         !selectedIDs.has(b.id) &&
         b.clientNameFr.toLowerCase().includes(formState.search.toLowerCase())
     );
-  }, [allBookings, watchedValues.relatedPersons, formState.search, booking]);
+  }, [
+    allBookings,
+    watchedValues.relatedPersons,
+    formState.search,
+    booking,
+    formState.selectedProgram,
+  ]);
 
   const addRelatedPerson = (person: Booking) => {
     const newPerson: RelatedPerson = {
@@ -455,67 +473,6 @@ export default function BookingForm({
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Related People")}
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={formState.search}
-            onChange={(e) => {
-              setFormState((prev) => ({
-                ...prev,
-                search: e.target.value,
-                showDropdown: true,
-              }));
-            }}
-            onFocus={() =>
-              setFormState((prev) => ({ ...prev, showDropdown: true }))
-            }
-            onBlur={() =>
-              setTimeout(
-                () =>
-                  setFormState((prev) => ({ ...prev, showDropdown: false })),
-                200
-              )
-            }
-            placeholder="Search for a client to add..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-          />
-          {formState.showDropdown && availablePeople.length > 0 && (
-            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
-              {availablePeople.map((person) => (
-                <li
-                  key={person.id}
-                  onClick={() => addRelatedPerson(person)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {person.clientNameFr} ({person.passportNumber})
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(watchedValues.relatedPersons || []).map((person) => (
-            <div
-              key={person.ID}
-              className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-            >
-              <span>{person.clientName}</span>
-              <button
-                type="button"
-                onClick={() => removeRelatedPerson(person.ID)}
-                className="ml-2 text-blue-600 hover:text-blue-800"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -579,6 +536,72 @@ export default function BookingForm({
               {errors.packageId.message}
             </p>
           )}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {t("Related People")}
+        </label>
+        <div className="relative">
+          <input
+            type="text"
+            value={formState.search}
+            onChange={(e) => {
+              setFormState((prev) => ({
+                ...prev,
+                search: e.target.value,
+                showDropdown: true,
+              }));
+            }}
+            onFocus={() =>
+              setFormState((prev) => ({ ...prev, showDropdown: true }))
+            }
+            onBlur={() =>
+              setTimeout(
+                () =>
+                  setFormState((prev) => ({ ...prev, showDropdown: false })),
+                200
+              )
+            }
+            placeholder={
+              formState.selectedProgram
+                ? "Search for a client to add..."
+                : "Select a program first"
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+            disabled={!formState.selectedProgram}
+          />
+          {formState.showDropdown && availablePeople.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
+              {availablePeople.map((person) => (
+                <li
+                  key={person.id}
+                  onClick={() => addRelatedPerson(person)}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  {person.clientNameFr} ({person.passportNumber})
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(watchedValues.relatedPersons || []).map((person) => (
+            <div
+              key={person.ID}
+              className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
+            >
+              <span>{person.clientName}</span>
+              <button
+                type="button"
+                onClick={() => removeRelatedPerson(person.ID)}
+                className="ml-2 text-blue-600 hover:text-blue-800"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
