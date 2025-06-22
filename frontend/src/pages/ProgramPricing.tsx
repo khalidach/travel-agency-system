@@ -188,7 +188,7 @@ export default function ProgramPricingPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
+    <div className=" mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">{t("programPricing")}</h1>
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
