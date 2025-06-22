@@ -20,7 +20,8 @@ const Programs = lazy(() => import("./pages/Programs"));
 const Booking = lazy(() => import("./pages/Booking"));
 const ProfitReport = lazy(() => import("./pages/ProfitReport"));
 const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
-const EmployeesPage = lazy(() => import("./pages/Employees")); // New
+const EmployeesPage = lazy(() => import("./pages/Employees"));
+const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis")); // New
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 
 // A wrapper component to decide which view to show based on auth state
@@ -75,7 +76,13 @@ function AppRoutes() {
                     <Route path="/profit-report" element={<ProfitReport />} />
                   )}
                   {userRole === "admin" && (
-                    <Route path="/employees" element={<EmployeesPage />} />
+                    <>
+                      <Route path="/employees" element={<EmployeesPage />} />
+                      <Route
+                        path="/employees/:username"
+                        element={<EmployeeAnalysisPage />}
+                      />
+                    </>
                   )}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

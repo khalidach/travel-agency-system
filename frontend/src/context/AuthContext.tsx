@@ -21,7 +21,8 @@ type AuthAction =
   | { type: "LOGOUT" }
   | { type: "SET_LOADING"; payload: boolean };
 
-const userFromStorage = localStorage.getItem("user");
+// Use sessionStorage to ensure session is cleared when the tab is closed.
+const userFromStorage = sessionStorage.getItem("user");
 const initialUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
 const initialState: AuthState = {
@@ -34,7 +35,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case "LOGIN":
     case "REFRESH_TOKEN":
-      localStorage.setItem("user", JSON.stringify(action.payload));
+      // Use sessionStorage to store user data for the current session.
+      sessionStorage.setItem("user", JSON.stringify(action.payload));
       return {
         ...state,
         isAuthenticated: true,
@@ -42,7 +44,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         loading: false,
       };
     case "LOGOUT":
-      localStorage.removeItem("user");
+      // Remove user data from sessionStorage on logout.
+      sessionStorage.removeItem("user");
       return {
         ...initialState,
         isAuthenticated: false,

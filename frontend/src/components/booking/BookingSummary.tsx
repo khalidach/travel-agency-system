@@ -68,7 +68,7 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
       ? "grid-cols-1 sm:grid-cols-3"
       : userRole === "manager"
       ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-      : "";
+      : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
 
   return (
     <div className={`grid ${gridClasses} gap-4 text-center`}>

@@ -20,7 +20,8 @@ async function request(
   options: RequestInit = {},
   returnsBlob = false
 ) {
-  const userStr = localStorage.getItem("user");
+  // Use sessionStorage to get user data for the current session.
+  const userStr = sessionStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
   const headers = {
     "Content-Type": "application/json",
@@ -122,7 +123,7 @@ export const exportBookingTemplate = () =>
 export const importBookings = (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
-  const userStr = localStorage.getItem("user");
+  const userStr = sessionStorage.getItem("user");
   const user = userStr ? JSON.parse(userStr) : null;
   const headers: Record<string, string> = {};
   if (user && user.token) {

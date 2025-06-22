@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, Users, Briefcase, Hash } from "lucide-react";
 import Modal from "../components/Modal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Employee, Booking, PaginatedResponse } from "../context/models";
+
 // Form for adding/editing an employee
 const EmployeeForm = ({
   employee,
@@ -96,6 +98,7 @@ const EmployeeForm = ({
 
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
@@ -177,12 +180,14 @@ export default function EmployeesPage() {
     setIsModalOpen(true);
   };
 
-  const openEditModal = (employee: Employee) => {
+  const openEditModal = (e: React.MouseEvent, employee: Employee) => {
+    e.stopPropagation();
     setEditingEmployee(employee);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this employee?")) {
       deleteEmployee(id);
     }
@@ -240,7 +245,11 @@ export default function EmployeesPage() {
               </tr>
             ) : (
               employees.map((emp) => (
-                <tr key={emp.id}>
+                <tr
+                  key={emp.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => navigate(`/employees/${emp.username}`)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Users className="w-5 h-5 text-gray-400 mr-3" />
@@ -272,13 +281,13 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => openEditModal(emp)}
+                        onClick={(e) => openEditModal(e, emp)}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(emp.id)}
+                        onClick={(e) => handleDelete(e, emp.id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
