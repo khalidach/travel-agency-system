@@ -85,6 +85,7 @@ export interface Booking {
   relatedPersons?: RelatedPerson[];
   userId: number;
   employeeId?: number;
+  employeeName?: string;
 }
 
 export interface Payment {

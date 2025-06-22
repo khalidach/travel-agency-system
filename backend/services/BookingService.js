@@ -206,7 +206,12 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 const getAllBookings = async (db, id, page, limit, idColumn) => {
   const offset = (page - 1) * limit;
   const bookingsPromise = db.query(
-    `SELECT * FROM bookings WHERE "${idColumn}" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3`,
+    `SELECT b.*, e.username as "employeeName"
+     FROM bookings b
+     LEFT JOIN employees e ON b."employeeId" = e.id
+     WHERE b."${idColumn}" = $1
+     ORDER BY b."createdAt" DESC
+     LIMIT $2 OFFSET $3`,
     [id, limit, offset]
   );
   const totalCountPromise = db.query(

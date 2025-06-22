@@ -10,6 +10,7 @@ import {
   Users,
   MapPin,
   Hotel,
+  Briefcase,
 } from "lucide-react";
 
 interface BookingTableProps {
@@ -112,6 +113,13 @@ export default function BookingTable({
                           <span className="font-medium">Tel:</span>{" "}
                           {booking.phoneNumber}
                         </div>
+                        {(userRole === "admin" || userRole === "manager") &&
+                          booking.employeeName && (
+                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <Briefcase className="w-3 h-3 mr-1 text-gray-400" />
+                              <span>Added by: {booking.employeeName}</span>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </td>

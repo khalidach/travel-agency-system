@@ -1,13 +1,10 @@
 import React, { useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Edit2, Trash2, Users, Briefcase, Hash } from "lucide-react";
 import Modal from "../components/Modal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Employee, Booking, PaginatedResponse } from "../context/models";
-import { useAuthContext } from "../context/AuthContext";
-
 // Form for adding/editing an employee
 const EmployeeForm = ({
   employee,
@@ -98,9 +95,7 @@ const EmployeeForm = ({
 };
 
 export default function EmployeesPage() {
-  const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { state } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
