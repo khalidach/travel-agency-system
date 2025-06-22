@@ -128,7 +128,7 @@ exports.deletePayment = async (req, res) => {
 exports.exportBookingsToExcel = async (req, res) => {
   try {
     const { programId } = req.params;
-    const { adminId } = req.user;
+    const { adminId, role } = req.user; // Destructure role from user object
 
     if (!programId || programId === "all") {
       return res
@@ -154,9 +154,11 @@ exports.exportBookingsToExcel = async (req, res) => {
       return res.status(404).json({ message: "Program not found." });
     }
 
+    // Pass the user's role to the Excel generation service
     const workbook = await ExcelService.generateBookingsExcel(
       bookings,
-      programs[0]
+      programs[0],
+      role // Pass the role
     );
 
     const fileName = `${programs[0].name.replace(/\s/g, "_")}_bookings.xlsx`;

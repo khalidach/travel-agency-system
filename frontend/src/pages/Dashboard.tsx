@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
@@ -10,8 +10,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  Wallet,
-  Receipt,
 } from "lucide-react";
 import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
 import * as api from "../services/api";

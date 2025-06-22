@@ -16,18 +16,19 @@ const sanitizeName = (name) => {
 };
 
 /**
- * Generates an Excel workbook with booking data.
+ * Generates an Excel workbook with booking data based on user role.
  * @param {Array<object>} bookings - The list of bookings.
  * @param {object} program - The program associated with the bookings.
+ * @param {string} userRole - The role of the user requesting the export ('admin', 'manager', 'employee').
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
-exports.generateBookingsExcel = async (bookings, program) => {
+exports.generateBookingsExcel = async (bookings, program, userRole) => {
   const workbook = new excel.Workbook();
   const worksheet = workbook.addWorksheet("Bookings", {
     views: [{ rightToLeft: false }],
   });
 
-  worksheet.columns = [
+  const allColumns = [
     { header: "ID", key: "id" },
     { header: "Prenom/Nom", key: "clientNameFr" },
     { header: "الاسم/النسب", key: "clientNameAr" },
@@ -42,6 +43,15 @@ exports.generateBookingsExcel = async (bookings, program) => {
     { header: "Payé", key: "paid" },
     { header: "Reste", key: "remaining" },
   ];
+
+  // Filter columns based on the user's role
+  worksheet.columns = allColumns.filter((col) => {
+    if (userRole === "admin") {
+      return true; // Admin sees all columns
+    }
+    // Non-admins do not see 'basePrice' or 'profit'
+    return col.key !== "basePrice" && col.key !== "profit";
+  });
 
   const headerRow = worksheet.getRow(1);
   headerRow.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
@@ -80,7 +90,7 @@ exports.generateBookingsExcel = async (bookings, program) => {
       mergeStartRow = currentRowNum;
     }
 
-    const row = worksheet.addRow({
+    const rowData = {
       id: index + 1,
       clientNameFr: booking.clientNameFr,
       clientNameAr: booking.clientNameAr,
@@ -89,12 +99,18 @@ exports.generateBookingsExcel = async (bookings, program) => {
       packageId: booking.packageId,
       hotels: (booking.selectedHotel.hotelNames || []).join(", "),
       roomType: (booking.selectedHotel.roomTypes || []).join(", "),
-      basePrice: Number(booking.basePrice),
       sellingPrice: Number(booking.sellingPrice),
-      profit: Number(booking.profit),
       paid: totalPaid,
       remaining: Number(booking.remainingBalance),
-    });
+    };
+
+    // Only add cost and profit for admins
+    if (userRole === "admin") {
+      rowData.basePrice = Number(booking.basePrice);
+      rowData.profit = Number(booking.profit);
+    }
+
+    const row = worksheet.addRow(rowData);
 
     row.font = { size: 12 };
     row.height = 25;
@@ -108,11 +124,12 @@ exports.generateBookingsExcel = async (bookings, program) => {
         right: { style: "thin", color: { argb: "FFDDDDDD" } },
       };
       const columnKey = worksheet.getColumn(cell.col).key;
-      if (
-        ["basePrice", "sellingPrice", "profit", "paid", "remaining"].includes(
-          columnKey
-        )
-      ) {
+      const priceColumns = ["sellingPrice", "paid", "remaining"];
+      if (userRole === "admin") {
+        priceColumns.push("basePrice", "profit");
+      }
+
+      if (priceColumns.includes(columnKey)) {
         cell.numFmt = '#,##0.00 "MAD"';
       }
     });
@@ -132,52 +149,62 @@ exports.generateBookingsExcel = async (bookings, program) => {
 
   const totalsRow = worksheet.addRow({});
   const totalRowNumber = totalsRow.number;
-  worksheet.mergeCells(`A${totalRowNumber}:H${totalRowNumber}`);
-  const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
-  totalLabelCell.value = "Total";
-  totalLabelCell.font = { bold: true, size: 14 };
-  totalLabelCell.alignment = { vertical: "middle", horizontal: "center" };
 
-  worksheet.getCell(`I${totalRowNumber}`).value = {
-    formula: `SUM(I2:I${lastDataRowNumber})`,
-  };
-  worksheet.getCell(`J${totalRowNumber}`).value = {
-    formula: `SUM(J2:J${lastDataRowNumber})`,
-  };
-  worksheet.getCell(`K${totalRowNumber}`).value = {
-    formula: `SUM(K2:K${lastDataRowNumber})`,
-  };
-  worksheet.getCell(`L${totalRowNumber}`).value = {
-    formula: `SUM(L2:L${lastDataRowNumber})`,
-  };
-  worksheet.getCell(`M${totalRowNumber}`).value = {
-    formula: `SUM(M2:M${lastDataRowNumber})`,
-  };
+  const totalColumnsKeys = ["sellingPrice", "paid", "remaining"];
+  if (userRole === "admin") {
+    totalColumnsKeys.push("basePrice", "profit");
+  }
 
-  totalsRow.font = { bold: true, size: 14 };
-  totalsRow.height = 30;
-  ["I", "J", "K", "L", "M"].forEach((col) => {
-    const cell = worksheet.getCell(`${col}${totalRowNumber}`);
-    cell.numFmt = '#,##0.00 "MAD"';
-    cell.alignment = { vertical: "middle", horizontal: "center" };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFD3D3D3" },
-    };
+  // Find the column letter of the first column that gets a total
+  const firstTotalCol = worksheet.columns.find((c) =>
+    totalColumnsKeys.includes(c.key)
+  );
+  if (firstTotalCol) {
+    const firstTotalColLetter = firstTotalCol.letter;
+
+    // Merge cells up to the one before the first total column
+    worksheet.mergeCells(
+      `A${totalRowNumber}:${String.fromCharCode(
+        firstTotalColLetter.charCodeAt(0) - 1
+      )}${totalRowNumber}`
+    );
+
+    const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
+    totalLabelCell.value = "Total";
+    totalLabelCell.font = { bold: true, size: 14 };
+    totalLabelCell.alignment = { vertical: "middle", horizontal: "center" };
+  }
+
+  totalColumnsKeys.forEach((key) => {
+    const col = worksheet.getColumn(key);
+    if (col) {
+      const colLetter = col.letter;
+      const cell = worksheet.getCell(`${colLetter}${totalRowNumber}`);
+      cell.value = {
+        formula: `SUM(${colLetter}2:${colLetter}${lastDataRowNumber})`,
+      };
+      cell.numFmt = '#,##0.00 "MAD"';
+      cell.font = { bold: true, size: 14 };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD3D3D3" },
+      };
+    }
   });
+
+  totalsRow.height = 30;
 
   const MIN_WIDTH = 18;
   const PADDING = 5;
 
   worksheet.columns.forEach((column) => {
-    const priceColumns = [
-      "basePrice",
-      "sellingPrice",
-      "profit",
-      "paid",
-      "remaining",
-    ];
+    const priceColumns = ["sellingPrice", "paid", "remaining"];
+    if (userRole === "admin") {
+      priceColumns.push("basePrice", "profit");
+    }
+
     if (priceColumns.includes(column.key)) {
       column.width = 22;
     } else {
@@ -385,8 +412,10 @@ exports.generateBookingTemplateExcel = async (programs) => {
  * @param {object} db - The database connection pool.
  * @returns {Promise<object>} A promise that resolves to a success message.
  */
-exports.parseBookingsFromExcel = async (file, userId, db) => {
+exports.parseBookingsFromExcel = async (file, user, db) => {
+  // Changed userId to user
   const client = await db.connect();
+  const userId = user.adminId; // Use adminId for consistency
   try {
     await client.query("BEGIN");
     const workbook = new excel.Workbook();
@@ -489,6 +518,7 @@ exports.parseBookingsFromExcel = async (file, userId, db) => {
 
       bookingsToCreate.push({
         userId: userId,
+        employeeId: user.role === "admin" ? null : user.id, // Set employeeId if not admin
         clientNameAr: rowData["Client Name (Arabic)"],
         clientNameFr: rowData["Client Name (French)"],
         phoneNumber: rowData["Phone Number"],
@@ -508,9 +538,10 @@ exports.parseBookingsFromExcel = async (file, userId, db) => {
 
     for (const booking of bookingsToCreate) {
       await client.query(
-        'INSERT INTO bookings ("userId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)',
         [
           booking.userId,
+          booking.employeeId,
           booking.clientNameAr,
           booking.clientNameFr,
           booking.phoneNumber,
