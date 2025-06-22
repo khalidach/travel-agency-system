@@ -36,6 +36,55 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
+exports.getBookingsByProgram = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "10000", 10); // Default to a high limit
+    const { role, id, adminId } = req.user;
+
+    let query = `
+            SELECT b.*, e.username as "employeeName"
+            FROM bookings b
+            LEFT JOIN employees e ON b."employeeId" = e.id
+            WHERE b."userId" = $1 AND b."tripId" = $2
+        `;
+    const params = [adminId, programId];
+
+    if (role === "employee") {
+      query += ` AND b."employeeId" = $3`;
+      params.push(id);
+    }
+
+    const countQuery = `SELECT COUNT(*) FROM (${query}) as count_table`;
+    const totalCountResult = await req.db.query(countQuery, params);
+    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+
+    const offset = (page - 1) * limit;
+
+    // Add limit and offset to params array dynamically
+    const limitParamIndex = params.length + 1;
+    const offsetParamIndex = params.length + 2;
+    query += ` ORDER BY b."createdAt" DESC LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`;
+    params.push(limit, offset);
+
+    const { rows: bookings } = await req.db.query(query, params);
+
+    res.json({
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Get Bookings By Program Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.createBooking = async (req, res) => {
   try {
     const newBooking = await BookingService.createBooking(

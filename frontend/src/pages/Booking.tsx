@@ -1,86 +1,40 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import {
-  Plus,
-  CreditCard,
-  Edit2,
-  Trash2,
-  Download,
-  Upload,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-} from "lucide-react";
+import { Plus, Download, Upload, Calendar } from "lucide-react";
 
-// Components and Hooks
+// Components
 import Modal from "../components/Modal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
-import PaymentForm from "../components/PaymentForm";
-import BookingSummary from "../components/booking/BookingSummary";
-import BookingFilters from "../components/booking/BookingFilters";
-import BookingTable from "../components/booking/BookingTable";
-import { usePagination } from "../hooks/usePagination";
+import ProgramCard from "../components/booking/ProgramCard";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 
 // Types and API
-import type {
-  Booking,
-  Payment,
-  Program,
-  PaginatedResponse,
-} from "../context/models";
+import type { Program, PaginatedResponse, Payment } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 
-type FilterFormData = {
-  searchTerm: string;
-  sortOrder: string;
-  statusFilter: string;
-  programFilter: string;
-};
-
-export default function BookingPage() {
+export default function Booking() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const { programId } = useParams<{ programId?: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // --- React Hook Form for Filters ---
-  const { register, watch, setValue } = useForm<FilterFormData>({
-    defaultValues: {
-      searchTerm: "",
-      sortOrder: "newest",
-      statusFilter: "all",
-      programFilter: programId || "all",
-    },
-  });
+  // State for Modals and Forms
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const filters = watch();
-  const [currentPage, setCurrentPage] = useState(1);
-  const bookingsPerPage = 10;
-
-  // --- Data Fetching ---
-  // CORRECTED: Fetch ALL bookings to enable accurate filtering and summary calculation.
-  const { data: bookingResponse, isLoading: isLoadingBookings } = useQuery<
-    PaginatedResponse<Booking>
-  >({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000), // Fetch a large number to get all bookings
-  });
-  const allBookings = bookingResponse?.data ?? [];
-
+  // Data Fetching
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
     PaginatedResponse<Program>
   >({
     queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 1000), // Fetch all programs for dropdowns
+    queryFn: () => api.getPrograms(1, 1000),
   });
   const programs = programResponse?.data ?? [];
 
-  // --- Mutations (No changes here) ---
+  // Mutations
   const { mutate: createBooking } = useMutation({
     mutationFn: (data: {
       bookingData: BookingFormData;
@@ -90,359 +44,45 @@ export default function BookingPage() {
         ...data.bookingData,
         advancePayments: data.initialPayments,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast.success("Booking created!");
+    onSuccess: (newBooking) => {
+      queryClient.invalidateQueries({ queryKey: ["programs"] }); // To update booking counts
+      toast.success("Booking created! Navigating to booking page...");
       setIsBookingModalOpen(false);
+      // Navigate to the new booking's program page
+      navigate(`/booking/program/${newBooking.tripId}`);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to create booking.");
-    },
-  });
-
-  const { mutate: updateBooking } = useMutation({
-    mutationFn: (data: {
-      bookingId: number;
-      bookingData: BookingFormData;
-      initialPayments: Payment[];
-    }) =>
-      api.updateBooking(data.bookingId, {
-        ...data.bookingData,
-        advancePayments: data.initialPayments,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast.success("Booking updated!");
-      setIsBookingModalOpen(false);
-      setEditingBooking(null);
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to update booking.");
-    },
-  });
-
-  const { mutate: deleteBooking } = useMutation({
-    mutationFn: api.deleteBooking,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      toast.success("Booking deleted!");
-    },
-    onError: () => {
-      toast.error("Failed to delete booking.");
-    },
-  });
-
-  const { mutate: addPayment } = useMutation({
-    mutationFn: (data: {
-      bookingId: number;
-      payment: Omit<Payment, "_id" | "id">;
-    }) => api.addPayment(data.bookingId, data.payment),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      setSelectedBookingForPayment(updatedBooking);
-      toast.success("Payment added!");
-      setIsPaymentModalOpen(false);
-    },
-    onError: () => {
-      toast.error("Failed to add payment.");
-    },
-  });
-
-  const { mutate: updatePayment } = useMutation({
-    mutationFn: (data: {
-      bookingId: number;
-      paymentId: string;
-      payment: Omit<Payment, "_id" | "id">;
-    }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      setSelectedBookingForPayment(updatedBooking);
-      toast.success("Payment updated!");
-      setIsPaymentModalOpen(false);
-      setEditingPayment(null);
-    },
-    onError: () => {
-      toast.error("Failed to update payment.");
-    },
-  });
-
-  const { mutate: deletePayment } = useMutation({
-    mutationFn: (data: { bookingId: number; paymentId: string }) =>
-      api.deletePayment(data.bookingId, data.paymentId),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      setSelectedBookingForPayment(updatedBooking);
-      toast.success("Payment deleted!");
-    },
-    onError: () => {
-      toast.error("Failed to delete payment.");
-    },
+    onError: (error: Error) =>
+      toast.error(error.message || "Failed to create booking."),
   });
 
   const { mutate: importBookings, isPending: isImporting } = useMutation({
     mutationFn: api.importBookings,
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["programs"] }); // To update booking counts
       toast.success(result.message);
     },
-    onError: (error: Error) => {
-      toast.error(error.message || "Import failed.");
-    },
+    onError: (error: Error) => toast.error(error.message || "Import failed."),
     onSettled: () => {
       setImportFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
   });
 
-  // --- Local UI State (No changes here) ---
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [editingPayment, setEditingPayment] = useState<{
-    bookingId: number;
-    payment: Payment;
-  } | null>(null);
-  const [selectedBookingForPayment, setSelectedBookingForPayment] =
-    useState<Booking | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // --- Effects (No changes here) ---
-  useEffect(() => {
-    setValue("programFilter", programId || "all");
-  }, [programId, setValue]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    filters.searchTerm,
-    filters.sortOrder,
-    filters.statusFilter,
-    filters.programFilter,
-  ]);
-
-  // --- Memoized Calculations ---
-
-  // CORRECTED: Apply filters to the complete list of all bookings
-  const filteredBookings = useMemo(
-    () =>
-      allBookings.filter((booking) => {
-        const lowerSearchTerm = filters.searchTerm.toLowerCase();
-        const matchesSearch =
-          booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-          (booking.clientNameAr || "").includes(filters.searchTerm) ||
-          booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
-        const matchesStatus =
-          filters.statusFilter === "all" ||
-          (filters.statusFilter === "paid" && booking.isFullyPaid) ||
-          (filters.statusFilter === "pending" && !booking.isFullyPaid);
-        const matchesProgram =
-          filters.programFilter === "all" ||
-          (booking.tripId || "").toString() === filters.programFilter;
-        return matchesSearch && matchesStatus && matchesProgram;
-      }),
-    [allBookings, filters]
-  );
-
-  const sortedBookings = useMemo(() => {
-    const bookingsCopy = [...filteredBookings];
-    if (filters.sortOrder === "family") {
-      const bookingsMap = new Map(bookingsCopy.map((b) => [b.id, b]));
-      const result: (Booking & { isRelated?: boolean })[] = [];
-      const processed = new Set<number>();
-      bookingsCopy.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
-      bookingsCopy.forEach((booking) => {
-        if (processed.has(booking.id)) return;
-        if (booking.relatedPersons && booking.relatedPersons.length > 0) {
-          result.push(booking);
-          processed.add(booking.id);
-          booking.relatedPersons.forEach((relatedInfo) => {
-            const relatedBooking = bookingsMap.get(relatedInfo.ID);
-            if (relatedBooking && !processed.has(relatedBooking.id)) {
-              result.push({ ...relatedBooking, isRelated: true });
-              processed.add(relatedBooking.id);
-            }
-          });
-        }
-      });
-
-      bookingsCopy.forEach((booking) => {
-        if (!processed.has(booking.id)) {
-          result.push(booking);
-          processed.add(booking.id);
-        }
-      });
-      return result;
-    } else if (filters.sortOrder === "oldest") {
-      return bookingsCopy.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    }
-    return bookingsCopy.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [filteredBookings, filters.sortOrder]);
-
-  // CORRECTED: Paginate the fully filtered and sorted list
-  const currentBookings = useMemo(
-    () =>
-      sortedBookings.slice(
-        (currentPage - 1) * bookingsPerPage,
-        currentPage * bookingsPerPage
-      ),
-    [sortedBookings, currentPage]
-  );
-
-  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
-
-  const paginationRange = usePagination({
-    currentPage,
-    totalCount: sortedBookings.length,
-    pageSize: bookingsPerPage,
-  });
-
-  // CORRECTED: Calculate summary stats based on the complete filtered list
-  const summaryStats = useMemo(() => {
-    const stats = {
-      totalBookings: filteredBookings.length,
-      totalRevenue: 0,
-      totalCost: 0,
-      totalPaid: 0,
-    };
-    for (const booking of filteredBookings) {
-      stats.totalRevenue += Number(booking.sellingPrice);
-      stats.totalCost += Number(booking.basePrice);
-      stats.totalPaid += (booking.advancePayments || []).reduce(
-        (sum, p) => sum + Number(p.amount),
-        0
-      );
-    }
-    return {
-      ...stats,
-      totalProfit: stats.totalRevenue - stats.totalCost,
-      totalRemaining: stats.totalRevenue - stats.totalPaid,
-    };
-  }, [filteredBookings]);
-
-  // --- Event Handlers (No changes here) ---
-  const handleProgramFilterChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const newProgramId = e.target.value;
-    setValue("programFilter", newProgramId);
-    navigate(
-      newProgramId === "all" ? "/booking" : `/booking/program/${newProgramId}`
-    );
+  // Event Handlers
+  const handleProgramSelect = (pId: number) => {
+    navigate(`/booking/program/${pId}`);
   };
 
   const handleAddBooking = () => {
-    setEditingBooking(null);
     setIsBookingModalOpen(true);
-  };
-
-  const handleEditBooking = (booking: Booking) => {
-    setEditingBooking(booking);
-    setIsBookingModalOpen(true);
-  };
-
-  const handleDeleteBooking = (bookingId: number) => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete this booking? This action cannot be undone."
-      )
-    ) {
-      deleteBooking(bookingId);
-    }
   };
 
   const handleSaveBooking = (
     bookingData: BookingFormData,
     initialPayments: Payment[]
   ) => {
-    if (editingBooking) {
-      updateBooking({
-        bookingId: editingBooking.id,
-        bookingData,
-        initialPayments,
-      });
-    } else {
-      createBooking({ bookingData, initialPayments });
-    }
-  };
-
-  const handleManagePayments = (booking: Booking) => {
-    setSelectedBookingForPayment(booking);
-  };
-
-  const handleAddPayment = (booking: Booking) => {
-    setSelectedBookingForPayment(booking);
-    setEditingPayment(null);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleEditPayment = (booking: Booking, payment: Payment) => {
-    setSelectedBookingForPayment(booking);
-    setEditingPayment({ bookingId: booking.id, payment });
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleSavePayment = (payment: Omit<Payment, "_id" | "id">) => {
-    if (selectedBookingForPayment) {
-      if (editingPayment) {
-        updatePayment({
-          bookingId: selectedBookingForPayment.id,
-          paymentId: editingPayment.payment._id,
-          payment,
-        });
-      } else {
-        addPayment({ bookingId: selectedBookingForPayment.id, payment });
-      }
-    }
-  };
-
-  const handleDeletePayment = (bookingId: number, paymentId: string) => {
-    if (window.confirm("Are you sure you want to delete this payment?")) {
-      deletePayment({ bookingId, paymentId });
-    }
-  };
-
-  const handleExport = async () => {
-    if (filters.programFilter === "all" || isExporting) {
-      toast.error("Please select a specific program to export.");
-      return;
-    }
-    setIsExporting(true);
-    toast.loading("Exporting to Excel...");
-    try {
-      const blob = await api.exportBookingsToExcel(filters.programFilter);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const program = programs.find(
-        (p) => p.id.toString() === filters.programFilter
-      );
-      a.download = program
-        ? `${program.name.replace(/\s/g, "_")}_bookings.xlsx`
-        : "bookings.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.dismiss();
-      toast.success("Export successful!");
-    } catch (error) {
-      toast.dismiss();
-      toast.error((error as Error).message || "Failed to export bookings.");
-    } finally {
-      setIsExporting(false);
-    }
+    // Only creation is possible from this page, not editing.
+    createBooking({ bookingData, initialPayments });
   };
 
   const handleExportTemplate = async () => {
@@ -479,23 +119,7 @@ export default function BookingPage() {
     importBookings(importFile);
   };
 
-  const selectedProgramDetails = programId
-    ? programs.find((p) => p.id.toString() === programId)
-    : null;
-  const pageTitle = selectedProgramDetails
-    ? `${t("booking")} for ${selectedProgramDetails.name}`
-    : t("booking");
-  const pageDescription = selectedProgramDetails
-    ? `View all bookings, payments, and financial details for ${selectedProgramDetails.name}.`
-    : "Manage all customer bookings and payments";
-
-  const paginate = (pageNumber: number) => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-
-  if (isLoadingBookings || isLoadingPrograms) {
+  if (isLoadingPrograms) {
     return <BookingSkeleton />;
   }
 
@@ -503,8 +127,10 @@ export default function BookingPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{pageTitle}</h1>
-          <p className="text-gray-600 mt-2">{pageDescription}</p>
+          <h1 className="text-3xl font-bold text-gray-900">Select a Program</h1>
+          <p className="text-gray-600 mt-2">
+            Choose a program to view its bookings, or create a new booking.
+          </p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
           <button
@@ -512,7 +138,7 @@ export default function BookingPage() {
             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
           >
             <Download className="w-5 h-5 mr-2" />
-            Template
+            Download Template
           </button>
           <input
             type="file"
@@ -549,232 +175,49 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {filteredBookings.length > 0 && <BookingSummary stats={summaryStats} />}
-
-      <BookingFilters
-        register={register}
-        programFilter={filters.programFilter}
-        handleProgramFilterChange={handleProgramFilterChange}
-        programs={programs}
-        handleExport={handleExport}
-        isExporting={isExporting}
-      />
-
-      <BookingTable
-        bookings={currentBookings}
-        programs={programs}
-        onEditBooking={handleEditBooking}
-        onDeleteBooking={handleDeleteBooking}
-        onManagePayments={handleManagePayments}
-      />
-
-      {totalPages > 1 && (
-        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
-          <button
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
-          </button>
-          <div className="flex items-center space-x-1">
-            {paginationRange.map((pageNumber, index) => {
-              if (typeof pageNumber === "string") {
-                return (
-                  <span key={index} className="px-3 py-1 text-sm text-gray-400">
-                    ...
-                  </span>
-                );
-              }
-              return (
-                <button
-                  key={index}
-                  onClick={() => paginate(pageNumber)}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                    currentPage === pageNumber
-                      ? "bg-blue-600 text-white font-bold shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {programs.map((program) => (
+          <ProgramCard
+            key={program.id}
+            program={program}
+            bookingCount={program.totalBookings || 0}
+            onClick={() => handleProgramSelect(program.id)}
+          />
+        ))}
+        {programs.length === 0 && !isLoadingPrograms && (
+          <div className="col-span-full text-center py-12 bg-white rounded-2xl">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No programs found
+            </h3>
+            <p className="text-gray-500 mb-6">
+              Create a program on the 'Programs' page to get started.
+            </p>
+            <button
+              onClick={() => navigate("/programs")}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Program
+            </button>
           </div>
-          <button
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </button>
-        </div>
-      )}
-
-      {filteredBookings.length === 0 && !isLoadingBookings && (
-        <div className="text-center py-12 bg-white rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-12 h-12 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No bookings found
-          </h3>
-          <p className="text-gray-500 mb-6">
-            Get started by creating your first booking.
-          </p>
-          <button
-            onClick={handleAddBooking}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            {t("addBooking")}
-          </button>
-        </div>
-      )}
+        )}
+      </div>
 
       <Modal
         isOpen={isBookingModalOpen}
-        onClose={() => {
-          setIsBookingModalOpen(false);
-          setEditingBooking(null);
-        }}
-        title={editingBooking ? "Edit Booking" : t("addBooking")}
+        onClose={() => setIsBookingModalOpen(false)}
+        title={t("addBooking")}
         size="xl"
       >
         <BookingForm
-          booking={editingBooking}
+          booking={null} // Always null since we only create from this page
           programs={programs}
           onSave={handleSaveBooking}
-          onCancel={() => {
-            setIsBookingModalOpen(false);
-            setEditingBooking(null);
-          }}
+          onCancel={() => setIsBookingModalOpen(false)}
         />
-      </Modal>
-
-      <Modal
-        isOpen={isPaymentModalOpen}
-        onClose={() => {
-          setIsPaymentModalOpen(false);
-          setEditingPayment(null);
-        }}
-        title={editingPayment ? t("editPayment") : t("addPayment")}
-        size="md"
-        level={1}
-      >
-        {selectedBookingForPayment && (
-          <PaymentForm
-            payment={editingPayment?.payment}
-            onSave={handleSavePayment}
-            onCancel={() => {
-              setIsPaymentModalOpen(false);
-              setEditingPayment(null);
-            }}
-            remainingBalance={selectedBookingForPayment.remainingBalance || 0}
-          />
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={!!selectedBookingForPayment && !isPaymentModalOpen}
-        onClose={() => setSelectedBookingForPayment(null)}
-        title={t("managePayments")}
-        size="xl"
-        level={0}
-      >
-        {selectedBookingForPayment && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
-                {selectedBookingForPayment.clientNameFr}
-              </h3>
-              <button
-                onClick={() => handleAddPayment(selectedBookingForPayment)}
-                className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                {t("addPayment")}
-              </button>
-            </div>
-            <div
-              className="space-y-3"
-              key={(selectedBookingForPayment.advancePayments || []).length}
-            >
-              {(selectedBookingForPayment.advancePayments || []).map(
-                (payment) => (
-                  <div
-                    key={`${payment._id}-${payment.amount}`}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-900">
-                          {Number(payment.amount).toLocaleString()} MAD
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600 capitalize">
-                          {payment.method}
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">
-                          {new Date(payment.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {payment.method === "cheque" && payment.chequeNumber && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          <span className="font-medium">
-                            Check #{payment.chequeNumber}
-                          </span>
-                          {payment.bankName && (
-                            <span> • {payment.bankName}</span>
-                          )}
-                          {payment.chequeCashingDate && (
-                            <span>
-                              {" "}
-                              • Cashing:{" "}
-                              {new Date(
-                                payment.chequeCashingDate
-                              ).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() =>
-                          handleEditPayment(selectedBookingForPayment, payment)
-                        }
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeletePayment(
-                            selectedBookingForPayment.id,
-                            payment._id
-                          )
-                        }
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
-              {(!selectedBookingForPayment.advancePayments ||
-                selectedBookingForPayment.advancePayments.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  No payments recorded yet
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </Modal>
     </div>
   );

@@ -77,6 +77,8 @@ export const deleteProgramPricing = (id: number) =>
 // --- Booking API ---
 export const getBookings = (page = 1, limit = 10) =>
   request(`/bookings?page=${page}&limit=${limit}`);
+export const getBookingsByProgram = (programId: string) =>
+  request(`/bookings/program/${programId}`);
 export const createBooking = (booking: any) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
 export const updateBooking = (id: number, booking: any) =>

@@ -18,10 +18,11 @@ import BookingSkeleton from "./components/skeletons/BookingSkeleton";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Programs = lazy(() => import("./pages/Programs"));
 const Booking = lazy(() => import("./pages/Booking"));
+const BookingPage = lazy(() => import("./pages/BookingPage"));
 const ProfitReport = lazy(() => import("./pages/ProfitReport"));
 const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
-const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis")); // New
+const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 
 // A wrapper component to decide which view to show based on auth state
@@ -70,7 +71,7 @@ function AppRoutes() {
                   <Route path="/booking" element={<Booking />} />
                   <Route
                     path="/booking/program/:programId"
-                    element={<Booking />}
+                    element={<BookingPage />}
                   />
                   {userRole === "admin" && (
                     <Route path="/profit-report" element={<ProfitReport />} />

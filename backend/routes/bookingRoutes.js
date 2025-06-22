@@ -4,6 +4,7 @@ const router = express.Router();
 const multer = require("multer");
 const {
   getAllBookings,
+  getBookingsByProgram,
   createBooking,
   updateBooking,
   deleteBooking,
@@ -24,6 +25,7 @@ const upload = multer({ dest: "temp/" });
 
 // Booking routes
 router.get("/", getAllBookings);
+router.get("/program/:programId", getBookingsByProgram); // New route
 router.post("/", bookingValidation, handleValidationErrors, createBooking);
 router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
 router.delete("/:id", deleteBooking);
