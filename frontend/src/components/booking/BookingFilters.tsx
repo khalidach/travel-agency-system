@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
 import type { Employee } from "../../context/models";
+import { useAuthContext } from "../../context/AuthContext"; // Import the Auth Context
 
 interface BookingFiltersProps {
   register: UseFormRegister<any>;
@@ -18,6 +19,8 @@ export default function BookingFilters({
   employees,
 }: BookingFiltersProps) {
   const { t } = useTranslation();
+  const { state: authState } = useAuthContext(); // Get the user's auth state
+  const userRole = authState.user?.role; // Get the user's role
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -46,17 +49,22 @@ export default function BookingFilters({
           <option value="paid">Fully Paid</option>
           <option value="pending">Pending Payment</option>
         </select>
-        <select
-          {...register("employeeFilter")}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          <option value="all">All Employees</option>
-          {employees.map((employee) => (
-            <option key={employee.id} value={employee.id}>
-              {employee.username}
-            </option>
-          ))}
-        </select>
+
+        {/* --- Conditionally render the employee filter --- */}
+        {(userRole === "admin" || userRole === "manager") && (
+          <select
+            {...register("employeeFilter")}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Employees</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.username}
+              </option>
+            ))}
+          </select>
+        )}
+
         <button
           onClick={handleExport}
           disabled={isExporting}

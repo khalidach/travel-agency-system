@@ -184,7 +184,7 @@ export default function BookingPage() {
   });
 
   const { mutate: importBookings, isPending: isImporting } = useMutation({
-    mutationFn: api.importBookings,
+    mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
@@ -419,13 +419,20 @@ export default function BookingPage() {
   };
 
   const handleExportTemplate = async () => {
+    if (!programId) {
+      toast.error("A program must be selected to download a template.");
+      return;
+    }
     toast.loading("Generating template...");
     try {
-      const blob = await api.exportBookingTemplate();
+      const blob = await api.exportBookingTemplateForProgram(programId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Booking_Template.xlsx";
+      const program = programs.find((p) => p.id.toString() === programId);
+      a.download = program
+        ? `${program.name.replace(/\s/g, "_")}_Template.xlsx`
+        : "Booking_Template.xlsx";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -447,6 +454,10 @@ export default function BookingPage() {
   const handleImport = () => {
     if (!importFile) {
       toast.error("Please select a file to import.");
+      return;
+    }
+    if (!programId) {
+      toast.error("A program must be selected for import.");
       return;
     }
     importBookings(importFile);

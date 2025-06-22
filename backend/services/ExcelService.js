@@ -223,84 +223,63 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 };
 
 /**
- * Generates an Excel template for bulk booking import.
- * @param {Array<object>} programs - The list of available programs.
+ * Generates an Excel template for a single program.
+ * @param {object} program - The program object.
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
-exports.generateBookingTemplateExcel = async (programs) => {
+exports.generateBookingTemplateForProgramExcel = async (program) => {
   const workbook = new excel.Workbook();
   const templateSheet = workbook.addWorksheet("Booking Template");
   const validationSheet = workbook.addWorksheet("Lists");
   validationSheet.state = "hidden";
 
-  const programNames = programs.map((p) => p.name);
-  validationSheet.getColumn("A").values = ["Programs", ...programNames];
-  if (programNames.length > 0) {
+  const packageNames = (program.packages || []).map((p) => p.name);
+  validationSheet.getColumn("A").values = ["Packages", ...packageNames];
+  if (packageNames.length > 0) {
     workbook.definedNames.add(
-      "Lists!$A$2:$A$" + (programNames.length + 1),
-      "Programs"
+      "Lists!$A$2:$A$" + (packageNames.length + 1),
+      "Packages"
     );
   }
 
   let listColumnIndex = 1;
   const hotelRoomTypesMap = new Map();
 
-  programs.forEach((program) => {
-    const programNameSanitized = sanitizeName(program.name);
-    const packageNames = (program.packages || []).map((p) => p.name);
-    if (packageNames.length > 0) {
-      listColumnIndex++;
-      const col = validationSheet.getColumn(listColumnIndex);
-      const rangeName = `${programNameSanitized}_Packages`;
-      col.values = [rangeName, ...packageNames];
-      try {
-        workbook.definedNames.add(
-          `Lists!$${col.letter}$2:$${col.letter}$${packageNames.length + 1}`,
-          rangeName
-        );
-      } catch (e) {
-        console.warn(`Could not create named range for Package: ${rangeName}.`);
+  (program.packages || []).forEach((pkg) => {
+    const packageNameSanitized = sanitizeName(pkg.name);
+    (program.cities || []).forEach((city) => {
+      const hotels = pkg.hotels[city.name] || [];
+      if (hotels.length > 0) {
+        listColumnIndex++;
+        const col = validationSheet.getColumn(listColumnIndex);
+        const rangeName = `${packageNameSanitized}_${sanitizeName(
+          city.name
+        )}_Hotels`;
+        col.values = [rangeName, ...hotels];
+        try {
+          workbook.definedNames.add(
+            `Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`,
+            rangeName
+          );
+        } catch (e) {
+          console.warn(`Could not create named range for Hotel: ${rangeName}.`);
+        }
       }
-    }
+    });
 
-    (program.packages || []).forEach((pkg) => {
-      const packageNameSanitized = sanitizeName(pkg.name);
-      (program.cities || []).forEach((city) => {
-        const hotels = pkg.hotels[city.name] || [];
-        if (hotels.length > 0) {
-          listColumnIndex++;
-          const col = validationSheet.getColumn(listColumnIndex);
-          const rangeName = `${packageNameSanitized}_${sanitizeName(
-            city.name
-          )}_Hotels`;
-          col.values = [rangeName, ...hotels];
-          try {
-            workbook.definedNames.add(
-              `Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`,
-              rangeName
-            );
-          } catch (e) {
-            console.warn(
-              `Could not create named range for Hotel: ${rangeName}.`
-            );
+    (pkg.prices || []).forEach((price) => {
+      const roomTypesForCombo = (price.roomTypes || []).map((rt) => rt.type);
+      if (roomTypesForCombo.length > 0) {
+        const individualHotels = price.hotelCombination.split("_");
+        individualHotels.forEach((hotelName) => {
+          if (!hotelRoomTypesMap.has(hotelName)) {
+            hotelRoomTypesMap.set(hotelName, new Set());
           }
-        }
-      });
-
-      (pkg.prices || []).forEach((price) => {
-        const roomTypesForCombo = (price.roomTypes || []).map((rt) => rt.type);
-        if (roomTypesForCombo.length > 0) {
-          const individualHotels = price.hotelCombination.split("_");
-          individualHotels.forEach((hotelName) => {
-            if (!hotelRoomTypesMap.has(hotelName)) {
-              hotelRoomTypesMap.set(hotelName, new Set());
-            }
-            roomTypesForCombo.forEach((rt) =>
-              hotelRoomTypesMap.get(hotelName).add(rt)
-            );
-          });
-        }
-      });
+          roomTypesForCombo.forEach((rt) =>
+            hotelRoomTypesMap.get(hotelName).add(rt)
+          );
+        });
+      }
     });
   });
 
@@ -329,21 +308,17 @@ exports.generateBookingTemplateExcel = async (programs) => {
     { header: "Client Name (Arabic)", key: "clientNameAr", width: 25 },
     { header: "Passport Number", key: "passportNumber", width: 20 },
     { header: "Phone Number", key: "phoneNumber", width: 20 },
-    { header: "Program", key: "program", width: 30 },
     { header: "Package", key: "package", width: 20 },
   ];
 
-  const allCityNames = [
-    ...new Set(programs.flatMap((p) => (p.cities || []).map((c) => c.name))),
-  ];
-  const hotelHeaders = allCityNames.map((name) => ({
-    header: `${name} Hotel`,
-    key: `hotel_${sanitizeName(name)}`,
+  const hotelHeaders = (program.cities || []).map((city) => ({
+    header: `${city.name} Hotel`,
+    key: `hotel_${sanitizeName(city.name)}`,
     width: 25,
   }));
-  const roomTypeHeaders = allCityNames.map((name) => ({
-    header: `${name} Room Type`,
-    key: `roomType_${sanitizeName(name)}`,
+  const roomTypeHeaders = (program.cities || []).map((city) => ({
+    header: `${city.name} Room Type`,
+    key: `roomType_${sanitizeName(city.name)}`,
     width: 20,
   }));
 
@@ -361,19 +336,14 @@ exports.generateBookingTemplateExcel = async (programs) => {
     templateSheet.getCell(`E${i}`).dataValidation = {
       type: "list",
       allowBlank: true,
-      formulae: ["=Programs"],
-    };
-    templateSheet.getCell(`F${i}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: [`=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_Packages")`],
+      formulae: ["=Packages"],
     };
 
     hotelHeaders.forEach((h) => {
       const cityNameSanitized = sanitizeName(h.header.replace(" Hotel", ""));
       const columnLetter = templateSheet.getColumn(h.key).letter;
       if (columnLetter) {
-        const hotelFormula = `=INDIRECT(SUBSTITUTE(F${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
+        const hotelFormula = `=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
         templateSheet.getCell(`${columnLetter}${i}`).dataValidation = {
           type: "list",
           allowBlank: true,
@@ -382,13 +352,9 @@ exports.generateBookingTemplateExcel = async (programs) => {
       }
     });
 
-    roomTypeHeaders.forEach((h) => {
-      const cityNameSanitized = sanitizeName(
-        h.header.replace(" Room Type", "")
-      );
-      const hotelColumnKey = `hotel_${cityNameSanitized}`;
+    roomTypeHeaders.forEach((h, index) => {
+      const hotelColumnKey = hotelHeaders[index].key;
       const hotelColumn = templateSheet.getColumn(hotelColumnKey);
-
       if (hotelColumn) {
         const hotelColumnLetter = hotelColumn.letter;
         const roomTypeColumnLetter = templateSheet.getColumn(h.key).letter;
@@ -406,33 +372,41 @@ exports.generateBookingTemplateExcel = async (programs) => {
 };
 
 /**
- * Parses an Excel file to bulk import bookings.
+ * Parses an Excel file to bulk import bookings for a specific program.
  * @param {object} file - The uploaded file object (from multer).
- * @param {number} userId - The ID of the user performing the import.
+ * @param {object} user - The user object from the request.
  * @param {object} db - The database connection pool.
+ * @param {string} programId - The ID of the program to import bookings for.
  * @returns {Promise<object>} A promise that resolves to a success message.
  */
-exports.parseBookingsFromExcel = async (file, user, db) => {
-  // Changed userId to user
+exports.parseBookingsFromExcel = async (file, user, db, programId) => {
   const client = await db.connect();
-  const userId = user.adminId; // Use adminId for consistency
+  const userId = user.adminId;
   try {
     await client.query("BEGIN");
     const workbook = new excel.Workbook();
     await workbook.xlsx.readFile(file.path);
     const worksheet = workbook.getWorksheet(1);
 
-    const { rows: allPrograms } = await client.query(
-      'SELECT * FROM programs WHERE "userId" = $1',
-      [userId]
+    const { rows: programs } = await client.query(
+      'SELECT * FROM programs WHERE "userId" = $1 AND id = $2',
+      [userId, programId]
     );
+
+    if (programs.length === 0) {
+      throw new Error(
+        "Program not found or you are not authorized to access it."
+      );
+    }
+    const program = programs[0];
+
     const { rows: allPricings } = await client.query(
-      'SELECT * FROM program_pricing WHERE "userId" = $1',
-      [userId]
+      'SELECT * FROM program_pricing WHERE "userId" = $1 AND "programId" = $2',
+      [userId, programId]
     );
     const { rows: existingBookings } = await client.query(
-      'SELECT "passportNumber" FROM bookings WHERE "userId" = $1',
-      [userId]
+      'SELECT "passportNumber" FROM bookings WHERE "userId" = $1 AND "tripId" = $2',
+      [userId, programId]
     );
     const existingPassportNumbers = new Set(
       existingBookings.map((b) => b.passportNumber)
@@ -447,6 +421,8 @@ exports.parseBookingsFromExcel = async (file, user, db) => {
     }
 
     const bookingsToCreate = [];
+    let newBookingsCount = 0;
+
     for (let i = 2; i <= worksheet.rowCount; i++) {
       const row = worksheet.getRow(i);
       const rowData = {};
@@ -458,10 +434,7 @@ exports.parseBookingsFromExcel = async (file, user, db) => {
       if (!passportNumber || existingPassportNumbers.has(passportNumber))
         continue;
 
-      const program = allPrograms.find((p) => p.name === rowData["Program"]);
-      if (!program) continue;
-
-      const programPricing = allPricings.find((p) => p.programId == program.id);
+      const programPricing = allPricings[0]; // Assuming one pricing per program
       if (!programPricing) continue;
 
       const bookingPackage = (program.packages || []).find(
@@ -518,7 +491,7 @@ exports.parseBookingsFromExcel = async (file, user, db) => {
 
       bookingsToCreate.push({
         userId: userId,
-        employeeId: user.role === "admin" ? null : user.id, // Set employeeId if not admin
+        employeeId: user.role === "admin" ? null : user.id,
         clientNameAr: rowData["Client Name (Arabic)"],
         clientNameFr: rowData["Client Name (French)"],
         phoneNumber: rowData["Phone Number"],
@@ -534,6 +507,7 @@ exports.parseBookingsFromExcel = async (file, user, db) => {
         isFullyPaid: sellingPrice <= 0,
       });
       existingPassportNumbers.add(passportNumber);
+      newBookingsCount++;
     }
 
     for (const booking of bookingsToCreate) {
@@ -559,9 +533,16 @@ exports.parseBookingsFromExcel = async (file, user, db) => {
       );
     }
 
+    if (newBookingsCount > 0) {
+      await client.query(
+        'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
+        [newBookingsCount, programId]
+      );
+    }
+
     await client.query("COMMIT");
     return {
-      message: `Import complete. ${bookingsToCreate.length} new bookings added.`,
+      message: `Import complete. ${newBookingsCount} new bookings added.`,
     };
   } catch (error) {
     await client.query("ROLLBACK");

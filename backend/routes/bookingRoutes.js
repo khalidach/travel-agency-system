@@ -12,7 +12,7 @@ const {
   updatePayment,
   deletePayment,
   exportBookingsToExcel,
-  exportBookingTemplate,
+  exportBookingTemplateForProgram, // Changed
   importBookingsFromExcel,
 } = require("../controllers/bookingController");
 const {
@@ -25,14 +25,21 @@ const upload = multer({ dest: "temp/" });
 
 // Booking routes
 router.get("/", getAllBookings);
-router.get("/program/:programId", getBookingsByProgram); // New route
+router.get("/program/:programId", getBookingsByProgram);
 router.post("/", bookingValidation, handleValidationErrors, createBooking);
 router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
 router.delete("/:id", deleteBooking);
 
 // Excel and Template routes
-router.get("/export-template", exportBookingTemplate);
-router.post("/import-excel", upload.single("file"), importBookingsFromExcel);
+router.get(
+  "/export-template/program/:programId",
+  exportBookingTemplateForProgram
+); // Changed
+router.post(
+  "/import-excel/program/:programId",
+  upload.single("file"),
+  importBookingsFromExcel
+); // Changed
 router.get("/export-excel/program/:programId", exportBookingsToExcel);
 
 // Payment routes (nested under bookings)

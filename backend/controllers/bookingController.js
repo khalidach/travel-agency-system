@@ -128,8 +128,7 @@ exports.deleteBooking = async (req, res) => {
   }
 };
 
-// --- Payment, Excel, and other functions remain largely the same ---
-// But their parent booking operations will now respect the new roles.
+// --- Payment, Excel, and other functions ---
 
 exports.addPayment = async (req, res) => {
   try {
@@ -177,9 +176,9 @@ exports.deletePayment = async (req, res) => {
 exports.exportBookingsToExcel = async (req, res) => {
   try {
     const { programId } = req.params;
-    const { adminId, role } = req.user; // Destructure role from user object
+    const { adminId, role } = req.user;
 
-    if (!programId || programId === "all") {
+    if (!programId) {
       return res
         .status(400)
         .json({ message: "A specific program must be selected for export." });
@@ -203,11 +202,10 @@ exports.exportBookingsToExcel = async (req, res) => {
       return res.status(404).json({ message: "Program not found." });
     }
 
-    // Pass the user's role to the Excel generation service
     const workbook = await ExcelService.generateBookingsExcel(
       bookings,
       programs[0],
-      role // Pass the role
+      role
     );
 
     const fileName = `${programs[0].name.replace(/\s/g, "_")}_bookings.xlsx`;
@@ -225,20 +223,30 @@ exports.exportBookingsToExcel = async (req, res) => {
   }
 };
 
-exports.exportBookingTemplate = async (req, res) => {
+exports.exportBookingTemplateForProgram = async (req, res) => {
   try {
+    const { programId } = req.params;
     const { rows: programs } = await req.db.query(
-      'SELECT * FROM programs WHERE "userId" = $1',
-      [req.user.adminId]
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [programId, req.user.adminId]
     );
-    const workbook = await ExcelService.generateBookingTemplateExcel(programs);
+    if (programs.length === 0) {
+      return res.status(404).json({ message: "Program not found." });
+    }
+
+    const workbook = await ExcelService.generateBookingTemplateForProgramExcel(
+      programs[0]
+    );
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader(
       "Content-Disposition",
-      "attachment; filename=Booking_Template.xlsx"
+      `attachment; filename=${programs[0].name.replace(
+        /\s/g,
+        "_"
+      )}_Template.xlsx`
     );
     await workbook.xlsx.write(res);
     res.end();
@@ -250,12 +258,16 @@ exports.exportBookingTemplate = async (req, res) => {
 
 exports.importBookingsFromExcel = async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded." });
+  const { programId } = req.params;
+  if (!programId)
+    return res.status(400).json({ message: "Program ID is required." });
 
   try {
     const result = await ExcelService.parseBookingsFromExcel(
       req.file,
-      req.user, // pass full user object
-      req.db
+      req.user,
+      req.db,
+      programId // Pass programId to the service
     );
     res.status(201).json(result);
   } catch (error) {

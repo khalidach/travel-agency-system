@@ -1,8 +1,8 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Upload, Calendar } from "lucide-react";
+import { Plus, Calendar } from "lucide-react";
 
 // Components
 import Modal from "../components/Modal";
@@ -22,8 +22,6 @@ export default function Booking() {
 
   // State for Modals and Forms
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data Fetching
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
@@ -55,19 +53,6 @@ export default function Booking() {
       toast.error(error.message || "Failed to create booking."),
   });
 
-  const { mutate: importBookings, isPending: isImporting } = useMutation({
-    mutationFn: api.importBookings,
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] }); // To update booking counts
-      toast.success(result.message);
-    },
-    onError: (error: Error) => toast.error(error.message || "Import failed."),
-    onSettled: () => {
-      setImportFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    },
-  });
-
   // Event Handlers
   const handleProgramSelect = (pId: number) => {
     navigate(`/booking/program/${pId}`);
@@ -85,40 +70,6 @@ export default function Booking() {
     createBooking({ bookingData, initialPayments });
   };
 
-  const handleExportTemplate = async () => {
-    toast.loading("Generating template...");
-    try {
-      const blob = await api.exportBookingTemplate();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Booking_Template.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.dismiss();
-      toast.success("Template downloaded!");
-    } catch (error) {
-      toast.dismiss();
-      toast.error("Failed to download template.");
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImportFile(e.target.files[0]);
-    }
-  };
-
-  const handleImport = () => {
-    if (!importFile) {
-      toast.error("Please select a file to import.");
-      return;
-    }
-    importBookings(importFile);
-  };
-
   if (isLoadingPrograms) {
     return <BookingSkeleton />;
   }
@@ -133,38 +84,6 @@ export default function Booking() {
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
-          <button
-            onClick={handleExportTemplate}
-            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download Template
-          </button>
-          <input
-            type="file"
-            accept=".xlsx"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-          />
-          {importFile ? (
-            <button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm disabled:bg-gray-400"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              {isImporting ? "Uploading..." : "Upload File"}
-            </button>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              Import
-            </button>
-          )}
           <button
             onClick={handleAddBooking}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"

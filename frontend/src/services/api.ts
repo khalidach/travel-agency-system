@@ -119,10 +119,11 @@ export const deleteEmployee = (id: number) =>
 // --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) =>
   request(`/bookings/export-excel/program/${programId}`, {}, true);
-export const exportBookingTemplate = () =>
-  request(`/bookings/export-template`, {}, true);
 
-export const importBookings = (file: File) => {
+export const exportBookingTemplateForProgram = (programId: string) =>
+  request(`/bookings/export-template/program/${programId}`, {}, true);
+
+export const importBookings = (file: File, programId: string) => {
   const formData = new FormData();
   formData.append("file", file);
   const userStr = sessionStorage.getItem("user");
@@ -131,7 +132,7 @@ export const importBookings = (file: File) => {
   if (user && user.token) {
     headers["Authorization"] = `Bearer ${user.token}`;
   }
-  return fetch(`${API_BASE_URL}/bookings/import-excel`, {
+  return fetch(`${API_BASE_URL}/bookings/import-excel/program/${programId}`, {
     method: "POST",
     body: formData,
     headers,
