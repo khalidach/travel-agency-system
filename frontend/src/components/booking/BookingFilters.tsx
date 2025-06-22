@@ -1,25 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
-import type { Program } from "../../context/models";
 import { UseFormRegister } from "react-hook-form";
+import type { Employee } from "../../context/models";
 
 interface BookingFiltersProps {
-  register: UseFormRegister<any>; // react-hook-form register function
-  programFilter: string;
-  handleProgramFilterChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  programs: Program[];
+  register: UseFormRegister<any>;
   handleExport: () => void;
   isExporting: boolean;
+  employees: Employee[];
 }
 
 export default function BookingFilters({
   register,
-  programFilter,
-  handleProgramFilterChange,
-  programs,
   handleExport,
   isExporting,
+  employees,
 }: BookingFiltersProps) {
   const { t } = useTranslation();
 
@@ -51,21 +47,19 @@ export default function BookingFilters({
           <option value="pending">Pending Payment</option>
         </select>
         <select
-          {...register("programFilter")}
-          value={programFilter}
-          onChange={handleProgramFilterChange}
+          {...register("employeeFilter")}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="all">{t("allPrograms")}</option>
-          {programs.map((program) => (
-            <option key={program.id} value={program.id}>
-              {program.name}
+          <option value="all">All Employees</option>
+          {employees.map((employee) => (
+            <option key={employee.id} value={employee.id}>
+              {employee.username}
             </option>
           ))}
         </select>
         <button
           onClick={handleExport}
-          disabled={programFilter === "all" || isExporting}
+          disabled={isExporting}
           className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           <Download className="w-4 h-4 mr-2" />

@@ -30,6 +30,7 @@ import type {
   Booking,
   Payment,
   Program,
+  Employee,
   PaginatedResponse,
 } from "../context/models";
 import * as api from "../services/api";
@@ -39,6 +40,7 @@ type FilterFormData = {
   searchTerm: string;
   sortOrder: string;
   statusFilter: string;
+  employeeFilter: string;
 };
 
 export default function BookingPage() {
@@ -52,6 +54,7 @@ export default function BookingPage() {
       searchTerm: "",
       sortOrder: "newest",
       statusFilter: "all",
+      employeeFilter: "all",
     },
   });
 
@@ -76,6 +79,14 @@ export default function BookingPage() {
     queryFn: () => api.getPrograms(1, 1000),
   });
   const programs = programResponse?.data ?? [];
+
+  const { data: employeesData, isLoading: isLoadingEmployees } = useQuery<{
+    employees: Employee[];
+  }>({
+    queryKey: ["employees"],
+    queryFn: api.getEmployees,
+  });
+  const employees = employeesData?.employees ?? [];
 
   // Mutations
   const { mutate: createBooking } = useMutation({
@@ -202,7 +213,12 @@ export default function BookingPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters.searchTerm, filters.sortOrder, filters.statusFilter]);
+  }, [
+    filters.searchTerm,
+    filters.sortOrder,
+    filters.statusFilter,
+    filters.employeeFilter,
+  ]);
 
   const filteredBookings = useMemo(() => {
     return allBookings.filter((booking) => {
@@ -217,9 +233,13 @@ export default function BookingPage() {
         (filters.statusFilter === "paid" && booking.isFullyPaid) ||
         (filters.statusFilter === "pending" && !booking.isFullyPaid);
 
-      return matchesSearch && matchesStatus;
+      const matchesEmployee =
+        filters.employeeFilter === "all" ||
+        booking.employeeId?.toString() === filters.employeeFilter;
+
+      return matchesSearch && matchesStatus && matchesEmployee;
     });
-  }, [allBookings, filters.searchTerm, filters.statusFilter]);
+  }, [allBookings, filters]);
 
   const sortedBookings = useMemo(() => {
     const bookingsCopy = [...filteredBookings];
@@ -432,7 +452,7 @@ export default function BookingPage() {
     importBookings(importFile);
   };
 
-  if (isLoadingBookings || isLoadingPrograms) {
+  if (isLoadingBookings || isLoadingPrograms || isLoadingEmployees) {
     return <BookingSkeleton />;
   }
 
@@ -506,11 +526,9 @@ export default function BookingPage() {
 
       <BookingFilters
         register={register}
-        programFilter={programId || "all"}
-        handleProgramFilterChange={() => {}} // Not used here, filtering is by URL
-        programs={programs.filter((p) => p.id.toString() === programId)} // Only show current
         handleExport={handleExport}
         isExporting={isExporting}
+        employees={employees}
       />
 
       <BookingTable
