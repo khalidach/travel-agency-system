@@ -6,70 +6,67 @@ import { toast } from "react-hot-toast";
 const useIdleTimeout = (idleTimeout: number, refreshInterval: number) => {
   const { state, dispatch } = useAuthContext();
   const idleLogoutTimer = useRef<ReturnType<typeof setTimeout>>();
+  const refreshTokenTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const handleLogout = useCallback(() => {
     dispatch({ type: "LOGOUT" });
     toast.error("You have been logged out due to inactivity.");
   }, [dispatch]);
 
-  const resetIdleTimer = useCallback(() => {
-    // Clear the previous idle timer
+  const refreshToken = useCallback(async () => {
+    try {
+      const userData = await api.refreshToken();
+      dispatch({ type: "REFRESH_TOKEN", payload: userData });
+    } catch (error) {
+      console.error("Failed to refresh token, logging out.", error);
+      handleLogout();
+    }
+  }, [dispatch, handleLogout]);
+
+  const resetTimers = useCallback(() => {
     if (idleLogoutTimer.current) {
       clearTimeout(idleLogoutTimer.current);
     }
-    // Set a new idle timer
-    idleLogoutTimer.current = setTimeout(handleLogout, idleTimeout);
-  }, [handleLogout, idleTimeout]);
+    if (refreshTokenTimer.current) {
+      clearTimeout(refreshTokenTimer.current);
+    }
 
-  // Effect for handling the idle timeout
+    idleLogoutTimer.current = setTimeout(handleLogout, idleTimeout);
+    refreshTokenTimer.current = setTimeout(() => {
+      refreshToken().finally(() => {
+        if (state.isAuthenticated) {
+          resetTimers();
+        }
+      });
+    }, refreshInterval);
+  }, [
+    handleLogout,
+    idleTimeout,
+    refreshToken,
+    refreshInterval,
+    state.isAuthenticated,
+  ]);
+
   useEffect(() => {
     if (!state.isAuthenticated) {
       return;
     }
 
-    // Set up event listeners to reset the idle timer on user activity
     const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((event) => window.addEventListener(event, resetIdleTimer));
+    events.forEach((event) => window.addEventListener(event, resetTimers));
 
-    // Initialize the idle timer when the component mounts
-    resetIdleTimer();
+    resetTimers();
 
-    // Cleanup function to remove event listeners and clear the timer
     return () => {
       if (idleLogoutTimer.current) {
         clearTimeout(idleLogoutTimer.current);
       }
-      events.forEach((event) =>
-        window.removeEventListener(event, resetIdleTimer)
-      );
-    };
-  }, [state.isAuthenticated, resetIdleTimer]);
-
-  // Effect for periodically refreshing the token
-  useEffect(() => {
-    if (!state.isAuthenticated) {
-      return;
-    }
-
-    // Function to refresh the token
-    const refreshToken = async () => {
-      try {
-        const userData = await api.refreshToken();
-        dispatch({ type: "REFRESH_TOKEN", payload: userData });
-      } catch (error) {
-        console.error("Failed to refresh token, logging out.", error);
-        handleLogout();
+      if (refreshTokenTimer.current) {
+        clearTimeout(refreshTokenTimer.current);
       }
+      events.forEach((event) => window.removeEventListener(event, resetTimers));
     };
-
-    // Set an interval to refresh the token periodically
-    const tokenRefreshInterval = setInterval(refreshToken, refreshInterval);
-
-    // Cleanup function to clear the interval when the component unmounts or auth state changes
-    return () => {
-      clearInterval(tokenRefreshInterval);
-    };
-  }, [state.isAuthenticated, refreshInterval, dispatch, handleLogout]);
+  }, [state.isAuthenticated, resetTimers]);
 };
 
 export default useIdleTimeout;
