@@ -33,14 +33,14 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
       title: "Total Cost",
       value: stats.totalCost,
       unit: "MAD",
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     {
       title: "Total Profit",
       value: stats.totalProfit,
       unit: "MAD",
       color: "text-emerald-600",
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     {
       title: "Total Paid",
@@ -66,7 +66,9 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
   const gridClasses =
     userRole === "employee"
       ? "grid-cols-1 sm:grid-cols-3"
-      : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+      : userRole === "manager"
+      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      : "";
 
   return (
     <div className={`grid ${gridClasses} gap-4 text-center`}>

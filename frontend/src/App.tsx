@@ -71,7 +71,7 @@ function AppRoutes() {
                     path="/booking/program/:programId"
                     element={<Booking />}
                   />
-                  {(userRole === "admin" || userRole === "manager") && (
+                  {userRole === "admin" && (
                     <Route path="/profit-report" element={<ProfitReport />} />
                   )}
                   {userRole === "admin" && (

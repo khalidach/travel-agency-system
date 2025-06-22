@@ -40,7 +40,7 @@ const allMenuItems = [
     key: "profitReport",
     path: "/profit-report",
     icon: TrendingUp,
-    roles: ["admin", "manager"],
+    roles: ["admin"],
   },
   { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
 ];

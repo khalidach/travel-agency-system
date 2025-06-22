@@ -125,7 +125,6 @@ const createBooking = async (db, user, bookingData) => {
       ]
     );
 
-    // Increment the totalBookings count on the program
     await client.query(
       'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
       [tripId]
@@ -155,9 +154,21 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     relatedPersons,
   } = bookingData;
 
-  // Note: If tripId can change, logic to decrement old program and increment new one would be needed.
-  // For now, we assume it doesn't change or the effect on the count is acceptable.
+  // First, verify ownership before updating
+  const bookingResult = await db.query(
+    'SELECT "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
+    [bookingId, user.adminId]
+  );
+  if (bookingResult.rows.length === 0) {
+    throw new Error("Booking not found or not authorized");
+  }
 
+  const booking = bookingResult.rows[0];
+  if (user.role !== "admin" && booking.employeeId !== user.id) {
+    throw new Error("You are not authorized to modify this booking.");
+  }
+
+  // Proceed with update logic
   const basePrice = await calculateBasePrice(
     db,
     user.adminId,
@@ -166,7 +177,6 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     selectedHotel
   );
   const profit = sellingPrice - basePrice;
-
   const totalPaid = (advancePayments || []).reduce(
     (sum, p) => sum + p.amount,
     0
@@ -175,7 +185,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const isFullyPaid = remainingBalance <= 0;
 
   const { rows } = await db.query(
-    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14 WHERE id = $15 AND "userId" = $16 RETURNING *',
+    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14 WHERE id = $15 RETURNING *',
     [
       clientNameAr,
       clientNameFr,
@@ -192,19 +202,19 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       isFullyPaid,
       JSON.stringify(relatedPersons || []),
       bookingId,
-      user.adminId,
     ]
   );
-  if (rows.length === 0) {
-    throw new Error("Booking not found or user not authorized");
-  }
+
   return rows[0];
 };
 
-// --- Other functions (getAllBookings, payment functions) remain the same ---
-
 const getAllBookings = async (db, id, page, limit, idColumn) => {
   const offset = (page - 1) * limit;
+  // This query now fetches all bookings for the agency for both admin and manager
+  const queryUserId = id;
+  const queryIdColumn =
+    idColumn === "employeeId" && id !== "admin" ? "employeeId" : "userId";
+
   const bookingsPromise = db.query(
     `SELECT b.*, e.username as "employeeName"
      FROM bookings b
@@ -232,28 +242,30 @@ const deleteBooking = async (db, user, bookingId) => {
     await client.query("BEGIN");
     const { role, id, adminId } = user;
 
-    // First, get the tripId from the booking to be deleted
     const bookingRes = await client.query(
-      'SELECT "tripId" FROM bookings WHERE id = $1 AND "userId" = $2',
+      'SELECT "tripId", "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
       [bookingId, adminId]
     );
 
     if (bookingRes.rows.length === 0) {
       throw new Error("Booking not found or user not authorized");
     }
-    const { tripId } = bookingRes.rows[0];
+    const booking = bookingRes.rows[0];
 
-    // Now, delete the booking
-    const deleteRes = await client.query(
-      "DELETE FROM bookings WHERE id = $1 RETURNING 1",
-      [bookingId]
-    );
+    // Check ownership for delete
+    if (role !== "admin" && booking.employeeId !== id) {
+      throw new Error("You are not authorized to delete this booking.");
+    }
+
+    const { tripId } = booking;
+    const deleteRes = await client.query("DELETE FROM bookings WHERE id = $1", [
+      bookingId,
+    ]);
 
     if (deleteRes.rowCount === 0) {
       throw new Error("Booking not found or failed to delete.");
     }
 
-    // Decrement the totalBookings count on the program
     if (tripId) {
       await client.query(
         'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1 AND "totalBookings" > 0',
@@ -271,17 +283,34 @@ const deleteBooking = async (db, user, bookingId) => {
   }
 };
 
-const findBookingForUser = async (db, user, bookingId) => {
+const findBookingForUser = async (
+  db,
+  user,
+  bookingId,
+  checkOwnership = false
+) => {
   const { rows } = await db.query(
     'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
     [bookingId, user.adminId]
   );
   if (rows.length === 0) throw new Error("Booking not found or not authorized");
-  return rows[0];
+
+  const booking = rows[0];
+  if (
+    checkOwnership &&
+    user.role !== "admin" &&
+    booking.employeeId !== user.id
+  ) {
+    throw new Error(
+      "You are not authorized to modify payments for this booking."
+    );
+  }
+  return booking;
 };
 
 const addPayment = async (db, user, bookingId, paymentData) => {
-  const booking = await findBookingForUser(db, user, bookingId);
+  // Check ownership before adding a payment
+  const booking = await findBookingForUser(db, user, bookingId, true);
   const newPayment = { ...paymentData, _id: new Date().getTime().toString() };
   const advancePayments = [...(booking.advancePayments || []), newPayment];
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
@@ -296,7 +325,8 @@ const addPayment = async (db, user, bookingId, paymentData) => {
 };
 
 const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
-  const booking = await findBookingForUser(db, user, bookingId);
+  // Check ownership before updating a payment
+  const booking = await findBookingForUser(db, user, bookingId, true);
   const advancePayments = (booking.advancePayments || []).map((p) =>
     p._id === paymentId ? { ...p, ...paymentData, _id: p._id } : p
   );
@@ -312,7 +342,8 @@ const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
 };
 
 const deletePayment = async (db, user, bookingId, paymentId) => {
-  const booking = await findBookingForUser(db, user, bookingId);
+  // Check ownership before deleting a payment
+  const booking = await findBookingForUser(db, user, bookingId, true);
   const advancePayments = (booking.advancePayments || []).filter(
     (p) => p._id !== paymentId
   );

@@ -1,4 +1,3 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
@@ -29,8 +28,8 @@ export default function BookingTable({
   onManagePayments,
 }: BookingTableProps) {
   const { t } = useTranslation();
-  const { state } = useAuthContext();
-  const userRole = state.user?.role;
+  const { state: authState } = useAuthContext();
+  const currentUser = authState.user;
 
   const getStatusColor = (isFullyPaid: boolean) =>
     isFullyPaid
@@ -72,6 +71,12 @@ export default function BookingTable({
                 (sum, payment) => sum + Number(payment.amount),
                 0
               );
+
+              // Determine if the current user can modify this booking
+              const canModify =
+                currentUser?.role === "admin" ||
+                booking.employeeId === currentUser?.id;
+
               return (
                 <tr
                   key={booking.id}
@@ -113,7 +118,8 @@ export default function BookingTable({
                           <span className="font-medium">Tel:</span>{" "}
                           {booking.phoneNumber}
                         </div>
-                        {(userRole === "admin" || userRole === "manager") &&
+                        {(currentUser?.role === "admin" ||
+                          currentUser?.role === "manager") &&
                           booking.employeeName && (
                             <div className="flex items-center text-xs text-gray-500 mt-1">
                               <Briefcase className="w-3 h-3 mr-1 text-gray-400" />
@@ -162,7 +168,8 @@ export default function BookingTable({
                       Selling: {Number(booking.sellingPrice).toLocaleString()}{" "}
                       MAD
                     </div>
-                    {(userRole === "admin" || userRole === "manager") && (
+                    {(currentUser?.role === "admin" ||
+                      currentUser?.role === "manager") && (
                       <>
                         <div className="text-sm text-gray-500">
                           Base: {Number(booking.basePrice).toLocaleString()} MAD
@@ -195,20 +202,23 @@ export default function BookingTable({
                     <div className="flex flex-col space-y-2">
                       <button
                         onClick={() => onManagePayments(booking)}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        disabled={!canModify}
+                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <CreditCard className="w-3 h-3 mr-1" />{" "}
                         {t("Manage Payments")}
                       </button>
                       <button
                         onClick={() => onEditBooking(booking)}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                        disabled={!canModify}
+                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Edit2 className="w-3 h-3 mr-1" /> {t("Edit Booking")}
                       </button>
                       <button
                         onClick={() => onDeleteBooking(booking.id)}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        disabled={!canModify}
+                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-3 h-3 mr-1" />{" "}
                         {t("Delete Booking")}

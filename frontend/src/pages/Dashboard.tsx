@@ -141,14 +141,14 @@ export default function Dashboard() {
       value: `${allTimeStats.totalRevenue.toLocaleString()} MAD`,
       icon: DollarSign,
       color: "bg-emerald-500",
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     {
       title: t("totalProfit"),
       value: `${allTimeStats.totalProfit.toLocaleString()} MAD`,
       icon: TrendingUp,
       color: "bg-orange-500",
-      roles: ["admin", "manager"],
+      roles: ["admin"],
     },
     {
       title: t("activePrograms"),
@@ -231,7 +231,9 @@ export default function Dashboard() {
 
       <div
         className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
-          userRole === "employee" ? "lg:grid-cols-2" : "lg:grid-cols-4"
+          userRole === "employee" || userRole === "manager"
+            ? "lg:grid-cols-2"
+            : "lg:grid-cols-4"
         }`}
       >
         {visibleTopStats.map((stat, index) => {
@@ -348,7 +350,7 @@ export default function Dashboard() {
           </div>
           <table className="w-full mt-4">
             <tbody>
-              {(userRole === "admin" || userRole === "manager"
+              {(userRole === "admin"
                 ? adminManagerMetrics
                 : employeeMetrics
               ).map((metric) => (

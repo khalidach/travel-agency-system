@@ -247,7 +247,7 @@ export default function BookingForm({
     }
     // For employees, ensure basePrice and profit are not sent as part of their direct submission
     // if there are any lingering client-side values. Backend should handle final calculation.
-    if (userRole === "employee") {
+    if (userRole === "employee" || userRole === "manager") {
       data.basePrice = calculateTotalBasePrice();
       data.profit = data.sellingPrice - data.basePrice;
     }
@@ -656,8 +656,11 @@ export default function BookingForm({
 
       <div
         className={`grid grid-cols-1 ${
-          userRole !== "employee" ? "md:grid-cols-3" : ""
-        } gap-4`}
+          userRole !== "employee" && userRole !== "manager"
+            ? "md:grid-cols-3"
+            : ""
+        }
+ gap-4`}
       >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -688,7 +691,7 @@ export default function BookingForm({
           )}
         </div>
 
-        {(userRole === "admin" || userRole === "manager") && (
+        {userRole === "admin" && (
           <>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -7,14 +7,16 @@ exports.getAllProgramPricing = async (req, res) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
+    // Use adminId to fetch data for the entire agency
     const pricingPromise = req.db.query(
       'SELECT * FROM program_pricing WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [req.user.id, limit, offset]
+      [req.user.adminId, limit, offset]
     );
 
+    // Use adminId for the count as well
     const totalCountPromise = req.db.query(
       'SELECT COUNT(*) FROM program_pricing WHERE "userId" = $1',
-      [req.user.id]
+      [req.user.adminId]
     );
 
     const [pricingResult, totalCountResult] = await Promise.all([
@@ -52,7 +54,8 @@ exports.createProgramPricing = async (req, res) => {
     const { rows } = await req.db.query(
       'INSERT INTO program_pricing ("userId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [
-        req.user.id,
+        // Use adminId to correctly associate the pricing with the agency
+        req.user.adminId,
         programId,
         selectProgram,
         ticketAirline,
@@ -71,10 +74,11 @@ exports.createProgramPricing = async (req, res) => {
 exports.updateProgramPricing = async (req, res) => {
   const { id } = req.params;
   try {
+    // Pass adminId to the service layer for authorization and updates
     const updatedProgramPricing =
       await ProgramPricingService.updatePricingAndBookings(
         req.db,
-        req.user.id,
+        req.user.adminId,
         id,
         req.body
       );
@@ -88,9 +92,10 @@ exports.updateProgramPricing = async (req, res) => {
 exports.deleteProgramPricing = async (req, res) => {
   const { id } = req.params;
   try {
+    // Use adminId to ensure a manager can delete pricing within their agency
     const { rowCount } = await req.db.query(
       'DELETE FROM program_pricing WHERE id = $1 AND "userId" = $2',
-      [id, req.user.id]
+      [id, req.user.adminId]
     );
     if (rowCount === 0) {
       return res
