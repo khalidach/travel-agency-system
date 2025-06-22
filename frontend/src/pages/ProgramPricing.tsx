@@ -7,7 +7,17 @@ import type {
   HotelPrice,
   PaginatedResponse,
 } from "../context/models";
-import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Plane,
+  CreditCard,
+  User,
+  Hotel,
+  BedDouble,
+} from "lucide-react";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
@@ -25,7 +35,7 @@ export default function ProgramPricingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
-  const pricingPerPage = 5;
+  const pricingPerPage = 6; // Changed to 6 to fit 3x2 grid
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
@@ -37,7 +47,7 @@ export default function ProgramPricingPage() {
   const { data: pricingResponse, isLoading: isLoadingPricing } = useQuery<
     PaginatedResponse<ProgramPricing>
   >({
-    queryKey: ["programPricing", currentPage],
+    queryKey: ["programPricing", currentPage, pricingPerPage],
     queryFn: () => api.getProgramPricing(currentPage, pricingPerPage),
   });
 
@@ -183,12 +193,25 @@ export default function ProgramPricingPage() {
     }
   };
 
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case "Hajj":
+        return "bg-blue-100 text-blue-700";
+      case "Umrah":
+        return "bg-emerald-100 text-emerald-700";
+      case "Tourism":
+        return "bg-orange-100 text-orange-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
   if (isLoadingPrograms || isLoadingPricing) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className=" mx-auto p-6 space-y-8">
+    <div className="mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">{t("programPricing")}</h1>
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -329,65 +352,111 @@ export default function ProgramPricingPage() {
       )}
       {programPricing.length > 0 && (
         <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-4">Previous Pricing</h2>
-          <div className="space-y-4">
-            {programPricing.map((pricing: ProgramPricing) => (
-              <div key={pricing.id} className="p-4 border rounded-lg">
-                <div className="flex justify-between items-start mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {programPricing.map((pricing: ProgramPricing) => {
+              const program = programs.find((p) => p.id === pricing.programId);
+              return (
+                <div
+                  key={pricing.id}
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-all duration-200"
+                >
                   <div>
-                    <h3 className="font-medium mb-2">
-                      {pricing.selectProgram}
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>Flight Ticket: {pricing.ticketAirline}</div>
-                      <div>Visa Fees: {pricing.visaFees}</div>
-                      <div>Guide Fees: {pricing.guideFees}</div>
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {pricing.selectProgram}
+                        </h3>
+                        {program && (
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-medium rounded-full mt-2 ${getTypeColor(
+                              program.type
+                            )}`}
+                          >
+                            {program.type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => handleEditPricing(pricing)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePricing(pricing.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Plane className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Flight Ticket:{" "}
+                          <span className="font-medium text-gray-800">
+                            {pricing.ticketAirline.toLocaleString()} MAD
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <CreditCard className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Visa Fees:{" "}
+                          <span className="font-medium text-gray-800">
+                            {pricing.visaFees.toLocaleString()} MAD
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <User className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Guide Fees:{" "}
+                          <span className="font-medium text-gray-800">
+                            {pricing.guideFees.toLocaleString()} MAD
+                          </span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEditPricing(pricing)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeletePricing(pricing.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+
+                  <div className="mt-auto pt-4 border-t border-gray-100 space-y-3">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Hotel className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>
+                        Hotels:{" "}
+                        <span className="font-medium text-gray-800">
+                          {(pricing.allHotels || []).length}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <BedDouble className="w-4 h-4 mr-2 text-gray-400" />
+                      <span>
+                        Room Types:{" "}
+                        <span className="font-medium text-gray-800">
+                          {(() => {
+                            if (!program) return 0;
+                            const roomTypes = new Set<string>();
+                            (program.packages || []).forEach((pkg) => {
+                              (pkg.prices || []).forEach((price) => {
+                                (price.roomTypes || []).forEach((rt) => {
+                                  roomTypes.add(rt.type);
+                                });
+                              });
+                            });
+                            return roomTypes.size;
+                          })()}
+                        </span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <h4 className="font-medium mb-2 text-sm text-gray-600">
-                    Hotels
-                  </h4>
-                  <div className="grid gap-4">
-                    {(pricing.allHotels || []).map(
-                      (hotel: HotelPrice, idx: number) => (
-                        <div key={idx} className="text-sm border-t pt-2">
-                          <div className="font-medium">
-                            {hotel.name} ({hotel.city} - {hotel.nights}{" "}
-                            {t("nights")})
-                          </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-gray-600">
-                            {hotel.PricePerNights &&
-                              Object.entries(hotel.PricePerNights).map(
-                                ([type, price]) => (
-                                  <div key={type} className="capitalize">
-                                    {type}: {price}
-                                  </div>
-                                )
-                              )}
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {pagination && pagination.totalPages > 1 && (
             <div className="flex justify-between items-center mt-6">
