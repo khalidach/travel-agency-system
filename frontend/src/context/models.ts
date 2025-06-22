@@ -35,6 +35,7 @@ export interface Program {
   roomTypes: RoomTypeDefinition[];
   userId: number;
   employeeId?: number;
+  totalBookings?: number; // This line is added
 }
 
 export interface Package {

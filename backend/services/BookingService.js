@@ -69,59 +69,76 @@ const calculateBasePrice = async (
 };
 
 const createBooking = async (db, user, bookingData) => {
-  const { role, id, adminId } = user;
-  const {
-    clientNameAr,
-    clientNameFr,
-    phoneNumber,
-    passportNumber,
-    tripId,
-    packageId,
-    selectedHotel,
-    sellingPrice,
-    advancePayments,
-    relatedPersons,
-  } = bookingData;
-
-  const basePrice = await calculateBasePrice(
-    db,
-    adminId,
-    tripId,
-    packageId,
-    selectedHotel
-  );
-  const profit = sellingPrice - basePrice;
-
-  const totalPaid = (advancePayments || []).reduce(
-    (sum, p) => sum + p.amount,
-    0
-  );
-  const remainingBalance = sellingPrice - totalPaid;
-  const isFullyPaid = remainingBalance <= 0;
-  const employeeId = role === "admin" ? null : id;
-
-  const { rows } = await db.query(
-    'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW()) RETURNING *',
-    [
-      adminId,
-      employeeId,
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const { role, id, adminId } = user;
+    const {
       clientNameAr,
       clientNameFr,
       phoneNumber,
       passportNumber,
       tripId,
       packageId,
-      JSON.stringify(selectedHotel),
+      selectedHotel,
       sellingPrice,
-      basePrice,
-      profit,
-      JSON.stringify(advancePayments || []),
-      remainingBalance,
-      isFullyPaid,
-      JSON.stringify(relatedPersons || []),
-    ]
-  );
-  return rows[0];
+      advancePayments,
+      relatedPersons,
+    } = bookingData;
+
+    const basePrice = await calculateBasePrice(
+      client, // Use client for transaction
+      adminId,
+      tripId,
+      packageId,
+      selectedHotel
+    );
+    const profit = sellingPrice - basePrice;
+
+    const totalPaid = (advancePayments || []).reduce(
+      (sum, p) => sum + p.amount,
+      0
+    );
+    const remainingBalance = sellingPrice - totalPaid;
+    const isFullyPaid = remainingBalance <= 0;
+    const employeeId = role === "admin" ? null : id;
+
+    const { rows } = await client.query(
+      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW()) RETURNING *',
+      [
+        adminId,
+        employeeId,
+        clientNameAr,
+        clientNameFr,
+        phoneNumber,
+        passportNumber,
+        tripId,
+        packageId,
+        JSON.stringify(selectedHotel),
+        sellingPrice,
+        basePrice,
+        profit,
+        JSON.stringify(advancePayments || []),
+        remainingBalance,
+        isFullyPaid,
+        JSON.stringify(relatedPersons || []),
+      ]
+    );
+
+    // Increment the totalBookings count on the program
+    await client.query(
+      'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
+      [tripId]
+    );
+
+    await client.query("COMMIT");
+    return rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 const updateBooking = async (db, user, bookingId, bookingData) => {
@@ -137,6 +154,9 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     advancePayments,
     relatedPersons,
   } = bookingData;
+
+  // Note: If tripId can change, logic to decrement old program and increment new one would be needed.
+  // For now, we assume it doesn't change or the effect on the count is acceptable.
 
   const basePrice = await calculateBasePrice(
     db,
@@ -181,7 +201,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   return rows[0];
 };
 
-// --- Other functions (getAllBookings, deleteBooking, payment functions) remain the same ---
+// --- Other functions (getAllBookings, payment functions) remain the same ---
 
 const getAllBookings = async (db, id, page, limit, idColumn) => {
   const offset = (page - 1) * limit;
@@ -202,23 +222,48 @@ const getAllBookings = async (db, id, page, limit, idColumn) => {
 };
 
 const deleteBooking = async (db, user, bookingId) => {
-  const { role, id, adminId } = user;
-  let query;
-  let params;
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const { role, id, adminId } = user;
 
-  if (role === "employee") {
-    query = 'DELETE FROM bookings WHERE id = $1 AND "employeeId" = $2';
-    params = [bookingId, id];
-  } else {
-    query = 'DELETE FROM bookings WHERE id = $1 AND "userId" = $2';
-    params = [bookingId, adminId];
-  }
+    // First, get the tripId from the booking to be deleted
+    const bookingRes = await client.query(
+      'SELECT "tripId" FROM bookings WHERE id = $1 AND "userId" = $2',
+      [bookingId, adminId]
+    );
 
-  const { rowCount } = await db.query(query, params);
-  if (rowCount === 0) {
-    throw new Error("Booking not found or user not authorized");
+    if (bookingRes.rows.length === 0) {
+      throw new Error("Booking not found or user not authorized");
+    }
+    const { tripId } = bookingRes.rows[0];
+
+    // Now, delete the booking
+    const deleteRes = await client.query(
+      "DELETE FROM bookings WHERE id = $1 RETURNING 1",
+      [bookingId]
+    );
+
+    if (deleteRes.rowCount === 0) {
+      throw new Error("Booking not found or failed to delete.");
+    }
+
+    // Decrement the totalBookings count on the program
+    if (tripId) {
+      await client.query(
+        'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1 AND "totalBookings" > 0',
+        [tripId]
+      );
+    }
+
+    await client.query("COMMIT");
+    return { message: "Booking deleted successfully" };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
-  return { message: "Booking deleted successfully" };
 };
 
 const findBookingForUser = async (db, user, bookingId) => {

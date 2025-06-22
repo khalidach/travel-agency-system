@@ -253,6 +253,10 @@ export default function Programs() {
                     </span>
                   ))}
                 </div>
+                <div className="flex items-center text-sm text-gray-600 pt-3 mt-3 border-t border-gray-100">
+                  <Users className="w-4 h-4 mr-2" />
+                  <span>Total Bookings: {program.totalBookings || 0}</span>
+                </div>
               </div>
             </div>
           );
