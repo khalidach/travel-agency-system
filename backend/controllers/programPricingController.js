@@ -42,29 +42,13 @@ exports.getAllProgramPricing = async (req, res) => {
 };
 
 exports.createProgramPricing = async (req, res) => {
-  const {
-    programId,
-    selectProgram,
-    ticketAirline,
-    visaFees,
-    guideFees,
-    allHotels,
-  } = req.body;
   try {
-    const { rows } = await req.db.query(
-      'INSERT INTO program_pricing ("userId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [
-        // Use adminId to correctly associate the pricing with the agency
-        req.user.adminId,
-        programId,
-        selectProgram,
-        ticketAirline,
-        visaFees,
-        guideFees,
-        JSON.stringify(allHotels || []),
-      ]
+    const newPricing = await ProgramPricingService.createPricingAndBookings(
+      req.db,
+      req.user.adminId,
+      req.body
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json(newPricing);
   } catch (error) {
     console.error("Create Pricing Error:", error);
     res.status(400).json({ message: error.message });

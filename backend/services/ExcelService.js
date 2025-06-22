@@ -400,10 +400,13 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
     }
     const program = programs[0];
 
+    // Fetch pricing, but don't fail if it doesn't exist. It will be undefined if not found.
     const { rows: allPricings } = await client.query(
       'SELECT * FROM program_pricing WHERE "userId" = $1 AND "programId" = $2',
       [userId, programId]
     );
+    const programPricing = allPricings[0];
+
     const { rows: existingBookings } = await client.query(
       'SELECT "passportNumber" FROM bookings WHERE "userId" = $1 AND "tripId" = $2',
       [userId, programId]
@@ -434,9 +437,6 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       if (!passportNumber || existingPassportNumbers.has(passportNumber))
         continue;
 
-      const programPricing = allPricings[0]; // Assuming one pricing per program
-      if (!programPricing) continue;
-
       const bookingPackage = (program.packages || []).find(
         (p) => p.name === rowData["Package"]
       );
@@ -457,37 +457,53 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       const priceStructure = (bookingPackage.prices || []).find(
         (p) => p.hotelCombination === hotelCombination
       );
+
+      // A valid hotel/room combination from the program structure is required to proceed.
       if (!priceStructure) continue;
 
-      const guestMap = new Map(
-        priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
-      );
-
-      const hotelCosts = selectedHotel.cities.reduce((total, city, index) => {
-        const hotelName = selectedHotel.hotelNames[index];
-        const roomTypeName = selectedHotel.roomTypes[index];
-        const hotelInfo = (programPricing.allHotels || []).find(
-          (h) => h.name === hotelName && h.city === city
-        );
-        const cityInfo = program.cities.find((c) => c.name === city);
-        const guests = guestMap.get(roomTypeName) || 1;
-        if (hotelInfo && cityInfo) {
-          const pricePerNight = Number(
-            hotelInfo.PricePerNights?.[roomTypeName] || 0
-          );
-          const nights = Number(cityInfo.nights || 0);
-          if (guests > 0) return total + (pricePerNight * nights) / guests;
-        }
-        return total;
-      }, 0);
-
-      const basePrice = Math.round(
-        Number(programPricing.ticketAirline || 0) +
-          Number(programPricing.visaFees || 0) +
-          Number(programPricing.guideFees || 0) +
-          hotelCosts
-      );
+      let basePrice = 0;
       const sellingPrice = Number(rowData["Selling Price"]) || 0;
+
+      // Only calculate base price if program pricing has been set.
+      if (programPricing) {
+        const guestMap = new Map(
+          priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
+        );
+
+        const hotelCosts = selectedHotel.cities.reduce((total, city, index) => {
+          const hotelName = selectedHotel.hotelNames[index];
+          const roomTypeName = selectedHotel.roomTypes[index];
+          const hotelInfo = (programPricing.allHotels || []).find(
+            (h) => h.name === hotelName && h.city === city
+          );
+          const cityInfo = program.cities.find((c) => c.name === city);
+
+          if (
+            hotelInfo &&
+            cityInfo &&
+            hotelInfo.PricePerNights &&
+            roomTypeName
+          ) {
+            const pricePerNight = Number(
+              hotelInfo.PricePerNights[roomTypeName] || 0
+            );
+            const nights = Number(cityInfo.nights || 0);
+            const guests = Number(guestMap.get(roomTypeName) || 1);
+
+            if (guests > 0) {
+              return total + (pricePerNight * nights) / guests;
+            }
+          }
+          return total;
+        }, 0);
+
+        basePrice = Math.round(
+          Number(programPricing.ticketAirline || 0) +
+            Number(programPricing.visaFees || 0) +
+            Number(programPricing.guideFees || 0) +
+            hotelCosts
+        );
+      }
 
       bookingsToCreate.push({
         userId: userId,
