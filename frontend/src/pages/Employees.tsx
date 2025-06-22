@@ -104,12 +104,17 @@ export default function EmployeesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-  const { data: employees = [], isLoading: isLoadingEmployees } = useQuery<
-    Employee[]
-  >({
+  const { data, isLoading: isLoadingEmployees } = useQuery<{
+    employees: Employee[];
+    limit: number;
+  }>({
     queryKey: ["employees"],
     queryFn: api.getEmployees,
   });
+
+  const employees = data?.employees ?? [];
+  const employeeLimit = data?.limit ?? 2;
+  const canAddEmployee = employees.length < employeeLimit;
 
   const { data: bookingResponse } = useQuery<PaginatedResponse<Booking>>({
     queryKey: ["bookings", "all"],
@@ -187,9 +192,6 @@ export default function EmployeesPage() {
       deleteEmployee(id);
     }
   };
-
-  const employeeLimit = state.user?.totalEmployees ?? 2;
-  const canAddEmployee = employees.length < employeeLimit;
 
   return (
     <div className="space-y-6">

@@ -31,7 +31,9 @@ exports.createEmployee = async (req, res) => {
     if (employeeCount >= employeeLimit) {
       return res
         .status(403)
-        .json({ message: `You can only create ${employeeLimit} employees.` });
+        .json({
+          message: `You can only create up to ${employeeLimit} employees.`,
+        });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -58,11 +60,29 @@ exports.getEmployees = async (req, res) => {
     return res.status(403).json({ message: "Not authorized" });
   }
   try {
-    const { rows } = await req.db.query(
+    // Fetch both employees and the admin's current limit in parallel
+    const employeesPromise = req.db.query(
       'SELECT id, username, role FROM employees WHERE "adminId" = $1',
       [req.user.id]
     );
-    res.json(rows);
+
+    const limitPromise = req.db.query(
+      'SELECT "totalEmployees" FROM users WHERE id = $1',
+      [req.user.id]
+    );
+
+    const [employeesResult, limitResult] = await Promise.all([
+      employeesPromise,
+      limitPromise,
+    ]);
+
+    const employeeLimit = limitResult.rows[0]?.totalEmployees ?? 2;
+
+    // Return an object containing both the list of employees and the limit
+    res.json({
+      employees: employeesResult.rows,
+      limit: employeeLimit,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
