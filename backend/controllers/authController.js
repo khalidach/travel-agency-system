@@ -14,7 +14,7 @@ const generateToken = (id, role, adminId, totalEmployees) => {
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
   try {
-    // Check users table (admins)
+    // Check users table (admins and owners)
     let userResult = await req.db.query(
       "SELECT * FROM users WHERE username = $1",
       [username]
@@ -26,14 +26,19 @@ const loginUser = async (req, res) => {
           id: user.id,
           username: user.username,
           agencyName: user.agencyName,
-          role: "admin", // Admins are in the users table
+          role: user.role, // This can be 'admin' or 'owner'
           totalEmployees: user.totalEmployees,
-          token: generateToken(user.id, "admin", user.id, user.totalEmployees),
+          token: generateToken(
+            user.id,
+            user.role,
+            user.id,
+            user.totalEmployees
+          ),
         });
       }
     }
 
-    // If not an admin, check employees table
+    // If not an admin/owner, check employees table
     let employeeResult = await req.db.query(
       "SELECT * FROM employees WHERE username = $1",
       [username]

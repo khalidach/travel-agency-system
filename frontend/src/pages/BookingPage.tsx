@@ -24,6 +24,7 @@ import BookingFilters from "../components/booking/BookingFilters";
 import BookingTable from "../components/booking/BookingTable";
 import { usePagination } from "../hooks/usePagination";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
+import { useAuthContext } from "../context/AuthContext";
 
 // Types and API
 import type {
@@ -48,6 +49,8 @@ export default function BookingPage() {
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId: string }>();
   const navigate = useNavigate();
+  const { state: authState } = useAuthContext();
+  const userRole = authState.user?.role;
 
   const { register, watch } = useForm<FilterFormData>({
     defaultValues: {
@@ -85,6 +88,8 @@ export default function BookingPage() {
   }>({
     queryKey: ["employees"],
     queryFn: api.getEmployees,
+    // Only fetch employees if the user is an admin or manager
+    enabled: userRole === "admin" || userRole === "manager",
   });
   const employees = employeesData?.employees ?? [];
 
@@ -463,7 +468,11 @@ export default function BookingPage() {
     importBookings(importFile);
   };
 
-  if (isLoadingBookings || isLoadingPrograms || isLoadingEmployees) {
+  if (
+    isLoadingBookings ||
+    isLoadingPrograms ||
+    (userRole !== "employee" && isLoadingEmployees)
+  ) {
     return <BookingSkeleton />;
   }
 

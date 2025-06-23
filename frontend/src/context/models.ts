@@ -3,7 +3,7 @@ export interface User {
   username: string;
   agencyName: string;
   token: string;
-  role: "admin" | "manager" | "employee";
+  role: "admin" | "manager" | "employee" | "owner";
   adminId?: number;
   totalEmployees?: number;
 }
@@ -36,7 +36,7 @@ export interface Program {
   roomTypes: RoomTypeDefinition[];
   userId: number;
   employeeId?: number;
-  totalBookings?: number; // This line is added
+  totalBookings?: number;
 }
 
 export interface Package {

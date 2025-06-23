@@ -18,7 +18,7 @@ const protect = async (req, res, next) => {
       };
 
       // Attach full user/employee details for convenience in other routes
-      if (decoded.role === "admin") {
+      if (decoded.role === "admin" || decoded.role === "owner") {
         const { rows } = await req.db.query(
           'SELECT id, username, "agencyName", "totalEmployees" FROM users WHERE id = $1',
           [decoded.id]

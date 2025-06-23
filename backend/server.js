@@ -13,7 +13,8 @@ const authRoutes = require("./routes/authRoutes");
 const programRoutes = require("./routes/programRoutes");
 const programPricingRoutes = require("./routes/programPricingRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
-const employeeRoutes = require("./routes/employeeRoutes"); // New
+const employeeRoutes = require("./routes/employeeRoutes");
+const ownerRoutes = require("./routes/ownerRoutes"); // New
 
 const app = express();
 
@@ -39,11 +40,12 @@ app.use((req, res, next) => {
 
 // API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/owner", ownerRoutes); // New
 // Apply protect middleware to all data routes
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
 app.use("/api/bookings", protect, bookingRoutes);
-app.use("/api/employees", protect, employeeRoutes); // New
+app.use("/api/employees", protect, employeeRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

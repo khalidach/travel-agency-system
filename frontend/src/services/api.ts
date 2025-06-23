@@ -104,7 +104,7 @@ export const updatePayment = (
 export const deletePayment = (bookingId: number, paymentId: string) =>
   request(`/bookings/${bookingId}/payments/${paymentId}`, { method: "DELETE" });
 
-// --- Employee API (New) ---
+// --- Employee API ---
 export const getEmployees = () => request("/employees");
 export const createEmployee = (employeeData: any) =>
   request("/employees", { method: "POST", body: JSON.stringify(employeeData) });
@@ -115,6 +115,18 @@ export const updateEmployee = (id: number, employeeData: any) =>
   });
 export const deleteEmployee = (id: number) =>
   request(`/employees/${id}`, { method: "DELETE" });
+
+// --- Owner API ---
+export const getAdminUsers = () => request("/owner/admins");
+export const createAdminUser = (userData: any) =>
+  request("/owner/admins", { method: "POST", body: JSON.stringify(userData) });
+export const updateAdminUser = (id: number, userData: any) =>
+  request(`/owner/admins/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(userData),
+  });
+export const deleteAdminUser = (id: number) =>
+  request(`/owner/admins/${id}`, { method: "DELETE" });
 
 // --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) =>

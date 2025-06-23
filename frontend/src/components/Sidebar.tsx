@@ -9,9 +9,16 @@ import {
   Plane,
   ShipWheel,
   Users,
+  Crown,
 } from "lucide-react";
 
 const allMenuItems = [
+  {
+    key: "owner",
+    path: "/",
+    icon: Crown,
+    roles: ["owner"],
+  },
   {
     key: "dashboard",
     path: "/",
@@ -51,8 +58,8 @@ export default function Sidebar() {
   const { state } = useAuthContext();
   const userRole = state.user?.role;
 
-  const menuItems = allMenuItems.filter((item) =>
-    item.roles.includes(userRole || "")
+  const menuItems = allMenuItems.filter(
+    (item) => userRole && item.roles.includes(userRole)
   );
 
   return (

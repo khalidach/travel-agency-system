@@ -1,0 +1,275 @@
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Edit2, Trash2, ShieldCheck } from "lucide-react";
+import Modal from "../components/Modal";
+import * as api from "../services/api";
+import { toast } from "react-hot-toast";
+import type { User } from "../context/models";
+
+// Form for adding/editing an admin user
+const AdminForm = ({
+  user,
+  onSave,
+  onCancel,
+}: {
+  user?: User | null;
+  onSave: (data: Partial<User>) => void;
+  onCancel: () => void;
+}) => {
+  const [formData, setFormData] = useState({
+    username: user?.username || "",
+    password: "",
+    agencyName: user?.agencyName || "",
+    totalEmployees: user?.totalEmployees || 2,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      !formData.username ||
+      !formData.agencyName ||
+      (!user && !formData.password)
+    ) {
+      toast.error("Username, Agency Name, and Password are required.");
+      return;
+    }
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Username
+        </label>
+        <input
+          type="text"
+          value={formData.username}
+          onChange={(e) =>
+            setFormData({ ...formData, username: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Password {user ? "(leave blank to keep unchanged)" : ""}
+        </label>
+        <input
+          type="password"
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Agency Name
+        </label>
+        <input
+          type="text"
+          value={formData.agencyName}
+          onChange={(e) =>
+            setFormData({ ...formData, agencyName: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Employee Limit
+        </label>
+        <input
+          type="number"
+          value={formData.totalEmployees}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              totalEmployees: Number(e.target.value),
+            })
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          required
+        />
+      </div>
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-100 rounded-lg"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+        >
+          Save Admin
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default function OwnerPage() {
+  const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const { data: adminUsers = [], isLoading } = useQuery<User[]>({
+    queryKey: ["adminUsers"],
+    queryFn: api.getAdminUsers,
+  });
+
+  const { mutate: createUser } = useMutation({
+    mutationFn: (data: Partial<User>) => api.createAdminUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast.success("Admin user created successfully!");
+      setIsModalOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create admin user.");
+    },
+  });
+
+  const { mutate: updateUser } = useMutation({
+    mutationFn: (data: Partial<User>) =>
+      api.updateAdminUser(editingUser!.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast.success("Admin user updated successfully!");
+      setIsModalOpen(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const { mutate: deleteUser } = useMutation({
+    mutationFn: (id: number) => api.deleteAdminUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast.success("Admin user deleted successfully!");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const handleSave = (data: Partial<User>) => {
+    if (editingUser) {
+      updateUser(data);
+    } else {
+      createUser(data);
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingUser(null);
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this admin account?")) {
+      deleteUser(id);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage all admin accounts.</p>
+        </div>
+        <button
+          onClick={openAddModal}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
+        >
+          <Plus className="w-5 h-5 mr-2" />
+          Add Admin
+        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Username
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Agency Name
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Employee Limit
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {isLoading ? (
+              <tr>
+                <td colSpan={4} className="text-center p-4">
+                  Loading...
+                </td>
+              </tr>
+            ) : (
+              adminUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-gray-900">
+                      {user.username}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.agencyName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.totalEmployees}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingUser ? "Edit Admin User" : "Add Admin User"}
+      >
+        <AdminForm
+          user={editingUser}
+          onSave={handleSave}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
+    </div>
+  );
+}

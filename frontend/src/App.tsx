@@ -24,6 +24,7 @@ const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const OwnerPage = lazy(() => import("./pages/Owner"));
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
@@ -58,36 +59,45 @@ function AppRoutes() {
           <Route
             path="/*"
             element={
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/programs" element={<Programs />} />
-                  {(userRole === "admin" || userRole === "manager") && (
-                    <Route
-                      path="/program-pricing"
-                      element={<ProgramPricing />}
-                    />
-                  )}
-                  <Route path="/booking" element={<Booking />} />
-                  <Route
-                    path="/booking/program/:programId"
-                    element={<BookingPage />}
-                  />
-                  {userRole === "admin" && (
-                    <Route path="/profit-report" element={<ProfitReport />} />
-                  )}
-                  {userRole === "admin" && (
-                    <>
-                      <Route path="/employees" element={<EmployeesPage />} />
+              userRole === "owner" ? (
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<OwnerPage />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Layout>
+              ) : (
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/programs" element={<Programs />} />
+                    {(userRole === "admin" || userRole === "manager") && (
                       <Route
-                        path="/employees/:username"
-                        element={<EmployeeAnalysisPage />}
+                        path="/program-pricing"
+                        element={<ProgramPricing />}
                       />
-                    </>
-                  )}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </Layout>
+                    )}
+                    <Route path="/booking" element={<Booking />} />
+                    <Route
+                      path="/booking/program/:programId"
+                      element={<BookingPage />}
+                    />
+                    {userRole === "admin" && (
+                      <Route path="/profit-report" element={<ProfitReport />} />
+                    )}
+                    {userRole === "admin" && (
+                      <>
+                        <Route path="/employees" element={<EmployeesPage />} />
+                        <Route
+                          path="/employees/:username"
+                          element={<EmployeeAnalysisPage />}
+                        />
+                      </>
+                    )}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Layout>
+              )
             }
           />
         )}

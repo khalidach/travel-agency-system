@@ -29,11 +29,9 @@ exports.createEmployee = async (req, res) => {
 
     // Enforce the dynamic limit per admin
     if (employeeCount >= employeeLimit) {
-      return res
-        .status(403)
-        .json({
-          message: `You can only create up to ${employeeLimit} employees.`,
-        });
+      return res.status(403).json({
+        message: `You can only create up to ${employeeLimit} employees.`,
+      });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -54,21 +52,21 @@ exports.createEmployee = async (req, res) => {
   }
 };
 
-// Get all employees for the logged-in admin
+// Get all employees for the logged-in admin or manager
 exports.getEmployees = async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
     return res.status(403).json({ message: "Not authorized" });
   }
   try {
     // Fetch both employees and the admin's current limit in parallel
     const employeesPromise = req.db.query(
       'SELECT id, username, role FROM employees WHERE "adminId" = $1',
-      [req.user.id]
+      [req.user.adminId]
     );
 
     const limitPromise = req.db.query(
       'SELECT "totalEmployees" FROM users WHERE id = $1',
-      [req.user.id]
+      [req.user.adminId]
     );
 
     const [employeesResult, limitResult] = await Promise.all([
