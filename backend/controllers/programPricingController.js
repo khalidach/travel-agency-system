@@ -7,13 +7,17 @@ exports.getAllProgramPricing = async (req, res) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
-    // Use adminId to fetch data for the entire agency
+    // Join with employees table to get employeeName
     const pricingPromise = req.db.query(
-      'SELECT * FROM program_pricing WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+      `SELECT pp.*, e.username as "employeeName"
+       FROM program_pricing pp
+       LEFT JOIN employees e ON pp."employeeId" = e.id
+       WHERE pp."userId" = $1
+       ORDER BY pp."createdAt" DESC
+       LIMIT $2 OFFSET $3`,
       [req.user.adminId, limit, offset]
     );
 
-    // Use adminId for the count as well
     const totalCountPromise = req.db.query(
       'SELECT COUNT(*) FROM program_pricing WHERE "userId" = $1',
       [req.user.adminId]
@@ -45,7 +49,7 @@ exports.createProgramPricing = async (req, res) => {
   try {
     const newPricing = await ProgramPricingService.createPricingAndBookings(
       req.db,
-      req.user.adminId,
+      req.user, // Pass the whole user object
       req.body
     );
     res.status(201).json(newPricing);
@@ -58,11 +62,10 @@ exports.createProgramPricing = async (req, res) => {
 exports.updateProgramPricing = async (req, res) => {
   const { id } = req.params;
   try {
-    // Pass adminId to the service layer for authorization and updates
     const updatedProgramPricing =
       await ProgramPricingService.updatePricingAndBookings(
         req.db,
-        req.user.adminId,
+        req.user, // Pass user object
         id,
         req.body
       );
@@ -76,16 +79,36 @@ exports.updateProgramPricing = async (req, res) => {
 exports.deleteProgramPricing = async (req, res) => {
   const { id } = req.params;
   try {
-    // Use adminId to ensure a manager can delete pricing within their agency
-    const { rowCount } = await req.db.query(
-      'DELETE FROM program_pricing WHERE id = $1 AND "userId" = $2',
+    // Authorization Check
+    const pricingRes = await req.db.query(
+      'SELECT "employeeId" FROM program_pricing WHERE id = $1 AND "userId" = $2',
       [id, req.user.adminId]
     );
-    if (rowCount === 0) {
+
+    if (pricingRes.rows.length === 0) {
       return res
         .status(404)
-        .json({ message: "Program pricing not found or user not authorized" });
+        .json({ message: "Program pricing not found or not authorized." });
     }
+
+    const pricing = pricingRes.rows[0];
+    if (req.user.role !== "admin" && pricing.employeeId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this pricing." });
+    }
+
+    // Deletion
+    const { rowCount } = await req.db.query(
+      "DELETE FROM program_pricing WHERE id = $1",
+      [id]
+    );
+
+    if (rowCount === 0) {
+      // This case should be rare due to the check above, but it is good practice
+      return res.status(404).json({ message: "Program pricing not found." });
+    }
+
     res.json({ message: "Program pricing deleted successfully" });
   } catch (error) {
     console.error("Delete Pricing Error:", error);

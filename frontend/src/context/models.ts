@@ -116,6 +116,8 @@ export interface ProgramPricing {
   visaFees: number;
   guideFees: number;
   allHotels: HotelPrice[];
+  employeeId?: number;
+  employeeName?: string;
 }
 
 export interface Pagination {

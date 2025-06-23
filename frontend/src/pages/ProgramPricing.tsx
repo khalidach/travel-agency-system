@@ -21,6 +21,7 @@ import {
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
+import { useAuthContext } from "../context/AuthContext";
 
 const emptyPricing: Omit<ProgramPricing, "id"> = {
   selectProgram: "",
@@ -34,14 +35,16 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { state: authState } = useAuthContext();
+  const currentUser = authState.user;
   const [currentPage, setCurrentPage] = useState(1);
-  const pricingPerPage = 6; // Changed to 6 to fit 3x2 grid
+  const pricingPerPage = 6;
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
   >({
     queryKey: ["programs"],
-    queryFn: () => api.getPrograms(1, 1000).then((res) => res.data), // Fetch all programs for the dropdown
+    queryFn: () => api.getPrograms(1, 1000).then((res) => res.data),
   });
 
   const { data: pricingResponse, isLoading: isLoadingPricing } = useQuery<
@@ -355,6 +358,9 @@ export default function ProgramPricingPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {programPricing.map((pricing: ProgramPricing) => {
               const program = programs.find((p) => p.id === pricing.programId);
+              const canModify =
+                currentUser?.role === "admin" ||
+                currentUser?.id === pricing.employeeId;
               return (
                 <div
                   key={pricing.id}
@@ -376,20 +382,22 @@ export default function ProgramPricingPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex space-x-1">
-                        <button
-                          onClick={() => handleEditPricing(pricing)}
-                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeletePricing(pricing.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {canModify && (
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => handleEditPricing(pricing)}
+                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePricing(pricing.id)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-3 mb-4">
@@ -433,26 +441,38 @@ export default function ProgramPricingPage() {
                         </span>
                       </span>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <BedDouble className="w-4 h-4 mr-2 text-gray-400" />
-                      <span>
-                        Room Types:{" "}
-                        <span className="font-medium text-gray-800">
-                          {(() => {
-                            if (!program) return 0;
-                            const roomTypes = new Set<string>();
-                            (program.packages || []).forEach((pkg) => {
-                              (pkg.prices || []).forEach((price) => {
-                                (price.roomTypes || []).forEach((rt) => {
-                                  roomTypes.add(rt.type);
+                    {program && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <BedDouble className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Room Types:{" "}
+                          <span className="font-medium text-gray-800">
+                            {(() => {
+                              const roomTypes = new Set<string>();
+                              (program.packages || []).forEach((pkg) => {
+                                (pkg.prices || []).forEach((price) => {
+                                  (price.roomTypes || []).forEach((rt) => {
+                                    roomTypes.add(rt.type);
+                                  });
                                 });
                               });
-                            });
-                            return roomTypes.size;
-                          })()}
+                              return roomTypes.size;
+                            })()}
+                          </span>
                         </span>
-                      </span>
-                    </div>
+                      </div>
+                    )}
+                    {pricing.employeeName && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <User className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Added by:{" "}
+                          <span className="font-medium text-gray-800">
+                            {pricing.employeeName}
+                          </span>
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

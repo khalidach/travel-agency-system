@@ -4,11 +4,11 @@
  * Creates a new program pricing and recalculates the base price and profit for all related bookings.
  * This is a transactional operation.
  * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user performing the action.
+ * @param {object} user - The user object from the request.
  * @param {object} pricingData - The new pricing data.
  * @returns {Promise<object>} A promise that resolves to the created program pricing record.
  */
-exports.createPricingAndBookings = async (db, userId, pricingData) => {
+exports.createPricingAndBookings = async (db, user, pricingData) => {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
@@ -22,10 +22,15 @@ exports.createPricingAndBookings = async (db, userId, pricingData) => {
       allHotels,
     } = pricingData;
 
+    // Get userId and employeeId from user object
+    const userId = user.adminId;
+    const employeeId = user.role !== "admin" ? user.id : null;
+
     const { rows: createdPricingRows } = await client.query(
-      'INSERT INTO program_pricing ("userId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [
         userId,
+        employeeId,
         programId,
         selectProgram,
         ticketAirline,
@@ -54,20 +59,30 @@ exports.createPricingAndBookings = async (db, userId, pricingData) => {
  * Updates a program's pricing and recalculates the base price and profit for all related bookings.
  * This is a transactional operation.
  * @param {object} db - The database connection pool.
- * @param {number} userId - The ID of the user performing the update.
+ * @param {object} user - The user performing the update.
  * @param {number} pricingId - The ID of the pricing record to update.
  * @param {object} pricingData - The new pricing data.
  * @returns {Promise<object>} A promise that resolves to the updated program pricing record.
  */
-exports.updatePricingAndBookings = async (
-  db,
-  userId,
-  pricingId,
-  pricingData
-) => {
+exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
+
+    // Authorization check
+    const pricingRes = await client.query(
+      'SELECT "employeeId" FROM program_pricing WHERE id = $1 AND "userId" = $2',
+      [pricingId, user.adminId]
+    );
+
+    if (pricingRes.rows.length === 0) {
+      throw new Error("Program pricing not found or user not authorized");
+    }
+
+    const existingPricing = pricingRes.rows[0];
+    if (user.role !== "admin" && existingPricing.employeeId !== user.id) {
+      throw new Error("You are not authorized to modify this pricing.");
+    }
 
     const { rows: updatedPricingRows } = await client.query(
       'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "updatedAt" = NOW() WHERE id = $7 AND "userId" = $8 RETURNING *',
@@ -79,7 +94,7 @@ exports.updatePricingAndBookings = async (
         pricingData.guideFees,
         JSON.stringify(pricingData.allHotels || []),
         pricingId,
-        userId,
+        user.adminId,
       ]
     );
 
@@ -91,7 +106,7 @@ exports.updatePricingAndBookings = async (
 
     await updateRelatedBookings(
       client,
-      userId,
+      user.adminId,
       pricingData.programId,
       updatedProgramPricing
     );
