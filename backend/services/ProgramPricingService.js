@@ -19,6 +19,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       ticketAirline,
       visaFees,
       guideFees,
+      transportFees,
       allHotels,
     } = pricingData;
 
@@ -27,7 +28,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
     const employeeId = user.role !== "admin" ? user.id : null;
 
     const { rows: createdPricingRows } = await client.query(
-      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "transportFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
       [
         userId,
         employeeId,
@@ -36,6 +37,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
         ticketAirline,
         visaFees,
         guideFees,
+        transportFees,
         JSON.stringify(allHotels || []),
       ]
     );
@@ -85,7 +87,7 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
     }
 
     const { rows: updatedPricingRows } = await client.query(
-      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "updatedAt" = NOW() WHERE id = $7 AND "userId" = $8 RETURNING *',
+      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "transportFees" = $7, "updatedAt" = NOW() WHERE id = $8 AND "userId" = $9 RETURNING *',
       [
         pricingData.programId,
         pricingData.selectProgram,
@@ -93,6 +95,7 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
         pricingData.visaFees,
         pricingData.guideFees,
         JSON.stringify(pricingData.allHotels || []),
+        pricingData.transportFees,
         pricingId,
         user.adminId,
       ]
@@ -189,9 +192,10 @@ async function updateRelatedBookings(
       const ticketPrice = Number(programPricing.ticketAirline || 0);
       const visaPrice = Number(programPricing.visaFees || 0);
       const guidePrice = Number(programPricing.guideFees || 0);
+      const transportPrice = Number(programPricing.transportFees || 0);
 
       const newBasePrice = Math.round(
-        ticketPrice + visaPrice + guidePrice + hotelCosts
+        ticketPrice + visaPrice + guidePrice + transportPrice + hotelCosts
       );
       const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
       const totalPaid = (booking.advancePayments || []).reduce(

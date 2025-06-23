@@ -64,8 +64,11 @@ const calculateBasePrice = async (
   const ticketPrice = Number(pricing.ticketAirline || 0);
   const visaPrice = Number(pricing.visaFees || 0);
   const guidePrice = Number(pricing.guideFees || 0);
+  const transportPrice = Number(pricing.transportFees || 0);
 
-  return Math.round(ticketPrice + visaPrice + guidePrice + hotelCosts);
+  return Math.round(
+    ticketPrice + visaPrice + guidePrice + transportPrice + hotelCosts
+  );
 };
 
 const createBooking = async (db, user, bookingData) => {

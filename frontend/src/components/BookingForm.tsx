@@ -174,8 +174,11 @@ export default function BookingForm({
     const ticketAirline = Number(pricing.ticketAirline || 0);
     const visaFees = Number(pricing.visaFees || 0);
     const guideFees = Number(pricing.guideFees || 0);
+    const transportFees = Number(pricing.transportFees || 0);
 
-    return Math.round(ticketAirline + visaFees + guideFees + hotelCosts);
+    return Math.round(
+      ticketAirline + visaFees + guideFees + transportFees + hotelCosts
+    );
   }, [
     formState.selectedProgram,
     formState.selectedPriceStructure,

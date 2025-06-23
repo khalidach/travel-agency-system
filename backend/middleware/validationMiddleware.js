@@ -52,6 +52,9 @@ const programPricingValidation = [
   body("ticketAirline")
     .isFloat({ gt: 0 })
     .withMessage("Ticket price must be a positive number."),
+  body("transportFees")
+    .isFloat({ gte: 0 })
+    .withMessage("Transport fees must be a non-negative number."),
   body("visaFees")
     .isFloat({ gte: 0 }) // Changed from gt to gte
     .withMessage("Visa fees must be a non-negative number."), // Updated message for clarity

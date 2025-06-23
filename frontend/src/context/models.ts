@@ -115,6 +115,7 @@ export interface ProgramPricing {
   ticketAirline: number;
   visaFees: number;
   guideFees: number;
+  transportFees: number;
   allHotels: HotelPrice[];
   employeeId?: number;
   employeeName?: string;

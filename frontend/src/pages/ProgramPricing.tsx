@@ -17,6 +17,7 @@ import {
   User,
   Hotel,
   BedDouble,
+  Bus,
 } from "lucide-react";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -29,6 +30,7 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
   ticketAirline: 0,
   visaFees: 0,
   guideFees: 0,
+  transportFees: 0,
   allHotels: [],
 };
 
@@ -243,7 +245,7 @@ export default function ProgramPricingPage() {
       </div>
       {selectedProgram && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Flight Ticket Price
@@ -255,6 +257,22 @@ export default function ProgramPricingPage() {
                   setCurrentPricing((prev) => ({
                     ...prev,
                     ticketAirline: Number(e.target.value),
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Transport Fees
+              </label>
+              <input
+                type="number"
+                value={currentPricing.transportFees || ""}
+                onChange={(e) =>
+                  setCurrentPricing((prev) => ({
+                    ...prev,
+                    transportFees: Number(e.target.value),
                   }))
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -364,7 +382,7 @@ export default function ProgramPricingPage() {
               return (
                 <div
                   key={pricing.id}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-all duration-200"
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-all duration-200"
                 >
                   <div>
                     <div className="flex items-start justify-between mb-4">
@@ -406,7 +424,22 @@ export default function ProgramPricingPage() {
                         <span>
                           Flight Ticket:{" "}
                           <span className="font-medium text-gray-800">
-                            {pricing.ticketAirline.toLocaleString()} MAD
+                            {Number(
+                              pricing.ticketAirline || 0
+                            ).toLocaleString()}{" "}
+                            MAD
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Bus className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Transport Fees:{" "}
+                          <span className="font-medium text-gray-800">
+                            {Number(
+                              pricing.transportFees || 0
+                            ).toLocaleString()}{" "}
+                            MAD
                           </span>
                         </span>
                       </div>
@@ -415,7 +448,7 @@ export default function ProgramPricingPage() {
                         <span>
                           Visa Fees:{" "}
                           <span className="font-medium text-gray-800">
-                            {pricing.visaFees.toLocaleString()} MAD
+                            {Number(pricing.visaFees || 0).toLocaleString()} MAD
                           </span>
                         </span>
                       </div>
@@ -424,14 +457,15 @@ export default function ProgramPricingPage() {
                         <span>
                           Guide Fees:{" "}
                           <span className="font-medium text-gray-800">
-                            {pricing.guideFees.toLocaleString()} MAD
+                            {Number(pricing.guideFees || 0).toLocaleString()}{" "}
+                            MAD
                           </span>
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-4 border-t border-gray-100 space-y-3">
+                  <div className=" pt-4 border-t border-gray-100 space-y-3">
                     <div className="flex items-center text-sm text-gray-600">
                       <Hotel className="w-4 h-4 mr-2 text-gray-400" />
                       <span>
