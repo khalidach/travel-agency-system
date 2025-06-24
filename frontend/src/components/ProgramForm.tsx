@@ -28,7 +28,7 @@ export default function ProgramForm({
       : {
           name: "",
           type: "Umrah",
-          duration: 0,
+          duration: 1,
           cities: [{ name: "", nights: 1 }],
           packages: [{ name: "Standard", hotels: {}, prices: [] }],
         },
@@ -37,15 +37,26 @@ export default function ProgramForm({
   // We only need these functions here
   const { handleSubmit, watch, reset, setValue } = methods;
 
-  // Watch for changes in cities to auto-calculate duration
-  const watchedCities = watch("cities");
+  // Watch for changes in cities to auto-calculate duration.
+  // Using a subscription to watch() is the most reliable way to catch
+  // changes in field arrays and trigger side effects.
   useEffect(() => {
-    const totalDuration = (watchedCities || []).reduce(
-      (sum: number, city: CityData) => sum + Number(city.nights || 0),
-      0
-    );
-    setValue("duration", totalDuration);
-  }, [watchedCities, setValue]);
+    const subscription = watch((value, { name }) => {
+      // We check if the changed field is part of the 'cities' array.
+      // This is more efficient than recalculating on every single form change.
+      if (name && (name === "cities" || name.startsWith("cities."))) {
+        const cities = value.cities || [];
+        // The type of 'city' is inferred by TypeScript from the form's state.
+        // Explicitly typing it as 'CityData' can cause a mismatch because the form
+        // state might be a partial representation of the full type.
+        const totalDuration = cities
+          .filter((city): city is CityData => city != null) // Type guard
+          .reduce((sum: number, city) => sum + (Number(city.nights) || 0), 0);
+        setValue("duration", totalDuration);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, setValue]);
 
   // Reset form when the program prop changes
   useEffect(() => {
