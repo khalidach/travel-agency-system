@@ -17,9 +17,12 @@ const employeeRoutes = require("./routes/employeeRoutes");
 const ownerRoutes = require("./routes/ownerRoutes"); // New
 
 const app = express();
+const corsOptions = {
+  origin: process.env.frontend_URL,
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Connect to PostgreSQL
