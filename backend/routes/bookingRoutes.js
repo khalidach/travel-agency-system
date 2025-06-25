@@ -21,7 +21,7 @@ const {
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
 
-const upload = multer({ dest: "temp/" });
+const upload = multer({ dest: "/tmp" });
 
 // Booking routes
 router.get("/", getAllBookings);
