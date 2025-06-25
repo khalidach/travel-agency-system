@@ -1,3 +1,4 @@
+// frontend/src/pages/Programs.tsx
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
 import { useAuthContext } from "../context/AuthContext";
+import ConfirmationModal from "../components/modals/ConfirmationModal"; // Import the new modal
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -28,6 +30,16 @@ export default function Programs() {
   const currentUser = state.user;
   const [currentPage, setCurrentPage] = useState(1);
   const programsPerPage = 6;
+
+  // Modal States
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [programToDelete, setProgramToDelete] = useState<number | null>(null);
+
+  // Search and Filter States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
 
   const {
     data: programResponse,
@@ -46,7 +58,7 @@ export default function Programs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program created successfully!");
-      setIsModalOpen(false);
+      setIsFormModalOpen(false);
     },
     onError: () => {
       toast.error("Failed to create program.");
@@ -58,7 +70,7 @@ export default function Programs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program updated successfully!");
-      setIsModalOpen(false);
+      setIsFormModalOpen(false);
       setEditingProgram(null);
     },
     onError: (error: Error) => {
@@ -77,11 +89,6 @@ export default function Programs() {
     },
   });
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProgram, setEditingProgram] = useState<Program | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-
   const filteredPrograms = programs.filter((program) => {
     const matchesSearch = program.name
       .toLowerCase()
@@ -98,17 +105,22 @@ export default function Programs() {
 
   const handleAddProgram = () => {
     setEditingProgram(null);
-    setIsModalOpen(true);
+    setIsFormModalOpen(true);
   };
 
   const handleEditProgram = (program: Program) => {
     setEditingProgram(program);
-    setIsModalOpen(true);
+    setIsFormModalOpen(true);
   };
 
   const handleDeleteProgram = (programId: number) => {
-    if (window.confirm("Are you sure you want to delete this program?")) {
-      deleteProgram(programId);
+    setProgramToDelete(programId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (programToDelete !== null) {
+      deleteProgram(programToDelete);
     }
   };
 
@@ -327,9 +339,9 @@ export default function Programs() {
       )}
 
       <Modal
-        isOpen={isModalOpen}
+        isOpen={isFormModalOpen}
         onClose={() => {
-          setIsModalOpen(false);
+          setIsFormModalOpen(false);
           setEditingProgram(null);
         }}
         title={editingProgram ? t("editProgram") : t("addProgram")}
@@ -339,11 +351,19 @@ export default function Programs() {
           program={editingProgram}
           onSave={handleSaveProgram}
           onCancel={() => {
-            setIsModalOpen(false);
+            setIsFormModalOpen(false);
             setEditingProgram(null);
           }}
         />
       </Modal>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Program"
+        message="Are you sure you want to delete this program? This action cannot be undone and will remove all associated data."
+      />
     </div>
   );
 }

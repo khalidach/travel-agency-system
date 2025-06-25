@@ -1,3 +1,4 @@
+// frontend/src/pages/ProgramPricing.tsx
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
 import { useAuthContext } from "../context/AuthContext";
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 
 const emptyPricing: Omit<ProgramPricing, "id"> = {
   selectProgram: "",
@@ -41,6 +43,8 @@ export default function ProgramPricingPage() {
   const currentUser = authState.user;
   const [currentPage, setCurrentPage] = useState(1);
   const pricingPerPage = 6;
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [pricingToDelete, setPricingToDelete] = useState<number | null>(null);
 
   const { data: programs = [], isLoading: isLoadingPrograms } = useQuery<
     Program[]
@@ -167,9 +171,14 @@ export default function ProgramPricingPage() {
     setCurrentPricing({ ...pricing });
   };
 
-  const handleDeletePricing = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this pricing?")) {
-      deletePricing(id);
+  const handleDeletePricing = (id: number) => {
+    setPricingToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (pricingToDelete) {
+      deletePricing(pricingToDelete);
     }
   };
 
@@ -559,6 +568,13 @@ export default function ProgramPricingPage() {
           )}
         </div>
       )}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Pricing"
+        message="Are you sure you want to delete this pricing configuration? This may affect booking calculations. This action cannot be undone."
+      />
     </div>
   );
 }

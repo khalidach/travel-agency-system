@@ -1,8 +1,10 @@
+// frontend/src/pages/Employees.tsx
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, Users, Briefcase, Hash } from "lucide-react";
 import Modal from "../components/Modal";
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Employee, Booking, PaginatedResponse } from "../context/models";
@@ -99,8 +101,10 @@ const EmployeeForm = ({
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
 
   const { data, isLoading: isLoadingEmployees } = useQuery<{
     employees: Employee[];
@@ -140,7 +144,7 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       toast.success("Employee created successfully!");
-      setIsModalOpen(false);
+      setIsFormModalOpen(false);
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to create employee.");
@@ -153,7 +157,7 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       toast.success("Employee updated successfully!");
-      setIsModalOpen(false);
+      setIsFormModalOpen(false);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -177,19 +181,24 @@ export default function EmployeesPage() {
 
   const openAddModal = () => {
     setEditingEmployee(null);
-    setIsModalOpen(true);
+    setIsFormModalOpen(true);
   };
 
   const openEditModal = (e: React.MouseEvent, employee: Employee) => {
     e.stopPropagation();
     setEditingEmployee(employee);
-    setIsModalOpen(true);
+    setIsFormModalOpen(true);
   };
 
   const handleDelete = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this employee?")) {
-      deleteEmployee(id);
+    setEmployeeToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      deleteEmployee(employeeToDelete);
     }
   };
 
@@ -302,16 +311,24 @@ export default function EmployeesPage() {
       </div>
 
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isFormModalOpen}
+        onClose={() => setIsFormModalOpen(false)}
         title={editingEmployee ? "Edit Employee" : "Add Employee"}
       >
         <EmployeeForm
           employee={editingEmployee}
           onSave={handleSave}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => setIsFormModalOpen(false)}
         />
       </Modal>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Employee"
+        message="Are you sure you want to delete this employee? This action cannot be undone."
+      />
     </div>
   );
 }

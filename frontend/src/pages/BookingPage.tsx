@@ -1,3 +1,4 @@
+// frontend/src/pages/BookingPage.tsx
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ import {
 
 // Components and Hooks
 import Modal from "../components/Modal";
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
 import PaymentForm from "../components/PaymentForm";
 import BookingSummary from "../components/booking/BookingSummary";
@@ -44,6 +46,13 @@ type FilterFormData = {
   employeeFilter: string;
 };
 
+type ConfirmationState = {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+};
+
 export default function BookingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -51,6 +60,24 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
+
+  // State Management
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editingPayment, setEditingPayment] = useState<{
+    bookingId: number;
+    payment: Payment;
+  } | null>(null);
+  const [selectedBookingForPayment, setSelectedBookingForPayment] =
+    useState<Booking | null>(null);
+  const [confirmationState, setConfirmationState] =
+    useState<ConfirmationState | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const bookingsPerPage = 10;
 
   const { register, watch } = useForm<FilterFormData>({
     defaultValues: {
@@ -62,8 +89,6 @@ export default function BookingPage() {
   });
 
   const filters = watch();
-  const [currentPage, setCurrentPage] = useState(1);
-  const bookingsPerPage = 10;
 
   // Data Fetching
   const { data: bookingResponse, isLoading: isLoadingBookings } = useQuery<
@@ -88,7 +113,6 @@ export default function BookingPage() {
   }>({
     queryKey: ["employees"],
     queryFn: api.getEmployees,
-    // Only fetch employees if the user is an admin or manager
     enabled: userRole === "admin" || userRole === "manager",
   });
   const employees = employeesData?.employees ?? [];
@@ -201,20 +225,6 @@ export default function BookingPage() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
   });
-
-  // UI State
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [editingPayment, setEditingPayment] = useState<{
-    bookingId: number;
-    payment: Payment;
-  } | null>(null);
-  const [selectedBookingForPayment, setSelectedBookingForPayment] =
-    useState<Booking | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -337,9 +347,13 @@ export default function BookingPage() {
   };
 
   const handleDeleteBooking = (bookingId: number) => {
-    if (window.confirm("Are you sure you want to delete this booking?")) {
-      deleteBooking(bookingId);
-    }
+    setConfirmationState({
+      isOpen: true,
+      title: "Delete Booking",
+      message:
+        "Are you sure you want to delete this booking? This action cannot be undone.",
+      onConfirm: () => deleteBooking(bookingId),
+    });
   };
 
   const handleSaveBooking = (
@@ -388,9 +402,13 @@ export default function BookingPage() {
   };
 
   const handleDeletePayment = (bookingId: number, paymentId: string) => {
-    if (window.confirm("Are you sure you want to delete this payment?")) {
-      deletePayment({ bookingId, paymentId });
-    }
+    setConfirmationState({
+      isOpen: true,
+      title: "Delete Payment",
+      message:
+        "Are you sure you want to delete this payment? This action cannot be undone.",
+      onConfirm: () => deletePayment({ bookingId, paymentId }),
+    });
   };
 
   const handleExport = async () => {
@@ -763,6 +781,17 @@ export default function BookingPage() {
           </div>
         )}
       </Modal>
+
+      {/* General Confirmation Modal */}
+      {confirmationState?.isOpen && (
+        <ConfirmationModal
+          isOpen={confirmationState.isOpen}
+          onClose={() => setConfirmationState(null)}
+          onConfirm={confirmationState.onConfirm}
+          title={confirmationState.title}
+          message={confirmationState.message}
+        />
+      )}
     </div>
   );
 }

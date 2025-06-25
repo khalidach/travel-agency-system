@@ -1,7 +1,9 @@
+// frontend/src/pages/Owner.tsx
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2, ShieldCheck } from "lucide-react";
+import { Plus, Edit2, Trash2 } from "lucide-react";
 import Modal from "../components/Modal";
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { User } from "../context/models";
@@ -119,6 +121,8 @@ export default function OwnerPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
 
   const { data: adminUsers = [], isLoading } = useQuery<User[]>({
     queryKey: ["adminUsers"],
@@ -176,8 +180,13 @@ export default function OwnerPage() {
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm("Are you sure you want to delete this admin account?")) {
-      deleteUser(id);
+    setUserToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      deleteUser(userToDelete);
     }
   };
 
@@ -270,6 +279,14 @@ export default function OwnerPage() {
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Admin User"
+        message="Are you sure you want to delete this admin account? This action is permanent and will remove all associated data."
+      />
     </div>
   );
 }

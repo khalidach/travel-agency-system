@@ -75,11 +75,9 @@ exports.updateProgram = async (req, res) => {
     );
 
     if (programResult.rows.length === 0) {
-      return res
-        .status(404)
-        .json({
-          message: "Program not found or you are not authorized to access it.",
-        });
+      return res.status(404).json({
+        message: "Program not found or you are not authorized to access it.",
+      });
     }
 
     const program = programResult.rows[0];
@@ -111,36 +109,55 @@ exports.updateProgram = async (req, res) => {
 
 exports.deleteProgram = async (req, res) => {
   const { id } = req.params;
+  const client = await req.db.connect(); // Use a client for transaction
+
   try {
-    const programResult = await req.db.query(
+    await client.query("BEGIN"); // Start transaction
+
+    const programResult = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [id, req.user.adminId]
     );
 
     if (programResult.rows.length === 0) {
-      return res
-        .status(404)
-        .json({
-          message: "Program not found or you are not authorized to access it.",
-        });
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        message: "Program not found or you are not authorized to access it.",
+      });
     }
 
     const program = programResult.rows[0];
 
-    // An admin can delete any program. An employee/manager can only delete their own.
+    // Authorization check
     if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
-      return res
-        .status(403)
-        .json({
-          message: "You can only delete programs that you have created.",
-        });
+      await client.query("ROLLBACK");
+      return res.status(403).json({
+        message: "You can only delete programs that you have created.",
+      });
     }
 
-    await req.db.query("DELETE FROM programs WHERE id = $1", [id]);
+    // --- CASCADING DELETE LOGIC ---
+    // 1. Delete associated program pricing
+    await client.query('DELETE FROM program_pricing WHERE "programId" = $1', [
+      id,
+    ]);
 
-    res.json({ message: "Program deleted successfully" });
+    // 2. Delete associated bookings
+    await client.query('DELETE FROM bookings WHERE "tripId" = $1', [id]);
+
+    // 3. Delete the program itself
+    await client.query("DELETE FROM programs WHERE id = $1", [id]);
+
+    await client.query("COMMIT"); // Commit the transaction
+
+    res.json({
+      message: "Program and all associated data deleted successfully",
+    });
   } catch (error) {
+    await client.query("ROLLBACK"); // Rollback on error
     console.error("Delete Program Error:", error);
     res.status(500).json({ message: error.message });
+  } finally {
+    client.release(); // Release the client back to the pool
   }
 };
