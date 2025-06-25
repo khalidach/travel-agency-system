@@ -1,3 +1,4 @@
+// frontend/src/services/api.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // --- Auth API ---
@@ -124,6 +125,11 @@ export const updateAdminUser = (id: number, userData: any) =>
   request(`/owner/admins/${id}`, {
     method: "PUT",
     body: JSON.stringify(userData),
+  });
+export const toggleAdminUserStatus = (id: number, activeUser: boolean) =>
+  request(`/owner/admins/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ activeUser }),
   });
 export const deleteAdminUser = (id: number) =>
   request(`/owner/admins/${id}`, { method: "DELETE" });

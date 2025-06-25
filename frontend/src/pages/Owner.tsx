@@ -161,6 +161,20 @@ export default function OwnerPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const { mutate: toggleStatus } = useMutation({
+    mutationFn: (data: { id: number; activeUser: boolean }) =>
+      api.toggleAdminUserStatus(data.id, data.activeUser),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast.success("User status updated successfully!");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const handleToggleStatus = (user: User) => {
+    toggleStatus({ id: user.id, activeUser: !user.activeUser });
+  };
+
   const handleSave = (data: Partial<User>) => {
     if (editingUser) {
       updateUser(data);
@@ -220,6 +234,9 @@ export default function OwnerPage() {
                 Employee Limit
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -227,7 +244,7 @@ export default function OwnerPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="text-center p-4">
+                <td colSpan={5} className="text-center p-4">
                   Loading...
                 </td>
               </tr>
@@ -244,6 +261,35 @@ export default function OwnerPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.totalEmployees}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <label
+                      htmlFor={`toggle-${user.id}`}
+                      className="flex items-center cursor-pointer"
+                    >
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          id={`toggle-${user.id}`}
+                          className="sr-only"
+                          checked={!!user.activeUser}
+                          onChange={() => handleToggleStatus(user)}
+                        />
+                        <div
+                          className={`block w-14 h-8 rounded-full ${
+                            user.activeUser ? "bg-green-500" : "bg-gray-300"
+                          }`}
+                        ></div>
+                        <div
+                          className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                            user.activeUser ? "translate-x-6" : ""
+                          }`}
+                        ></div>
+                      </div>
+                      <div className="ml-3 text-gray-700 font-medium">
+                        {user.activeUser ? "Active" : "Inactive"}
+                      </div>
+                    </label>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">

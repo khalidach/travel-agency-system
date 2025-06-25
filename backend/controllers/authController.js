@@ -1,3 +1,4 @@
+// backend/controllers/authController.js
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -21,6 +22,12 @@ const loginUser = async (req, res) => {
     );
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
+
+      // Check if user is active
+      if (user.activeUser === false) {
+        return res.status(401).json({ message: "Account is deactivated." });
+      }
+
       if (await bcrypt.compare(password, user.password)) {
         return res.json({
           id: user.id,
@@ -28,6 +35,7 @@ const loginUser = async (req, res) => {
           agencyName: user.agencyName,
           role: user.role, // This can be 'admin' or 'owner'
           totalEmployees: user.totalEmployees,
+          activeUser: user.activeUser,
           token: generateToken(
             user.id,
             user.role,
@@ -47,12 +55,20 @@ const loginUser = async (req, res) => {
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
       const adminResult = await req.db.query(
-        'SELECT "agencyName", "totalEmployees" FROM users WHERE id = $1',
+        'SELECT "agencyName", "totalEmployees", "activeUser" FROM users WHERE id = $1',
         [employee.adminId]
       );
 
+      const adminData = adminResult.rows[0] || {};
+
+      // Check if the admin of the employee is active
+      if (adminData.activeUser === false) {
+        return res
+          .status(401)
+          .json({ message: "Agency account is deactivated." });
+      }
+
       if (await bcrypt.compare(password, employee.password)) {
-        const adminData = adminResult.rows[0] || {};
         return res.json({
           id: employee.id,
           username: employee.username,
@@ -60,6 +76,7 @@ const loginUser = async (req, res) => {
           role: employee.role,
           adminId: employee.adminId,
           totalEmployees: adminData.totalEmployees,
+          activeUser: true, // Employees inherit active status from their admin
           token: generateToken(
             employee.id,
             employee.role,

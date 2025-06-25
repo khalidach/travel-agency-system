@@ -1,3 +1,4 @@
+// backend/services/BookingService.js
 const ProgramPricingService = require("./ProgramPricingService"); // We need this to get pricing info
 
 const calculateBasePrice = async (
@@ -89,6 +90,16 @@ const createBooking = async (db, user, bookingData) => {
       relatedPersons,
     } = bookingData;
 
+    // Check if a booking with the same passport number already exists for this trip
+    const existingBookingCheck = await client.query(
+      'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
+      [passportNumber, tripId, adminId]
+    );
+
+    if (existingBookingCheck.rows.length > 0) {
+      throw new Error("This person is already booked for this program.");
+    }
+
     const basePrice = await calculateBasePrice(
       client, // Use client for transaction
       adminId,
@@ -169,6 +180,18 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const booking = bookingResult.rows[0];
   if (user.role !== "admin" && booking.employeeId !== user.id) {
     throw new Error("You are not authorized to modify this booking.");
+  }
+
+  // Check if updating the passport number would create a duplicate for the same trip
+  const existingBookingCheck = await db.query(
+    'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
+    [passportNumber, tripId, user.adminId, bookingId]
+  );
+
+  if (existingBookingCheck.rows.length > 0) {
+    throw new Error(
+      "Another booking with this passport number already exists for this program."
+    );
   }
 
   // Proceed with update logic

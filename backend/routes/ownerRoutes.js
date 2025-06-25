@@ -1,3 +1,4 @@
+// backend/routes/ownerRoutes.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -6,6 +7,7 @@ const {
   createAdminUser,
   updateAdminUser,
   deleteAdminUser,
+  toggleUserStatus,
 } = require("../controllers/ownerController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -15,6 +17,7 @@ router.use(protect, authorizeOwner);
 router.get("/admins", getAdminUsers);
 router.post("/admins", createAdminUser);
 router.put("/admins/:id", updateAdminUser);
+router.put("/admins/:id/status", toggleUserStatus);
 router.delete("/admins/:id", deleteAdminUser);
 
 module.exports = router;

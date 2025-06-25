@@ -1,3 +1,4 @@
+// frontend/src/context/models.ts
 export interface User {
   id: number;
   username: string;
@@ -6,6 +7,7 @@ export interface User {
   role: "admin" | "manager" | "employee" | "owner";
   adminId?: number;
   totalEmployees?: number;
+  activeUser?: boolean;
 }
 
 export interface Employee {
