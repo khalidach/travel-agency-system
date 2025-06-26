@@ -658,6 +658,7 @@ export default function BookingPage() {
             setIsBookingModalOpen(false);
             setEditingBooking(null);
           }}
+          programId={programId}
         />
       </Modal>
       <Modal

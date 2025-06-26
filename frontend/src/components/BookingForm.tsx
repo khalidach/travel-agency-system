@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -28,6 +28,7 @@ interface BookingFormProps {
   programs: Program[];
   onSave: (bookingData: BookingFormData, initialPayments: Payment[]) => void;
   onCancel: () => void;
+  programId?: string; // Add programId to props
 }
 
 interface FormState {
@@ -44,6 +45,7 @@ export default function BookingForm({
   programs,
   onSave,
   onCancel,
+  programId, // Receive programId prop
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
@@ -99,8 +101,30 @@ export default function BookingForm({
   const watchedValues = watch();
   const { selectedHotel, sellingPrice, basePrice } = watchedValues;
 
+  const handleProgramChange = useCallback(
+    (programIdStr: string) => {
+      const programIdNum = parseInt(programIdStr, 10);
+      const program = programs.find((p) => p.id === programIdNum);
+
+      setFormState((prev) => ({
+        ...prev,
+        selectedProgram: program || null,
+        selectedPackage: null,
+        selectedPriceStructure: null,
+        error: null,
+      }));
+
+      setValue("tripId", programIdStr);
+      setValue("packageId", "");
+      setValue("selectedHotel", { cities: [], hotelNames: [], roomTypes: [] });
+      setValue("relatedPersons", []);
+    },
+    [programs, setValue]
+  );
+
   useEffect(() => {
     if (booking) {
+      // Logic for editing an existing booking
       const program = programs.find(
         (p) => p.id.toString() === (booking.tripId || "").toString()
       );
@@ -130,8 +154,11 @@ export default function BookingForm({
         createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
         relatedPersons: booking.relatedPersons || [],
       });
+    } else if (programId) {
+      // For a new booking on a specific program page, pre-select it
+      handleProgramChange(programId);
     }
-  }, [booking, programs, reset]);
+  }, [booking, programs, reset, programId, handleProgramChange]);
 
   const calculateTotalBasePrice = React.useCallback((): number => {
     if (!formState.selectedProgram || !formState.selectedPriceStructure)
@@ -187,8 +214,6 @@ export default function BookingForm({
   ]);
 
   useEffect(() => {
-    // Always calculate the base price and profit in the background.
-    // The UI will determine if these fields are shown.
     if (formState.selectedProgram && formState.selectedPriceStructure) {
       const newBasePrice = calculateTotalBasePrice();
       setValue("basePrice", newBasePrice);
@@ -248,32 +273,12 @@ export default function BookingForm({
       }));
       return;
     }
-    // For employees, ensure basePrice and profit are not sent as part of their direct submission
-    // if there are any lingering client-side values. Backend should handle final calculation.
     if (userRole === "employee" || userRole === "manager") {
       data.basePrice = calculateTotalBasePrice();
       data.profit = data.sellingPrice - data.basePrice;
     }
 
     onSave(data, booking?.advancePayments || []);
-  };
-
-  const handleProgramChange = (programIdStr: string) => {
-    const programId = parseInt(programIdStr, 10);
-    const program = programs.find((p) => p.id === programId);
-
-    setFormState((prev) => ({
-      ...prev,
-      selectedProgram: program || null,
-      selectedPackage: null,
-      selectedPriceStructure: null,
-      error: null,
-    }));
-
-    setValue("tripId", programIdStr);
-    setValue("packageId", "");
-    setValue("selectedHotel", { cities: [], hotelNames: [], roomTypes: [] });
-    setValue("relatedPersons", []); // Clear related people on program change
   };
 
   const handlePackageChange = (packageName: string) => {
@@ -492,7 +497,8 @@ export default function BookingForm({
                   field.onChange(e);
                   handleProgramChange(e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={!!programId && !booking}
               >
                 <option value="">{t("Select a program")}</option>
                 {programs.map((program) => (
