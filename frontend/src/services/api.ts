@@ -49,6 +49,25 @@ export const refreshToken = async () => {
   return request("/auth/refresh", { method: "POST" });
 };
 
+// --- Dashboard API ---
+export const getDashboardStats = (startDate?: string, endDate?: string) => {
+  let endpoint = "/dashboard/stats";
+  if (startDate && endDate) {
+    const params = new URLSearchParams({ startDate, endDate });
+    endpoint += `?${params.toString()}`;
+  }
+  return request(endpoint);
+};
+
+export const getProfitReport = (filterType?: string) => {
+  let endpoint = "/dashboard/profit-report";
+  if (filterType && filterType !== "all") {
+    const params = new URLSearchParams({ programType: filterType });
+    endpoint += `?${params.toString()}`;
+  }
+  return request(endpoint);
+};
+
 // --- Program API ---
 export const getPrograms = (page = 1, limit = 10) =>
   request(`/programs?page=${page}&limit=${limit}`);
@@ -116,6 +135,20 @@ export const updateEmployee = (id: number, employeeData: any) =>
   });
 export const deleteEmployee = (id: number) =>
   request(`/employees/${id}`, { method: "DELETE" });
+
+// NEW: API for employee analysis
+export const getEmployeeAnalysis = (
+  username: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  let endpoint = `/employees/${username}/analysis`;
+  if (startDate && endDate) {
+    const params = new URLSearchParams({ startDate, endDate });
+    endpoint += `?${params.toString()}`;
+  }
+  return request(endpoint);
+};
 
 // --- Owner API ---
 export const getAdminUsers = () => request("/owner/admins");

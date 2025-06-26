@@ -1,3 +1,4 @@
+// backend/routes/employeeRoutes.js
 const express = require("express");
 const router = express.Router();
 const employeeController = require("../controllers/employeeController");
@@ -8,6 +9,7 @@ router.use(protect);
 
 router.post("/", employeeController.createEmployee);
 router.get("/", employeeController.getEmployees);
+router.get("/:username/analysis", employeeController.getEmployeeAnalysis); // <-- NEW ROUTE
 router.put("/:id", employeeController.updateEmployee);
 router.delete("/:id", employeeController.deleteEmployee);
 

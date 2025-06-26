@@ -11,37 +11,51 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import { subDays, startOfDay, endOfDay, subYears } from "date-fns";
+import {
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfYear,
+  format,
+  subYears,
+} from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
-import type { Program, Booking, PaginatedResponse } from "../context/models";
+import type { Booking } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { useAuthContext } from "../context/AuthContext";
+
+interface DashboardStats {
+  allTimeStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalProfit: number;
+    activePrograms: number;
+  };
+  dateFilteredStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalProfit: number;
+    totalCost: number;
+    totalPaid: number;
+    totalRemaining: number;
+  };
+  programTypeData: {
+    Hajj: number;
+    Umrah: number;
+    Tourism: number;
+  };
+  paymentStatus: {
+    fullyPaid: number;
+    pending: number;
+  };
+  recentBookings: Booking[];
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const { state } = useAuthContext();
   const userRole = state.user?.role;
-
-  const {
-    data: programResponse,
-    isLoading: isLoadingPrograms,
-    isError: isErrorPrograms,
-  } = useQuery<PaginatedResponse<Program>>({
-    queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 10000),
-  });
-  const programs = programResponse?.data ?? [];
-
-  const {
-    data: bookingResponse,
-    isLoading: isLoadingBookings,
-    isError: isErrorBookings,
-  } = useQuery<PaginatedResponse<Booking>>({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000),
-  });
-  const bookings = bookingResponse?.data ?? [];
 
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({
@@ -49,7 +63,7 @@ export default function Dashboard() {
     end: "",
   });
 
-  const dateFilteredStats = useMemo(() => {
+  const dateRangeParams = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = endOfDay(now);
@@ -62,69 +76,53 @@ export default function Dashboard() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "year":
+        // Corrected logic: Use last 365 days
         startDate = startOfDay(subYears(now, 1));
         break;
       case "custom":
-        startDate = customDateRange.start
-          ? startOfDay(new Date(customDateRange.start))
-          : startOfDay(subDays(now, 7));
-        endDate = customDateRange.end
-          ? endOfDay(new Date(customDateRange.end))
-          : endOfDay(now);
-        break;
+        if (customDateRange.start && customDateRange.end) {
+          return {
+            startDate: customDateRange.start,
+            endDate: customDateRange.end,
+          };
+        }
+        return { startDate: undefined, endDate: undefined };
       case "7days":
       default:
         startDate = startOfDay(subDays(now, 7));
         break;
     }
-
-    const filteredBookings = bookings.filter((booking) => {
-      const bookingDate = new Date(booking.createdAt);
-      return bookingDate >= startDate && bookingDate <= endDate;
-    });
-
-    const totalPaid = filteredBookings.reduce(
-      (sum, b) =>
-        sum +
-        (b.advancePayments || []).reduce(
-          (pSum, p) => pSum + Number(p.amount),
-          0
-        ),
-      0
-    );
-    const totalRevenue = filteredBookings.reduce(
-      (sum, b) => sum + Number(b.sellingPrice),
-      0
-    );
-
     return {
-      totalBookings: filteredBookings.length,
-      totalRevenue: totalRevenue,
-      totalCost: filteredBookings.reduce(
-        (sum, b) => sum + Number(b.basePrice),
-        0
-      ),
-      totalProfit: filteredBookings.reduce(
-        (sum, b) => sum + Number(b.profit),
-        0
-      ),
-      totalPaid: totalPaid,
-      totalRemaining: totalRevenue - totalPaid,
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
     };
-  }, [bookings, dateFilter, customDateRange]);
+  }, [dateFilter, customDateRange]);
 
-  const allTimeStats = useMemo(
-    () => ({
-      totalBookings: bookings.length,
-      totalRevenue: bookings.reduce(
-        (sum, b) => sum + Number(b.sellingPrice),
-        0
-      ),
-      totalProfit: bookings.reduce((sum, b) => sum + Number(b.profit), 0),
-      activePrograms: programs.length,
-    }),
-    [bookings, programs]
-  );
+  const {
+    data: dashboardData,
+    isLoading,
+    isError,
+  } = useQuery<DashboardStats>({
+    queryKey: ["dashboardStats", dateRangeParams],
+    queryFn: () =>
+      api.getDashboardStats(dateRangeParams.startDate, dateRangeParams.endDate),
+  });
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (isError || !dashboardData) {
+    return <div>Error loading dashboard data.</div>;
+  }
+
+  const {
+    allTimeStats,
+    dateFilteredStats,
+    programTypeData: programTypeCounts,
+    paymentStatus,
+    recentBookings,
+  } = dashboardData;
 
   const topStats = [
     {
@@ -189,34 +187,26 @@ export default function Dashboard() {
     },
   ];
 
-  const programTypeData = [
+  const programTypeDataForChart = [
     {
       name: "Hajj",
-      value: programs.filter((p) => p.type === "Hajj").length,
+      value: Number(programTypeCounts.Hajj) || 0,
       color: "#3b82f6",
     },
     {
       name: "Umrah",
-      value: programs.filter((p) => p.type === "Umrah").length,
+      value: Number(programTypeCounts.Umrah) || 0,
       color: "#059669",
     },
     {
       name: "Tourism",
-      value: programs.filter((p) => p.type === "Tourism").length,
+      value: Number(programTypeCounts.Tourism) || 0,
       color: "#ea580c",
     },
   ];
 
-  const fullyPaidBookings = bookings.filter((b) => b.isFullyPaid).length;
-  const pendingPayments = bookings.filter((b) => !b.isFullyPaid).length;
-
-  if (isLoadingPrograms || isLoadingBookings) {
-    return <DashboardSkeleton />;
-  }
-
-  if (isErrorPrograms || isErrorBookings) {
-    return <div>Error loading dashboard data.</div>;
-  }
+  const fullyPaidBookings = paymentStatus.fullyPaid;
+  const pendingPayments = paymentStatus.pending;
 
   return (
     <div className="space-y-8">
@@ -375,7 +365,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={programTypeData}
+                data={programTypeDataForChart}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -383,7 +373,7 @@ export default function Dashboard() {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {programTypeData.map((entry, index) => (
+                {programTypeDataForChart.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -391,7 +381,7 @@ export default function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
           <div className="flex justify-center space-x-6 mt-4">
-            {programTypeData.map((item, index) => (
+            {programTypeDataForChart.map((item, index) => (
               <div key={index} className="flex items-center">
                 <div
                   className={`w-3 h-3 rounded-full mr-2`}
@@ -473,7 +463,7 @@ export default function Dashboard() {
             Recent Bookings
           </h3>
           <div className="space-y-3">
-            {bookings.slice(0, 3).map((booking) => (
+            {recentBookings.map((booking) => (
               <div
                 key={booking.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"

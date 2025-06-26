@@ -1,16 +1,25 @@
+// frontend/src/pages/EmployeeAnalysis.tsx
 import React, { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Package, Calendar } from "lucide-react";
 import * as api from "../services/api";
-import type {
-  Program,
-  Booking,
-  Employee,
-  PaginatedResponse,
-} from "../context/models";
+import type { Employee } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
-import { subDays, startOfDay, endOfDay } from "date-fns";
+import { subDays, startOfDay, endOfDay, format } from "date-fns";
+
+interface EmployeeAnalysisData {
+  employee: Employee;
+  programsCreatedCount: number;
+  bookingsMadeCount: number;
+  programPerformance: any[];
+  dateFilteredStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+  };
+}
 
 type DateFilter = "today" | "7days" | "month" | "custom";
 
@@ -18,93 +27,13 @@ export default function EmployeeAnalysisPage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
 
-  // --- Data Fetching ---
-  const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
-    PaginatedResponse<Program>
-  >({
-    queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 10000),
-  });
-  const allPrograms = programResponse?.data ?? [];
-
-  const { data: bookingResponse, isLoading: isLoadingBookings } = useQuery<
-    PaginatedResponse<Booking>
-  >({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000),
-  });
-  const allBookings = bookingResponse?.data ?? [];
-
-  const { data: employeesData, isLoading: isLoadingEmployees } = useQuery<{
-    employees: Employee[];
-  }>({
-    queryKey: ["employees"],
-    queryFn: api.getEmployees,
-  });
-
-  const employee = useMemo(
-    () => employeesData?.employees.find((e) => e.username === username),
-    [employeesData, username]
-  );
-
-  // --- State for Date Filtering ---
   const [dateFilter, setDateFilter] = useState<DateFilter>("month");
   const [customDateRange, setCustomDateRange] = useState({
     start: "",
     end: "",
   });
 
-  // --- Memoized Calculations ---
-  const programsCreatedByEmployee = useMemo(() => {
-    if (!employee) return [];
-    return allPrograms.filter((p) => p.employeeId === employee.id);
-  }, [allPrograms, employee]);
-
-  const bookingsMadeByEmployee = useMemo(() => {
-    if (!employee) return [];
-    return allBookings.filter((b) => b.employeeId === employee.id);
-  }, [allBookings, employee]);
-
-  const programPerformanceData = useMemo(() => {
-    if (!employee) return [];
-    return allPrograms.map((program) => {
-      const bookingsForThisProgramByEmployee = bookingsMadeByEmployee.filter(
-        (b) => b.tripId === program.id.toString()
-      );
-
-      const totalBookings = bookingsForThisProgramByEmployee.length;
-      const totalSales = bookingsForThisProgramByEmployee.reduce(
-        (sum, booking) => sum + Number(booking.sellingPrice),
-        0
-      );
-      const totalCost = bookingsForThisProgramByEmployee.reduce(
-        (sum, booking) => sum + Number(booking.basePrice),
-        0
-      );
-      const totalProfit = bookingsForThisProgramByEmployee.reduce(
-        (sum, booking) => sum + Number(booking.profit),
-        0
-      );
-
-      return {
-        programName: program.name,
-        type: program.type,
-        bookingCount: totalBookings,
-        totalSales,
-        totalCost,
-        totalProfit,
-      };
-    });
-  }, [allPrograms, bookingsMadeByEmployee, employee]);
-
-  const dateFilteredStats = useMemo(() => {
-    if (!employee)
-      return {
-        totalBookings: 0,
-        totalRevenue: 0,
-        totalCost: 0,
-        totalProfit: 0,
-      };
+  const dateRangeParams = useMemo(() => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date = endOfDay(now);
@@ -117,49 +46,49 @@ export default function EmployeeAnalysisPage() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "custom":
-        startDate = customDateRange.start
-          ? startOfDay(new Date(customDateRange.start))
-          : startOfDay(subDays(now, 7));
-        endDate = customDateRange.end
-          ? endOfDay(new Date(customDateRange.end))
-          : endOfDay(now);
-        break;
+        if (customDateRange.start && customDateRange.end) {
+          return {
+            startDate: customDateRange.start,
+            endDate: customDateRange.end,
+          };
+        }
+        return { startDate: undefined, endDate: undefined };
       case "7days":
       default:
         startDate = startOfDay(subDays(now, 7));
         break;
     }
-
-    const filteredBookings = bookingsMadeByEmployee.filter((booking) => {
-      const bookingDate = new Date(booking.createdAt);
-      return bookingDate >= startDate && bookingDate <= endDate;
-    });
-
     return {
-      totalBookings: filteredBookings.length,
-      totalRevenue: filteredBookings.reduce(
-        (sum, b) => sum + Number(b.sellingPrice),
-        0
-      ),
-      totalCost: filteredBookings.reduce(
-        (sum, b) => sum + Number(b.basePrice),
-        0
-      ),
-      totalProfit: filteredBookings.reduce(
-        (sum, b) => sum + Number(b.profit),
-        0
-      ),
+      startDate: format(startDate, "yyyy-MM-dd"),
+      endDate: format(endDate, "yyyy-MM-dd"),
     };
-  }, [bookingsMadeByEmployee, dateFilter, customDateRange, employee]);
+  }, [dateFilter, customDateRange]);
 
-  if (isLoadingPrograms || isLoadingBookings || isLoadingEmployees) {
+  const {
+    data: analysisData,
+    isLoading,
+    isError,
+  } = useQuery<EmployeeAnalysisData>({
+    queryKey: ["employeeAnalysis", username, dateRangeParams],
+    queryFn: () =>
+      api.getEmployeeAnalysis(
+        username!,
+        dateRangeParams.startDate,
+        dateRangeParams.endDate
+      ),
+    enabled: !!username,
+  });
+
+  if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  if (!employee) {
+  if (isError || !analysisData) {
     return (
       <div className="text-center py-10">
-        <h2 className="text-xl font-semibold">Employee not found</h2>
+        <h2 className="text-xl font-semibold">
+          Could not load analysis data for this employee.
+        </h2>
         <button
           onClick={() => navigate("/employees")}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
@@ -170,15 +99,23 @@ export default function EmployeeAnalysisPage() {
     );
   }
 
+  const {
+    employee,
+    programsCreatedCount,
+    bookingsMadeCount,
+    programPerformance,
+    dateFilteredStats,
+  } = analysisData;
+
   const statCards = [
     {
       title: "Programs Added",
-      value: programsCreatedByEmployee.length,
+      value: programsCreatedCount,
       icon: Package,
     },
     {
       title: "Total Bookings Made",
-      value: bookingsMadeByEmployee.length,
+      value: bookingsMadeCount,
       icon: Calendar,
     },
   ];
@@ -234,7 +171,6 @@ export default function EmployeeAnalysisPage() {
         </div>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         {statCards.map((card) => (
           <div
@@ -258,7 +194,6 @@ export default function EmployeeAnalysisPage() {
         ))}
       </div>
 
-      {/* Date Filters for Bookings */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Filter Performance by Date
@@ -353,7 +288,6 @@ export default function EmployeeAnalysisPage() {
         </table>
       </div>
 
-      {/* Bookings per Program Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -385,7 +319,7 @@ export default function EmployeeAnalysisPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {programPerformanceData.map((item, index) => (
+              {programPerformance.map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">

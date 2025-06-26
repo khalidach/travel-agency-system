@@ -1,5 +1,5 @@
 // frontend/src/pages/Employees.tsx
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit2, Trash2, Users, Briefcase, Hash } from "lucide-react";
@@ -7,7 +7,7 @@ import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
-import type { Employee, Booking, PaginatedResponse } from "../context/models";
+import type { Employee } from "../context/models";
 
 // Form for adding/editing an employee
 const EmployeeForm = ({
@@ -107,10 +107,10 @@ export default function EmployeesPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
 
   const { data, isLoading: isLoadingEmployees } = useQuery<{
-    employees: Employee[];
+    employees: (Employee & { bookingCount: number })[];
     limit: number;
   }>({
-    queryKey: ["employees"],
+    queryKey: ["employeesWithCount"],
     queryFn: api.getEmployees,
   });
 
@@ -118,31 +118,10 @@ export default function EmployeesPage() {
   const employeeLimit = data?.limit ?? 2;
   const canAddEmployee = employees.length < employeeLimit;
 
-  const { data: bookingResponse } = useQuery<PaginatedResponse<Booking>>({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000),
-  });
-  const bookings = bookingResponse?.data ?? [];
-
-  const employeeBookingsCount = useMemo(() => {
-    const counts = new Map<number, number>();
-    if (Array.isArray(bookings)) {
-      bookings.forEach((booking) => {
-        if (booking.employeeId) {
-          counts.set(
-            booking.employeeId,
-            (counts.get(booking.employeeId) || 0) + 1
-          );
-        }
-      });
-    }
-    return counts;
-  }, [bookings]);
-
   const { mutate: createEmployee } = useMutation({
     mutationFn: (data: Partial<Employee>) => api.createEmployee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee created successfully!");
       setIsFormModalOpen(false);
     },
@@ -155,7 +134,7 @@ export default function EmployeesPage() {
     mutationFn: (data: Partial<Employee>) =>
       api.updateEmployee(editingEmployee!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee updated successfully!");
       setIsFormModalOpen(false);
     },
@@ -165,7 +144,7 @@ export default function EmployeesPage() {
   const { mutate: deleteEmployee } = useMutation({
     mutationFn: (id: number) => api.deleteEmployee(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee deleted successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -283,7 +262,7 @@ export default function EmployeesPage() {
                     <div className="flex items-center">
                       <Hash className="w-4 h-4 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-700">
-                        {employeeBookingsCount.get(emp.id) || 0}
+                        {emp.bookingCount || 0}
                       </span>
                     </div>
                   </td>

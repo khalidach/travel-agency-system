@@ -21,71 +21,30 @@ import {
   Package,
 } from "lucide-react";
 import * as api from "../services/api";
-import type { Program, Booking, PaginatedResponse } from "../context/models";
+import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
+
+interface ProfitReportData {
+  profitData: any[];
+  monthlyTrend: any[];
+}
 
 export default function ProfitReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const {
-    data: programResponse,
-    isLoading: isLoadingPrograms,
-    isError: isErrorPrograms,
-  } = useQuery<PaginatedResponse<Program>>({
-    queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 10000), // Fetch all programs
-  });
-  const programs = programResponse?.data ?? [];
-
-  const {
-    data: bookingResponse,
-    isLoading: isLoadingBookings,
-    isError: isErrorBookings,
-  } = useQuery<PaginatedResponse<Booking>>({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000), // Fetch all bookings
-  });
-  const bookings = bookingResponse?.data ?? [];
-
   const [filterType, setFilterType] = useState<string>("all");
 
-  const profitData = useMemo(() => {
-    const programProfits = programs.map((program) => {
-      const programBookings = bookings.filter(
-        (booking) => booking.tripId === program.id.toString()
-      );
-      const totalBookings = programBookings.length;
-      const totalSales = programBookings.reduce(
-        (sum, booking) => sum + Number(booking.sellingPrice),
-        0
-      );
-      const totalProfit = programBookings.reduce(
-        (sum, booking) => sum + Number(booking.profit),
-        0
-      );
-      const totalCost = programBookings.reduce(
-        (sum, booking) => sum + Number(booking.basePrice),
-        0
-      );
+  const {
+    data: reportData,
+    isLoading,
+    isError,
+  } = useQuery<ProfitReportData>({
+    queryKey: ["profitReport", filterType],
+    queryFn: () => api.getProfitReport(filterType),
+  });
 
-      return {
-        id: program.id,
-        programName: program.name,
-        type: program.type,
-        bookings: totalBookings,
-        totalSales,
-        totalProfit,
-        totalCost,
-        profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
-      };
-    });
-
-    let filteredData = programProfits;
-    if (filterType !== "all") {
-      filteredData = filteredData.filter((item) => item.type === filterType);
-    }
-    return filteredData.sort((a, b) => b.totalProfit - a.totalProfit);
-  }, [programs, bookings, filterType]);
+  const profitData = reportData?.profitData ?? [];
+  const monthlyTrend = reportData?.monthlyTrend ?? [];
 
   const totals = useMemo(() => {
     return profitData.reduce(
@@ -95,38 +54,20 @@ export default function ProfitReport() {
         totalProfit: acc.totalProfit + item.totalProfit,
         totalCost: acc.totalCost + item.totalCost,
       }),
-      { totalBookings: 0, totalSales: 0, totalProfit: 0, totalCost: 0 }
+      {
+        totalBookings: 0,
+        totalSales: 0,
+        totalProfit: 0,
+        totalCost: 0,
+      }
     );
   }, [profitData]);
 
-  const monthlyTrend = useMemo(() => {
-    const monthlyData = bookings.reduce((acc: any, booking) => {
-      const date = new Date(booking.createdAt);
-      const monthKey = `${date.getFullYear()}-${String(
-        date.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-      if (!acc[monthKey]) {
-        acc[monthKey] = { month: monthKey, sales: 0, profit: 0, bookings: 0 };
-      }
-
-      acc[monthKey].sales += Number(booking.sellingPrice);
-      acc[monthKey].profit += Number(booking.profit);
-      acc[monthKey].bookings += 1;
-
-      return acc;
-    }, {});
-
-    return Object.values(monthlyData).sort((a: any, b: any) =>
-      a.month.localeCompare(b.month)
-    );
-  }, [bookings]);
-
-  if (isLoadingPrograms || isLoadingBookings) {
-    return <div>Loading...</div>;
+  if (isLoading) {
+    return <DashboardSkeleton />;
   }
 
-  if (isErrorPrograms || isErrorBookings) {
+  if (isError) {
     return <div>Error loading report data.</div>;
   }
 
