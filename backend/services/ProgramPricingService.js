@@ -21,6 +21,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       guideFees,
       transportFees,
       allHotels,
+      personTypes,
     } = pricingData;
 
     // Get userId and employeeId from user object
@@ -28,7 +29,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
     const employeeId = user.role !== "admin" ? user.id : null;
 
     const { rows: createdPricingRows } = await client.query(
-      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "transportFees", "allHotels") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "transportFees", "allHotels", "personTypes") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         userId,
         employeeId,
@@ -39,6 +40,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
         guideFees,
         transportFees,
         JSON.stringify(allHotels || []),
+        JSON.stringify(personTypes || []),
       ]
     );
 
@@ -87,7 +89,7 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
     }
 
     const { rows: updatedPricingRows } = await client.query(
-      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "transportFees" = $7, "updatedAt" = NOW() WHERE id = $8 AND "userId" = $9 RETURNING *',
+      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "transportFees" = $7, "personTypes" = $8, "updatedAt" = NOW() WHERE id = $9 AND "userId" = $10 RETURNING *',
       [
         pricingData.programId,
         pricingData.selectProgram,
@@ -96,6 +98,7 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
         pricingData.guideFees,
         JSON.stringify(pricingData.allHotels || []),
         pricingData.transportFees,
+        JSON.stringify(pricingData.personTypes || []),
         pricingId,
         user.adminId,
       ]
@@ -189,7 +192,15 @@ async function updateRelatedBookings(
         0
       );
 
-      const ticketPrice = Number(programPricing.ticketAirline || 0);
+      const personTypeInfo = (programPricing.personTypes || []).find(
+        (p) => p.type === booking.personType
+      );
+      const ticketPercentage = personTypeInfo
+        ? personTypeInfo.ticketPercentage / 100
+        : 1;
+      const ticketPrice =
+        Number(programPricing.ticketAirline || 0) * ticketPercentage;
+
       const visaPrice = Number(programPricing.visaFees || 0);
       const guidePrice = Number(programPricing.guideFees || 0);
       const transportPrice = Number(programPricing.transportFees || 0);

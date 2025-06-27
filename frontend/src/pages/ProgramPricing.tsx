@@ -7,6 +7,7 @@ import type {
   ProgramPricing,
   HotelPrice,
   PaginatedResponse,
+  PersonTypePercentage,
 } from "../context/models";
 import {
   Pencil,
@@ -19,6 +20,7 @@ import {
   Hotel,
   BedDouble,
   Bus,
+  Users,
 } from "lucide-react";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -34,6 +36,11 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
   guideFees: 0,
   transportFees: 0,
   allHotels: [],
+  personTypes: [
+    { type: "adult", ticketPercentage: 100 },
+    { type: "child", ticketPercentage: 75 },
+    { type: "infant", ticketPercentage: 25 },
+  ],
 };
 
 export default function ProgramPricingPage() {
@@ -198,6 +205,14 @@ export default function ProgramPricingPage() {
     });
   };
 
+  const handlePersonTypeChange = (index: number, value: string) => {
+    setCurrentPricing((prev) => {
+      const newPersonTypes = [...(prev.personTypes || [])];
+      newPersonTypes[index].ticketPercentage = Number(value);
+      return { ...prev, personTypes: newPersonTypes };
+    });
+  };
+
   const handleSave = () => {
     const isEditing = "id" in currentPricing;
     if (isEditing) {
@@ -322,6 +337,35 @@ export default function ProgramPricingPage() {
           </div>
 
           <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">Person Type Pricing</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(currentPricing.personTypes || []).map((personType, index) => (
+                <div key={personType.type}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
+                    {personType.type} Ticket Percentage
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={personType.ticketPercentage}
+                      onChange={(e) =>
+                        handlePersonTypeChange(index, e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg pr-10"
+                      readOnly={personType.type === "adult"}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <span className="text-gray-500 sm:text-sm">%</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-8">
             <h2 className="text-xl font-semibold mb-4">Hotels</h2>
             {(currentPricing.allHotels || []).map((hotel, index) => (
               <div
@@ -428,6 +472,36 @@ export default function ProgramPricingPage() {
                     </div>
 
                     <div className="space-y-3 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <Users className="w-4 h-4 mr-2 text-gray-400" />
+                        <span>
+                          Adult Ticket:{" "}
+                          <span className="font-medium text-gray-800">
+                            {(pricing.personTypes || []).find(
+                              (p) => p.type === "adult"
+                            )?.ticketPercentage || 100}
+                            %
+                          </span>
+                        </span>
+                        <span className="ml-2">
+                          Child Ticket:{" "}
+                          <span className="font-medium text-gray-800">
+                            {(pricing.personTypes || []).find(
+                              (p) => p.type === "child"
+                            )?.ticketPercentage || 75}
+                            %
+                          </span>
+                        </span>
+                        <span className="ml-2">
+                          Infant Ticket:{" "}
+                          <span className="font-medium text-gray-800">
+                            {(pricing.personTypes || []).find(
+                              (p) => p.type === "infant"
+                            )?.ticketPercentage || 25}
+                            %
+                          </span>
+                        </span>
+                      </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Plane className="w-4 h-4 mr-2 text-gray-400" />
                         <span>

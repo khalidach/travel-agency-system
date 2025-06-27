@@ -50,17 +50,21 @@ const programValidation = [
 const programPricingValidation = [
   body("programId").isInt().withMessage("Program ID must be an integer."),
   body("ticketAirline")
-    .isFloat({ gt: 0 })
-    .withMessage("Ticket price must be a positive number."),
+    .optional()
+    .isFloat({ gte: 0 })
+    .withMessage("Ticket price must be a non-negative number."),
   body("transportFees")
+    .optional()
     .isFloat({ gte: 0 })
     .withMessage("Transport fees must be a non-negative number."),
   body("visaFees")
-    .isFloat({ gte: 0 }) // Changed from gt to gte
-    .withMessage("Visa fees must be a non-negative number."), // Updated message for clarity
+    .optional()
+    .isFloat({ gte: 0 })
+    .withMessage("Visa fees must be a non-negative number."),
   body("guideFees")
-    .isFloat({ gte: 0 }) // Changed from gt to gte
-    .withMessage("Guide fees must be a non-negative number."), // Updated message for clarity
+    .optional()
+    .isFloat({ gte: 0 })
+    .withMessage("Guide fees must be a non-negative number."),
   body("allHotels").isArray().withMessage("Hotels must be an array."),
 ];
 
@@ -75,6 +79,9 @@ const bookingValidation = [
     .trim()
     .escape()
     .withMessage("Client name (Arabic) is required."),
+  body("personType")
+    .isIn(["adult", "child", "infant"])
+    .withMessage("Invalid person type."),
   body("passportNumber")
     .notEmpty()
     .trim()

@@ -6,7 +6,8 @@ const calculateBasePrice = async (
   userId,
   tripId,
   packageId,
-  selectedHotel
+  selectedHotel,
+  personType
 ) => {
   const { rows: programs } = await db.query(
     'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
@@ -62,7 +63,14 @@ const calculateBasePrice = async (
     0
   );
 
-  const ticketPrice = Number(pricing.ticketAirline || 0);
+  const personTypeInfo = (pricing.personTypes || []).find(
+    (p) => p.type === personType
+  );
+  const ticketPercentage = personTypeInfo
+    ? personTypeInfo.ticketPercentage / 100
+    : 1;
+
+  const ticketPrice = Number(pricing.ticketAirline || 0) * ticketPercentage;
   const visaPrice = Number(pricing.visaFees || 0);
   const guidePrice = Number(pricing.guideFees || 0);
   const transportPrice = Number(pricing.transportFees || 0);
@@ -80,6 +88,7 @@ const createBooking = async (db, user, bookingData) => {
     const {
       clientNameAr,
       clientNameFr,
+      personType,
       phoneNumber,
       passportNumber,
       tripId,
@@ -105,7 +114,8 @@ const createBooking = async (db, user, bookingData) => {
       adminId,
       tripId,
       packageId,
-      selectedHotel
+      selectedHotel,
+      personType
     );
     const profit = sellingPrice - basePrice;
 
@@ -118,12 +128,13 @@ const createBooking = async (db, user, bookingData) => {
     const employeeId = role === "admin" ? null : id;
 
     const { rows } = await client.query(
-      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW()) RETURNING *',
+      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW()) RETURNING *',
       [
         adminId,
         employeeId,
         clientNameAr,
         clientNameFr,
+        personType,
         phoneNumber,
         passportNumber,
         tripId,
@@ -158,6 +169,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const {
     clientNameAr,
     clientNameFr,
+    personType,
     phoneNumber,
     passportNumber,
     tripId,
@@ -200,7 +212,8 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     user.adminId,
     tripId,
     packageId,
-    selectedHotel
+    selectedHotel,
+    personType
   );
   const profit = sellingPrice - basePrice;
   const totalPaid = (advancePayments || []).reduce(
@@ -211,10 +224,11 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const isFullyPaid = remainingBalance <= 0;
 
   const { rows } = await db.query(
-    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "phoneNumber" = $3, "passportNumber" = $4, "tripId" = $5, "packageId" = $6, "selectedHotel" = $7, "sellingPrice" = $8, "basePrice" = $9, profit = $10, "advancePayments" = $11, "remainingBalance" = $12, "isFullyPaid" = $13, "relatedPersons" = $14 WHERE id = $15 RETURNING *',
+    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "tripId" = $6, "packageId" = $7, "selectedHotel" = $8, "sellingPrice" = $9, "basePrice" = $10, profit = $11, "advancePayments" = $12, "remainingBalance" = $13, "isFullyPaid" = $14, "relatedPersons" = $15 WHERE id = $16 RETURNING *',
     [
       clientNameAr,
       clientNameFr,
+      personType,
       phoneNumber,
       passportNumber,
       tripId,

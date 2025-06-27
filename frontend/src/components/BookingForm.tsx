@@ -1,3 +1,4 @@
+// frontend/src/components/BookingForm.tsx
 import React, { useEffect, useMemo, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,7 @@ import type {
   PriceStructure,
   ProgramPricing,
   PaginatedResponse,
+  PersonType,
 } from "../context/models";
 import * as api from "../services/api";
 import { X } from "lucide-react";
@@ -76,6 +78,7 @@ export default function BookingForm({
     defaultValues: {
       clientNameAr: "",
       clientNameFr: "",
+      personType: "adult",
       phoneNumber: "",
       passportNumber: "",
       tripId: "",
@@ -99,7 +102,7 @@ export default function BookingForm({
   });
 
   const watchedValues = watch();
-  const { selectedHotel, sellingPrice, basePrice } = watchedValues;
+  const { selectedHotel, sellingPrice, basePrice, personType } = watchedValues;
 
   const handleProgramChange = useCallback(
     (programIdStr: string) => {
@@ -143,6 +146,7 @@ export default function BookingForm({
       reset({
         clientNameAr: booking.clientNameAr,
         clientNameFr: booking.clientNameFr,
+        personType: booking.personType,
         phoneNumber: booking.phoneNumber,
         passportNumber: booking.passportNumber,
         tripId: booking.tripId,
@@ -198,7 +202,14 @@ export default function BookingForm({
       return total;
     }, 0);
 
-    const ticketAirline = Number(pricing.ticketAirline || 0);
+    const personTypeInfo = (pricing.personTypes || []).find(
+      (p) => p.type === personType
+    );
+    const ticketPercentage = personTypeInfo
+      ? personTypeInfo.ticketPercentage / 100
+      : 1;
+    const ticketAirline = Number(pricing.ticketAirline || 0) * ticketPercentage;
+
     const visaFees = Number(pricing.visaFees || 0);
     const guideFees = Number(pricing.guideFees || 0);
     const transportFees = Number(pricing.transportFees || 0);
@@ -211,6 +222,7 @@ export default function BookingForm({
     formState.selectedPriceStructure,
     selectedHotel,
     programPricing,
+    personType,
   ]);
 
   useEffect(() => {
@@ -222,6 +234,7 @@ export default function BookingForm({
   }, [
     selectedHotel,
     sellingPrice,
+    personType,
     formState.selectedProgram,
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
@@ -273,7 +286,11 @@ export default function BookingForm({
       }));
       return;
     }
-    if (userRole === "employee" || userRole === "manager") {
+    if (
+      userRole === "employee" ||
+      userRole === "manager" ||
+      userRole === "admin"
+    ) {
       data.basePrice = calculateTotalBasePrice();
       data.profit = data.sellingPrice - data.basePrice;
     }
@@ -433,6 +450,31 @@ export default function BookingForm({
             </p>
           )}
         </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Person Type
+        </label>
+        <Controller
+          name="personType"
+          control={control}
+          rules={{ required: "Person type is required" }}
+          render={({ field }) => (
+            <select
+              {...field}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="adult">Adult</option>
+              <option value="child">Child</option>
+              <option value="infant">Infant</option>
+            </select>
+          )}
+        />
+        {errors.personType && (
+          <p className="text-red-500 text-sm mt-1">
+            {errors.personType.message}
+          </p>
+        )}
       </div>
 
       <div>

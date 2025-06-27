@@ -64,10 +64,13 @@ export interface RelatedPerson {
   clientName: string;
 }
 
+export type PersonType = "adult" | "child" | "infant";
+
 export interface Booking {
   id: number;
   clientNameAr: string;
   clientNameFr: string;
+  personType: PersonType;
   phoneNumber: string;
   passportNumber: string;
   tripId: string;
@@ -110,6 +113,11 @@ export interface HotelPrice {
   };
 }
 
+export interface PersonTypePercentage {
+  type: PersonType;
+  ticketPercentage: number;
+}
+
 export interface ProgramPricing {
   id: number;
   selectProgram: string;
@@ -119,6 +127,7 @@ export interface ProgramPricing {
   guideFees: number;
   transportFees: number;
   allHotels: HotelPrice[];
+  personTypes: PersonTypePercentage[];
   employeeId?: number;
   employeeName?: string;
 }
