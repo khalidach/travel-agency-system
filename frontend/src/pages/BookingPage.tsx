@@ -100,13 +100,12 @@ export default function BookingPage() {
   });
   const allBookings = bookingResponse?.data ?? [];
 
-  const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
-    PaginatedResponse<Program>
-  >({
-    queryKey: ["programs", "all"],
-    queryFn: () => api.getPrograms(1, 1000),
+  const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
+    queryKey: ["program", programId],
+    queryFn: () => api.getProgramById(programId!),
+    enabled: !!programId,
   });
-  const programs = programResponse?.data ?? [];
+  const programs = program ? [program] : [];
 
   const { data: employeesData, isLoading: isLoadingEmployees } = useQuery<{
     employees: Employee[];
@@ -423,7 +422,6 @@ export default function BookingPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const program = programs.find((p) => p.id.toString() === programId);
       a.download = program
         ? `${program.name.replace(/\s/g, "_")}_bookings.xlsx`
         : "bookings.xlsx";
@@ -452,7 +450,6 @@ export default function BookingPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const program = programs.find((p) => p.id.toString() === programId);
       a.download = program
         ? `${program.name.replace(/\s/g, "_")}_Template.xlsx`
         : "Booking_Template.xlsx";
@@ -488,15 +485,11 @@ export default function BookingPage() {
 
   if (
     isLoadingBookings ||
-    isLoadingPrograms ||
+    isLoadingProgram ||
     (userRole !== "employee" && isLoadingEmployees)
   ) {
     return <BookingSkeleton />;
   }
-
-  const selectedProgramDetails = programs.find(
-    (p) => p.id.toString() === programId
-  );
 
   return (
     <div className="space-y-6">
@@ -510,7 +503,7 @@ export default function BookingPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {selectedProgramDetails?.name || "Bookings"}
+              {program?.name || "Bookings"}
             </h1>
             <p className="text-gray-600 mt-1">
               Manage all customer bookings and payments for this program.

@@ -45,6 +45,27 @@ exports.getAllProgramPricing = async (req, res) => {
   }
 };
 
+exports.getProgramPricingByProgramId = async (req, res) => {
+  const { programId } = req.params;
+  const { adminId } = req.user;
+  try {
+    const { rows } = await req.db.query(
+      'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
+      [programId, adminId]
+    );
+
+    // It's not an error if pricing isn't set up yet, return null.
+    if (rows.length === 0) {
+      return res.json(null);
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Get Program Pricing by Program ID Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.createProgramPricing = async (req, res) => {
   try {
     const newPricing = await ProgramPricingService.createPricingAndBookings(

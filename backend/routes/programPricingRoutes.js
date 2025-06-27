@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllProgramPricing,
+  getProgramPricingByProgramId,
   createProgramPricing,
   updateProgramPricing,
   deleteProgramPricing,
@@ -12,6 +13,7 @@ const {
 } = require("../middleware/validationMiddleware");
 
 router.get("/", getAllProgramPricing);
+router.get("/program/:programId", getProgramPricingByProgramId);
 router.post(
   "/",
   programPricingValidation,

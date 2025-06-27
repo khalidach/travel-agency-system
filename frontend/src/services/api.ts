@@ -69,8 +69,34 @@ export const getProfitReport = (filterType?: string) => {
 };
 
 // --- Program API ---
-export const getPrograms = (page = 1, limit = 10) =>
-  request(`/programs?page=${page}&limit=${limit}`);
+// For Programs page (paginated)
+export const getPrograms = (
+  page = 1,
+  limit = 6,
+  searchTerm = "",
+  filterType = "all"
+) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    searchTerm,
+    filterType,
+  });
+  return request(`/programs?${params.toString()}`);
+};
+// For Booking page (all filtered results)
+export const getAllProgramsForBooking = (
+  searchTerm = "",
+  filterType = "all"
+) => {
+  const params = new URLSearchParams({
+    noPaginate: "true",
+    searchTerm,
+    filterType,
+  });
+  return request(`/programs?${params.toString()}`);
+};
+export const getProgramById = (id: string) => request(`/programs/${id}`);
 export const createProgram = (program: any) =>
   request("/programs", { method: "POST", body: JSON.stringify(program) });
 export const updateProgram = (id: number, program: any) =>
@@ -81,6 +107,8 @@ export const deleteProgram = (id: number) =>
 // --- Program Pricing API ---
 export const getProgramPricing = (page = 1, limit = 10) =>
   request(`/program-pricing?page=${page}&limit=${limit}`);
+export const getProgramPricingByProgramId = (programId: string) =>
+  request(`/program-pricing/program/${programId}`);
 export const createProgramPricing = (pricing: any) =>
   request("/program-pricing", {
     method: "POST",

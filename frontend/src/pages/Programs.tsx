@@ -1,5 +1,5 @@
 // frontend/src/pages/Programs.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -21,7 +21,7 @@ import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
 import { useAuthContext } from "../context/AuthContext";
-import ConfirmationModal from "../components/modals/ConfirmationModal"; // Import the new modal
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -39,15 +39,27 @@ export default function Programs() {
 
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("");
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+
+  // Reset page to 1 when a new search is submitted
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [submittedSearchTerm, filterType]);
 
   const {
     data: programResponse,
     isLoading,
     isError,
   } = useQuery<PaginatedResponse<Program>>({
-    queryKey: ["programs", currentPage],
-    queryFn: () => api.getPrograms(currentPage, programsPerPage),
+    queryKey: ["programs", currentPage, submittedSearchTerm, filterType],
+    queryFn: () =>
+      api.getPrograms(
+        currentPage,
+        programsPerPage,
+        submittedSearchTerm,
+        filterType
+      ),
   });
 
   const programs = programResponse?.data ?? [];
@@ -89,14 +101,6 @@ export default function Programs() {
     },
   });
 
-  const filteredPrograms = programs.filter((program) => {
-    const matchesSearch = program.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "all" || program.type === filterType;
-    return matchesSearch && matchesType;
-  });
-
   const paginationRange = usePagination({
     currentPage,
     totalCount: pagination?.totalCount ?? 0,
@@ -130,6 +134,18 @@ export default function Programs() {
     } else {
       createProgram(program);
     }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setSubmittedSearchTerm(searchTerm);
+    }
+  };
+
+  const handleFilterChange = (newFilterType: string) => {
+    setFilterType(newFilterType);
+    setSubmittedSearchTerm(searchTerm);
   };
 
   const getTypeColor = (type: string) => {
@@ -176,15 +192,16 @@ export default function Programs() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder={`${t("search")} programs...`}
+              placeholder={`${t("search")} programs... (Press Enter to search)`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Types</option>
@@ -196,7 +213,7 @@ export default function Programs() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredPrograms.map((program) => {
+        {programs.map((program) => {
           const canModify =
             currentUser?.role === "admin" ||
             currentUser?.id === program.employeeId;
@@ -324,7 +341,7 @@ export default function Programs() {
         </div>
       )}
 
-      {filteredPrograms.length === 0 && !isLoading && (
+      {programs.length === 0 && !isLoading && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="w-12 h-12 text-gray-400" />

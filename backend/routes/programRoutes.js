@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getAllPrograms,
+  getProgramById,
   createProgram,
   updateProgram,
   deleteProgram,
@@ -12,6 +13,7 @@ const {
 } = require("../middleware/validationMiddleware");
 
 router.get("/", getAllPrograms);
+router.get("/:id", getProgramById);
 router.post("/", programValidation, handleValidationErrors, createProgram);
 router.put("/:id", programValidation, handleValidationErrors, updateProgram);
 router.delete("/:id", deleteProgram);

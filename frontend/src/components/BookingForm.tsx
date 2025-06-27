@@ -53,20 +53,6 @@ export default function BookingForm({
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
-  const { data: bookingResponse } = useQuery<PaginatedResponse<Booking>>({
-    queryKey: ["bookings", "all"],
-    queryFn: () => api.getBookings(1, 10000),
-  });
-  const allBookings = bookingResponse?.data ?? [];
-
-  const { data: pricingResponse } = useQuery<PaginatedResponse<ProgramPricing>>(
-    {
-      queryKey: ["programPricing", "all"],
-      queryFn: () => api.getProgramPricing(1, 10000),
-    }
-  );
-  const programPricing = pricingResponse?.data ?? [];
-
   const {
     control,
     handleSubmit,
@@ -102,7 +88,24 @@ export default function BookingForm({
   });
 
   const watchedValues = watch();
-  const { selectedHotel, sellingPrice, basePrice, personType } = watchedValues;
+  const { selectedHotel, sellingPrice, basePrice, personType, tripId } =
+    watchedValues;
+
+  // OPTIMIZED: Fetch bookings only for the selected program
+  const { data: programBookingsResponse } = useQuery<
+    PaginatedResponse<Booking>
+  >({
+    queryKey: ["bookingsByProgram", tripId],
+    queryFn: () => api.getBookingsByProgram(tripId!),
+    enabled: !!tripId, // This query will only run when tripId is truthy
+  });
+  const programBookings = programBookingsResponse?.data ?? [];
+
+  const { data: programPricing } = useQuery<ProgramPricing | null>({
+    queryKey: ["programPricing", tripId],
+    queryFn: () => api.getProgramPricingByProgramId(tripId!),
+    enabled: !!tripId,
+  });
 
   const handleProgramChange = useCallback(
     (programIdStr: string) => {
@@ -165,54 +168,52 @@ export default function BookingForm({
   }, [booking, programs, reset, programId, handleProgramChange]);
 
   const calculateTotalBasePrice = React.useCallback((): number => {
-    if (!formState.selectedProgram || !formState.selectedPriceStructure)
-      return 0;
+    if (!formState.selectedProgram || !programPricing) return 0;
 
-    const pricing = programPricing.find(
-      (p) => p.programId === formState.selectedProgram?.id
-    );
-    if (!pricing || !pricing.allHotels) return 0;
+    let hotelCosts = 0;
+    if (formState.selectedPriceStructure && programPricing.allHotels) {
+      hotelCosts = selectedHotel.cities.reduce((total, city, index) => {
+        const hotelName = selectedHotel.hotelNames[index];
+        const roomTypeName = selectedHotel.roomTypes[index];
+        if (!roomTypeName || !hotelName) return total;
 
-    const hotelCosts = selectedHotel.cities.reduce((total, city, index) => {
-      const hotelName = selectedHotel.hotelNames[index];
-      const roomTypeName = selectedHotel.roomTypes[index];
-      if (!roomTypeName) return total;
-
-      const roomDef = formState.selectedPriceStructure?.roomTypes.find(
-        (rt) => rt.type === roomTypeName
-      );
-      const guests = roomDef ? roomDef.guests : 1;
-
-      const hotelPricingInfo = pricing.allHotels.find(
-        (h) => h.name === hotelName && h.city === city
-      );
-      if (hotelPricingInfo && hotelPricingInfo.PricePerNights) {
-        const pricePerNight = Number(
-          hotelPricingInfo.PricePerNights[roomTypeName] || 0
+        const roomDef = formState.selectedPriceStructure?.roomTypes.find(
+          (rt) => rt.type === roomTypeName
         );
-        const cityInfo = formState.selectedProgram?.cities.find(
-          (c) => c.name === city
-        );
-        const nights = cityInfo ? cityInfo.nights : 0;
+        const guests = roomDef ? roomDef.guests : 1;
 
-        if (pricePerNight > 0 && nights > 0 && guests > 0) {
-          return total + (pricePerNight * nights) / guests;
+        const hotelPricingInfo = programPricing.allHotels.find(
+          (h) => h.name === hotelName && h.city === city
+        );
+        if (hotelPricingInfo && hotelPricingInfo.PricePerNights) {
+          const pricePerNight = Number(
+            hotelPricingInfo.PricePerNights[roomTypeName] || 0
+          );
+          const cityInfo = formState.selectedProgram?.cities.find(
+            (c) => c.name === city
+          );
+          const nights = cityInfo ? cityInfo.nights : 0;
+
+          if (pricePerNight > 0 && nights > 0 && guests > 0) {
+            return total + (pricePerNight * nights) / guests;
+          }
         }
-      }
-      return total;
-    }, 0);
+        return total;
+      }, 0);
+    }
 
-    const personTypeInfo = (pricing.personTypes || []).find(
+    const personTypeInfo = (programPricing.personTypes || []).find(
       (p) => p.type === personType
     );
     const ticketPercentage = personTypeInfo
       ? personTypeInfo.ticketPercentage / 100
       : 1;
-    const ticketAirline = Number(pricing.ticketAirline || 0) * ticketPercentage;
+    const ticketAirline =
+      Number(programPricing.ticketAirline || 0) * ticketPercentage;
 
-    const visaFees = Number(pricing.visaFees || 0);
-    const guideFees = Number(pricing.guideFees || 0);
-    const transportFees = Number(pricing.transportFees || 0);
+    const visaFees = Number(programPricing.visaFees || 0);
+    const guideFees = Number(programPricing.guideFees || 0);
+    const transportFees = Number(programPricing.transportFees || 0);
 
     return Math.round(
       ticketAirline + visaFees + guideFees + transportFees + hotelCosts
@@ -226,7 +227,7 @@ export default function BookingForm({
   ]);
 
   useEffect(() => {
-    if (formState.selectedProgram && formState.selectedPriceStructure) {
+    if (formState.selectedProgram) {
       const newBasePrice = calculateTotalBasePrice();
       setValue("basePrice", newBasePrice);
       setValue("profit", sellingPrice - newBasePrice);
@@ -239,6 +240,7 @@ export default function BookingForm({
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
     setValue,
+    programPricing, // Add programPricing as a dependency
   ]);
 
   useEffect(() => {
@@ -274,18 +276,31 @@ export default function BookingForm({
   };
 
   const onSubmit = (data: BookingFormData) => {
+    const hasCitiesWithNights = (formState.selectedProgram?.cities || []).some(
+      (c) => c.nights > 0
+    );
+
+    if (!formState.selectedProgram || !formState.selectedPackage) {
+      setFormState((prev) => ({
+        ...prev,
+        error: "A valid program and package must be selected.",
+      }));
+      return;
+    }
+
     if (
-      !formState.selectedProgram ||
-      !formState.selectedPackage ||
-      !formState.selectedPriceStructure
+      hasCitiesWithNights &&
+      !formState.selectedPriceStructure &&
+      watchedValues.selectedHotel.hotelNames.some((h) => h)
     ) {
       setFormState((prev) => ({
         ...prev,
         error:
-          "A valid program, package, and hotel combination must be selected.",
+          "A valid hotel and room combination is required for programs with overnight stays.",
       }));
       return;
     }
+
     if (
       userRole === "employee" ||
       userRole === "manager" ||
@@ -345,13 +360,9 @@ export default function BookingForm({
   };
 
   const availablePeople = useMemo(() => {
-    if (!formState.selectedProgram) {
+    if (!programBookings) {
       return [];
     }
-
-    const programBookings = allBookings.filter(
-      (b) => b.tripId === formState.selectedProgram?.id.toString()
-    );
 
     const selectedIDs = new Set(
       (watchedValues.relatedPersons || []).map((p) => p.ID)
@@ -366,11 +377,10 @@ export default function BookingForm({
         b.clientNameFr.toLowerCase().includes(formState.search.toLowerCase())
     );
   }, [
-    allBookings,
+    programBookings,
     watchedValues.relatedPersons,
     formState.search,
     booking,
-    formState.selectedProgram,
   ]);
 
   const addRelatedPerson = (person: Booking) => {
@@ -404,7 +414,7 @@ export default function BookingForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("Client Name (French)")}
@@ -450,77 +460,77 @@ export default function BookingForm({
             </p>
           )}
         </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Person Type
-        </label>
-        <Controller
-          name="personType"
-          control={control}
-          rules={{ required: "Person type is required" }}
-          render={({ field }) => (
-            <select
-              {...field}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            >
-              <option value="adult">Adult</option>
-              <option value="child">Child</option>
-              <option value="infant">Infant</option>
-            </select>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Person Type
+          </label>
+          <Controller
+            name="personType"
+            control={control}
+            rules={{ required: "Person type is required" }}
+            render={({ field }) => (
+              <select
+                {...field}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="adult">Adult</option>
+                <option value="child">Child</option>
+                <option value="infant">Infant</option>
+              </select>
+            )}
+          />
+          {errors.personType && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.personType.message}
+            </p>
           )}
-        />
-        {errors.personType && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.personType.message}
-          </p>
-        )}
+        </div>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Passport Number")}
-        </label>
-        <Controller
-          name="passportNumber"
-          control={control}
-          rules={{ required: "Passport number is required" }}
-          render={({ field }) => (
-            <input
-              {...field}
-              type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("Passport Number")}
+          </label>
+          <Controller
+            name="passportNumber"
+            control={control}
+            rules={{ required: "Passport number is required" }}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            )}
+          />
+          {errors.passportNumber && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.passportNumber.message}
+            </p>
           )}
-        />
-        {errors.passportNumber && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.passportNumber.message}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Phone Number")}
-        </label>
-        <Controller
-          name="phoneNumber"
-          control={control}
-          rules={{ required: "Phone number is required" }}
-          render={({ field }) => (
-            <input
-              {...field}
-              type="tel"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("Phone Number")}
+          </label>
+          <Controller
+            name="phoneNumber"
+            control={control}
+            rules={{ required: "Phone number is required" }}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="tel"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            )}
+          />
+          {errors.phoneNumber && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.phoneNumber.message}
+            </p>
           )}
-        />
-        {errors.phoneNumber && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.phoneNumber.message}
-          </p>
-        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -656,77 +666,76 @@ export default function BookingForm({
         </div>
       </div>
 
-      {formState.selectedPackage && (
-        <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {t("Hotel & Room Selection")}
-          </h3>
-          <div className="space-y-4">
-            {(formState.selectedProgram?.cities || []).map(
-              (city, cityIndex) => (
-                <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    {city.name} ({city.nights} {t("nights")})
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t("Select Hotel")}
-                      </label>
-                      <select
-                        value={selectedHotel.hotelNames[cityIndex] || ""}
-                        onChange={(e) =>
-                          updateHotelSelection(cityIndex, e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        required
-                      >
-                        <option value="">{t("Select a hotel")}</option>
-                        {(
-                          formState.selectedPackage?.hotels[city.name] || []
-                        ).map((hotel: string) => (
-                          <option key={hotel} value={hotel}>
-                            {hotel}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t("Room Type")}
-                      </label>
-                      <select
-                        value={selectedHotel.roomTypes[cityIndex] || ""}
-                        onChange={(e) =>
-                          updateRoomTypeSelection(cityIndex, e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        required
-                        disabled={!formState.selectedPriceStructure}
-                      >
-                        <option value="">
-                          {t(
-                            formState.selectedPriceStructure
-                              ? "Select a room type"
-                              : "Select all hotels first"
-                          )}
-                        </option>
-                        {formState.selectedPriceStructure?.roomTypes.map(
-                          (rt) => (
-                            <option key={rt.type} value={rt.type}>
-                              {rt.type} ({rt.guests} guests)
+      {formState.selectedPackage &&
+        (formState.selectedProgram?.cities || []).some((c) => c.nights > 0) && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {t("Hotel & Room Selection")}
+            </h3>
+            <div className="space-y-4">
+              {(formState.selectedProgram?.cities || []).map(
+                (city, cityIndex) => (
+                  <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">
+                      {city.name} ({city.nights} {t("nights")})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t("Select Hotel")}
+                        </label>
+                        <select
+                          value={selectedHotel.hotelNames[cityIndex] || ""}
+                          onChange={(e) =>
+                            updateHotelSelection(cityIndex, e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        >
+                          <option value="">{t("Select a hotel")}</option>
+                          {(
+                            formState.selectedPackage?.hotels[city.name] || []
+                          ).map((hotel: string) => (
+                            <option key={hotel} value={hotel}>
+                              {hotel}
                             </option>
-                          )
-                        )}
-                      </select>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t("Room Type")}
+                        </label>
+                        <select
+                          value={selectedHotel.roomTypes[cityIndex] || ""}
+                          onChange={(e) =>
+                            updateRoomTypeSelection(cityIndex, e.target.value)
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={!formState.selectedPriceStructure}
+                        >
+                          <option value="">
+                            {t(
+                              formState.selectedPriceStructure
+                                ? "Select a room type"
+                                : "Select all hotels first"
+                            )}
+                          </option>
+                          {formState.selectedPriceStructure?.roomTypes.map(
+                            (rt) => (
+                              <option key={rt.type} value={rt.type}>
+                                {rt.type} ({rt.guests} guests)
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            )}
+                )
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       <div
         className={`grid grid-cols-1 ${

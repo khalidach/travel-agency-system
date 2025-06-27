@@ -3,38 +3,86 @@
 exports.getAllPrograms = async (req, res) => {
   try {
     const { adminId } = req.user;
-    const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "10", 10);
-    const offset = (page - 1) * limit;
+    const {
+      searchTerm,
+      filterType,
+      page = 1,
+      noPaginate = "false",
+    } = req.query;
+    let { limit = 10 } = req.query;
 
-    const programsPromise = req.db.query(
-      'SELECT * FROM programs WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [adminId, limit, offset]
-    );
+    let query = 'SELECT * FROM programs WHERE "userId" = $1';
+    const queryParams = [adminId];
+    let paramIndex = 2;
 
-    const totalCountPromise = req.db.query(
-      'SELECT COUNT(*) FROM programs WHERE "userId" = $1',
-      [adminId]
-    );
+    if (searchTerm) {
+      query += ` AND name ILIKE $${paramIndex++}`;
+      queryParams.push(`%${searchTerm}%`);
+    }
 
-    const [programsResult, totalCountResult] = await Promise.all([
-      programsPromise,
-      totalCountPromise,
-    ]);
+    if (filterType && filterType !== "all") {
+      query += ` AND type = $${paramIndex++}`;
+      queryParams.push(filterType);
+    }
 
+    // If noPaginate is true, return all matching results without pagination
+    if (noPaginate === "true") {
+      query += ` ORDER BY "createdAt" DESC`;
+      const programsResult = await req.db.query(query, queryParams);
+      // The response is shaped to match what the frontend expects { data: [...] }
+      return res.json({ data: programsResult.rows });
+    }
+
+    // --- Pagination Logic ---
+    // First, get the total count of matching records for pagination info
+    const countQuery = `SELECT COUNT(*) FROM (${query.replace(
+      "SELECT *",
+      "SELECT id"
+    )}) as count_table`;
+    const countParams = [...queryParams]; // Clone params for the count query
+    const totalCountResult = await req.db.query(countQuery, countParams);
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+
+    // Then, add LIMIT and OFFSET for the actual data query
+    query += ` ORDER BY "createdAt" DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    const offset = (page - 1) * limit;
+    queryParams.push(limit, offset);
+
+    const programsResult = await req.db.query(query, queryParams);
 
     res.json({
       data: programsResult.rows,
       pagination: {
-        page,
-        limit,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
         totalCount,
-        totalPages: Math.ceil(totalCount / limit),
+        totalPages: Math.ceil(totalCount / parseInt(limit, 10)),
       },
     });
   } catch (error) {
     console.error("Get All Programs Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getProgramById = async (req, res) => {
+  const { id } = req.params;
+  const { adminId } = req.user;
+  try {
+    const { rows } = await req.db.query(
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [id, adminId]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Program not found or you are not authorized" });
+    }
+
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Get Program by ID Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
