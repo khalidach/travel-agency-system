@@ -8,8 +8,6 @@ exports.getAllBookings = async (req, res) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const { role, id, adminId } = req.user;
 
-    // Admin and manager see all bookings for the agency
-    // Employee only sees their own bookings
     const queryUserId = role === "employee" ? id : adminId;
     const idColumn = role === "employee" ? "employeeId" : "userId";
 
@@ -40,7 +38,7 @@ exports.getBookingsByProgram = async (req, res) => {
   try {
     const { programId } = req.params;
     const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "10000", 10); // Default to a high limit
+    const limit = parseInt(req.query.limit || "10000", 10);
     const { role, id, adminId } = req.user;
 
     let query = `
@@ -62,7 +60,6 @@ exports.getBookingsByProgram = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    // Add limit and offset to params array dynamically
     const limitParamIndex = params.length + 1;
     const offsetParamIndex = params.length + 2;
     query += ` ORDER BY b."createdAt" DESC LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`;
@@ -89,7 +86,7 @@ exports.createBooking = async (req, res) => {
   try {
     const newBooking = await BookingService.createBooking(
       req.db,
-      req.user, // Pass the whole user object
+      req.user,
       req.body
     );
     res.status(201).json(newBooking);
@@ -104,7 +101,7 @@ exports.updateBooking = async (req, res) => {
   try {
     const updatedBooking = await BookingService.updateBooking(
       req.db,
-      req.user, // Pass the whole user object
+      req.user,
       id,
       req.body
     );
@@ -118,8 +115,6 @@ exports.updateBooking = async (req, res) => {
 exports.deleteBooking = async (req, res) => {
   const { id } = req.params;
   try {
-    // Allow admin/manager to delete any booking in their agency
-    // An employee can only delete their own.
     const result = await BookingService.deleteBooking(req.db, req.user, id);
     res.json(result);
   } catch (error) {
@@ -127,8 +122,6 @@ exports.deleteBooking = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// --- Payment, Excel, and other functions ---
 
 exports.addPayment = async (req, res) => {
   try {
@@ -178,28 +171,30 @@ exports.exportBookingsToExcel = async (req, res) => {
     const { programId } = req.params;
     const { adminId, role } = req.user;
 
-    if (!programId) {
+    if (!programId || programId === "undefined") {
       return res
         .status(400)
-        .json({ message: "A specific program must be selected for export." });
+        .json({ message: "A program must be selected for export." });
+    }
+
+    const { rows: programs } = await req.db.query(
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [programId, adminId]
+    );
+
+    if (programs.length === 0) {
+      return res.status(404).json({ message: "Program not found." });
     }
 
     const { rows: bookings } = await req.db.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "phoneNumber", "clientNameFr"',
       [programId, adminId]
     );
+
     if (bookings.length === 0) {
       return res
         .status(404)
         .json({ message: "No bookings found for this program." });
-    }
-
-    const { rows: programs } = await req.db.query(
-      "SELECT * FROM programs WHERE id = $1",
-      [programId]
-    );
-    if (!programs[0]) {
-      return res.status(404).json({ message: "Program not found." });
     }
 
     const workbook = await ExcelService.generateBookingsExcel(
@@ -208,7 +203,10 @@ exports.exportBookingsToExcel = async (req, res) => {
       role
     );
 
-    const fileName = `${programs[0].name.replace(/\s/g, "_")}_bookings.xlsx`;
+    const fileName = `${(programs[0].name || "Untitled_Program").replace(
+      /[\s\W]/g,
+      "_"
+    )}_bookings.xlsx`;
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -216,43 +214,53 @@ exports.exportBookingsToExcel = async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
     await workbook.xlsx.write(res);
-    res.end();
   } catch (error) {
     console.error("Failed to export to Excel:", error);
-    res.status(500).json({ message: "Failed to export bookings to Excel." });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to export bookings to Excel." });
+    }
   }
 };
 
 exports.exportBookingTemplateForProgram = async (req, res) => {
   try {
     const { programId } = req.params;
+
+    if (!programId || programId === "undefined") {
+      return res.status(400).json({ message: "Invalid Program ID provided." });
+    }
+
     const { rows: programs } = await req.db.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [programId, req.user.adminId]
     );
+
     if (programs.length === 0) {
       return res.status(404).json({ message: "Program not found." });
     }
 
+    const program = programs[0];
     const workbook = await ExcelService.generateBookingTemplateForProgramExcel(
-      programs[0]
+      program
     );
+
+    const fileName = `${(program.name || "Untitled_Program").replace(
+      /[\s\W]/g,
+      "_"
+    )}_Template.xlsx`;
+
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=${programs[0].name.replace(
-        /\s/g,
-        "_"
-      )}_Template.xlsx`
-    );
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
     await workbook.xlsx.write(res);
-    res.end();
   } catch (error) {
     console.error("Failed to export template:", error);
-    res.status(500).json({ message: "Failed to export booking template." });
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Failed to export booking template." });
+    }
   }
 };
 
@@ -267,7 +275,7 @@ exports.importBookingsFromExcel = async (req, res) => {
       req.file,
       req.user,
       req.db,
-      programId // Pass programId to the service
+      programId
     );
     res.status(201).json(result);
   } catch (error) {
