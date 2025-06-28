@@ -175,7 +175,48 @@ export default function ProgramPricingPage() {
       return;
     }
     setSelectedProgram(program);
-    setCurrentPricing({ ...pricing });
+
+    // 1. Generate the fresh hotel list from the latest program data
+    const uniqueHotels = new Map<string, { city: string; nights: number }>();
+    program.packages.forEach((pkg) => {
+      (program.cities || []).forEach((city) => {
+        (pkg.hotels[city.name] || []).forEach((hotelName) => {
+          const key = `${city.name}-${hotelName}`;
+          if (!uniqueHotels.has(key)) {
+            uniqueHotels.set(key, { city: city.name, nights: city.nights });
+          }
+        });
+      });
+    });
+
+    const freshHotelsList: HotelPrice[] = Array.from(
+      uniqueHotels.entries()
+    ).map(([key, data]) => {
+      const [city, name] = key.split("-");
+      return { name, city, nights: data.nights, PricePerNights: {} };
+    });
+
+    // 2. Create a map of existing prices from the saved pricing data
+    const existingPrices = new Map<string, { [roomType: string]: number }>();
+    (pricing.allHotels || []).forEach((hotel) => {
+      const key = `${hotel.city}-${hotel.name}`;
+      existingPrices.set(key, hotel.PricePerNights);
+    });
+
+    // 3. Merge the existing prices into the fresh hotel list
+    const mergedHotelsList = freshHotelsList.map((hotel) => {
+      const key = `${hotel.city}-${hotel.name}`;
+      if (existingPrices.has(key)) {
+        return { ...hotel, PricePerNights: existingPrices.get(key) || {} };
+      }
+      return hotel;
+    });
+
+    // 4. Set the state with the merged data
+    setCurrentPricing({
+      ...pricing, // Keep other pricing data like ticket fees, etc.
+      allHotels: mergedHotelsList,
+    });
   };
 
   const handleDeletePricing = (id: number) => {
