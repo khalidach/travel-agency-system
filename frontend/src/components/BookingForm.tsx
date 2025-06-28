@@ -516,7 +516,7 @@ export default function BookingForm({
           <Controller
             name="phoneNumber"
             control={control}
-            rules={{ required: "Phone number is required" }}
+            // rules={{ required: "Phone number is required" }}
             render={({ field }) => (
               <input
                 {...field}

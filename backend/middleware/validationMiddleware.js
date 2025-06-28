@@ -88,10 +88,9 @@ const bookingValidation = [
     .escape()
     .withMessage("Passport number is required."),
   body("phoneNumber")
-    .notEmpty()
+    .optional() // This field is now optional
     .trim()
-    .escape()
-    .withMessage("Phone number is required."),
+    .escape(),
   body("tripId").notEmpty().withMessage("A travel program must be selected."),
   body("packageId").notEmpty().withMessage("A package must be selected."),
   body("sellingPrice")
