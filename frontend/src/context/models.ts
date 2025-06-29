@@ -39,6 +39,7 @@ export interface Program {
   userId: number;
   employeeId?: number;
   totalBookings?: number;
+  pricing?: ProgramPricing; // The associated pricing, if it exists
 }
 
 export interface Package {

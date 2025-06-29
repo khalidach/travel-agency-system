@@ -11,44 +11,59 @@ exports.getAllPrograms = async (req, res) => {
     } = req.query;
     let { limit = 10 } = req.query;
 
-    let query = 'SELECT * FROM programs WHERE "userId" = $1';
+    let baseQuery = "FROM programs p";
+    let whereConditions = ['p."userId" = $1'];
     const queryParams = [adminId];
     let paramIndex = 2;
 
     if (searchTerm) {
-      query += ` AND name ILIKE $${paramIndex++}`;
+      whereConditions.push(`p.name ILIKE $${paramIndex++}`);
       queryParams.push(`%${searchTerm}%`);
     }
 
     if (filterType && filterType !== "all") {
-      query += ` AND type = $${paramIndex++}`;
+      whereConditions.push(`p.type = $${paramIndex++}`);
       queryParams.push(filterType);
     }
 
+    const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
+
+    const dataQueryFields = `
+        p.*,
+        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id) as pricing
+    `;
+
     // If noPaginate is true, return all matching results without pagination
     if (noPaginate === "true") {
-      query += ` ORDER BY "createdAt" DESC`;
-      const programsResult = await req.db.query(query, queryParams);
-      // The response is shaped to match what the frontend expects { data: [...] }
+      const dataQuery = `
+          SELECT ${dataQueryFields}
+          ${baseQuery}
+          ${whereClause}
+          ORDER BY p."createdAt" DESC
+        `;
+      const programsResult = await req.db.query(dataQuery, queryParams);
       return res.json({ data: programsResult.rows });
     }
 
     // --- Pagination Logic ---
-    // First, get the total count of matching records for pagination info
-    const countQuery = `SELECT COUNT(*) FROM (${query.replace(
-      "SELECT *",
-      "SELECT id"
-    )}) as count_table`;
-    const countParams = [...queryParams]; // Clone params for the count query
-    const totalCountResult = await req.db.query(countQuery, countParams);
+    // Get total count for pagination
+    const countQuery = `SELECT COUNT(*) ${baseQuery} ${whereClause}`;
+    const totalCountResult = await req.db.query(countQuery, queryParams);
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
-    // Then, add LIMIT and OFFSET for the actual data query
-    query += ` ORDER BY "createdAt" DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    // Fetch paginated data
+    const dataQuery = `
+        SELECT ${dataQueryFields}
+        ${baseQuery}
+        ${whereClause}
+        ORDER BY p."createdAt" DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++}
+    `;
+
     const offset = (page - 1) * limit;
     queryParams.push(limit, offset);
 
-    const programsResult = await req.db.query(query, queryParams);
+    const programsResult = await req.db.query(dataQuery, queryParams);
 
     res.json({
       data: programsResult.rows,
@@ -56,7 +71,7 @@ exports.getAllPrograms = async (req, res) => {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
         totalCount,
-        totalPages: Math.ceil(totalCount / parseInt(limit, 10)),
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {
