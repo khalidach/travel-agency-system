@@ -29,13 +29,7 @@ import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { useAuthContext } from "../context/AuthContext";
 
 // Types and API
-import type {
-  Booking,
-  Payment,
-  Program,
-  Employee,
-  PaginatedResponse,
-} from "../context/models";
+import type { Booking, Payment, Program, Employee } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 
@@ -52,6 +46,24 @@ type ConfirmationState = {
   message: string;
   onConfirm: () => void;
 };
+
+interface BookingResponse {
+  data: Booking[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+  };
+  summaryStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    totalPaid: number;
+    totalRemaining: number;
+  };
+}
 
 export default function BookingPage() {
   const { t } = useTranslation();
@@ -79,7 +91,7 @@ export default function BookingPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const bookingsPerPage = 10;
 
-  const { register, watch } = useForm<FilterFormData>({
+  const { register, watch, getValues } = useForm<FilterFormData>({
     defaultValues: {
       searchTerm: "",
       sortOrder: "newest",
@@ -88,17 +100,70 @@ export default function BookingPage() {
     },
   });
 
-  const filters = watch();
+  const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
+  const sortOrder = watch("sortOrder");
+  const statusFilter = watch("statusFilter");
+  const employeeFilter = watch("employeeFilter");
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [submittedSearchTerm, sortOrder, statusFilter, employeeFilter]);
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setSubmittedSearchTerm(getValues("searchTerm"));
+    }
+  };
 
   // Data Fetching
-  const { data: bookingResponse, isLoading: isLoadingBookings } = useQuery<
-    PaginatedResponse<Booking>
-  >({
-    queryKey: ["bookings", programId],
-    queryFn: () => api.getBookingsByProgram(programId!),
-    enabled: !!programId,
-  });
-  const allBookings = bookingResponse?.data ?? [];
+  const { data: bookingResponse, isLoading: isLoadingBookings } =
+    useQuery<BookingResponse>({
+      queryKey: [
+        "bookings",
+        programId,
+        currentPage,
+        submittedSearchTerm,
+        sortOrder,
+        statusFilter,
+        employeeFilter,
+      ],
+      queryFn: () =>
+        api.getBookingsByProgram(programId!, {
+          page: currentPage,
+          limit: bookingsPerPage,
+          searchTerm: submittedSearchTerm,
+          sortOrder,
+          statusFilter,
+          employeeFilter,
+        }),
+      enabled: !!programId,
+    });
+
+  const currentBookings = bookingResponse?.data ?? [];
+  const pagination = bookingResponse?.pagination;
+  const summaryStats = bookingResponse?.summaryStats;
+
+  // Process bookings for family grouping
+  const processedBookings = useMemo(() => {
+    if (sortOrder !== "family") {
+      return currentBookings.map((b) => ({ ...b, isRelated: false }));
+    }
+
+    const result: (Booking & { isRelated?: boolean })[] = [];
+    let lastPhoneNumber: string | null = null;
+
+    currentBookings.forEach((booking) => {
+      if (booking.phoneNumber && booking.phoneNumber === lastPhoneNumber) {
+        result.push({ ...booking, isRelated: true });
+      } else {
+        result.push({ ...booking, isRelated: false });
+        lastPhoneNumber = booking.phoneNumber || null;
+      }
+    });
+
+    return result;
+  }, [currentBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -225,114 +290,11 @@ export default function BookingPage() {
     },
   });
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [
-    filters.searchTerm,
-    filters.sortOrder,
-    filters.statusFilter,
-    filters.employeeFilter,
-  ]);
-
-  const filteredBookings = useMemo(() => {
-    return allBookings.filter((booking) => {
-      const lowerSearchTerm = filters.searchTerm.toLowerCase();
-      const matchesSearch =
-        booking.clientNameFr.toLowerCase().includes(lowerSearchTerm) ||
-        (booking.clientNameAr || "").includes(filters.searchTerm) ||
-        booking.passportNumber.toLowerCase().includes(lowerSearchTerm);
-
-      const matchesStatus =
-        filters.statusFilter === "all" ||
-        (filters.statusFilter === "paid" && booking.isFullyPaid) ||
-        (filters.statusFilter === "pending" && !booking.isFullyPaid);
-
-      const matchesEmployee =
-        filters.employeeFilter === "all" ||
-        booking.employeeId?.toString() === filters.employeeFilter;
-
-      return matchesSearch && matchesStatus && matchesEmployee;
-    });
-  }, [allBookings, filters]);
-
-  const sortedBookings = useMemo(() => {
-    const bookingsCopy = [...filteredBookings];
-    if (filters.sortOrder === "family") {
-      const bookingsMap = new Map(bookingsCopy.map((b) => [b.id, b]));
-      const result: (Booking & { isRelated?: boolean })[] = [];
-      const processed = new Set<number>();
-      bookingsCopy.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      bookingsCopy.forEach((booking) => {
-        if (processed.has(booking.id)) return;
-        if (booking.relatedPersons && booking.relatedPersons.length > 0) {
-          result.push(booking);
-          processed.add(booking.id);
-          booking.relatedPersons.forEach((relatedInfo) => {
-            const relatedBooking = bookingsMap.get(relatedInfo.ID);
-            if (relatedBooking && !processed.has(relatedBooking.id)) {
-              result.push({ ...relatedBooking, isRelated: true });
-              processed.add(relatedBooking.id);
-            }
-          });
-        }
-      });
-      bookingsCopy.forEach((booking) => {
-        if (!processed.has(booking.id)) {
-          result.push(booking);
-          processed.add(booking.id);
-        }
-      });
-      return result;
-    } else if (filters.sortOrder === "oldest") {
-      return bookingsCopy.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-    }
-    return bookingsCopy.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [filteredBookings, filters.sortOrder]);
-
-  const currentBookings = useMemo(
-    () =>
-      sortedBookings.slice(
-        (currentPage - 1) * bookingsPerPage,
-        currentPage * bookingsPerPage
-      ),
-    [sortedBookings, currentPage]
-  );
-  const totalPages = Math.ceil(sortedBookings.length / bookingsPerPage);
   const paginationRange = usePagination({
     currentPage,
-    totalCount: sortedBookings.length,
+    totalCount: pagination?.totalCount ?? 0,
     pageSize: bookingsPerPage,
   });
-  const summaryStats = useMemo(() => {
-    const stats = {
-      totalBookings: filteredBookings.length,
-      totalRevenue: 0,
-      totalCost: 0,
-      totalPaid: 0,
-    };
-    for (const booking of filteredBookings) {
-      stats.totalRevenue += Number(booking.sellingPrice);
-      stats.totalCost += Number(booking.basePrice);
-      stats.totalPaid += (booking.advancePayments || []).reduce(
-        (sum, p) => sum + Number(p.amount),
-        0
-      );
-    }
-    return {
-      ...stats,
-      totalProfit: stats.totalRevenue - stats.totalCost,
-      totalRemaining: stats.totalRevenue - stats.totalPaid,
-    };
-  }, [filteredBookings]);
 
   // Handlers
   const handleAddBooking = () => {
@@ -553,24 +515,25 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {filteredBookings.length > 0 && <BookingSummary stats={summaryStats} />}
+      {summaryStats && <BookingSummary stats={summaryStats} />}
 
       <BookingFilters
         register={register}
         handleExport={handleExport}
         isExporting={isExporting}
         employees={employees}
+        onSearchKeyDown={handleSearchKeyDown}
       />
 
       <BookingTable
-        bookings={currentBookings}
+        bookings={processedBookings}
         programs={programs}
         onEditBooking={handleEditBooking}
         onDeleteBooking={handleDeleteBooking}
         onManagePayments={handleManagePayments}
       />
 
-      {totalPages > 1 && (
+      {pagination && pagination.totalPages > 1 && (
         <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
@@ -602,8 +565,10 @@ export default function BookingPage() {
             )}
           </div>
           <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
+            onClick={() =>
+              setCurrentPage((p) => Math.min(p + 1, pagination.totalPages))
+            }
+            disabled={currentPage === pagination.totalPages}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
@@ -612,7 +577,7 @@ export default function BookingPage() {
         </div>
       )}
 
-      {filteredBookings.length === 0 && !isLoadingBookings && (
+      {currentBookings.length === 0 && !isLoadingBookings && (
         <div className="text-center py-12 bg-white rounded-2xl">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-12 h-12 text-gray-400" />

@@ -37,43 +37,110 @@ exports.getAllBookings = async (req, res) => {
 exports.getBookingsByProgram = async (req, res) => {
   try {
     const { programId } = req.params;
-    const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "10000", 10);
-    const { role, id, adminId } = req.user;
+    const {
+      page = 1,
+      limit = 10,
+      searchTerm = "",
+      sortOrder = "newest",
+      statusFilter = "all",
+      employeeFilter = "all",
+    } = req.query;
+    const { adminId } = req.user;
 
-    let query = `
-            SELECT b.*, e.username as "employeeName"
-            FROM bookings b
-            LEFT JOIN employees e ON b."employeeId" = e.id
-            WHERE b."userId" = $1 AND b."tripId" = $2
-        `;
-    const params = [adminId, programId];
+    // --- Building the WHERE clause ---
+    let whereConditions = ['b."userId" = $1', 'b."tripId" = $2'];
+    const queryParams = [adminId, programId];
+    let paramIndex = 3;
 
-    if (role === "employee") {
-      query += ` AND b."employeeId" = $3`;
-      params.push(id);
+    if (searchTerm) {
+      whereConditions.push(
+        `(b."clientNameFr" ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`
+      );
+      queryParams.push(`%${searchTerm}%`);
+      paramIndex++;
     }
 
-    const countQuery = `SELECT COUNT(*) FROM (${query}) as count_table`;
-    const totalCountResult = await req.db.query(countQuery, params);
-    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+    if (statusFilter === "paid") {
+      whereConditions.push('b."isFullyPaid" = true');
+    } else if (statusFilter === "pending") {
+      whereConditions.push('b."isFullyPaid" = false');
+    }
 
+    if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+      whereConditions.push(`b."employeeId" = $${paramIndex}`);
+      queryParams.push(employeeFilter);
+      paramIndex++;
+    }
+
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
+
+    // --- Summary Stats Query (on the whole filtered set) ---
+    const summaryQuery = `
+      SELECT
+        COUNT(*) as "totalBookings",
+        COALESCE(SUM(b."sellingPrice"), 0) as "totalRevenue",
+        COALESCE(SUM(b."basePrice"), 0) as "totalCost",
+        COALESCE(SUM(b.profit), 0) as "totalProfit",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance"), 0) as "totalPaid"
+      FROM bookings b
+      ${whereClause}
+    `;
+    const summaryResult = await req.db.query(summaryQuery, queryParams);
+    const summaryStats = summaryResult.rows[0];
+    summaryStats.totalRemaining =
+      summaryStats.totalRevenue - summaryStats.totalPaid;
+
+    // --- Paginated Data Query ---
+    const totalCount = parseInt(summaryStats.totalBookings, 10);
     const offset = (page - 1) * limit;
 
-    const limitParamIndex = params.length + 1;
-    const offsetParamIndex = params.length + 2;
-    query += ` ORDER BY b."createdAt" DESC LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`;
-    params.push(limit, offset);
+    let orderByClause;
+    switch (sortOrder) {
+      case "oldest":
+        orderByClause = 'ORDER BY b."createdAt" ASC';
+        break;
+      case "family":
+        // This is complex to do purely in SQL without CTEs or complex logic,
+        // often better handled client-side if the dataset per page is small.
+        // For now, we'll sort by phone number then name to group potential families.
+        orderByClause = 'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC';
+        break;
+      case "newest":
+      default:
+        orderByClause = 'ORDER BY b."createdAt" DESC';
+        break;
+    }
 
-    const { rows: bookings } = await req.db.query(query, params);
+    const dataQuery = `
+      SELECT b.*, e.username as "employeeName"
+      FROM bookings b
+      LEFT JOIN employees e ON b."employeeId" = e.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    queryParams.push(limit, offset);
+
+    const { rows: bookings } = await req.db.query(dataQuery, queryParams);
 
     res.json({
       data: bookings,
       pagination: {
-        page,
-        limit,
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
         totalCount,
         totalPages: Math.ceil(totalCount / limit),
+      },
+      summaryStats: {
+        totalBookings: parseInt(summaryStats.totalBookings, 10),
+        totalRevenue: parseFloat(summaryStats.totalRevenue),
+        totalCost: parseFloat(summaryStats.totalCost),
+        totalProfit: parseFloat(summaryStats.totalProfit),
+        totalPaid: parseFloat(summaryStats.totalPaid),
+        totalRemaining: parseFloat(summaryStats.totalRemaining),
       },
     });
   } catch (error) {

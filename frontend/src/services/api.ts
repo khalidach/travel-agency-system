@@ -123,10 +123,25 @@ export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
 
 // --- Booking API ---
-export const getBookings = (page = 1, limit = 10) =>
-  request(`/bookings?page=${page}&limit=${limit}`);
-export const getBookingsByProgram = (programId: string) =>
-  request(`/bookings/program/${programId}`);
+export const getBookingsByProgram = (
+  programId: string,
+  params: {
+    page: number;
+    limit: number;
+    searchTerm: string;
+    sortOrder: string;
+    statusFilter: string;
+    employeeFilter: string;
+  }
+) => {
+  const queryParams = new URLSearchParams({
+    ...params,
+    page: params.page.toString(),
+    limit: params.limit.toString(),
+  }).toString();
+  return request(`/bookings/program/${programId}?${queryParams}`);
+};
+
 export const createBooking = (booking: any) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
 export const updateBooking = (id: number, booking: any) =>
