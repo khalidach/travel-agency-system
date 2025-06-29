@@ -142,6 +142,26 @@ export const getBookingsByProgram = (
   return request(`/bookings/program/${programId}?${queryParams}`);
 };
 
+// NEW: Search for bookings in a program (for the related people dropdown)
+export const searchBookingsInProgram = async (
+  programId: string,
+  searchTerm: string
+) => {
+  if (!searchTerm) return [];
+  const params = new URLSearchParams({
+    page: "1",
+    limit: "20", // Return up to 20 results for the dropdown
+    searchTerm,
+    sortOrder: "newest",
+    statusFilter: "all",
+    employeeFilter: "all",
+  });
+  const result = await request(
+    `/bookings/program/${programId}?${params.toString()}`
+  );
+  return result.data; // The API returns a paginated response, we just need the data array
+};
+
 export const createBooking = (booking: any) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
 export const updateBooking = (id: number, booking: any) =>

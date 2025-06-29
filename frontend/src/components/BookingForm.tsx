@@ -1,5 +1,5 @@
 // frontend/src/components/BookingForm.tsx
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -12,7 +12,6 @@ import type {
   PriceStructure,
   ProgramPricing,
   PaginatedResponse,
-  PersonType,
 } from "../context/models";
 import * as api from "../services/api";
 import { X } from "lucide-react";
@@ -87,19 +86,29 @@ export default function BookingForm({
     error: null,
   });
 
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
   const watchedValues = watch();
   const { selectedHotel, sellingPrice, basePrice, personType, tripId } =
     watchedValues;
 
-  // OPTIMIZED: Fetch bookings only for the selected program
-  const { data: programBookingsResponse } = useQuery<
-    PaginatedResponse<Booking>
-  >({
-    queryKey: ["bookingsByProgram", tripId],
-    queryFn: () => api.getBookingsByProgram(tripId!),
-    enabled: !!tripId, // This query will only run when tripId is truthy
+  // Debounce the search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(formState.search);
+    }, 300); // 300ms delay before searching
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [formState.search]);
+
+  // Fetch search results based on the debounced search term
+  const { data: searchResults } = useQuery<Booking[]>({
+    queryKey: ["bookingSearch", tripId, debouncedSearchTerm],
+    queryFn: () => api.searchBookingsInProgram(tripId!, debouncedSearchTerm),
+    enabled: !!tripId && debouncedSearchTerm.length > 0,
   });
-  const programBookings = programBookingsResponse?.data ?? [];
 
   const { data: programPricing } = useQuery<ProgramPricing | null>({
     queryKey: ["programPricing", tripId],
@@ -360,7 +369,7 @@ export default function BookingForm({
   };
 
   const availablePeople = useMemo(() => {
-    if (!programBookings) {
+    if (!searchResults) {
       return [];
     }
 
@@ -371,17 +380,8 @@ export default function BookingForm({
       selectedIDs.add(booking.id);
     }
 
-    return programBookings.filter(
-      (b) =>
-        !selectedIDs.has(b.id) &&
-        b.clientNameFr.toLowerCase().includes(formState.search.toLowerCase())
-    );
-  }, [
-    programBookings,
-    watchedValues.relatedPersons,
-    formState.search,
-    booking,
-  ]);
+    return searchResults.filter((b) => !selectedIDs.has(b.id));
+  }, [searchResults, watchedValues.relatedPersons, booking]);
 
   const addRelatedPerson = (person: Booking) => {
     const newPerson: RelatedPerson = {
