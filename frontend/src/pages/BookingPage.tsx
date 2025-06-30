@@ -47,6 +47,7 @@ type ConfirmationState = {
   onConfirm: () => void;
 };
 
+// The API response for bookings is now simpler
 interface BookingResponse {
   data: Booking[];
   pagination: {
@@ -55,14 +56,16 @@ interface BookingResponse {
     totalCount: number;
     totalPages: number;
   };
-  summaryStats: {
-    totalBookings: number;
-    totalRevenue: number;
-    totalCost: number;
-    totalProfit: number;
-    totalPaid: number;
-    totalRemaining: number;
-  };
+}
+
+// NEW type for the stats response
+interface BookingStatsResponse {
+  totalBookings: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  totalPaid: number;
+  totalRemaining: number;
 }
 
 export default function BookingPage() {
@@ -116,7 +119,9 @@ export default function BookingPage() {
     }
   };
 
-  // Data Fetching
+  // --- Data Fetching ---
+
+  // Query 1: Fetches the paginated list of bookings. This is fast.
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
       queryKey: [
@@ -140,29 +145,70 @@ export default function BookingPage() {
       enabled: !!programId,
     });
 
+  // Query 2: Fetches the summary statistics. This might be slower but runs in parallel.
+  const { data: summaryStats, isLoading: isLoadingStats } =
+    useQuery<BookingStatsResponse>({
+      queryKey: [
+        "bookingStats",
+        programId,
+        submittedSearchTerm,
+        statusFilter,
+        employeeFilter,
+      ],
+      queryFn: () =>
+        api.getBookingStatsByProgram(programId!, {
+          searchTerm: submittedSearchTerm,
+          statusFilter,
+          employeeFilter,
+        }),
+      enabled: !!programId,
+    });
+
   const currentBookings = bookingResponse?.data ?? [];
   const pagination = bookingResponse?.pagination;
-  const summaryStats = bookingResponse?.summaryStats;
 
   // Process bookings for family grouping
   const processedBookings = useMemo(() => {
-    if (sortOrder !== "family") {
+    if (sortOrder !== "family" || currentBookings.length === 0) {
       return currentBookings.map((b) => ({ ...b, isRelated: false }));
     }
 
-    const result: (Booking & { isRelated?: boolean })[] = [];
-    let lastPhoneNumber: string | null = null;
+    const bookingsMap = new Map(currentBookings.map((b) => [b.id, b]));
+    const memberIds = new Set<number>();
 
+    // First, identify all bookings that are members of a family
     currentBookings.forEach((booking) => {
-      if (booking.phoneNumber && booking.phoneNumber === lastPhoneNumber) {
-        result.push({ ...booking, isRelated: true });
-      } else {
-        result.push({ ...booking, isRelated: false });
-        lastPhoneNumber = booking.phoneNumber || null;
+      if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+        booking.relatedPersons.forEach((person) => {
+          memberIds.add(person.ID);
+        });
       }
     });
 
-    return result;
+    // Separate leaders/individuals from members
+    const leadersAndIndividuals = currentBookings.filter(
+      (booking) => !memberIds.has(booking.id)
+    );
+
+    // Now, build the final flat list in the correct order
+    const finalList: (Booking & { isRelated?: boolean })[] = [];
+
+    leadersAndIndividuals.forEach((leader) => {
+      // Add the leader/individual themselves
+      finalList.push({ ...leader, isRelated: false });
+
+      // If it's a leader, add their members
+      if (leader.relatedPersons && leader.relatedPersons.length > 0) {
+        leader.relatedPersons.forEach((person) => {
+          const memberBooking = bookingsMap.get(person.ID);
+          if (memberBooking) {
+            finalList.push({ ...memberBooking, isRelated: true });
+          }
+        });
+      }
+    });
+
+    return finalList;
   }, [currentBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
@@ -193,6 +239,7 @@ export default function BookingPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Booking created!");
       setIsBookingModalOpen(false);
@@ -213,6 +260,7 @@ export default function BookingPage() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       toast.success("Booking updated!");
       setIsBookingModalOpen(false);
       setEditingBooking(null);
@@ -225,6 +273,7 @@ export default function BookingPage() {
     mutationFn: api.deleteBooking,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Booking deleted!");
     },
@@ -239,6 +288,7 @@ export default function BookingPage() {
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment added!");
       setIsPaymentModalOpen(false);
@@ -255,6 +305,7 @@ export default function BookingPage() {
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment updated!");
       setIsPaymentModalOpen(false);
@@ -269,6 +320,7 @@ export default function BookingPage() {
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment deleted!");
     },
@@ -280,6 +332,7 @@ export default function BookingPage() {
     mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success(result.message);
     },
@@ -296,7 +349,6 @@ export default function BookingPage() {
     pageSize: bookingsPerPage,
   });
 
-  // Handlers
   const handleAddBooking = () => {
     setEditingBooking(null);
     setIsBookingModalOpen(true);
@@ -515,7 +567,21 @@ export default function BookingPage() {
         </div>
       </div>
 
-      {summaryStats && <BookingSummary stats={summaryStats} />}
+      {summaryStats && !isLoadingStats ? (
+        <BookingSummary stats={summaryStats} />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white p-4 rounded-xl shadow-sm border animate-pulse"
+            >
+              <div className="h-4 bg-gray-200 rounded w-20 mx-auto" />
+              <div className="h-7 bg-gray-200 rounded w-24 mx-auto mt-2" />
+            </div>
+          ))}
+        </div>
+      )}
 
       <BookingFilters
         register={register}
@@ -597,8 +663,6 @@ export default function BookingPage() {
           </button>
         </div>
       )}
-
-      {/* Modals */}
       <Modal
         isOpen={isBookingModalOpen}
         onClose={() => {
@@ -741,7 +805,6 @@ export default function BookingPage() {
         )}
       </Modal>
 
-      {/* General Confirmation Modal */}
       {confirmationState?.isOpen && (
         <ConfirmationModal
           isOpen={confirmationState.isOpen}

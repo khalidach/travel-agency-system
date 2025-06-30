@@ -34,6 +34,8 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
+// This function now ONLY gets the paginated booking data.
+// It's faster because it no longer calculates summary stats for all bookings.
 exports.getBookingsByProgram = async (req, res) => {
   try {
     const { programId } = req.params;
@@ -47,7 +49,7 @@ exports.getBookingsByProgram = async (req, res) => {
     } = req.query;
     const { adminId } = req.user;
 
-    // --- Building the WHERE clause ---
+    // --- Building the WHERE clause (same as before) ---
     let whereConditions = ['b."userId" = $1', 'b."tripId" = $2'];
     const queryParams = [adminId, programId];
     let paramIndex = 3;
@@ -77,35 +79,24 @@ exports.getBookingsByProgram = async (req, res) => {
         ? `WHERE ${whereConditions.join(" AND ")}`
         : "";
 
-    // --- Summary Stats Query (on the whole filtered set) ---
-    const summaryQuery = `
-      SELECT
-        COUNT(*) as "totalBookings",
-        COALESCE(SUM(b."sellingPrice"), 0) as "totalRevenue",
-        COALESCE(SUM(b."basePrice"), 0) as "totalCost",
-        COALESCE(SUM(b.profit), 0) as "totalProfit",
-        COALESCE(SUM(b."sellingPrice" - b."remainingBalance"), 0) as "totalPaid"
-      FROM bookings b
-      ${whereClause}
-    `;
-    const summaryResult = await req.db.query(summaryQuery, queryParams);
-    const summaryStats = summaryResult.rows[0];
-    summaryStats.totalRemaining =
-      summaryStats.totalRevenue - summaryStats.totalPaid;
+    // --- Get Total Count (for pagination) ---
+    const totalCountQuery = `SELECT COUNT(*) FROM bookings b ${whereClause}`;
+    // We need a separate queryParams array for count because the main query adds limit/offset
+    const countQueryParams = [...queryParams];
+    const totalCountResult = await req.db.query(
+      totalCountQuery,
+      countQueryParams
+    );
+    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
     // --- Paginated Data Query ---
-    const totalCount = parseInt(summaryStats.totalBookings, 10);
     const offset = (page - 1) * limit;
-
     let orderByClause;
     switch (sortOrder) {
       case "oldest":
         orderByClause = 'ORDER BY b."createdAt" ASC';
         break;
       case "family":
-        // This is complex to do purely in SQL without CTEs or complex logic,
-        // often better handled client-side if the dataset per page is small.
-        // For now, we'll sort by phone number then name to group potential families.
         orderByClause = 'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC';
         break;
       case "newest":
@@ -134,17 +125,80 @@ exports.getBookingsByProgram = async (req, res) => {
         totalCount,
         totalPages: Math.ceil(totalCount / limit),
       },
-      summaryStats: {
-        totalBookings: parseInt(summaryStats.totalBookings, 10),
-        totalRevenue: parseFloat(summaryStats.totalRevenue),
-        totalCost: parseFloat(summaryStats.totalCost),
-        totalProfit: parseFloat(summaryStats.totalProfit),
-        totalPaid: parseFloat(summaryStats.totalPaid),
-        totalRemaining: parseFloat(summaryStats.totalRemaining),
-      },
     });
   } catch (error) {
     console.error("Get Bookings By Program Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// NEW function to get only the summary stats.
+exports.getBookingStatsByProgram = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    const {
+      searchTerm = "",
+      statusFilter = "all",
+      employeeFilter = "all",
+    } = req.query;
+    const { adminId } = req.user;
+
+    // --- Building the WHERE clause (same as before) ---
+    let whereConditions = ['b."userId" = $1', 'b."tripId" = $2'];
+    const queryParams = [adminId, programId];
+    let paramIndex = 3;
+
+    if (searchTerm) {
+      whereConditions.push(
+        `(b."clientNameFr" ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`
+      );
+      queryParams.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (statusFilter === "paid") {
+      whereConditions.push('b."isFullyPaid" = true');
+    } else if (statusFilter === "pending") {
+      whereConditions.push('b."isFullyPaid" = false');
+    }
+
+    if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+      whereConditions.push(`b."employeeId" = $${paramIndex}`);
+      queryParams.push(employeeFilter);
+      paramIndex++;
+    }
+
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
+
+    // --- Summary Stats Query ---
+    const summaryQuery = `
+      SELECT
+        COUNT(*) as "totalBookings",
+        COALESCE(SUM(b."sellingPrice"), 0) as "totalRevenue",
+        COALESCE(SUM(b."basePrice"), 0) as "totalCost",
+        COALESCE(SUM(b.profit), 0) as "totalProfit",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance"), 0) as "totalPaid"
+      FROM bookings b
+      ${whereClause}
+    `;
+    const summaryResult = await req.db.query(summaryQuery, queryParams);
+    const summaryStats = summaryResult.rows[0];
+    summaryStats.totalRemaining =
+      summaryStats.totalRevenue - summaryStats.totalPaid;
+
+    res.json({
+      totalBookings: parseInt(summaryStats.totalBookings, 10),
+      totalRevenue: parseFloat(summaryStats.totalRevenue),
+      totalCost: parseFloat(summaryStats.totalCost),
+      totalProfit: parseFloat(summaryStats.totalProfit),
+      totalPaid: parseFloat(summaryStats.totalPaid),
+      totalRemaining: parseFloat(summaryStats.totalRemaining),
+    });
+  } catch (error) {
+    console.error("Get Booking Stats Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

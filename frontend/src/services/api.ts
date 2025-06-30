@@ -69,7 +69,6 @@ export const getProfitReport = (filterType?: string) => {
 };
 
 // --- Program API ---
-// For Programs page (paginated)
 export const getPrograms = (
   page = 1,
   limit = 6,
@@ -84,7 +83,6 @@ export const getPrograms = (
   });
   return request(`/programs?${params.toString()}`);
 };
-// For Booking page (all filtered results)
 export const getAllProgramsForBooking = (
   searchTerm = "",
   filterType = "all"
@@ -142,7 +140,19 @@ export const getBookingsByProgram = (
   return request(`/bookings/program/${programId}?${queryParams}`);
 };
 
-// NEW: Search for bookings in a program (for the related people dropdown)
+// NEW API function for getting just the stats
+export const getBookingStatsByProgram = (
+  programId: string,
+  params: {
+    searchTerm: string;
+    statusFilter: string;
+    employeeFilter: string;
+  }
+) => {
+  const queryParams = new URLSearchParams(params).toString();
+  return request(`/bookings/program/${programId}/stats?${queryParams}`);
+};
+
 export const searchBookingsInProgram = async (
   programId: string,
   searchTerm: string
@@ -150,7 +160,7 @@ export const searchBookingsInProgram = async (
   if (!searchTerm) return [];
   const params = new URLSearchParams({
     page: "1",
-    limit: "20", // Return up to 20 results for the dropdown
+    limit: "20",
     searchTerm,
     sortOrder: "newest",
     statusFilter: "all",
@@ -159,7 +169,7 @@ export const searchBookingsInProgram = async (
   const result = await request(
     `/bookings/program/${programId}?${params.toString()}`
   );
-  return result.data; // The API returns a paginated response, we just need the data array
+  return result.data;
 };
 
 export const createBooking = (booking: any) =>
@@ -170,6 +180,7 @@ export const deleteBooking = (id: number) =>
   request(`/bookings/${id}`, { method: "DELETE" });
 
 // --- Payment API ---
+// ... (rest of the file is unchanged)
 export const addPayment = (bookingId: number, payment: any) =>
   request(`/bookings/${bookingId}/payments`, {
     method: "POST",
@@ -199,7 +210,6 @@ export const updateEmployee = (id: number, employeeData: any) =>
 export const deleteEmployee = (id: number) =>
   request(`/employees/${id}`, { method: "DELETE" });
 
-// NEW: API for employee analysis
 export const getEmployeeAnalysis = (
   username: string,
   startDate?: string,
