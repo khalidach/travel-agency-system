@@ -4,16 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../services/api";
 import { Program, Room, Occupant } from "../context/models";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Hotel,
-  Plus,
-  Save,
-  Users,
-  Trash2,
-  ArrowRight,
-} from "lucide-react";
+import { ChevronLeft, Hotel, Plus, Save, Users, Trash2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Modal from "../components/Modal";
 import OccupantSearchBox from "../components/room/OccupantSearchBox";
@@ -118,11 +109,6 @@ export default function RoomManage() {
   }, [initialRooms]);
 
   // Handlers
-  const handleNextHotel = () =>
-    setCurrentHotelIndex((prev) => (prev + 1) % hotels.length);
-  const handlePrevHotel = () =>
-    setCurrentHotelIndex((prev) => (prev - 1 + hotels.length) % hotels.length);
-
   const handleAssignOccupant = (
     roomName: string,
     slotIndex: number,
@@ -230,102 +216,98 @@ export default function RoomManage() {
             <h1 className="text-3xl font-bold text-gray-900">
               {program?.name} - Room Management
             </h1>
-            <div className="flex items-center gap-2 text-gray-600 mt-2">
-              <Hotel />
-              <h2 className="text-xl font-semibold">{currentHotelName}</h2>
-            </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          {hotels.length > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrevHotel}
-                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
-              >
-                <ChevronLeft />
-              </button>
-              <span>
-                {currentHotelIndex + 1} / {hotels.length}
-              </span>
-              <button
-                onClick={handleNextHotel}
-                className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
-              >
-                <ChevronRight />
-              </button>
-            </div>
-          )}
+        <button
+          onClick={() =>
+            saveRooms(
+              rooms.map((r) => ({
+                ...r,
+                occupants: r.occupants.filter((o) => o),
+              }))
+            )
+          }
+          disabled={isSaving}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+        >
+          <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
+
+      {/* Hotel Selector */}
+      <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+        {hotels.map((hotel, index) => (
           <button
-            onClick={() =>
-              saveRooms(
-                rooms.map((r) => ({
-                  ...r,
-                  occupants: r.occupants.filter((o) => o),
-                }))
-              )
-            }
-            disabled={isSaving}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+            key={hotel}
+            onClick={() => setCurrentHotelIndex(index)}
+            className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+              currentHotelIndex === index
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-gray-600 hover:bg-gray-200"
+            }`}
           >
-            <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
+            <Hotel size={16} />
+            {hotel}
           </button>
-        </div>
+        ))}
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {Object.entries(groupedRooms).map(([type, roomsInType]) => (
-          <div key={type} className="col-span-1 space-y-4">
-            <h3 className="text-center font-bold text-xl">{type}</h3>
-            {roomsInType.map((room) => (
-              <div
-                key={room.name}
-                className="bg-white p-4 rounded-lg shadow-sm"
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-semibold">{room.name}</h4>
-                  <div className="flex items-center">
-                    <Users size={16} className="mr-1" />
-                    <span>
-                      {room.occupants.filter((o) => o).length}/{room.capacity}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteRoom(room.name)}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {Array.from(roomTypesInProgram.keys()).map((type) => {
+          const roomsInType = groupedRooms[type] || [];
+          return (
+            <div key={type} className="col-span-1 space-y-4">
+              <h3 className="text-center font-bold text-xl">{type}</h3>
+              {roomsInType.map((room) => (
+                <div
+                  key={room.name}
+                  className="bg-white p-4 rounded-lg shadow-sm"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold">{room.name}</h4>
+                    <div className="flex items-center">
+                      <Users size={16} className="mr-1" />
+                      <span>
+                        {room.occupants.filter((o) => o).length}/{room.capacity}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteRoom(room.name)}
+                        className="ml-2 text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {Array.from({ length: room.capacity }).map((_, i) => (
+                      <OccupantSearchBox
+                        key={i}
+                        programId={programId!}
+                        hotelName={currentHotelName}
+                        assignedOccupant={room.occupants[i]}
+                        onAssign={(occ) =>
+                          handleAssignOccupant(room.name, i, occ)
+                        }
+                        onUnassign={() => handleUnassignOccupant(room.name, i)}
+                        onMove={(occ) => handleMoveOccupant(occ, room.name)}
+                      />
+                    ))}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {Array.from({ length: room.capacity }).map((_, i) => (
-                    <OccupantSearchBox
-                      key={i}
-                      programId={programId!}
-                      hotelName={currentHotelName}
-                      assignedOccupant={room.occupants[i]}
-                      onAssign={(occ) =>
-                        handleAssignOccupant(room.name, i, occ)
-                      }
-                      onUnassign={() => handleUnassignOccupant(room.name, i)}
-                      onMove={(occ) => handleMoveOccupant(occ, room.name)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => {
-                setNewRoomDetails({ name: "", type: type });
-                setIsNewRoomModalOpen(true);
-              }}
-              className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
-            >
-              <Plus size={16} className="mr-1" /> Add Room
-            </button>
-          </div>
-        ))}
+              ))}
+              <button
+                onClick={() => {
+                  setNewRoomDetails({ name: "", type: type });
+                  setIsNewRoomModalOpen(true);
+                }}
+                className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
+              >
+                <Plus size={16} className="mr-1" /> Add Room
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       {/* Move Person Modal */}
