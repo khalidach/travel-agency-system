@@ -133,7 +133,7 @@ export default function BookingPage() {
           page: currentPage,
           limit: bookingsPerPage,
           searchTerm: submittedSearchTerm,
-          sortOrder,
+          sortOrder: sortOrder,
           statusFilter,
           employeeFilter,
         }),
@@ -143,71 +143,6 @@ export default function BookingPage() {
   const currentBookings = bookingResponse?.data ?? [];
   const pagination = bookingResponse?.pagination;
   const summaryStats = bookingResponse?.summaryStats;
-
-  // Process bookings for family grouping
-  const processedBookings = useMemo(() => {
-    if (
-      sortOrder !== "family" ||
-      !currentBookings ||
-      currentBookings.length === 0
-    ) {
-      return (currentBookings || []).map((b) => ({ ...b, isRelated: false }));
-    }
-
-    const finalBookings: (Booking & { isRelated?: boolean })[] = [];
-    const groupedByPhone = new Map<string, Booking[]>();
-
-    // Step 1: Group all bookings by phone number.
-    currentBookings.forEach((booking) => {
-      const phoneKey = booking.phoneNumber || `no-phone-${booking.id}`;
-      if (!groupedByPhone.has(phoneKey)) {
-        groupedByPhone.set(phoneKey, []);
-      }
-      groupedByPhone.get(phoneKey)!.push(booking);
-    });
-
-    // Step 2: Process each phone number group to identify true families.
-    groupedByPhone.forEach((group) => {
-      const membersById = new Map<number, Booking>(group.map((b) => [b.id, b]));
-      const processedInGroup = new Set<number>();
-
-      // Find leaders within the phone group and build their families.
-      group.forEach((booking) => {
-        if (processedInGroup.has(booking.id)) return;
-
-        const isLeader =
-          booking.relatedPersons && booking.relatedPersons.length > 0;
-        if (isLeader) {
-          // Add the leader first.
-          finalBookings.push({ ...booking, isRelated: false });
-          processedInGroup.add(booking.id);
-
-          // Add their related members who are in the same phone group.
-          booking.relatedPersons!.forEach((related) => {
-            if (
-              membersById.has(related.ID) &&
-              !processedInGroup.has(related.ID)
-            ) {
-              finalBookings.push({
-                ...membersById.get(related.ID)!,
-                isRelated: true,
-              });
-              processedInGroup.add(related.ID);
-            }
-          });
-        }
-      });
-
-      // Add any remaining individuals from the phone group who were not part of a family.
-      group.forEach((booking) => {
-        if (!processedInGroup.has(booking.id)) {
-          finalBookings.push({ ...booking, isRelated: false });
-        }
-      });
-    });
-
-    return finalBookings;
-  }, [currentBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -570,7 +505,7 @@ export default function BookingPage() {
       />
 
       <BookingTable
-        bookings={processedBookings}
+        bookings={currentBookings}
         programs={programs}
         onEditBooking={handleEditBooking}
         onDeleteBooking={handleDeleteBooking}
