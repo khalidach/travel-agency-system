@@ -79,8 +79,12 @@ export default function Programs() {
 
   const { mutate: updateProgram } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
-    onSuccess: () => {
+    onSuccess: (updatedProgram) => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      // Invalidate the specific program query to force a refetch on other pages like RoomManage
+      queryClient.invalidateQueries({
+        queryKey: ["program", updatedProgram.id.toString()],
+      });
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);
@@ -125,6 +129,8 @@ export default function Programs() {
   const confirmDelete = () => {
     if (programToDelete !== null) {
       deleteProgram(programToDelete);
+      setIsDeleteModalOpen(false);
+      setProgramToDelete(null);
     }
   };
 

@@ -56,6 +56,7 @@ export default function RoomManage() {
 
   // Derived State
   const groupedRooms = useMemo(() => {
+    if (!rooms) return {};
     return rooms.reduce((acc, room) => {
       if (!acc[room.type]) {
         acc[room.type] = [];
@@ -65,20 +66,23 @@ export default function RoomManage() {
     }, {} as Record<string, Room[]>);
   }, [rooms]);
 
-  const roomTypesInProgram = useMemo(() => {
-    if (!program) return new Map<string, number>();
+  const roomTypesForCurrentHotel = useMemo(() => {
+    if (!program || !currentHotelName) return new Map<string, number>();
     const types = new Map<string, number>();
-    program.packages.forEach((p) =>
-      p.prices.forEach((price) =>
-        price.roomTypes.forEach((rt) => {
-          if (!types.has(rt.type)) {
-            types.set(rt.type, rt.guests);
-          }
-        })
-      )
-    );
+    program.packages.forEach((pkg) => {
+      pkg.prices.forEach((price) => {
+        // Check if the price structure is for a combination that includes the current hotel
+        if (price.hotelCombination.includes(currentHotelName)) {
+          price.roomTypes.forEach((rt) => {
+            if (!types.has(rt.type)) {
+              types.set(rt.type, rt.guests);
+            }
+          });
+        }
+      });
+    });
     return types;
-  }, [program]);
+  }, [program, currentHotelName]);
 
   // Effects
   useEffect(() => {
@@ -105,6 +109,8 @@ export default function RoomManage() {
         ),
       }));
       setRooms(sanitizedRooms);
+    } else {
+      setRooms([]);
     }
   }, [initialRooms]);
 
@@ -176,7 +182,7 @@ export default function RoomManage() {
       toast.error("Room name and type are required.");
       return;
     }
-    const capacity = roomTypesInProgram.get(newRoomDetails.type) || 0;
+    const capacity = roomTypesForCurrentHotel.get(newRoomDetails.type) || 0;
     const newRoom: Room = {
       name: newRoomDetails.name,
       type: newRoomDetails.type,
@@ -254,7 +260,7 @@ export default function RoomManage() {
 
       {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {Array.from(roomTypesInProgram.keys()).map((type) => {
+        {Array.from(roomTypesForCurrentHotel.keys()).map((type) => {
           const roomsInType = groupedRooms[type] || [];
           return (
             <div key={type} className="col-span-1 space-y-4">
@@ -298,7 +304,10 @@ export default function RoomManage() {
               ))}
               <button
                 onClick={() => {
-                  setNewRoomDetails({ name: "", type: type });
+                  setNewRoomDetails({
+                    name: `${type} ${roomsInType.length + 1}`,
+                    type: type,
+                  });
                   setIsNewRoomModalOpen(true);
                 }}
                 className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
