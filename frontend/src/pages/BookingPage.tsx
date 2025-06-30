@@ -121,13 +121,14 @@ export default function BookingPage() {
 
   // --- Data Fetching ---
 
-  // Query 1: Fetches the paginated list of bookings. This is fast.
+  // Query 1: Fetches bookings. If sorting by family, it fetches all bookings to process relationships correctly.
+  // Otherwise, it fetches a paginated list.
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
       queryKey: [
         "bookings",
         programId,
-        currentPage,
+        sortOrder === "family" ? "all" : currentPage, // Change query key for family sort
         submittedSearchTerm,
         sortOrder,
         statusFilter,
@@ -135,8 +136,8 @@ export default function BookingPage() {
       ],
       queryFn: () =>
         api.getBookingsByProgram(programId!, {
-          page: currentPage,
-          limit: bookingsPerPage,
+          page: sortOrder === "family" ? 1 : currentPage,
+          limit: sortOrder === "family" ? 9999 : bookingsPerPage, // Fetch all for family sort
           searchTerm: submittedSearchTerm,
           sortOrder,
           statusFilter,
@@ -164,20 +165,29 @@ export default function BookingPage() {
       enabled: !!programId,
     });
 
-  const currentBookings = bookingResponse?.data ?? [];
-  const pagination = bookingResponse?.pagination;
+  const allBookings = bookingResponse?.data ?? [];
+  const totalBookingCount =
+    sortOrder === "family"
+      ? allBookings.length
+      : bookingResponse?.pagination?.totalCount ?? 0;
+  const totalPages = Math.ceil(totalBookingCount / bookingsPerPage);
 
-  // Process bookings for family grouping
+  // Process bookings for family grouping and apply pagination
   const processedBookings = useMemo(() => {
-    if (sortOrder !== "family" || currentBookings.length === 0) {
-      return currentBookings.map((b) => ({ ...b, isRelated: false }));
+    const bookingsToProcess = allBookings;
+
+    if (sortOrder !== "family" || bookingsToProcess.length === 0) {
+      // For non-family sort, the API handles pagination.
+      // Just ensure the isRelated flag is set to false.
+      return bookingsToProcess.map((b) => ({ ...b, isRelated: false }));
     }
 
-    const bookingsMap = new Map(currentBookings.map((b) => [b.id, b]));
+    // For family sort, we have all bookings. We process them and then paginate on the client-side.
+    const bookingsMap = new Map(bookingsToProcess.map((b) => [b.id, b]));
     const memberIds = new Set<number>();
 
-    // First, identify all bookings that are members of a family
-    currentBookings.forEach((booking) => {
+    // First, identify all bookings that are members of a family across all data
+    bookingsToProcess.forEach((booking) => {
       if (booking.relatedPersons && booking.relatedPersons.length > 0) {
         booking.relatedPersons.forEach((person) => {
           memberIds.add(person.ID);
@@ -185,19 +195,17 @@ export default function BookingPage() {
       }
     });
 
-    // Separate leaders/individuals from members
-    const leadersAndIndividuals = currentBookings.filter(
+    // The backend sorts by phoneNumber, which groups families.
+    // This frontend logic re-orders to ensure the leader is always first, which is more robust.
+    const leadersAndIndividuals = bookingsToProcess.filter(
       (booking) => !memberIds.has(booking.id)
     );
 
-    // Now, build the final flat list in the correct order
     const finalList: (Booking & { isRelated?: boolean })[] = [];
 
     leadersAndIndividuals.forEach((leader) => {
-      // Add the leader/individual themselves
       finalList.push({ ...leader, isRelated: false });
 
-      // If it's a leader, add their members
       if (leader.relatedPersons && leader.relatedPersons.length > 0) {
         leader.relatedPersons.forEach((person) => {
           const memberBooking = bookingsMap.get(person.ID);
@@ -208,8 +216,11 @@ export default function BookingPage() {
       }
     });
 
-    return finalList;
-  }, [currentBookings, sortOrder]);
+    // Manually paginate the fully processed and sorted list
+    const start = (currentPage - 1) * bookingsPerPage;
+    const end = start + bookingsPerPage;
+    return finalList.slice(start, end);
+  }, [allBookings, sortOrder, currentPage, bookingsPerPage]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -345,7 +356,7 @@ export default function BookingPage() {
 
   const paginationRange = usePagination({
     currentPage,
-    totalCount: pagination?.totalCount ?? 0,
+    totalCount: totalBookingCount,
     pageSize: bookingsPerPage,
   });
 
@@ -599,7 +610,7 @@ export default function BookingPage() {
         onManagePayments={handleManagePayments}
       />
 
-      {pagination && pagination.totalPages > 1 && (
+      {totalBookingCount > 0 && totalPages > 1 && (
         <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
           <button
             onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
@@ -631,10 +642,8 @@ export default function BookingPage() {
             )}
           </div>
           <button
-            onClick={() =>
-              setCurrentPage((p) => Math.min(p + 1, pagination.totalPages))
-            }
-            disabled={currentPage === pagination.totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+            disabled={currentPage === totalPages}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
@@ -643,7 +652,7 @@ export default function BookingPage() {
         </div>
       )}
 
-      {currentBookings.length === 0 && !isLoadingBookings && (
+      {allBookings.length === 0 && !isLoadingBookings && (
         <div className="text-center py-12 bg-white rounded-2xl">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Calendar className="w-12 h-12 text-gray-400" />
