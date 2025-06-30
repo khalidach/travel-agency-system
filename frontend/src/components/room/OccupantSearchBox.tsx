@@ -1,5 +1,5 @@
 // frontend/src/components/room/OccupantSearchBox.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Occupant } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
@@ -10,6 +10,7 @@ interface OccupantSearchBoxProps {
   programId: string;
   hotelName: string;
   assignedOccupant: Occupant | null;
+  assignedIds: Set<number>;
   onAssign: (occupant: Occupant) => void;
   onUnassign: () => void;
   onMove: (occupant: Occupant) => void;
@@ -19,6 +20,7 @@ export default function OccupantSearchBox({
   programId,
   hotelName,
   assignedOccupant,
+  assignedIds,
   onAssign,
   onUnassign,
   onMove,
@@ -38,6 +40,11 @@ export default function OccupantSearchBox({
       api.searchUnassignedOccupants(programId, hotelName, debouncedSearchTerm),
     enabled: !!debouncedSearchTerm && showDropdown && !assignedOccupant,
   });
+
+  const finalResults = useMemo(() => {
+    // Client-side filter to prevent showing people already assigned in the current view
+    return searchResults.filter((occ) => !assignedIds.has(occ.id));
+  }, [searchResults, assignedIds]);
 
   if (assignedOccupant) {
     return (
@@ -76,9 +83,9 @@ export default function OccupantSearchBox({
         placeholder="Search to add..."
         className="w-full p-2 border border-gray-300 rounded-lg text-sm"
       />
-      {showDropdown && searchResults.length > 0 && (
+      {showDropdown && finalResults.length > 0 && (
         <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-          {searchResults.map((occ) => (
+          {finalResults.map((occ) => (
             <li
               key={occ.id}
               onClick={() => {

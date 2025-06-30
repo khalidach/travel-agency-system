@@ -55,6 +55,18 @@ export default function RoomManage() {
   });
 
   // Derived State
+  const assignedIds = useMemo(() => {
+    const ids = new Set<number>();
+    if (rooms) {
+      rooms.forEach((room) => {
+        room.occupants.forEach((occ) => {
+          if (occ) ids.add(occ.id);
+        });
+      });
+    }
+    return ids;
+  }, [rooms]);
+
   const groupedRooms = useMemo(() => {
     if (!rooms) return {};
     return rooms.reduce((acc, room) => {
@@ -71,7 +83,6 @@ export default function RoomManage() {
     const types = new Map<string, number>();
     program.packages.forEach((pkg) => {
       pkg.prices.forEach((price) => {
-        // Check if the price structure is for a combination that includes the current hotel
         if (price.hotelCombination.includes(currentHotelName)) {
           price.roomTypes.forEach((rt) => {
             if (!types.has(rt.type)) {
@@ -128,7 +139,6 @@ export default function RoomManage() {
       }
       return newRooms;
     });
-    queryClient.invalidateQueries({ queryKey: ["unassignedOccupantsSearch"] });
   };
 
   const handleUnassignOccupant = (roomName: string, slotIndex: number) => {
@@ -140,7 +150,6 @@ export default function RoomManage() {
       }
       return newRooms;
     });
-    queryClient.invalidateQueries({ queryKey: ["unassignedOccupantsSearch"] });
   };
 
   const handleMoveOccupant = (occupant: Occupant, fromRoomName: string) => {
@@ -292,6 +301,7 @@ export default function RoomManage() {
                         programId={programId!}
                         hotelName={currentHotelName}
                         assignedOccupant={room.occupants[i]}
+                        assignedIds={assignedIds}
                         onAssign={(occ) =>
                           handleAssignOccupant(room.name, i, occ)
                         }
