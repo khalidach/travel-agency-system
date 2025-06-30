@@ -77,7 +77,7 @@ exports.getBookingsByProgram = async (req, res) => {
         ? `WHERE ${whereConditions.join(" AND ")}`
         : "";
 
-    // --- Summary Stats Query (always on the whole filtered set) ---
+    // --- Summary Stats Query (on the whole filtered set) ---
     const summaryQuery = `
       SELECT
         COUNT(*) as "totalBookings",
@@ -88,126 +88,43 @@ exports.getBookingsByProgram = async (req, res) => {
       FROM bookings b
       ${whereClause}
     `;
-    const summaryResult = await req.db.query(
-      summaryQuery,
-      queryParams.slice(0, paramIndex - 1)
-    );
+    const summaryResult = await req.db.query(summaryQuery, queryParams);
     const summaryStats = summaryResult.rows[0];
     summaryStats.totalRemaining =
       summaryStats.totalRevenue - summaryStats.totalPaid;
 
-    // --- Data Fetching Logic ---
-    let bookings;
-    let totalCount;
+    // --- Paginated Data Query ---
+    const totalCount = parseInt(summaryStats.totalBookings, 10);
+    const offset = (page - 1) * limit;
 
-    if (sortOrder === "family") {
-      const allBookingsQuery = `
-            SELECT b.*, e.username as "employeeName"
-            FROM bookings b
-            LEFT JOIN employees e ON b."employeeId" = e.id
-            ${whereClause}
-        `;
-      const { rows: allBookings } = await req.db.query(
-        allBookingsQuery,
-        queryParams.slice(0, paramIndex - 1)
-      );
-
-      const bookingsById = new Map(allBookings.map((b) => [b.id, b]));
-      const memberIds = new Set();
-
-      // First pass: identify all booking IDs that are members of any family
-      allBookings.forEach((booking) => {
-        if (booking.relatedPersons && Array.isArray(booking.relatedPersons)) {
-          booking.relatedPersons.forEach((person) => {
-            if (person && typeof person.ID === "number") {
-              memberIds.add(person.ID);
-            }
-          });
-        }
-      });
-
-      // Second pass: identify true leaders and true individuals
-      const leaders = [];
-      const individuals = [];
-      allBookings.forEach((booking) => {
-        const isLeader =
-          booking.relatedPersons && booking.relatedPersons.length > 0;
-        const isMember = memberIds.has(booking.id);
-
-        if (isLeader && !isMember) {
-          leaders.push(booking);
-        } else if (!isLeader && !isMember) {
-          individuals.push(booking);
-        }
-      });
-
-      const finalSortedList = [];
-      const processedIds = new Set();
-
-      // Sort leaders by creation date for consistent ordering
-      leaders.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-
-      // Build the final list from leaders and their members
-      leaders.forEach((leader) => {
-        if (processedIds.has(leader.id)) return;
-
-        finalSortedList.push({ ...leader, isRelated: false });
-        processedIds.add(leader.id);
-
-        if (leader.relatedPersons) {
-          leader.relatedPersons.forEach((person) => {
-            const memberBooking = bookingsById.get(person.ID);
-            if (memberBooking && !processedIds.has(person.ID)) {
-              finalSortedList.push({ ...memberBooking, isRelated: true });
-              processedIds.add(person.ID);
-            }
-          });
-        }
-      });
-
-      // Add remaining individuals who were not part of any group
-      individuals.sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
-
-      individuals.forEach((booking) => {
-        finalSortedList.push({ ...booking, isRelated: false });
-      });
-
-      totalCount = finalSortedList.length;
-      const offset = (page - 1) * limit;
-      bookings = finalSortedList.slice(offset, offset + limit);
-    } else {
-      let orderByClause;
-      switch (sortOrder) {
-        case "oldest":
-          orderByClause = 'ORDER BY b."createdAt" ASC';
-          break;
-        case "newest":
-        default:
-          orderByClause = 'ORDER BY b."createdAt" DESC';
-          break;
-      }
-      totalCount = parseInt(summaryStats.totalBookings, 10);
-      const offset = (page - 1) * limit;
-
-      const dataQuery = `
-            SELECT b.*, e.username as "employeeName"
-            FROM bookings b
-            LEFT JOIN employees e ON b."employeeId" = e.id
-            ${whereClause}
-            ${orderByClause}
-            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-        `;
-      queryParams.push(limit, offset);
-
-      const { rows: bookingRows } = await req.db.query(dataQuery, queryParams);
-      bookings = bookingRows;
+    let orderByClause;
+    switch (sortOrder) {
+      case "oldest":
+        orderByClause = 'ORDER BY b."createdAt" ASC';
+        break;
+      case "family":
+        // This is complex to do purely in SQL without CTEs or complex logic,
+        // often better handled client-side if the dataset per page is small.
+        // For now, we'll sort by phone number then name to group potential families.
+        orderByClause = 'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC';
+        break;
+      case "newest":
+      default:
+        orderByClause = 'ORDER BY b."createdAt" DESC';
+        break;
     }
+
+    const dataQuery = `
+      SELECT b.*, e.username as "employeeName"
+      FROM bookings b
+      LEFT JOIN employees e ON b."employeeId" = e.id
+      ${whereClause}
+      ${orderByClause}
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    queryParams.push(limit, offset);
+
+    const { rows: bookings } = await req.db.query(dataQuery, queryParams);
 
     res.json({
       data: bookings,

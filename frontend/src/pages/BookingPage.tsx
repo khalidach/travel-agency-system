@@ -133,7 +133,7 @@ export default function BookingPage() {
           page: currentPage,
           limit: bookingsPerPage,
           searchTerm: submittedSearchTerm,
-          sortOrder: sortOrder,
+          sortOrder,
           statusFilter,
           employeeFilter,
         }),
@@ -143,6 +143,27 @@ export default function BookingPage() {
   const currentBookings = bookingResponse?.data ?? [];
   const pagination = bookingResponse?.pagination;
   const summaryStats = bookingResponse?.summaryStats;
+
+  // Process bookings for family grouping
+  const processedBookings = useMemo(() => {
+    if (sortOrder !== "family") {
+      return currentBookings.map((b) => ({ ...b, isRelated: false }));
+    }
+
+    const result: (Booking & { isRelated?: boolean })[] = [];
+    let lastPhoneNumber: string | null = null;
+
+    currentBookings.forEach((booking) => {
+      if (booking.phoneNumber && booking.phoneNumber === lastPhoneNumber) {
+        result.push({ ...booking, isRelated: true });
+      } else {
+        result.push({ ...booking, isRelated: false });
+        lastPhoneNumber = booking.phoneNumber || null;
+      }
+    });
+
+    return result;
+  }, [currentBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -505,7 +526,7 @@ export default function BookingPage() {
       />
 
       <BookingTable
-        bookings={currentBookings}
+        bookings={processedBookings}
         programs={programs}
         onEditBooking={handleEditBooking}
         onDeleteBooking={handleDeleteBooking}
