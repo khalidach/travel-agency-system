@@ -29,13 +29,19 @@ export default function ProgramForm({
           name: "",
           type: "Tourism",
           duration: 0,
-          cities: [{ name: "" }],
+          cities: [{ name: "", nights: 0 }],
           packages: [],
         },
   });
 
   // We only need these functions here
-  const { handleSubmit, watch, reset, setValue } = methods;
+  const {
+    handleSubmit,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = methods;
 
   // Watch for changes in cities to auto-calculate duration.
   // Using a subscription to watch() is the most reliable way to catch
@@ -112,8 +118,13 @@ export default function ProgramForm({
               {...methods.register("name", {
                 required: "Program name is required",
               })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className={`w-full px-3 py-2 border rounded-lg ${
+                errors.name ? "border-red-500" : "border-gray-300"
+              }`}
             />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

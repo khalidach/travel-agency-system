@@ -5,7 +5,11 @@ import { Plus, Trash2, MapPin } from "lucide-react";
 
 export default function CityManager() {
   const { t } = useTranslation();
-  const { control, register } = useFormContext();
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -26,36 +30,53 @@ export default function CityManager() {
           <Plus className="w-4 h-4 mr-1" /> Add City
         </button>
       </div>
-      <div className="space-y-2">
-        {fields.map((item, index) => (
-          <div key={item.id} className="flex items-center space-x-2">
-            <MapPin className="w-4 h-4 text-gray-400" />
-            <input
-              {...register(`cities.${index}.name`, { required: true })}
-              placeholder="Enter city name"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <input
-              type="number"
-              {...register(`cities.${index}.nights`, {
-                valueAsNumber: true,
-                min: 0,
-              })}
-              placeholder="Nights"
-              className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
-              min="0"
-            />
-            {fields.length > 1 && (
-              <button
-                type="button"
-                onClick={() => remove(index)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        ))}
+      <div className="space-y-3">
+        {fields.map((item, index) => {
+          // Safely access the error for the specific city name field
+          const nameError =
+            Array.isArray(errors.cities) && errors.cities[index]?.name;
+
+          return (
+            <div key={item.id}>
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-4 h-4 text-gray-400" />
+                <input
+                  {...register(`cities.${index}.name`, {
+                    required: "City name is required",
+                  })}
+                  placeholder="Enter city name"
+                  className={`flex-1 px-3 py-2 border rounded-lg ${
+                    nameError ? "border-red-500" : "border-gray-300"
+                  }`}
+                />
+                <input
+                  type="number"
+                  {...register(`cities.${index}.nights`, {
+                    valueAsNumber: true,
+                    min: 0,
+                  })}
+                  placeholder="Nights"
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
+                  min="0"
+                />
+                {fields.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {nameError && (
+                <p className="text-red-500 text-xs mt-1 ml-6">
+                  {nameError.message}
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
