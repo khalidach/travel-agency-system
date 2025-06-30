@@ -130,13 +130,21 @@ export const getBookingsByProgram = (
     sortOrder: string;
     statusFilter: string;
     employeeFilter: string;
+    noPaginate?: boolean;
   }
 ) => {
-  const queryParams = new URLSearchParams({
-    ...params,
+  const queryParamsObject: Record<string, string> = {
     page: params.page.toString(),
     limit: params.limit.toString(),
-  }).toString();
+    searchTerm: params.searchTerm,
+    sortOrder: params.sortOrder,
+    statusFilter: params.statusFilter,
+    employeeFilter: params.employeeFilter,
+  };
+  if (params.noPaginate) {
+    queryParamsObject.noPaginate = "true";
+  }
+  const queryParams = new URLSearchParams(queryParamsObject).toString();
   return request(`/bookings/program/${programId}?${queryParams}`);
 };
 
@@ -267,4 +275,25 @@ export const importBookings = (file: File, programId: string) => {
     }
     return res.json();
   });
+};
+
+// --- Room Management API ---
+export const getRooms = (programId: string, hotelName: string) =>
+  request(`/room-management/program/${programId}/hotel/${hotelName}`);
+
+export const saveRooms = (programId: string, hotelName: string, rooms: any) =>
+  request(`/room-management/program/${programId}/hotel/${hotelName}`, {
+    method: "POST",
+    body: JSON.stringify({ rooms }),
+  });
+
+export const searchUnassignedOccupants = (
+  programId: string,
+  hotelName: string,
+  searchTerm: string
+) => {
+  const params = new URLSearchParams({ searchTerm });
+  return request(
+    `/room-management/program/${programId}/hotel/${hotelName}/search-unassigned?${params.toString()}`
+  );
 };

@@ -25,6 +25,8 @@ const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const OwnerPage = lazy(() => import("./pages/Owner"));
+const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
+const RoomManage = lazy(() => import("./pages/RoomManage"));
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
@@ -72,10 +74,20 @@ function AppRoutes() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
                     {(userRole === "admin" || userRole === "manager") && (
-                      <Route
-                        path="/program-pricing"
-                        element={<ProgramPricing />}
-                      />
+                      <>
+                        <Route
+                          path="/program-pricing"
+                          element={<ProgramPricing />}
+                        />
+                        <Route
+                          path="/room-management"
+                          element={<RoomManagementPage />}
+                        />
+                        <Route
+                          path="/room-management/program/:programId"
+                          element={<RoomManage />}
+                        />
+                      </>
                     )}
                     <Route path="/booking" element={<Booking />} />
                     <Route

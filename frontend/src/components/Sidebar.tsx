@@ -10,6 +10,7 @@ import {
   ShipWheel,
   Users,
   Crown,
+  BedDouble,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -42,6 +43,12 @@ const allMenuItems = [
     path: "/booking",
     icon: Calendar,
     roles: ["admin", "manager", "employee"],
+  },
+  {
+    key: "roomManagement",
+    path: "/room-management",
+    icon: BedDouble,
+    roles: ["admin", "manager"],
   },
   {
     key: "profitReport",

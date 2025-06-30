@@ -144,3 +144,15 @@ export interface PaginatedResponse<T> {
   data: T[];
   pagination: Pagination;
 }
+
+export interface Occupant {
+  id: number; // booking id
+  clientName: string;
+}
+
+export interface Room {
+  name: string;
+  type: string;
+  capacity: number;
+  occupants: Occupant[];
+}
