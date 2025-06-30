@@ -14,8 +14,9 @@ const programRoutes = require("./routes/programRoutes");
 const programPricingRoutes = require("./routes/programPricingRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
-const ownerRoutes = require("./routes/ownerRoutes"); // New
-const dashboardRoutes = require("./routes/dashboardRoutes"); // <<< NEW
+const ownerRoutes = require("./routes/ownerRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const roomManagementRoutes = require("./routes/roomManagementRoutes"); // New
 
 const app = express();
 const corsOptions = {
@@ -33,7 +34,27 @@ const pool = new Pool({
 
 pool
   .connect()
-  .then(() => console.log("Connected to PostgreSQL"))
+  .then(() => {
+    console.log("Connected to PostgreSQL");
+    // Create room_managements table if it doesn't exist
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS room_managements (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL,
+        "programId" INTEGER NOT NULL,
+        "hotelName" VARCHAR(255) NOT NULL,
+        rooms JSONB,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE("userId", "programId", "hotelName")
+      );
+    `;
+    pool
+      .query(createTableQuery)
+      .catch((err) =>
+        console.error("Error creating room_managements table", err)
+      );
+  })
   .catch((err) => console.error("PostgreSQL connection error:", err));
 
 // Make the database pool available to all routes
@@ -44,13 +65,13 @@ app.use((req, res, next) => {
 
 // API routes
 app.use("/api/auth", authRoutes);
-app.use("/api/owner", ownerRoutes); // New
-// Apply protect middleware to all data routes
-app.use("/api/dashboard", protect, dashboardRoutes); // <<< NEW
+app.use("/api/owner", ownerRoutes);
+app.use("/api/dashboard", protect, dashboardRoutes);
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
 app.use("/api/bookings", protect, bookingRoutes);
 app.use("/api/employees", protect, employeeRoutes);
+app.use("/api/room-management", protect, roomManagementRoutes); // New
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

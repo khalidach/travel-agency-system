@@ -70,12 +70,10 @@ const bookingValidation = [
   body("clientNameFr")
     .notEmpty()
     .trim()
-    .escape()
     .withMessage("Client name (French) is required."),
   body("clientNameAr")
     .notEmpty()
     .trim()
-    .escape()
     .withMessage("Client name (Arabic) is required."),
   body("personType")
     .isIn(["adult", "child", "infant"])
