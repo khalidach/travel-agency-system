@@ -146,23 +146,67 @@ export default function BookingPage() {
 
   // Process bookings for family grouping
   const processedBookings = useMemo(() => {
-    if (sortOrder !== "family") {
-      return currentBookings.map((b) => ({ ...b, isRelated: false }));
+    if (
+      sortOrder !== "family" ||
+      !currentBookings ||
+      currentBookings.length === 0
+    ) {
+      return (currentBookings || []).map((b) => ({ ...b, isRelated: false }));
     }
 
-    const result: (Booking & { isRelated?: boolean })[] = [];
-    let lastPhoneNumber: string | null = null;
+    const finalBookings: (Booking & { isRelated?: boolean })[] = [];
+    const groupedByPhone = new Map<string, Booking[]>();
 
+    // Step 1: Group all bookings by phone number.
     currentBookings.forEach((booking) => {
-      if (booking.phoneNumber && booking.phoneNumber === lastPhoneNumber) {
-        result.push({ ...booking, isRelated: true });
-      } else {
-        result.push({ ...booking, isRelated: false });
-        lastPhoneNumber = booking.phoneNumber || null;
+      const phoneKey = booking.phoneNumber || `no-phone-${booking.id}`;
+      if (!groupedByPhone.has(phoneKey)) {
+        groupedByPhone.set(phoneKey, []);
       }
+      groupedByPhone.get(phoneKey)!.push(booking);
     });
 
-    return result;
+    // Step 2: Process each phone number group to identify true families.
+    groupedByPhone.forEach((group) => {
+      const membersById = new Map<number, Booking>(group.map((b) => [b.id, b]));
+      const processedInGroup = new Set<number>();
+
+      // Find leaders within the phone group and build their families.
+      group.forEach((booking) => {
+        if (processedInGroup.has(booking.id)) return;
+
+        const isLeader =
+          booking.relatedPersons && booking.relatedPersons.length > 0;
+        if (isLeader) {
+          // Add the leader first.
+          finalBookings.push({ ...booking, isRelated: false });
+          processedInGroup.add(booking.id);
+
+          // Add their related members who are in the same phone group.
+          booking.relatedPersons!.forEach((related) => {
+            if (
+              membersById.has(related.ID) &&
+              !processedInGroup.has(related.ID)
+            ) {
+              finalBookings.push({
+                ...membersById.get(related.ID)!,
+                isRelated: true,
+              });
+              processedInGroup.add(related.ID);
+            }
+          });
+        }
+      });
+
+      // Add any remaining individuals from the phone group who were not part of a family.
+      group.forEach((booking) => {
+        if (!processedInGroup.has(booking.id)) {
+          finalBookings.push({ ...booking, isRelated: false });
+        }
+      });
+    });
+
+    return finalBookings;
   }, [currentBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
