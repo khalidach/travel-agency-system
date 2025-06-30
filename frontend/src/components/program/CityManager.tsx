@@ -20,7 +20,7 @@ export default function CityManager() {
         </label>
         <button
           type="button"
-          onClick={() => append({ name: "", nights: 1 })}
+          onClick={() => append({ name: "", nights: 0 })}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-1" /> Add City
@@ -39,12 +39,11 @@ export default function CityManager() {
               type="number"
               {...register(`cities.${index}.nights`, {
                 valueAsNumber: true,
-                min: 1,
+                min: 0,
               })}
               placeholder="Nights"
               className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
-              min="1"
-              required
+              min="0"
             />
             {fields.length > 1 && (
               <button

@@ -92,6 +92,10 @@ export default function BookingForm({
   const { selectedHotel, sellingPrice, basePrice, personType, tripId } =
     watchedValues;
 
+  const hasPackages =
+    formState.selectedProgram?.packages &&
+    formState.selectedProgram.packages.length > 0;
+
   // Debounce the search term
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -289,10 +293,18 @@ export default function BookingForm({
       (c) => c.nights > 0
     );
 
-    if (!formState.selectedProgram || !formState.selectedPackage) {
+    if (!formState.selectedProgram) {
       setFormState((prev) => ({
         ...prev,
-        error: "A valid program and package must be selected.",
+        error: "A valid program must be selected.",
+      }));
+      return;
+    }
+
+    if (hasPackages && !formState.selectedPackage) {
+      setFormState((prev) => ({
+        ...prev,
+        error: "A package must be selected for this program.",
       }));
       return;
     }
@@ -565,39 +577,41 @@ export default function BookingForm({
             <p className="text-red-500 text-sm mt-1">{errors.tripId.message}</p>
           )}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Package")}
-          </label>
-          <Controller
-            name="packageId"
-            control={control}
-            rules={{ required: "Package is required" }}
-            render={({ field }) => (
-              <select
-                {...field}
-                onChange={(e) => {
-                  field.onChange(e);
-                  handlePackageChange(e.target.value);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                disabled={!formState.selectedProgram}
-              >
-                <option value="">{t("Select a package")}</option>
-                {(formState.selectedProgram?.packages || []).map((pkg) => (
-                  <option key={pkg.name} value={pkg.name}>
-                    {pkg.name}
-                  </option>
-                ))}
-              </select>
+        {hasPackages && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              {t("Package")}
+            </label>
+            <Controller
+              name="packageId"
+              control={control}
+              rules={{ required: hasPackages ? "Package is required" : false }}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handlePackageChange(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  disabled={!formState.selectedProgram}
+                >
+                  <option value="">{t("Select a package")}</option>
+                  {(formState.selectedProgram?.packages || []).map((pkg) => (
+                    <option key={pkg.name} value={pkg.name}>
+                      {pkg.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+            {errors.packageId && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.packageId.message}
+              </p>
             )}
-          />
-          {errors.packageId && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.packageId.message}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <div>

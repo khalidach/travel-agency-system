@@ -230,142 +230,160 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 exports.generateBookingTemplateForProgramExcel = async (program) => {
   const workbook = new excel.Workbook();
   const templateSheet = workbook.addWorksheet("Booking Template");
-  const validationSheet = workbook.addWorksheet("Lists");
-  validationSheet.state = "hidden";
+  const hasPackages = program.packages && program.packages.length > 0;
 
-  const packageNames = (program.packages || []).map((p) => p.name);
-  validationSheet.getColumn("A").values = ["Packages", ...packageNames];
-  if (packageNames.length > 0) {
-    workbook.definedNames.add(
-      "Lists!$A$2:$A$" + (packageNames.length + 1),
-      "Packages"
-    );
-  }
-
-  let listColumnIndex = 1;
-  const hotelRoomTypesMap = new Map();
-
-  (program.packages || []).forEach((pkg) => {
-    const packageNameSanitized = sanitizeName(pkg.name);
-    (program.cities || []).forEach((city) => {
-      const hotels = pkg.hotels[city.name] || [];
-      if (hotels.length > 0) {
-        listColumnIndex++;
-        const col = validationSheet.getColumn(listColumnIndex);
-        const rangeName = `${packageNameSanitized}_${sanitizeName(
-          city.name
-        )}_Hotels`;
-        col.values = [rangeName, ...hotels];
-        try {
-          workbook.definedNames.add(
-            `Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`,
-            rangeName
-          );
-        } catch (e) {
-          console.warn(`Could not create named range for Hotel: ${rangeName}.`);
-        }
-      }
-    });
-
-    (pkg.prices || []).forEach((price) => {
-      const roomTypesForCombo = (price.roomTypes || []).map((rt) => rt.type);
-      if (roomTypesForCombo.length > 0) {
-        const individualHotels = price.hotelCombination.split("_");
-        individualHotels.forEach((hotelName) => {
-          if (!hotelRoomTypesMap.has(hotelName)) {
-            hotelRoomTypesMap.set(hotelName, new Set());
-          }
-          roomTypesForCombo.forEach((rt) =>
-            hotelRoomTypesMap.get(hotelName).add(rt)
-          );
-        });
-      }
-    });
-  });
-
-  for (const [hotelName, roomTypesSet] of hotelRoomTypesMap.entries()) {
-    const roomTypes = Array.from(roomTypesSet);
-    if (roomTypes.length > 0) {
-      listColumnIndex++;
-      const col = validationSheet.getColumn(listColumnIndex);
-      const rangeName = `${sanitizeName(hotelName)}_Rooms`;
-      col.values = [rangeName, ...roomTypes];
-      try {
-        workbook.definedNames.add(
-          `Lists!$${col.letter}$2:$${col.letter}$${roomTypes.length + 1}`,
-          rangeName
-        );
-      } catch (e) {
-        console.warn(
-          `Could not create named range for RoomType: ${rangeName}.`
-        );
-      }
-    }
-  }
-
-  const headers = [
+  let headers = [
     { header: "Client Name (French)", key: "clientNameFr", width: 25 },
     { header: "Client Name (Arabic)", key: "clientNameAr", width: 25 },
     { header: "Passport Number", key: "passportNumber", width: 20 },
     { header: "Phone Number", key: "phoneNumber", width: 20 },
-    { header: "Package", key: "package", width: 20 },
   ];
 
-  const hotelHeaders = (program.cities || []).map((city) => ({
-    header: `${city.name} Hotel`,
-    key: `hotel_${sanitizeName(city.name)}`,
-    width: 25,
-  }));
-  const roomTypeHeaders = (program.cities || []).map((city) => ({
-    header: `${city.name} Room Type`,
-    key: `roomType_${sanitizeName(city.name)}`,
-    width: 20,
-  }));
+  if (hasPackages) {
+    headers.push({ header: "Package", key: "package", width: 20 });
 
-  templateSheet.columns = [
-    ...headers,
-    ...hotelHeaders,
-    ...roomTypeHeaders,
-    { header: "Selling Price", key: "sellingPrice", width: 15 },
-  ];
+    const hotelHeaders = (program.cities || []).map((city) => ({
+      header: `${city.name} Hotel`,
+      key: `hotel_${sanitizeName(city.name)}`,
+      width: 25,
+    }));
+    const roomTypeHeaders = (program.cities || []).map((city) => ({
+      header: `${city.name} Room Type`,
+      key: `roomType_${sanitizeName(city.name)}`,
+      width: 20,
+    }));
+
+    headers.push(...hotelHeaders, ...roomTypeHeaders);
+  }
+
+  headers.push({ header: "Selling Price", key: "sellingPrice", width: 15 });
+
+  templateSheet.columns = headers;
 
   const headerRow = templateSheet.getRow(1);
   headerRow.font = { bold: true };
 
-  for (let i = 2; i <= 101; i++) {
-    templateSheet.getCell(`E${i}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: ["=Packages"],
-    };
+  if (hasPackages) {
+    const validationSheet = workbook.addWorksheet("Lists");
+    validationSheet.state = "hidden";
 
-    hotelHeaders.forEach((h) => {
-      const cityNameSanitized = sanitizeName(h.header.replace(" Hotel", ""));
-      const columnLetter = templateSheet.getColumn(h.key).letter;
-      if (columnLetter) {
-        const hotelFormula = `=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
-        templateSheet.getCell(`${columnLetter}${i}`).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [hotelFormula],
-        };
-      }
+    const packageNames = (program.packages || []).map((p) => p.name);
+    validationSheet.getColumn("A").values = ["Packages", ...packageNames];
+    if (packageNames.length > 0) {
+      workbook.definedNames.add(
+        "Lists!$A$2:$A$" + (packageNames.length + 1),
+        "Packages"
+      );
+    }
+
+    let listColumnIndex = 1;
+    const hotelRoomTypesMap = new Map();
+
+    (program.packages || []).forEach((pkg) => {
+      const packageNameSanitized = sanitizeName(pkg.name);
+      (program.cities || []).forEach((city) => {
+        const hotels = pkg.hotels[city.name] || [];
+        if (hotels.length > 0) {
+          listColumnIndex++;
+          const col = validationSheet.getColumn(listColumnIndex);
+          const rangeName = `${packageNameSanitized}_${sanitizeName(
+            city.name
+          )}_Hotels`;
+          col.values = [rangeName, ...hotels];
+          try {
+            workbook.definedNames.add(
+              `Lists!$${col.letter}$2:$${col.letter}$${hotels.length + 1}`,
+              rangeName
+            );
+          } catch (e) {
+            console.warn(
+              `Could not create named range for Hotel: ${rangeName}.`
+            );
+          }
+        }
+      });
+
+      (pkg.prices || []).forEach((price) => {
+        const roomTypesForCombo = (price.roomTypes || []).map((rt) => rt.type);
+        if (roomTypesForCombo.length > 0) {
+          const individualHotels = price.hotelCombination.split("_");
+          individualHotels.forEach((hotelName) => {
+            if (!hotelRoomTypesMap.has(hotelName)) {
+              hotelRoomTypesMap.set(hotelName, new Set());
+            }
+            roomTypesForCombo.forEach((rt) =>
+              hotelRoomTypesMap.get(hotelName).add(rt)
+            );
+          });
+        }
+      });
     });
 
-    roomTypeHeaders.forEach((h, index) => {
-      const hotelColumnKey = hotelHeaders[index].key;
-      const hotelColumn = templateSheet.getColumn(hotelColumnKey);
-      if (hotelColumn) {
-        const hotelColumnLetter = hotelColumn.letter;
-        const roomTypeColumnLetter = templateSheet.getColumn(h.key).letter;
-        const roomFormula = `=INDIRECT(SUBSTITUTE(${hotelColumnLetter}${i}," ","_")&"_Rooms")`;
-        templateSheet.getCell(`${roomTypeColumnLetter}${i}`).dataValidation = {
-          type: "list",
-          allowBlank: true,
-          formulae: [roomFormula],
-        };
+    for (const [hotelName, roomTypesSet] of hotelRoomTypesMap.entries()) {
+      const roomTypes = Array.from(roomTypesSet);
+      if (roomTypes.length > 0) {
+        listColumnIndex++;
+        const col = validationSheet.getColumn(listColumnIndex);
+        const rangeName = `${sanitizeName(hotelName)}_Rooms`;
+        col.values = [rangeName, ...roomTypes];
+        try {
+          workbook.definedNames.add(
+            `Lists!$${col.letter}$2:$${col.letter}$${roomTypes.length + 1}`,
+            rangeName
+          );
+        } catch (e) {
+          console.warn(
+            `Could not create named range for RoomType: ${rangeName}.`
+          );
+        }
       }
-    });
+    }
+
+    const hotelHeaders = (program.cities || []).map((city) => ({
+      header: `${city.name} Hotel`,
+      key: `hotel_${sanitizeName(city.name)}`,
+    }));
+    const roomTypeHeaders = (program.cities || []).map((city) => ({
+      header: `${city.name} Room Type`,
+      key: `roomType_${sanitizeName(city.name)}`,
+    }));
+
+    for (let i = 2; i <= 101; i++) {
+      templateSheet.getCell(`E${i}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ["=Packages"],
+      };
+
+      hotelHeaders.forEach((h) => {
+        const cityNameSanitized = sanitizeName(h.header.replace(" Hotel", ""));
+        const columnLetter = templateSheet.getColumn(h.key).letter;
+        if (columnLetter) {
+          const hotelFormula = `=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
+          templateSheet.getCell(`${columnLetter}${i}`).dataValidation = {
+            type: "list",
+            allowBlank: true,
+            formulae: [hotelFormula],
+          };
+        }
+      });
+
+      roomTypeHeaders.forEach((h, index) => {
+        const hotelColumnKey = hotelHeaders[index].key;
+        const hotelColumn = templateSheet.getColumn(hotelColumnKey);
+        if (hotelColumn) {
+          const hotelColumnLetter = hotelColumn.letter;
+          const roomTypeColumnLetter = templateSheet.getColumn(h.key).letter;
+          const roomFormula = `=INDIRECT(SUBSTITUTE(${hotelColumnLetter}${i}," ","_")&"_Rooms")`;
+          templateSheet.getCell(`${roomTypeColumnLetter}${i}`).dataValidation =
+            {
+              type: "list",
+              allowBlank: true,
+              formulae: [roomFormula],
+            };
+        }
+      });
+    }
   }
 
   return workbook;

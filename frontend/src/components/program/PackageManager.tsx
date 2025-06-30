@@ -170,17 +170,17 @@ export default function PackageManager() {
         </button>
       </div>
       <div className="space-y-6">
-        {packageFields.map((pkg, packageIndex) => (
-          <div
-            key={pkg.id}
-            className="border border-gray-200 rounded-xl p-6 bg-gray-50"
-          >
-            {/* Package Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-semibold text-gray-900">
-                Package {packageIndex + 1}
-              </h4>
-              {packageFields.length > 1 && (
+        {packageFields.length > 0 ? (
+          packageFields.map((pkg, packageIndex) => (
+            <div
+              key={pkg.id}
+              className="border border-gray-200 rounded-xl p-6 bg-gray-50"
+            >
+              {/* Package Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-gray-900">
+                  Package {packageIndex + 1}
+                </h4>
                 <button
                   type="button"
                   onClick={() => removePackage(packageIndex)}
@@ -188,31 +188,41 @@ export default function PackageManager() {
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              )}
-            </div>
-            {/* Package Name */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Package Name
-              </label>
-              <input
-                {...register(`packages.${packageIndex}.name`)}
-                placeholder="e.g., Standard, Premium"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                required
+              </div>
+              {/* Package Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Package Name
+                </label>
+                <input
+                  {...register(`packages.${packageIndex}.name`)}
+                  placeholder="e.g., Standard, Premium"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+
+              {/* Hotels */}
+              <PackageHotels packageIndex={packageIndex} />
+
+              {/* Pricing Structures */}
+              <PriceStructureManager
+                packageIndex={packageIndex}
+                generateAllHotelOptions={generateAllHotelOptions}
               />
             </div>
-
-            {/* Hotels */}
-            <PackageHotels packageIndex={packageIndex} />
-
-            {/* Pricing Structures */}
-            <PriceStructureManager
-              packageIndex={packageIndex}
-              generateAllHotelOptions={generateAllHotelOptions}
-            />
+          ))
+        ) : (
+          <div className="text-center py-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-300">
+            <p className="text-sm text-gray-500">
+              No packages have been added.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Click "Add Package" to get started, or leave empty for programs
+              without packages.
+            </p>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

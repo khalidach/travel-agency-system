@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-import type { Program, CityData } from "../context/models";
+import type { Program, CityData, Package } from "../context/models";
 
 // Import the refactored child components
 import CityManager from "./program/CityManager";
@@ -27,10 +27,10 @@ export default function ProgramForm({
       ? program
       : {
           name: "",
-          type: "Umrah",
-          duration: 1,
-          cities: [{ name: "", nights: 1 }],
-          packages: [{ name: "Standard", hotels: {}, prices: [] }],
+          type: "Tourism",
+          duration: 0,
+          cities: [{ name: "" }],
+          packages: [],
         },
   });
 
@@ -66,7 +66,36 @@ export default function ProgramForm({
   }, [program, reset]);
 
   const onSubmit = (data: Program) => {
-    onSave(data);
+    // Deep copy to avoid mutating the form state directly
+    const cleanedData = JSON.parse(JSON.stringify(data));
+
+    // Get a set of the final, valid city names from the 'cities' array
+    const validCityNames = new Set(
+      data.cities.map((c) => c.name).filter(Boolean)
+    );
+
+    // Iterate over each package and clean its 'hotels' object
+    cleanedData.packages = cleanedData.packages.map((pkg: Package) => {
+      const newHotels: { [key: string]: string[] } = {};
+
+      // Only copy hotel arrays whose key is a valid, final city name
+      for (const cityName in pkg.hotels) {
+        if (validCityNames.has(cityName)) {
+          newHotels[cityName] = pkg.hotels[cityName];
+        }
+      }
+
+      // Also ensure that every valid city has an entry, even if it's empty
+      validCityNames.forEach((cityName) => {
+        if (!newHotels[cityName]) {
+          newHotels[cityName] = [];
+        }
+      });
+
+      return { ...pkg, hotels: newHotels };
+    });
+
+    onSave(cleanedData);
   };
 
   return (

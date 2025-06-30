@@ -109,6 +109,18 @@ const createBooking = async (db, user, bookingData) => {
       throw new Error("This person is already booked for this program.");
     }
 
+    const programRes = await client.query(
+      'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
+      [tripId, adminId]
+    );
+    if (programRes.rows.length === 0) {
+      throw new Error("Program not found.");
+    }
+    const program = programRes.rows[0];
+    if (program.packages && program.packages.length > 0 && !packageId) {
+      throw new Error("A package must be selected for this program.");
+    }
+
     const basePrice = await calculateBasePrice(
       client, // Use client for transaction
       adminId,
@@ -204,6 +216,18 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     throw new Error(
       "Another booking with this passport number already exists for this program."
     );
+  }
+
+  const programRes = await db.query(
+    'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
+    [tripId, user.adminId]
+  );
+  if (programRes.rows.length === 0) {
+    throw new Error("Program not found.");
+  }
+  const program = programRes.rows[0];
+  if (program.packages && program.packages.length > 0 && !packageId) {
+    throw new Error("A package must be selected for this program.");
   }
 
   // Proceed with update logic
