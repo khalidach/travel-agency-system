@@ -20,11 +20,7 @@ const loginValidation = [
 ];
 
 const programValidation = [
-  body("name")
-    .notEmpty()
-    .trim()
-    .escape()
-    .withMessage("Program name is required."),
+  body("name").notEmpty().trim().withMessage("Program name is required."),
   body("type")
     .isIn(["Hajj", "Umrah", "Tourism"])
     .withMessage("Invalid program type."),
@@ -34,11 +30,7 @@ const programValidation = [
   body("cities")
     .isArray({ min: 1 })
     .withMessage("At least one city is required."),
-  body("cities.*.name")
-    .notEmpty()
-    .trim()
-    .escape()
-    .withMessage("City name is required."),
+  body("cities.*.name").notEmpty().trim().withMessage("City name is required."),
   body("cities.*.nights")
     .isInt({ gte: 0 })
     .withMessage("Nights must be a non-negative integer."),
@@ -88,7 +80,7 @@ const bookingValidation = [
     .trim()
     .escape(),
   body("tripId").notEmpty().withMessage("A travel program must be selected."),
-  body("packageId").optional({ checkFalsy: true }).trim().escape(),
+  body("packageId").optional({ checkFalsy: true }).trim(),
   body("sellingPrice")
     .isFloat({ gte: 0 })
     .withMessage("Selling price must be a positive number."),

@@ -82,7 +82,6 @@ exports.generateRoomingListExcel = async (program, roomData) => {
           fgColor: { argb: "FFD3D3D3" },
         }; // Light Gray
         cell.alignment = { vertical: "middle", horizontal: "center" };
-        cell.width = cell.value === "الغرفة" ? 20 : 30;
       });
 
       let currentRow = 4;
@@ -128,6 +127,18 @@ exports.generateRoomingListExcel = async (program, roomData) => {
           };
         }
       });
+    });
+
+    // Auto-fit columns based on content
+    worksheet.columns.forEach((column) => {
+      let maxColumnLength = 0;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const cellLength = cell.value ? cell.value.toString().length : 0;
+        if (cellLength > maxColumnLength) {
+          maxColumnLength = cellLength;
+        }
+      });
+      column.width = maxColumnLength < 10 ? 10 : maxColumnLength + 2;
     });
   }
 
