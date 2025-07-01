@@ -71,24 +71,50 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     };
   });
 
-  let lastPhoneNumber = null;
-  let mergeStartRow = 2;
+  // Correctly re-order bookings to group families together.
+  const bookingMap = new Map(bookings.map((b) => [b.id, b]));
+  const memberIds = new Set();
+  bookings.forEach((booking) => {
+    if (booking.relatedPersons) {
+      booking.relatedPersons.forEach((p) => memberIds.add(p.ID));
+    }
+  });
 
-  bookings.forEach((booking, index) => {
+  const orderedBookings = [];
+  const processedIds = new Set();
+
+  for (const booking of bookings) {
+    if (processedIds.has(booking.id) || memberIds.has(booking.id)) {
+      continue;
+    }
+
+    orderedBookings.push(booking);
+    processedIds.add(booking.id);
+
+    if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+      for (const related of booking.relatedPersons) {
+        const memberBooking = bookingMap.get(related.ID);
+        if (memberBooking && !processedIds.has(memberBooking.id)) {
+          orderedBookings.push(memberBooking);
+          processedIds.add(memberBooking.id);
+        }
+      }
+    }
+  }
+
+  // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
+  for (const booking of bookings) {
+    if (!processedIds.has(booking.id)) {
+      orderedBookings.push(booking);
+    }
+  }
+
+  // Add rows from the correctly ordered list
+  orderedBookings.forEach((booking, index) => {
     const totalPaid = (booking.advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
       0
     );
-    const currentRowNum = index + 2;
-
-    if (lastPhoneNumber !== null && booking.phoneNumber !== lastPhoneNumber) {
-      if (currentRowNum - 1 > mergeStartRow) {
-        worksheet.mergeCells(`E${mergeStartRow}:E${currentRowNum - 1}`);
-        const cell = worksheet.getCell(`E${mergeStartRow}`);
-        cell.alignment = { ...cell.alignment, vertical: "middle" };
-      }
-      mergeStartRow = currentRowNum;
-    }
 
     const rowData = {
       id: index + 1,
@@ -104,7 +130,6 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       remaining: Number(booking.remainingBalance),
     };
 
-    // Only add cost and profit for admins
     if (userRole === "admin") {
       rowData.basePrice = Number(booking.basePrice);
       rowData.profit = Number(booking.profit);
@@ -133,20 +158,47 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         cell.numFmt = '#,##0.00 "MAD"';
       }
     });
-
-    lastPhoneNumber = booking.phoneNumber;
   });
 
-  if (bookings.length > 0 && bookings.length + 1 > mergeStartRow) {
-    worksheet.mergeCells(`E${mergeStartRow}:E${bookings.length + 1}`);
-    const cell = worksheet.getCell(`E${mergeStartRow}`);
-    cell.alignment = { ...cell.alignment, vertical: "middle" };
+  // Perform merges based on family groups
+  let i = 0;
+  while (i < orderedBookings.length) {
+    const leaderBooking = orderedBookings[i];
+    const familySize = leaderBooking.relatedPersons?.length || 0;
+    const isFamily = familySize > 0;
+
+    if (isFamily) {
+      const startRow = i + 2; // +2 for 1-based index and header row
+      const endRow = startRow + familySize;
+      const phoneColumn = worksheet.getColumn("phoneNumber");
+      const phoneColumnLetter = phoneColumn.letter;
+
+      // Use the leader's phone number for the entire family.
+      const leaderPhoneNumber = leaderBooking.phoneNumber || "";
+
+      // Set the phone number for all members to be the leader's.
+      // This includes the leader's row itself and all member rows.
+      for (let j = startRow; j <= endRow; j++) {
+        const cell = worksheet.getCell(`${phoneColumnLetter}${j}`);
+        cell.value = leaderPhoneNumber;
+      }
+
+      // Merge the cells for a cleaner look
+      worksheet.mergeCells(
+        `${phoneColumnLetter}${startRow}:${phoneColumnLetter}${endRow}`
+      );
+      const cellToAlign = worksheet.getCell(`${phoneColumnLetter}${startRow}`);
+      cellToAlign.alignment = { vertical: "middle", horizontal: "center" };
+
+      i += familySize + 1; // Skip past the processed family members
+    } else {
+      i++; // Not a family leader, move to the next person
+    }
   }
 
+  // Add totals row
   worksheet.addRow([]);
-
-  const lastDataRowNumber = bookings.length + 1;
-
+  const lastDataRowNumber = orderedBookings.length + 1;
   const totalsRow = worksheet.addRow({});
   const totalRowNumber = totalsRow.number;
 
@@ -155,20 +207,16 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     totalColumnsKeys.push("basePrice", "profit");
   }
 
-  // Find the column letter of the first column that gets a total
   const firstTotalCol = worksheet.columns.find((c) =>
     totalColumnsKeys.includes(c.key)
   );
   if (firstTotalCol) {
     const firstTotalColLetter = firstTotalCol.letter;
-
-    // Merge cells up to the one before the first total column
     worksheet.mergeCells(
       `A${totalRowNumber}:${String.fromCharCode(
         firstTotalColLetter.charCodeAt(0) - 1
       )}${totalRowNumber}`
     );
-
     const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
     totalLabelCell.value = "Total";
     totalLabelCell.font = { bold: true, size: 14 };
@@ -196,6 +244,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
   totalsRow.height = 30;
 
+  // Auto-fit columns
   const MIN_WIDTH = 18;
   const PADDING = 5;
 
