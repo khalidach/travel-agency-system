@@ -4,7 +4,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../services/api";
 import { Program, Room, Occupant } from "../context/models";
-import { ChevronLeft, Hotel, Plus, Save, Users, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Hotel,
+  Plus,
+  Save,
+  Users,
+  Trash2,
+  Download,
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import Modal from "../components/Modal";
 import OccupantSearchBox from "../components/room/OccupantSearchBox";
@@ -27,6 +35,7 @@ export default function RoomManage() {
   const [isNewRoomModalOpen, setIsNewRoomModalOpen] = useState(false);
   const [newRoomDetails, setNewRoomDetails] = useState({ name: "", type: "" });
   const [movePersonState, setMovePersonState] = useState<MovePersonState>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const currentHotelName = hotels[currentHotelIndex];
 
@@ -222,6 +231,30 @@ export default function RoomManage() {
     setRooms(rooms.filter((r) => r.name !== roomName));
   };
 
+  const handleExport = async () => {
+    if (!programId) return;
+    setIsExporting(true);
+    toast.loading("Exporting rooming list...");
+    try {
+      const blob = await api.exportRoomAssignmentsToExcel(programId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${program?.name}_Rooming_List.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success("Export successful!");
+    } catch (error) {
+      toast.dismiss();
+      toast.error((error as Error).message || "Failed to export.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoadingProgram || isLoadingRooms) return <div>Loading...</div>;
 
   return (
@@ -241,20 +274,30 @@ export default function RoomManage() {
             </h1>
           </div>
         </div>
-        <button
-          onClick={() =>
-            saveRooms(
-              rooms.map((r) => ({
-                ...r,
-                occupants: r.occupants.filter((o) => o),
-              }))
-            )
-          }
-          disabled={isSaving || !hasChanges}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <Download className="mr-2" />{" "}
+            {isExporting ? "Exporting..." : "Export to Excel"}
+          </button>
+          <button
+            onClick={() =>
+              saveRooms(
+                rooms.map((r) => ({
+                  ...r,
+                  occupants: r.occupants.filter((o) => o),
+                }))
+              )
+            }
+            disabled={isSaving || !hasChanges}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
 
       {/* Hotel Selector */}
@@ -276,7 +319,7 @@ export default function RoomManage() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {Array.from(roomTypesForCurrentHotel.keys()).map((type) => {
           const roomsInType = groupedRooms[type] || [];
           return (
@@ -378,7 +421,6 @@ export default function RoomManage() {
             <label>Room Name</label>
             <input
               type="text"
-              value={newRoomDetails.name}
               onChange={(e) =>
                 setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
               }

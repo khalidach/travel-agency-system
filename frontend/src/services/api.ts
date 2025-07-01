@@ -297,3 +297,7 @@ export const searchUnassignedOccupants = (
     `/room-management/program/${programId}/hotel/${hotelName}/search-unassigned?${params.toString()}`
   );
 };
+
+// New function for rooming list export
+export const exportRoomAssignmentsToExcel = (programId: string) =>
+  request(`/room-management/program/${programId}/export-excel`, {}, true);

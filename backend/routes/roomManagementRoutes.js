@@ -21,4 +21,10 @@ router.post(
   roomManagementController.saveRooms
 );
 
+// New route for Excel export
+router.get(
+  "/program/:programId/export-excel",
+  roomManagementController.exportRoomsToExcel
+);
+
 module.exports = router;
