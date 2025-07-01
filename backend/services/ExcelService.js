@@ -235,6 +235,7 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
   let headers = [
     { header: "Client Name (French)", key: "clientNameFr", width: 25 },
     { header: "Client Name (Arabic)", key: "clientNameAr", width: 25 },
+    { header: "Person Type", key: "personType", width: 15 },
     { header: "Passport Number", key: "passportNumber", width: 20 },
     { header: "Phone Number", key: "phoneNumber", width: 20 },
   ];
@@ -263,20 +264,49 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
   const headerRow = templateSheet.getRow(1);
   headerRow.font = { bold: true };
 
-  if (hasPackages) {
-    const validationSheet = workbook.addWorksheet("Lists");
-    validationSheet.state = "hidden";
+  // Setup for dropdown lists
+  const validationSheet = workbook.addWorksheet("Lists");
+  validationSheet.state = "hidden";
 
+  // Person Type Dropdown
+  const personTypes = ["adult", "child", "infant"];
+  validationSheet.getColumn("A").values = ["PersonTypes", ...personTypes];
+  workbook.definedNames.add(
+    "Lists!$A$2:$A$" + (personTypes.length + 1),
+    "PersonTypes"
+  );
+
+  // Apply validation to the Person Type column
+  const personTypeCol = templateSheet.getColumn("personType").letter;
+  for (let i = 2; i <= 101; i++) {
+    templateSheet.getCell(`${personTypeCol}${i}`).dataValidation = {
+      type: "list",
+      allowBlank: false,
+      formulae: ["=PersonTypes"],
+    };
+  }
+
+  if (hasPackages) {
+    // Package Dropdown
     const packageNames = (program.packages || []).map((p) => p.name);
-    validationSheet.getColumn("A").values = ["Packages", ...packageNames];
+    validationSheet.getColumn("B").values = ["Packages", ...packageNames];
     if (packageNames.length > 0) {
       workbook.definedNames.add(
-        "Lists!$A$2:$A$" + (packageNames.length + 1),
+        "Lists!$B$2:$B$" + (packageNames.length + 1),
         "Packages"
       );
     }
 
-    let listColumnIndex = 1;
+    const packageCol = templateSheet.getColumn("package").letter;
+    for (let i = 2; i <= 101; i++) {
+      templateSheet.getCell(`${packageCol}${i}`).dataValidation = {
+        type: "list",
+        allowBlank: true,
+        formulae: ["=Packages"],
+      };
+    }
+
+    let listColumnIndex = 2; // Start from column C
     const hotelRoomTypesMap = new Map();
 
     (program.packages || []).forEach((pkg) => {
@@ -349,17 +379,11 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
     }));
 
     for (let i = 2; i <= 101; i++) {
-      templateSheet.getCell(`E${i}`).dataValidation = {
-        type: "list",
-        allowBlank: true,
-        formulae: ["=Packages"],
-      };
-
       hotelHeaders.forEach((h) => {
         const cityNameSanitized = sanitizeName(h.header.replace(" Hotel", ""));
         const columnLetter = templateSheet.getColumn(h.key).letter;
         if (columnLetter) {
-          const hotelFormula = `=INDIRECT(SUBSTITUTE(E${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
+          const hotelFormula = `=INDIRECT(SUBSTITUTE(${packageCol}${i}," ","_")&"_${cityNameSanitized}_Hotels")`;
           templateSheet.getCell(`${columnLetter}${i}`).dataValidation = {
             type: "list",
             allowBlank: true,
@@ -418,7 +442,6 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
     }
     const program = programs[0];
 
-    // Fetch pricing, but don't fail if it doesn't exist. It will be undefined if not found.
     const { rows: allPricings } = await client.query(
       'SELECT * FROM program_pricing WHERE "userId" = $1 AND "programId" = $2',
       [userId, programId]
@@ -458,7 +481,8 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       const bookingPackage = (program.packages || []).find(
         (p) => p.name === rowData["Package"]
       );
-      if (!bookingPackage) continue;
+      if (!bookingPackage && program.packages && program.packages.length > 0)
+        continue;
 
       const selectedHotel = { cities: [], hotelNames: [], roomTypes: [] };
       (program.cities || []).forEach((city) => {
@@ -472,18 +496,19 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       });
 
       const hotelCombination = selectedHotel.hotelNames.join("_");
-      const priceStructure = (bookingPackage.prices || []).find(
-        (p) => p.hotelCombination === hotelCombination
-      );
+      const priceStructure =
+        (bookingPackage?.prices || []).find(
+          (p) => p.hotelCombination === hotelCombination
+        ) || null;
 
-      // A valid hotel/room combination from the program structure is required to proceed.
-      if (!priceStructure) continue;
+      if (program.packages && program.packages.length > 0 && !priceStructure)
+        continue;
 
       let basePrice = 0;
       const sellingPrice = Number(rowData["Selling Price"]) || 0;
+      const personType = rowData["Person Type"] || "adult";
 
-      // Only calculate base price if program pricing has been set.
-      if (programPricing) {
+      if (programPricing && priceStructure) {
         const guestMap = new Map(
           priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
         );
@@ -515,10 +540,20 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
           return total;
         }, 0);
 
+        const personTypeInfo = (programPricing.personTypes || []).find(
+          (p) => p.type === personType
+        );
+        const ticketPercentage = personTypeInfo
+          ? personTypeInfo.ticketPercentage / 100
+          : 1;
+        const ticketPrice =
+          Number(programPricing.ticketAirline || 0) * ticketPercentage;
+
         basePrice = Math.round(
-          Number(programPricing.ticketAirline || 0) +
+          ticketPrice +
             Number(programPricing.visaFees || 0) +
             Number(programPricing.guideFees || 0) +
+            Number(programPricing.transportFees || 0) +
             hotelCosts
         );
       }
@@ -528,6 +563,7 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
         employeeId: user.role === "admin" ? null : user.id,
         clientNameAr: rowData["Client Name (Arabic)"],
         clientNameFr: rowData["Client Name (French)"],
+        personType: personType,
         phoneNumber: rowData["Phone Number"],
         passportNumber,
         tripId: program.id,
@@ -546,12 +582,13 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
 
     for (const booking of bookingsToCreate) {
       await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)',
         [
           booking.userId,
           booking.employeeId,
           booking.clientNameAr,
           booking.clientNameFr,
+          booking.personType,
           booking.phoneNumber,
           booking.passportNumber,
           booking.tripId,
