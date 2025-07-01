@@ -36,6 +36,9 @@ export default function RoomManage() {
   const [newRoomDetails, setNewRoomDetails] = useState({ name: "", type: "" });
   const [movePersonState, setMovePersonState] = useState<MovePersonState>(null);
   const [isExporting, setIsExporting] = useState(false);
+  // New states for editing room names
+  const [editingRoomName, setEditingRoomName] = useState<string | null>(null);
+  const [tempRoomName, setTempRoomName] = useState("");
 
   const currentHotelName = hotels[currentHotelIndex];
 
@@ -231,6 +234,23 @@ export default function RoomManage() {
     setRooms(rooms.filter((r) => r.name !== roomName));
   };
 
+  const handleRoomNameChange = (oldName: string) => {
+    if (tempRoomName && tempRoomName !== oldName) {
+      if (rooms.some((r) => r.name === tempRoomName)) {
+        toast.error("A room with this name already exists.");
+        setEditingRoomName(null); // Exit edit mode without saving
+        return;
+      }
+
+      setRooms((currentRooms) =>
+        currentRooms.map((r) =>
+          r.name === oldName ? { ...r, name: tempRoomName } : r
+        )
+      );
+    }
+    setEditingRoomName(null);
+  };
+
   const handleExport = async () => {
     if (!programId) return;
     setIsExporting(true);
@@ -331,7 +351,33 @@ export default function RoomManage() {
                   className="bg-white p-4 rounded-lg shadow-sm"
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-semibold">{room.name}</h4>
+                    {editingRoomName === room.name ? (
+                      <input
+                        type="text"
+                        value={tempRoomName}
+                        onChange={(e) => setTempRoomName(e.target.value)}
+                        onBlur={() => handleRoomNameChange(room.name)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleRoomNameChange(room.name);
+                          } else if (e.key === "Escape") {
+                            setEditingRoomName(null);
+                          }
+                        }}
+                        className="font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                        autoFocus
+                      />
+                    ) : (
+                      <h4
+                        className="font-semibold cursor-pointer hover:text-blue-600"
+                        onClick={() => {
+                          setEditingRoomName(room.name);
+                          setTempRoomName(room.name);
+                        }}
+                      >
+                        {room.name}
+                      </h4>
+                    )}
                     <div className="flex items-center">
                       <Users size={16} className="mr-1" />
                       <span>
@@ -443,6 +489,6 @@ export default function RoomManage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </div>  
   );
 }

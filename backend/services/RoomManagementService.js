@@ -2,54 +2,16 @@
 
 /**
  * Initializes rooms for a given program and hotel if they don't exist.
+ * This function will now return an empty array to prevent default room creation.
  * @param {object} db - The database connection pool.
  * @param {number} userId - The ID of the admin user.
  * @param {number} programId - The ID of the program.
  * @param {string} hotelName - The name of the hotel.
- * @returns {Promise<Array>} A promise that resolves to the list of rooms.
+ * @returns {Promise<Array>} A promise that resolves to an empty list of rooms.
  */
 const initializeRooms = async (db, userId, programId, hotelName) => {
-  const { rows: programs } = await db.query(
-    'SELECT * FROM programs WHERE "userId" = $1 AND id = $2',
-    [userId, programId]
-  );
-
-  if (programs.length === 0) {
-    throw new Error("Program not found or you are not authorized.");
-  }
-  const program = programs[0];
-
-  const roomTypes = new Map();
-  program.packages.forEach((pkg) => {
-    pkg.prices.forEach((price) => {
-      if (price.hotelCombination.includes(hotelName)) {
-        price.roomTypes.forEach((rt) => {
-          if (!roomTypes.has(rt.type)) {
-            roomTypes.set(rt.type, rt.guests);
-          }
-        });
-      }
-    });
-  });
-
-  const initialRooms = [];
-  roomTypes.forEach((capacity, type) => {
-    initialRooms.push({
-      name: `${type} 1`,
-      type: type,
-      capacity: capacity,
-      occupants: Array(capacity).fill(null),
-    });
-  });
-
-  if (initialRooms.length > 0) {
-    const { rows: newManagement } = await db.query(
-      'INSERT INTO room_managements ("userId", "programId", "hotelName", rooms) VALUES ($1, $2, $3, $4) RETURNING rooms',
-      [userId, programId, hotelName, JSON.stringify(initialRooms)]
-    );
-    return newManagement[0].rooms;
-  }
-
+  // The original logic for creating default rooms is removed.
+  // We will return an empty array to give you a clean slate.
   return [];
 };
 
@@ -70,6 +32,7 @@ exports.getRooms = async (db, userId, programId, hotelName) => {
   if (rows.length > 0) {
     return rows[0].rooms;
   } else {
+    // This will now call the updated initializeRooms and return an empty array.
     return initializeRooms(db, userId, programId, hotelName);
   }
 };
