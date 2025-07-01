@@ -69,6 +69,8 @@ export default function Programs() {
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      // Invalidate dashboard stats to update "Active Programs" count
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
     },
@@ -81,10 +83,12 @@ export default function Programs() {
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
     onSuccess: (updatedProgram) => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
-      // Invalidate the specific program query to force a refetch on other pages like RoomManage
       queryClient.invalidateQueries({
         queryKey: ["program", updatedProgram.id.toString()],
       });
+      // Invalidate related data that might be affected
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);
@@ -98,6 +102,10 @@ export default function Programs() {
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      // Invalidate related data that is now stale
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       toast.success("Program deleted successfully!");
     },
     onError: (error: Error) => {

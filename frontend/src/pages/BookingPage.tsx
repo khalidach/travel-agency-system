@@ -252,6 +252,8 @@ export default function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Booking created!");
       setIsBookingModalOpen(false);
     },
@@ -272,6 +274,8 @@ export default function BookingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Booking updated!");
       setIsBookingModalOpen(false);
       setEditingBooking(null);
@@ -286,6 +290,8 @@ export default function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Booking deleted!");
     },
     onError: (error: Error) =>
@@ -300,6 +306,8 @@ export default function BookingPage() {
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment added!");
       setIsPaymentModalOpen(false);
@@ -317,6 +325,8 @@ export default function BookingPage() {
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment updated!");
       setIsPaymentModalOpen(false);
@@ -332,6 +342,8 @@ export default function BookingPage() {
     onSuccess: (updatedBooking) => {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       setSelectedBookingForPayment(updatedBooking);
       toast.success("Payment deleted!");
     },
@@ -345,6 +357,8 @@ export default function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
       queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
       queryClient.invalidateQueries({ queryKey: ["programs"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),

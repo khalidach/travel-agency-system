@@ -81,6 +81,8 @@ export default function ProgramPricingPage() {
     mutationFn: (data: any) => api.createProgramPricing(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Pricing saved successfully.");
       setIsModalOpen(false);
     },
@@ -95,6 +97,9 @@ export default function ProgramPricingPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Pricing updated successfully.");
       setIsModalOpen(false);
     },
@@ -107,6 +112,8 @@ export default function ProgramPricingPage() {
     mutationFn: (id: number) => api.deleteProgramPricing(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       toast.success("Pricing deleted successfully.");
     },
     onError: (error: any) => {

@@ -27,7 +27,7 @@ export default function ProgramForm({
       ? program
       : {
           name: "",
-          type: "Tourism",
+          type: "Umrah",
           duration: 0,
           cities: [{ name: "", nights: 0 }],
           packages: [],
