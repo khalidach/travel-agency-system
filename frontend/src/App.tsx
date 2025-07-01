@@ -33,13 +33,13 @@ function AppRoutes() {
   const { state } = useAuthContext();
   const userRole = state.user?.role;
 
-  // Logout user after 1 hour of inactivity
-  const IDLE_TIMEOUT = 60 * 60 * 1000;
+  // // Logout user after 1 hour of inactivity
+  // const IDLE_TIMEOUT = 60 * 60 * 1000;
 
-  // Refresh the session token every 55 minutes to stay ahead of the 1-hour expiration
-  const REFRESH_INTERVAL = 55 * 60 * 1000;
+  // // Refresh the session token every 55 minutes to stay ahead of the 1-hour expiration
+  // const REFRESH_INTERVAL = 55 * 60 * 1000;
 
-  useIdleTimeout(IDLE_TIMEOUT, REFRESH_INTERVAL);
+  useIdleTimeout();
 
   if (state.loading) {
     return (
