@@ -564,7 +564,7 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
         clientNameAr: rowData["Client Name (Arabic)"],
         clientNameFr: rowData["Client Name (French)"],
         personType: personType,
-        phoneNumber: rowData["Phone Number"],
+        phoneNumber: rowData["Phone Number"] || "",
         passportNumber,
         tripId: program.id,
         packageId: rowData["Package"],
