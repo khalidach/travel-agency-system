@@ -23,6 +23,7 @@ export default function RoomManage() {
   const [hotels, setHotels] = useState<string[]>([]);
   const [currentHotelIndex, setCurrentHotelIndex] = useState(0);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [initialRoomsData, setInitialRoomsData] = useState<Room[]>([]);
   const [isNewRoomModalOpen, setIsNewRoomModalOpen] = useState(false);
   const [newRoomDetails, setNewRoomDetails] = useState({ name: "", type: "" });
   const [movePersonState, setMovePersonState] = useState<MovePersonState>(null);
@@ -48,6 +49,7 @@ export default function RoomManage() {
     onSuccess: (data) => {
       toast.success("Room assignments saved!");
       queryClient.setQueryData(["rooms", programId, currentHotelName], data);
+      setInitialRoomsData(JSON.parse(JSON.stringify(data))); // Update initial state after save
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to save rooms.");
@@ -55,6 +57,10 @@ export default function RoomManage() {
   });
 
   // Derived State
+  const hasChanges = useMemo(() => {
+    return JSON.stringify(rooms) !== JSON.stringify(initialRoomsData);
+  }, [rooms, initialRoomsData]);
+
   const assignedIds = useMemo(() => {
     const ids = new Set<number>();
     if (rooms) {
@@ -120,8 +126,10 @@ export default function RoomManage() {
         ),
       }));
       setRooms(sanitizedRooms);
+      setInitialRoomsData(JSON.parse(JSON.stringify(sanitizedRooms)));
     } else {
       setRooms([]);
+      setInitialRoomsData([]);
     }
   }, [initialRooms]);
 
@@ -242,8 +250,8 @@ export default function RoomManage() {
               }))
             )
           }
-          disabled={isSaving}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+          disabled={isSaving || !hasChanges}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
         </button>
