@@ -489,6 +489,6 @@ export default function RoomManage() {
           </div>
         </div>
       </Modal>
-    </div>  
+    </div>
   );
 }

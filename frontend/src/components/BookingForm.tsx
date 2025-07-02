@@ -1,6 +1,6 @@
 // frontend/src/components/BookingForm.tsx
 import React, { useEffect, useMemo, useCallback, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, FormProvider } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import type {
@@ -11,11 +11,14 @@ import type {
   RelatedPerson,
   PriceStructure,
   ProgramPricing,
-  PaginatedResponse,
 } from "../context/models";
 import * as api from "../services/api";
-import { X } from "lucide-react";
 import { useAuthContext } from "../context/AuthContext";
+import HotelRoomSelection from "./booking/HotelRoomSelection";
+import ClientInfoFields from "./booking/ClientInfoFields";
+import ProgramPackageSelection from "./booking/ProgramPackageSelection";
+import RelatedPeopleManager from "./booking/RelatedPeopleManager";
+import PricingFields from "./booking/PricingFields";
 
 export type BookingFormData = Omit<
   Booking,
@@ -52,14 +55,7 @@ export default function BookingForm({
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<BookingFormData>({
+  const methods = useForm<BookingFormData>({
     defaultValues: {
       clientNameAr: "",
       clientNameFr: "",
@@ -77,6 +73,8 @@ export default function BookingForm({
     },
   });
 
+  const { handleSubmit, watch, setValue, reset } = methods;
+
   const [formState, setFormState] = React.useState<FormState>({
     search: "",
     showDropdown: false,
@@ -92,9 +90,10 @@ export default function BookingForm({
   const { selectedHotel, sellingPrice, basePrice, personType, tripId } =
     watchedValues;
 
-  const hasPackages =
+  const hasPackages = !!(
     formState.selectedProgram?.packages &&
-    formState.selectedProgram.packages.length > 0;
+    formState.selectedProgram.packages.length > 0
+  );
 
   // Debounce the search term
   useEffect(() => {
@@ -419,430 +418,79 @@ export default function BookingForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {formState.error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
-          {formState.error}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Client Name (French)")}
-          </label>
-          <Controller
-            name="clientNameFr"
-            control={control}
-            rules={{ required: "Client name in French is required" }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            )}
-          />
-          {errors.clientNameFr && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.clientNameFr.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Client Name (Arabic)")}
-          </label>
-          <Controller
-            name="clientNameAr"
-            control={control}
-            rules={{ required: "Client name in Arabic is required" }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                dir="rtl"
-              />
-            )}
-          />
-          {errors.clientNameAr && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.clientNameAr.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Person Type
-          </label>
-          <Controller
-            name="personType"
-            control={control}
-            rules={{ required: "Person type is required" }}
-            render={({ field }) => (
-              <select
-                {...field}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              >
-                <option value="adult">Adult</option>
-                <option value="child">Child</option>
-                <option value="infant">Infant</option>
-              </select>
-            )}
-          />
-          {errors.personType && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.personType.message}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Passport Number")}
-          </label>
-          <Controller
-            name="passportNumber"
-            control={control}
-            rules={{ required: "Passport number is required" }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            )}
-          />
-          {errors.passportNumber && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.passportNumber.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Phone Number")}
-          </label>
-          <Controller
-            name="phoneNumber"
-            control={control}
-            // rules={{ required: "Phone number is required" }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="tel"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            )}
-          />
-          {errors.phoneNumber && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.phoneNumber.message}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Travel Program")}
-          </label>
-          <Controller
-            name="tripId"
-            control={control}
-            rules={{ required: "Travel program is required" }}
-            render={({ field }) => (
-              <select
-                {...field}
-                onChange={(e) => {
-                  field.onChange(e);
-                  handleProgramChange(e.target.value);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
-                disabled={!!programId && !booking}
-              >
-                <option value="">{t("Select a program")}</option>
-                {programs.map((program) => (
-                  <option key={program.id} value={program.id}>
-                    {program.name} ({program.type})
-                  </option>
-                ))}
-              </select>
-            )}
-          />
-          {errors.tripId && (
-            <p className="text-red-500 text-sm mt-1">{errors.tripId.message}</p>
-          )}
-        </div>
-        {hasPackages && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("Package")}
-            </label>
-            <Controller
-              name="packageId"
-              control={control}
-              rules={{ required: hasPackages ? "Package is required" : false }}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  onChange={(e) => {
-                    field.onChange(e);
-                    handlePackageChange(e.target.value);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  disabled={!formState.selectedProgram}
-                >
-                  <option value="">{t("Select a package")}</option>
-                  {(formState.selectedProgram?.packages || []).map((pkg) => (
-                    <option key={pkg.name} value={pkg.name}>
-                      {pkg.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            />
-            {errors.packageId && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.packageId.message}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Related People")}
-        </label>
-        <div className="relative">
-          <input
-            type="text"
-            value={formState.search}
-            onChange={(e) => {
-              setFormState((prev) => ({
-                ...prev,
-                search: e.target.value,
-                showDropdown: true,
-              }));
-            }}
-            onFocus={() =>
-              setFormState((prev) => ({ ...prev, showDropdown: true }))
-            }
-            onBlur={() =>
-              setTimeout(
-                () =>
-                  setFormState((prev) => ({ ...prev, showDropdown: false })),
-                200
-              )
-            }
-            placeholder={
-              formState.selectedProgram
-                ? "Search for a client to add..."
-                : "Select a program first"
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
-            disabled={!formState.selectedProgram}
-          />
-          {formState.showDropdown && availablePeople.length > 0 && (
-            <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
-              {availablePeople.map((person) => (
-                <li
-                  key={person.id}
-                  onClick={() => addRelatedPerson(person)}
-                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  {person.clientNameFr} ({person.passportNumber})
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(watchedValues.relatedPersons || []).map((person) => (
-            <div
-              key={person.ID}
-              className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
-            >
-              <span>{person.clientName}</span>
-              <button
-                type="button"
-                onClick={() => removeRelatedPerson(person.ID)}
-                className="ml-2 text-blue-600 hover:text-blue-800"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {formState.selectedPackage &&
-        (formState.selectedProgram?.cities || []).some((c) => c.nights > 0) && (
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {t("Hotel & Room Selection")}
-            </h3>
-            <div className="space-y-4">
-              {(formState.selectedProgram?.cities || []).map(
-                (city, cityIndex) => (
-                  <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">
-                      {city.name} ({city.nights} {t("nights")})
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {t("Select Hotel")}
-                        </label>
-                        <select
-                          value={selectedHotel.hotelNames[cityIndex] || ""}
-                          onChange={(e) =>
-                            updateHotelSelection(cityIndex, e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        >
-                          <option value="">{t("Select a hotel")}</option>
-                          {(
-                            formState.selectedPackage?.hotels[city.name] || []
-                          ).map((hotel: string) => (
-                            <option key={hotel} value={hotel}>
-                              {hotel}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {t("Room Type")}
-                        </label>
-                        <select
-                          value={selectedHotel.roomTypes[cityIndex] || ""}
-                          onChange={(e) =>
-                            updateRoomTypeSelection(cityIndex, e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                          disabled={!formState.selectedPriceStructure}
-                        >
-                          <option value="">
-                            {t(
-                              formState.selectedPriceStructure
-                                ? "Select a room type"
-                                : "Select all hotels first"
-                            )}
-                          </option>
-                          {formState.selectedPriceStructure?.roomTypes.map(
-                            (rt) => (
-                              <option key={rt.type} value={rt.type}>
-                                {rt.type} ({rt.guests} guests)
-                              </option>
-                            )
-                          )}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {formState.error && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+            {formState.error}
           </div>
         )}
 
-      <div
-        className={`grid grid-cols-1 ${
-          userRole !== "employee" && userRole !== "manager"
-            ? "md:grid-cols-3"
-            : ""
-        }
- gap-4`}
-      >
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Selling Price")} (MAD)
-          </label>
-          <Controller
-            name="sellingPrice"
-            control={control}
-            rules={{ required: "Selling price is required", min: 0 }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="number"
-                onChange={(e) => {
-                  field.onChange(e.target.value);
-                  handleSellingPriceChange(Number(e.target.value));
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                min="0"
-                step="0.01"
-              />
-            )}
-          />
-          {errors.sellingPrice && (
-            <p className="text-red-500 text-sm mt-1">
-              {errors.sellingPrice.message}
-            </p>
-          )}
+        <ClientInfoFields />
+
+        <ProgramPackageSelection
+          programs={programs}
+          hasPackages={hasPackages}
+          selectedProgram={formState.selectedProgram}
+          handleProgramChange={handleProgramChange}
+          handlePackageChange={handlePackageChange}
+          programId={programId}
+          booking={booking}
+        />
+
+        <RelatedPeopleManager
+          search={formState.search}
+          showDropdown={formState.showDropdown}
+          selectedProgram={formState.selectedProgram}
+          availablePeople={availablePeople}
+          relatedPersons={watchedValues.relatedPersons || []}
+          onSearchChange={(value) =>
+            setFormState((prev) => ({
+              ...prev,
+              search: value,
+              showDropdown: true,
+            }))
+          }
+          onFocus={() =>
+            setFormState((prev) => ({ ...prev, showDropdown: true }))
+          }
+          onBlur={() =>
+            setTimeout(
+              () => setFormState((prev) => ({ ...prev, showDropdown: false })),
+              200
+            )
+          }
+          onAddPerson={addRelatedPerson}
+          onRemovePerson={removeRelatedPerson}
+        />
+
+        <HotelRoomSelection
+          selectedProgram={formState.selectedProgram}
+          selectedPackage={formState.selectedPackage}
+          selectedPriceStructure={formState.selectedPriceStructure}
+          selectedHotel={selectedHotel}
+          updateHotelSelection={updateHotelSelection}
+          updateRoomTypeSelection={updateRoomTypeSelection}
+        />
+
+        <PricingFields handleSellingPriceChange={handleSellingPriceChange} />
+
+        <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            {t("Cancel")}
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {booking ? t("Update") : t("Save")}
+          </button>
         </div>
-
-        {userRole === "admin" && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("Base Price")} (MAD)
-              </label>
-              <Controller
-                name="basePrice"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                    readOnly
-                  />
-                )}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("Profit")} (MAD)
-              </label>
-              <Controller
-                name="profit"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                    readOnly
-                  />
-                )}
-              />
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          {t("Cancel")}
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {booking ? t("Update") : t("Save")}
-        </button>
-      </div>
-    </form>
+      </form>
+    </FormProvider>
   );
 }

@@ -1,37 +1,92 @@
 // frontend/src/pages/BookingPage.tsx
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import {
-  Plus,
-  CreditCard,
-  Edit2,
-  Trash2,
-  Download,
-  Upload,
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-} from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 
 // Components and Hooks
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import BookingForm, { BookingFormData } from "../components/BookingForm";
-import PaymentForm from "../components/PaymentForm";
 import BookingSummary from "../components/booking/BookingSummary";
 import BookingFilters from "../components/booking/BookingFilters";
 import BookingTable from "../components/booking/BookingTable";
 import { usePagination } from "../hooks/usePagination";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { useAuthContext } from "../context/AuthContext";
+import BookingPageHeader from "../components/booking/BookingPageHeader";
+import PaymentManagementModal from "../components/booking/PaymentManagementModal";
+import PaginationControls from "../components/booking/PaginationControls";
 
 // Types and API
 import type { Booking, Payment, Program, Employee } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+
+// State and Actions for useReducer
+interface BookingPageState {
+  isBookingModalOpen: boolean;
+  editingBooking: Booking | null;
+  selectedBookingForPayment: Booking | null;
+  bookingToDelete: number | null;
+  isExporting: boolean;
+  importFile: File | null;
+  currentPage: number;
+  submittedSearchTerm: string;
+}
+
+type BookingPageAction =
+  | { type: "OPEN_BOOKING_MODAL"; payload?: Booking | null }
+  | { type: "CLOSE_BOOKING_MODAL" }
+  | { type: "SET_SELECTED_FOR_PAYMENT"; payload: Booking | null }
+  | { type: "SET_BOOKING_TO_DELETE"; payload: number | null }
+  | { type: "SET_IS_EXPORTING"; payload: boolean }
+  | { type: "SET_IMPORT_FILE"; payload: File | null }
+  | { type: "SET_CURRENT_PAGE"; payload: number }
+  | { type: "SET_SUBMITTED_SEARCH"; payload: string };
+
+const initialState: BookingPageState = {
+  isBookingModalOpen: false,
+  editingBooking: null,
+  selectedBookingForPayment: null,
+  bookingToDelete: null,
+  isExporting: false,
+  importFile: null,
+  currentPage: 1,
+  submittedSearchTerm: "",
+};
+
+function bookingPageReducer(
+  state: BookingPageState,
+  action: BookingPageAction
+): BookingPageState {
+  switch (action.type) {
+    case "OPEN_BOOKING_MODAL":
+      return {
+        ...state,
+        isBookingModalOpen: true,
+        editingBooking: action.payload || null,
+      };
+    case "CLOSE_BOOKING_MODAL":
+      return { ...state, isBookingModalOpen: false, editingBooking: null };
+    case "SET_SELECTED_FOR_PAYMENT":
+      return { ...state, selectedBookingForPayment: action.payload };
+    case "SET_BOOKING_TO_DELETE":
+      return { ...state, bookingToDelete: action.payload };
+    case "SET_IS_EXPORTING":
+      return { ...state, isExporting: action.payload };
+    case "SET_IMPORT_FILE":
+      return { ...state, importFile: action.payload };
+    case "SET_CURRENT_PAGE":
+      return { ...state, currentPage: action.payload };
+    case "SET_SUBMITTED_SEARCH":
+      return { ...state, submittedSearchTerm: action.payload, currentPage: 1 };
+    default:
+      return state;
+  }
+}
 
 type FilterFormData = {
   searchTerm: string;
@@ -40,14 +95,6 @@ type FilterFormData = {
   employeeFilter: string;
 };
 
-type ConfirmationState = {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  onConfirm: () => void;
-};
-
-// The API response for bookings is now simpler
 interface BookingResponse {
   data: Booking[];
   pagination: {
@@ -58,7 +105,6 @@ interface BookingResponse {
   };
 }
 
-// NEW type for the stats response
 interface BookingStatsResponse {
   totalBookings: number;
   totalRevenue: number;
@@ -72,26 +118,21 @@ export default function BookingPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId: string }>();
-  const navigate = useNavigate();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
-  // State Management
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
-  const [editingPayment, setEditingPayment] = useState<{
-    bookingId: number;
-    payment: Payment;
-  } | null>(null);
-  const [selectedBookingForPayment, setSelectedBookingForPayment] =
-    useState<Booking | null>(null);
-  const [confirmationState, setConfirmationState] =
-    useState<ConfirmationState | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [state, dispatch] = useReducer(bookingPageReducer, initialState);
+  const {
+    isBookingModalOpen,
+    editingBooking,
+    selectedBookingForPayment,
+    bookingToDelete,
+    isExporting,
+    importFile,
+    currentPage,
+    submittedSearchTerm,
+  } = state;
+
   const bookingsPerPage = 10;
 
   const { register, watch, getValues } = useForm<FilterFormData>({
@@ -103,41 +144,42 @@ export default function BookingPage() {
     },
   });
 
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const sortOrder = watch("sortOrder");
   const statusFilter = watch("statusFilter");
   const employeeFilter = watch("employeeFilter");
 
   useEffect(() => {
-    setCurrentPage(1);
+    dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
   }, [submittedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      setSubmittedSearchTerm(getValues("searchTerm"));
+      dispatch({
+        type: "SET_SUBMITTED_SEARCH",
+        payload: getValues("searchTerm"),
+      });
     }
   };
 
-  // --- Data Fetching ---
+  const bookingQueryKey = [
+    "bookings",
+    programId,
+    sortOrder === "family" ? "all" : currentPage,
+    submittedSearchTerm,
+    sortOrder,
+    statusFilter,
+    employeeFilter,
+  ];
 
-  // Query 1: Fetches bookings. If sorting by family, it fetches all bookings to process relationships correctly.
-  // Otherwise, it fetches a paginated list.
+  // --- Data Fetching ---
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
-      queryKey: [
-        "bookings",
-        programId,
-        sortOrder === "family" ? "all" : currentPage, // Change query key for family sort
-        submittedSearchTerm,
-        sortOrder,
-        statusFilter,
-        employeeFilter,
-      ],
+      queryKey: bookingQueryKey,
       queryFn: () =>
         api.getBookingsByProgram(programId!, {
           page: sortOrder === "family" ? 1 : currentPage,
-          limit: sortOrder === "family" ? 9999 : bookingsPerPage, // Fetch all for family sort
+          limit: sortOrder === "family" ? 9999 : bookingsPerPage,
           searchTerm: submittedSearchTerm,
           sortOrder,
           statusFilter,
@@ -146,7 +188,6 @@ export default function BookingPage() {
       enabled: !!programId,
     });
 
-  // Query 2: Fetches the summary statistics. This might be slower but runs in parallel.
   const { data: summaryStats, isLoading: isLoadingStats } =
     useQuery<BookingStatsResponse>({
       queryKey: [
@@ -172,21 +213,13 @@ export default function BookingPage() {
       : bookingResponse?.pagination?.totalCount ?? 0;
   const totalPages = Math.ceil(totalBookingCount / bookingsPerPage);
 
-  // Process bookings for family grouping and apply pagination
   const processedBookings = useMemo(() => {
     const bookingsToProcess = allBookings;
-
     if (sortOrder !== "family" || bookingsToProcess.length === 0) {
-      // For non-family sort, the API handles pagination.
-      // Just ensure the isRelated flag is set to false.
       return bookingsToProcess.map((b) => ({ ...b, isRelated: false }));
     }
-
-    // For family sort, we have all bookings. We process them and then paginate on the client-side.
     const bookingsMap = new Map(bookingsToProcess.map((b) => [b.id, b]));
     const memberIds = new Set<number>();
-
-    // First, identify all bookings that are members of a family across all data
     bookingsToProcess.forEach((booking) => {
       if (booking.relatedPersons && booking.relatedPersons.length > 0) {
         booking.relatedPersons.forEach((person) => {
@@ -194,18 +227,12 @@ export default function BookingPage() {
         });
       }
     });
-
-    // The backend sorts by phoneNumber, which groups families.
-    // This frontend logic re-orders to ensure the leader is always first, which is more robust.
     const leadersAndIndividuals = bookingsToProcess.filter(
       (booking) => !memberIds.has(booking.id)
     );
-
     const finalList: (Booking & { isRelated?: boolean })[] = [];
-
     leadersAndIndividuals.forEach((leader) => {
       finalList.push({ ...leader, isRelated: false });
-
       if (leader.relatedPersons && leader.relatedPersons.length > 0) {
         leader.relatedPersons.forEach((person) => {
           const memberBooking = bookingsMap.get(person.ID);
@@ -215,8 +242,6 @@ export default function BookingPage() {
         });
       }
     });
-
-    // Manually paginate the fully processed and sorted list
     const start = (currentPage - 1) * bookingsPerPage;
     const end = start + bookingsPerPage;
     return finalList.slice(start, end);
@@ -249,13 +274,10 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
       toast.success("Booking created!");
-      setIsBookingModalOpen(false);
+      dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to create booking."),
@@ -272,13 +294,10 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
       toast.success("Booking updated!");
-      setIsBookingModalOpen(false);
-      setEditingBooking(null);
+      dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to update booking."),
@@ -287,11 +306,8 @@ export default function BookingPage() {
   const { mutate: deleteBooking } = useMutation({
     mutationFn: api.deleteBooking,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
       toast.success("Booking deleted!");
     },
     onError: (error: Error) =>
@@ -304,13 +320,10 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      setSelectedBookingForPayment(updatedBooking);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment added!");
-      setIsPaymentModalOpen(false);
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to add payment."),
@@ -323,14 +336,10 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      setSelectedBookingForPayment(updatedBooking);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment updated!");
-      setIsPaymentModalOpen(false);
-      setEditingPayment(null);
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to update payment."),
@@ -340,11 +349,9 @@ export default function BookingPage() {
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      setSelectedBookingForPayment(updatedBooking);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment deleted!");
     },
     onError: (error: Error) =>
@@ -354,18 +361,12 @@ export default function BookingPage() {
   const { mutate: importBookings, isPending: isImporting } = useMutation({
     mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings", programId] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats", programId] });
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),
-    onSettled: () => {
-      setImportFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    },
+    onSettled: () => dispatch({ type: "SET_IMPORT_FILE", payload: null }),
   });
 
   const paginationRange = usePagination({
@@ -373,26 +374,6 @@ export default function BookingPage() {
     totalCount: totalBookingCount,
     pageSize: bookingsPerPage,
   });
-
-  const handleAddBooking = () => {
-    setEditingBooking(null);
-    setIsBookingModalOpen(true);
-  };
-
-  const handleEditBooking = (booking: Booking) => {
-    setEditingBooking(booking);
-    setIsBookingModalOpen(true);
-  };
-
-  const handleDeleteBooking = (bookingId: number) => {
-    setConfirmationState({
-      isOpen: true,
-      title: "Delete Booking",
-      message:
-        "Are you sure you want to delete this booking? This action cannot be undone.",
-      onConfirm: () => deleteBooking(bookingId),
-    });
-  };
 
   const handleSaveBooking = (
     bookingData: BookingFormData,
@@ -409,52 +390,34 @@ export default function BookingPage() {
     }
   };
 
-  const handleManagePayments = (booking: Booking) => {
-    setSelectedBookingForPayment(booking);
-  };
-
-  const handleAddPayment = (booking: Booking) => {
-    setSelectedBookingForPayment(booking);
-    setEditingPayment(null);
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleEditPayment = (booking: Booking, payment: Payment) => {
-    setSelectedBookingForPayment(booking);
-    setEditingPayment({ bookingId: booking.id, payment });
-    setIsPaymentModalOpen(true);
-  };
-
   const handleSavePayment = (payment: Omit<Payment, "_id" | "id">) => {
     if (selectedBookingForPayment) {
-      if (editingPayment) {
-        updatePayment({
-          bookingId: selectedBookingForPayment.id,
-          paymentId: editingPayment.payment._id,
-          payment,
-        });
-      } else {
-        addPayment({ bookingId: selectedBookingForPayment.id, payment });
-      }
+      addPayment({ bookingId: selectedBookingForPayment.id, payment });
     }
   };
 
-  const handleDeletePayment = (bookingId: number, paymentId: string) => {
-    setConfirmationState({
-      isOpen: true,
-      title: "Delete Payment",
-      message:
-        "Are you sure you want to delete this payment? This action cannot be undone.",
-      onConfirm: () => deletePayment({ bookingId, paymentId }),
-    });
+  const handleUpdatePayment = (
+    paymentId: string,
+    payment: Omit<Payment, "_id" | "id">
+  ) => {
+    if (selectedBookingForPayment) {
+      updatePayment({
+        bookingId: selectedBookingForPayment.id,
+        paymentId,
+        payment,
+      });
+    }
+  };
+
+  const handleDeletePayment = (paymentId: string) => {
+    if (selectedBookingForPayment) {
+      deletePayment({ bookingId: selectedBookingForPayment.id, paymentId });
+    }
   };
 
   const handleExport = async () => {
-    if (!programId || isExporting) {
-      toast.error("A program must be selected for export.");
-      return;
-    }
-    setIsExporting(true);
+    if (!programId || isExporting) return;
+    dispatch({ type: "SET_IS_EXPORTING", payload: true });
     toast.loading("Exporting to Excel...");
     try {
       const blob = await api.exportBookingsToExcel(programId);
@@ -474,15 +437,12 @@ export default function BookingPage() {
       toast.dismiss();
       toast.error((error as Error).message || "Failed to export.");
     } finally {
-      setIsExporting(false);
+      dispatch({ type: "SET_IS_EXPORTING", payload: false });
     }
   };
 
   const handleExportTemplate = async () => {
-    if (!programId) {
-      toast.error("A program must be selected to download a template.");
-      return;
-    }
+    if (!programId) return;
     toast.loading("Generating template...");
     try {
       const blob = await api.exportBookingTemplateForProgram(programId);
@@ -506,91 +466,31 @@ export default function BookingPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImportFile(e.target.files[0]);
+      dispatch({ type: "SET_IMPORT_FILE", payload: e.target.files[0] });
     }
   };
 
   const handleImport = () => {
-    if (!importFile) {
-      toast.error("Please select a file to import.");
-      return;
+    if (importFile && programId) {
+      importBookings(importFile);
     }
-    if (!programId) {
-      toast.error("A program must be selected for import.");
-      return;
-    }
-    importBookings(importFile);
   };
 
-  if (
-    isLoadingBookings ||
-    isLoadingProgram ||
-    (userRole !== "employee" && isLoadingEmployees)
-  ) {
+  if (isLoadingBookings || isLoadingProgram || isLoadingEmployees) {
     return <BookingSkeleton />;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/booking")}
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              {program?.name || "Bookings"}
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage all customer bookings and payments for this program.
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
-          <button
-            onClick={handleExportTemplate}
-            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-          >
-            <Download className="w-5 h-5 mr-2" />
-            Download Template
-          </button>
-          <input
-            type="file"
-            accept=".xlsx"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            style={{ display: "none" }}
-          />
-          {importFile ? (
-            <button
-              onClick={handleImport}
-              disabled={isImporting}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm disabled:bg-gray-400"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              {isImporting ? "Uploading..." : "Upload File"}
-            </button>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              Import
-            </button>
-          )}
-          <button
-            onClick={handleAddBooking}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            {t("addBooking")}
-          </button>
-        </div>
-      </div>
+      <BookingPageHeader
+        program={program}
+        onAddBooking={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
+        onExportTemplate={handleExportTemplate}
+        onFileSelect={handleFileSelect}
+        onImport={handleImport}
+        isImporting={isImporting}
+        importFile={importFile}
+      />
 
       {summaryStats && !isLoadingStats ? (
         <BookingSummary stats={summaryStats} />
@@ -619,52 +519,25 @@ export default function BookingPage() {
       <BookingTable
         bookings={processedBookings}
         programs={programs}
-        onEditBooking={handleEditBooking}
-        onDeleteBooking={handleDeleteBooking}
-        onManagePayments={handleManagePayments}
+        onEditBooking={(booking) =>
+          dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
+        }
+        onDeleteBooking={(id) =>
+          dispatch({ type: "SET_BOOKING_TO_DELETE", payload: id })
+        }
+        onManagePayments={(booking) =>
+          dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: booking })
+        }
       />
 
-      {totalBookingCount > 0 && totalPages > 1 && (
-        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-b-2xl">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
-          </button>
-          <div className="flex items-center space-x-1">
-            {paginationRange.map((page, i) =>
-              typeof page === "string" ? (
-                <span key={i} className="px-3 py-1 text-sm text-gray-400">
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
-                    currentPage === page
-                      ? "bg-blue-600 text-white font-bold shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {page}
-                </button>
-              )
-            )}
-          </div>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </button>
-        </div>
-      )}
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) =>
+          dispatch({ type: "SET_CURRENT_PAGE", payload: page })
+        }
+        paginationRange={paginationRange}
+      />
 
       {allBookings.length === 0 && !isLoadingBookings && (
         <div className="text-center py-12 bg-white rounded-2xl">
@@ -678,7 +551,7 @@ export default function BookingPage() {
             Get started by creating the first booking.
           </p>
           <button
-            onClick={handleAddBooking}
+            onClick={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -686,12 +559,10 @@ export default function BookingPage() {
           </button>
         </div>
       )}
+
       <Modal
         isOpen={isBookingModalOpen}
-        onClose={() => {
-          setIsBookingModalOpen(false);
-          setEditingBooking(null);
-        }}
+        onClose={() => dispatch({ type: "CLOSE_BOOKING_MODAL" })}
         title={editingBooking ? "Edit Booking" : t("addBooking")}
         size="xl"
       >
@@ -699,142 +570,36 @@ export default function BookingPage() {
           booking={editingBooking}
           programs={programs}
           onSave={handleSaveBooking}
-          onCancel={() => {
-            setIsBookingModalOpen(false);
-            setEditingBooking(null);
-          }}
+          onCancel={() => dispatch({ type: "CLOSE_BOOKING_MODAL" })}
           programId={programId}
         />
       </Modal>
-      <Modal
-        isOpen={isPaymentModalOpen}
-        onClose={() => {
-          setIsPaymentModalOpen(false);
-          setEditingPayment(null);
-        }}
-        title={editingPayment ? t("editPayment") : t("addPayment")}
-        size="md"
-        level={1}
-      >
-        {selectedBookingForPayment && (
-          <PaymentForm
-            payment={editingPayment?.payment}
-            onSave={handleSavePayment}
-            onCancel={() => {
-              setIsPaymentModalOpen(false);
-              setEditingPayment(null);
-            }}
-            remainingBalance={selectedBookingForPayment.remainingBalance || 0}
-          />
-        )}
-      </Modal>
-      <Modal
-        isOpen={!!selectedBookingForPayment && !isPaymentModalOpen}
-        onClose={() => setSelectedBookingForPayment(null)}
-        title={t("managePayments")}
-        size="xl"
-        level={0}
-      >
-        {selectedBookingForPayment && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
-                {selectedBookingForPayment.clientNameFr}
-              </h3>
-              <button
-                onClick={() => handleAddPayment(selectedBookingForPayment)}
-                className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                {t("addPayment")}
-              </button>
-            </div>
-            <div
-              className="space-y-3"
-              key={(selectedBookingForPayment.advancePayments || []).length}
-            >
-              {(selectedBookingForPayment.advancePayments || []).map(
-                (payment) => (
-                  <div
-                    key={`${payment._id}-${payment.amount}`}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <div className="flex items-center">
-                        <span className="text-sm text-gray-900">
-                          {Number(payment.amount).toLocaleString()} MAD
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600 capitalize">
-                          {payment.method}
-                        </span>
-                        <span className="mx-2 text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">
-                          {new Date(payment.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {payment.method === "cheque" && payment.chequeNumber && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          <span className="font-medium">
-                            Check #{payment.chequeNumber}
-                          </span>
-                          {payment.bankName && (
-                            <span> • {payment.bankName}</span>
-                          )}
-                          {payment.chequeCashingDate && (
-                            <span>
-                              {" "}
-                              • Cashing:{" "}
-                              {new Date(
-                                payment.chequeCashingDate
-                              ).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() =>
-                          handleEditPayment(selectedBookingForPayment, payment)
-                        }
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleDeletePayment(
-                            selectedBookingForPayment.id,
-                            payment._id
-                          )
-                        }
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                )
-              )}
-              {(!selectedBookingForPayment.advancePayments ||
-                selectedBookingForPayment.advancePayments.length === 0) && (
-                <div className="text-center py-8 text-gray-500">
-                  No payments recorded yet
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Modal>
 
-      {confirmationState?.isOpen && (
+      <PaymentManagementModal
+        booking={selectedBookingForPayment}
+        isOpen={!!selectedBookingForPayment}
+        onClose={() =>
+          dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: null })
+        }
+        onSavePayment={handleSavePayment}
+        onUpdatePayment={handleUpdatePayment}
+        onDeletePayment={handleDeletePayment}
+      />
+
+      {bookingToDelete && (
         <ConfirmationModal
-          isOpen={confirmationState.isOpen}
-          onClose={() => setConfirmationState(null)}
-          onConfirm={confirmationState.onConfirm}
-          title={confirmationState.title}
-          message={confirmationState.message}
+          isOpen={!!bookingToDelete}
+          onClose={() =>
+            dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null })
+          }
+          onConfirm={() => {
+            if (bookingToDelete) {
+              deleteBooking(bookingToDelete);
+            }
+            dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
+          }}
+          title="Delete Booking"
+          message="Are you sure you want to delete this booking? This action cannot be undone."
         />
       )}
     </div>
