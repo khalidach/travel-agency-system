@@ -36,8 +36,11 @@ export default function RoomManage() {
   const [newRoomDetails, setNewRoomDetails] = useState({ name: "", type: "" });
   const [movePersonState, setMovePersonState] = useState<MovePersonState>(null);
   const [isExporting, setIsExporting] = useState(false);
-  // New states for editing room names
-  const [editingRoomName, setEditingRoomName] = useState<string | null>(null);
+  // Changed state to track both name and type for uniqueness
+  const [editingRoom, setEditingRoom] = useState<{
+    name: string;
+    type: string;
+  } | null>(null);
   const [tempRoomName, setTempRoomName] = useState("");
 
   const currentHotelName = hotels[currentHotelIndex];
@@ -207,13 +210,26 @@ export default function RoomManage() {
   };
 
   const handleAddNewRoom = () => {
-    if (!newRoomDetails.name || !newRoomDetails.type) {
+    if (!newRoomDetails.name.trim() || !newRoomDetails.type) {
       toast.error("Room name and type are required.");
+      return;
+    }
+    // Check for uniqueness within the same type
+    if (
+      rooms.some(
+        (r) =>
+          r.name === newRoomDetails.name.trim() &&
+          r.type === newRoomDetails.type
+      )
+    ) {
+      toast.error(
+        `A room with the name "${newRoomDetails.name}" already exists in the "${newRoomDetails.type}" type.`
+      );
       return;
     }
     const capacity = roomTypesForCurrentHotel.get(newRoomDetails.type) || 0;
     const newRoom: Room = {
-      name: newRoomDetails.name,
+      name: newRoomDetails.name.trim(),
       type: newRoomDetails.type,
       capacity: capacity,
       occupants: Array(capacity).fill(null),
@@ -234,21 +250,33 @@ export default function RoomManage() {
     setRooms(rooms.filter((r) => r.name !== roomName));
   };
 
-  const handleRoomNameChange = (oldName: string) => {
-    if (tempRoomName && tempRoomName !== oldName) {
-      if (rooms.some((r) => r.name === tempRoomName)) {
-        toast.error("A room with this name already exists.");
-        setEditingRoomName(null); // Exit edit mode without saving
+  const handleRoomNameChange = (oldName: string, roomType: string) => {
+    if (!tempRoomName.trim()) {
+      toast.error("Room name cannot be empty.");
+      setEditingRoom(null);
+      return;
+    }
+    if (tempRoomName.trim() && tempRoomName.trim() !== oldName) {
+      // Check for uniqueness within the same type
+      if (
+        rooms.some((r) => r.name === tempRoomName.trim() && r.type === roomType)
+      ) {
+        toast.error(
+          `A room with this name already exists in the "${roomType}" type.`
+        );
+        setEditingRoom(null); // Exit edit mode without saving
         return;
       }
 
       setRooms((currentRooms) =>
         currentRooms.map((r) =>
-          r.name === oldName ? { ...r, name: tempRoomName } : r
+          r.name === oldName && r.type === roomType
+            ? { ...r, name: tempRoomName.trim() }
+            : r
         )
       );
     }
-    setEditingRoomName(null);
+    setEditingRoom(null);
   };
 
   const handleExport = async () => {
@@ -351,17 +379,21 @@ export default function RoomManage() {
                   className="bg-white p-4 rounded-lg shadow-sm"
                 >
                   <div className="flex justify-between items-center mb-2">
-                    {editingRoomName === room.name ? (
+                    {editingRoom &&
+                    editingRoom.name === room.name &&
+                    editingRoom.type === room.type ? (
                       <input
                         type="text"
                         value={tempRoomName}
                         onChange={(e) => setTempRoomName(e.target.value)}
-                        onBlur={() => handleRoomNameChange(room.name)}
+                        onBlur={() =>
+                          handleRoomNameChange(room.name, room.type)
+                        }
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            handleRoomNameChange(room.name);
+                            handleRoomNameChange(room.name, room.type);
                           } else if (e.key === "Escape") {
-                            setEditingRoomName(null);
+                            setEditingRoom(null);
                           }
                         }}
                         className="font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent"
@@ -371,7 +403,7 @@ export default function RoomManage() {
                       <h4
                         className="font-semibold cursor-pointer hover:text-blue-600"
                         onClick={() => {
-                          setEditingRoomName(room.name);
+                          setEditingRoom({ name: room.name, type: room.type });
                           setTempRoomName(room.name);
                         }}
                       >
@@ -412,7 +444,7 @@ export default function RoomManage() {
               <button
                 onClick={() => {
                   setNewRoomDetails({
-                    name: `${type} ${roomsInType.length + 1}`,
+                    name: ``,
                     type: type,
                   });
                   setIsNewRoomModalOpen(true);
@@ -467,6 +499,7 @@ export default function RoomManage() {
             <label>Room Name</label>
             <input
               type="text"
+              value={newRoomDetails.name}
               onChange={(e) =>
                 setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
               }

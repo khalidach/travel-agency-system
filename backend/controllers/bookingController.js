@@ -94,14 +94,15 @@ exports.getBookingsByProgram = async (req, res) => {
     let orderByClause;
     switch (sortOrder) {
       case "oldest":
-        orderByClause = 'ORDER BY b."createdAt" ASC';
+        orderByClause = 'ORDER BY b."createdAt" ASC, b.id ASC';
         break;
       case "family":
-        orderByClause = 'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC';
+        orderByClause =
+          'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC, b.id DESC';
         break;
       case "newest":
       default:
-        orderByClause = 'ORDER BY b."createdAt" DESC';
+        orderByClause = 'ORDER BY b."createdAt" DESC, b.id DESC';
         break;
     }
 
