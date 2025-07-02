@@ -68,7 +68,7 @@ export default function ProfitReport() {
   }
 
   if (isError) {
-    return <div>Error loading report data.</div>;
+    return <div>{t("errorLoadingDashboard")}</div>;
   }
 
   return (
@@ -76,11 +76,9 @@ export default function ProfitReport() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {t("profitReport")}
+            {t("profitReportTitle")}
           </h1>
-          <p className="text-gray-600 mt-2">
-            Comprehensive profit analysis and performance metrics
-          </p>
+          <p className="text-gray-600 mt-2">{t("profitReportSubtitle")}</p>
         </div>
       </div>
 
@@ -133,7 +131,9 @@ export default function ProfitReport() {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Profit Margin</p>
+              <p className="text-sm font-medium text-gray-600">
+                {t("profitMargin")}
+              </p>
               <p className="text-2xl font-bold text-gray-900 mt-2">
                 {totals.totalSales > 0
                   ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(1)
@@ -152,14 +152,16 @@ export default function ProfitReport() {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center space-x-2">
             <Filter className="w-5 h-5 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700">Filters:</span>
+            <span className="text-sm font-medium text-gray-700">
+              {t("filters")}
+            </span>
           </div>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Program Types</option>
+            <option value="all">{t("allProgramTypes")}</option>
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
@@ -170,7 +172,7 @@ export default function ProfitReport() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Profit by Program
+            {t("profitByProgram")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={profitData.slice(0, 8)}>
@@ -187,7 +189,7 @@ export default function ProfitReport() {
               <Tooltip
                 formatter={(value: number) => [
                   `${value.toLocaleString()} MAD`,
-                  "Profit",
+                  t("totalProfit"),
                 ]}
               />
               <Bar dataKey="totalProfit" fill="#059669" radius={[4, 4, 0, 0]} />
@@ -196,7 +198,7 @@ export default function ProfitReport() {
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Monthly Profit Trend
+            {t("monthlyProfitTrend")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrend}>
@@ -206,7 +208,7 @@ export default function ProfitReport() {
               <Tooltip
                 formatter={(value: number) => [
                   `${value.toLocaleString()} MAD`,
-                  "Profit",
+                  t("totalProfit"),
                 ]}
               />
               <Line
@@ -224,7 +226,7 @@ export default function ProfitReport() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">
-            Detailed Program Performance
+            {t("detailedProgramPerformance")}
           </h3>
         </div>
         <div className="overflow-x-auto">
@@ -232,10 +234,10 @@ export default function ProfitReport() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Program Name
+                  {t("programName")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  {t("programType")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t("bookings")}
@@ -244,13 +246,13 @@ export default function ProfitReport() {
                   {t("totalSales")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Cost
+                  {t("totalCost")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   {t("totalProfit")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Profit Margin
+                  {t("profitMargin")}
                 </th>
               </tr>
             </thead>

@@ -35,8 +35,8 @@ interface DashboardStats {
   dateFilteredStats: {
     totalBookings: number;
     totalRevenue: number;
-    totalProfit: number;
     totalCost: number;
+    totalProfit: number;
     totalPaid: number;
     totalRemaining: number;
   };
@@ -113,7 +113,7 @@ export default function Dashboard() {
   }
 
   if (isError || !dashboardData) {
-    return <div>Error loading dashboard data.</div>;
+    return <div>{t("errorLoadingDashboard")}</div>;
   }
 
   const {
@@ -166,7 +166,7 @@ export default function Dashboard() {
       value: `${dateFilteredStats.totalRevenue.toLocaleString()} MAD`,
     },
     {
-      title: t("TotalCosts"),
+      title: t("totalCosts"),
       value: `${dateFilteredStats.totalCost.toLocaleString()} MAD`,
     },
     {
@@ -178,11 +178,11 @@ export default function Dashboard() {
   const employeeMetrics = [
     { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
     {
-      title: "Total Paid",
+      title: t("totalPaid"),
       value: `${dateFilteredStats.totalPaid.toLocaleString()} MAD`,
     },
     {
-      title: "Total Remaining",
+      title: t("totalRemaining"),
       value: `${dateFilteredStats.totalRemaining.toLocaleString()} MAD`,
     },
   ];
@@ -358,7 +358,7 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Program Types Distribution
+            {t("programTypeDistribution")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -395,7 +395,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Quick Actions
+            {t("quickActions")}
           </h3>
           <div className="space-y-3">
             <Link
@@ -404,7 +404,7 @@ export default function Dashboard() {
             >
               <Calendar className="w-5 h-5 text-blue-500 mr-3" />
               <span className="text-sm font-medium text-gray-700">
-                New Booking
+                {t("newBooking")}
               </span>
             </Link>
             <Link
@@ -413,7 +413,7 @@ export default function Dashboard() {
             >
               <Package className="w-5 h-5 text-emerald-500 mr-3" />
               <span className="text-sm font-medium text-gray-700">
-                Add Program
+                {t("addProgram")}
               </span>
             </Link>
             {(userRole === "admin" || userRole === "manager") && (
@@ -423,7 +423,7 @@ export default function Dashboard() {
               >
                 <TrendingUp className="w-5 h-5 text-orange-500 mr-3" />
                 <span className="text-sm font-medium text-gray-700">
-                  View Reports
+                  {t("viewReports")}
                 </span>
               </Link>
             )}
@@ -432,13 +432,13 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Payment Status
+            {t("paymentStatus")}
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500 mr-2" />
-                <span className="text-sm text-gray-600">Fully Paid</span>
+                <span className="text-sm text-gray-600">{t("fullyPaid")}</span>
               </div>
               <span className="text-sm font-semibold text-gray-900">
                 {fullyPaidBookings}
@@ -447,7 +447,7 @@ export default function Dashboard() {
             <div className="flex justify-between items-center">
               <div className="flex items-center">
                 <Clock className="w-5 h-5 text-orange-500 mr-2" />
-                <span className="text-sm text-gray-600">Pending</span>
+                <span className="text-sm text-gray-600">{t("pending")}</span>
               </div>
               <span className="text-sm font-semibold text-gray-900">
                 {pendingPayments}
@@ -458,7 +458,7 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Recent Bookings
+            {t("recentBookings")}
           </h3>
           <div className="space-y-3">
             {recentBookings.map((booking) => (
@@ -485,7 +485,7 @@ export default function Dashboard() {
                         : "bg-orange-100 text-orange-700"
                     }`}
                   >
-                    {booking.isFullyPaid ? "Paid" : "Pending"}
+                    {booking.isFullyPaid ? t("paid") : t("pending")}
                   </span>
                 </div>
               </div>

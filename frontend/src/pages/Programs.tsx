@@ -180,17 +180,17 @@ export default function Programs() {
   }
 
   if (isError) {
-    return <div>Error loading programs.</div>;
+    return <div>{t("errorLoadingDashboard")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("programs")}</h1>
-          <p className="text-gray-600 mt-2">
-            Manage your travel programs and packages
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t("programsTitle")}
+          </h1>
+          <p className="text-gray-600 mt-2">{t("programsSubtitle")}</p>
         </div>
         <button
           onClick={handleAddProgram}
@@ -206,7 +206,7 @@ export default function Programs() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder={`${t("search")} programs... (Press Enter to search)`}
+              placeholder={t("searchProgramsPlaceholder") as string}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -218,7 +218,7 @@ export default function Programs() {
             onChange={(e) => handleFilterChange(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Types</option>
+            <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
@@ -231,6 +231,7 @@ export default function Programs() {
           const canModify =
             currentUser?.role === "admin" ||
             currentUser?.id === program.employeeId;
+          const packageCount = (program.packages ?? []).length;
           return (
             <div
               key={program.id}
@@ -269,7 +270,9 @@ export default function Programs() {
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  <span>{program.duration} days</span>
+                  <span>
+                    {program.duration} {t("days")}
+                  </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="w-4 h-4 mr-2" />
@@ -280,8 +283,7 @@ export default function Programs() {
                 <div className="flex items-center text-sm text-gray-600">
                   <Users className="w-4 h-4 mr-2" />
                   <span>
-                    {(program.packages ?? []).length} package
-                    {(program.packages ?? []).length !== 1 ? "s" : ""}
+                    {packageCount} {t("package", { count: packageCount })}
                   </span>
                 </div>
               </div>
@@ -298,7 +300,9 @@ export default function Programs() {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 pt-3 mt-3 border-t border-gray-100">
                   <Users className="w-4 h-4 mr-2" />
-                  <span>Total Bookings: {program.totalBookings || 0}</span>
+                  <span>
+                    {t("totalBookings")}: {program.totalBookings || 0}
+                  </span>
                 </div>
               </div>
             </div>
@@ -314,7 +318,7 @@ export default function Programs() {
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
+            {t("previous")}
           </button>
           <div className="flex items-center space-x-1">
             {paginationRange.map((pageNumber, index) => {
@@ -349,7 +353,7 @@ export default function Programs() {
             disabled={currentPage === pagination.totalPages}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
           </button>
         </div>
@@ -361,11 +365,9 @@ export default function Programs() {
             <Package className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No programs found
+            {t("noProgramsFound")}
           </h3>
-          <p className="text-gray-500 mb-6">
-            Create your first program to get started.
-          </p>
+          <p className="text-gray-500 mb-6">{t("noProgramsLead")}</p>
         </div>
       )}
 
@@ -392,8 +394,8 @@ export default function Programs() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Program"
-        message="Are you sure you want to delete this program? This action cannot be undone and will remove all associated data."
+        title={t("deleteProgramTitle")}
+        message={t("deleteProgramMessage")}
       />
     </div>
   );
