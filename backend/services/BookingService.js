@@ -21,48 +21,11 @@ const calculateBasePrice = async (
     'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
     [tripId, userId]
   );
-  if (pricings.length === 0) return 0; // Return 0 if no pricing is set up
+  // If no pricing is set up at all, the base price is 0.
+  if (pricings.length === 0) return 0;
   const pricing = pricings[0];
 
-  const bookingPackage = (program.packages || []).find(
-    (p) => p.name === packageId
-  );
-  if (!bookingPackage) return 0;
-
-  const hotelCombination = (selectedHotel.hotelNames || []).join("_");
-  const priceStructure = (bookingPackage.prices || []).find(
-    (p) => p.hotelCombination === hotelCombination
-  );
-  if (!priceStructure) return 0;
-
-  const guestMap = new Map(
-    priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
-  );
-
-  const hotelCosts = (selectedHotel.cities || []).reduce(
-    (total, city, index) => {
-      const hotelName = selectedHotel.hotelNames[index];
-      const roomTypeName = selectedHotel.roomTypes[index];
-      const hotelPricingInfo = (pricing.allHotels || []).find(
-        (h) => h.name === hotelName && h.city === city
-      );
-      const cityInfo = (program.cities || []).find((c) => c.name === city);
-
-      if (hotelPricingInfo && cityInfo && roomTypeName) {
-        const pricePerNight = Number(
-          hotelPricingInfo.PricePerNights?.[roomTypeName] || 0
-        );
-        const nights = Number(cityInfo.nights || 0);
-        const guests = Number(guestMap.get(roomTypeName) || 1);
-        if (guests > 0) {
-          return total + (pricePerNight * nights) / guests;
-        }
-      }
-      return total;
-    },
-    0
-  );
-
+  // --- Calculate non-hotel costs first ---
   const personTypeInfo = (pricing.personTypes || []).find(
     (p) => p.type === personType
   );
@@ -75,9 +38,56 @@ const calculateBasePrice = async (
   const guidePrice = Number(pricing.guideFees || 0);
   const transportPrice = Number(pricing.transportFees || 0);
 
-  return Math.round(
-    ticketPrice + visaPrice + guidePrice + transportPrice + hotelCosts
+  const nonHotelCosts = ticketPrice + visaPrice + guidePrice + transportPrice;
+
+  // --- Conditionally calculate hotel costs ---
+  let hotelCosts = 0;
+  const bookingPackage = (program.packages || []).find(
+    (p) => p.name === packageId
   );
+
+  // Only proceed with hotel cost calculation if a package and hotels are selected
+  if (
+    bookingPackage &&
+    selectedHotel &&
+    selectedHotel.hotelNames &&
+    selectedHotel.hotelNames.some((h) => h)
+  ) {
+    const hotelCombination = (selectedHotel.hotelNames || []).join("_");
+    const priceStructure = (bookingPackage.prices || []).find(
+      (p) => p.hotelCombination === hotelCombination
+    );
+
+    // And a corresponding price structure for the selected hotels exists
+    if (priceStructure) {
+      const guestMap = new Map(
+        priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
+      );
+
+      hotelCosts = (selectedHotel.cities || []).reduce((total, city, index) => {
+        const hotelName = selectedHotel.hotelNames[index];
+        const roomTypeName = selectedHotel.roomTypes[index];
+        const hotelPricingInfo = (pricing.allHotels || []).find(
+          (h) => h.name === hotelName && h.city === city
+        );
+        const cityInfo = (program.cities || []).find((c) => c.name === city);
+
+        if (hotelPricingInfo && cityInfo && roomTypeName) {
+          const pricePerNight = Number(
+            hotelPricingInfo.PricePerNights?.[roomTypeName] || 0
+          );
+          const nights = Number(cityInfo.nights || 0);
+          const guests = Number(guestMap.get(roomTypeName) || 1);
+          if (guests > 0) {
+            return total + (pricePerNight * nights) / guests;
+          }
+        }
+        return total;
+      }, 0);
+    }
+  }
+
+  return Math.round(nonHotelCosts + hotelCosts);
 };
 
 const createBooking = async (db, user, bookingData) => {

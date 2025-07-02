@@ -441,6 +441,9 @@ const resources = {
       cheque: "شيك",
       transfer: "تحويل بنكي",
       card: "بطاقة ائتمان/خصم",
+      bankName: "اسم البنك",
+      chequeNumber: "رقم الشيك",
+      checkCashingDate: "تاريخ صرف الشيك",
       paymentDate: "تاريخ الدفعة",
       amountExceedsBalance:
         "لا يمكن أن يتجاوز مبلغ الدفعة الرصيد المتبقي ({{balance}} درهم)",
@@ -673,6 +676,9 @@ const resources = {
       cheque: "Chèque",
       transfer: "Virement Bancaire",
       card: "Carte de Crédit/Débit",
+      bankName: "Nom de la Banque",
+      chequeNumber: "Numéro de Chèque",
+      checkCashingDate: "Date d'Encaissement",
       paymentDate: "Date du Paiement",
       amountExceedsBalance:
         "Le montant du paiement ne peut pas dépasser le solde restant ({{balance}} MAD)",
