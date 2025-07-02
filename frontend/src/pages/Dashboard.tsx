@@ -166,7 +166,7 @@ export default function Dashboard() {
       value: `${dateFilteredStats.totalRevenue.toLocaleString()} MAD`,
     },
     {
-      title: "Total Costs",
+      title: t("TotalCosts"),
       value: `${dateFilteredStats.totalCost.toLocaleString()} MAD`,
     },
     {
@@ -212,9 +212,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">{t("dashboard")}</h1>
-        <p className="text-gray-600 mt-2">
-          Overview of your travel agency performance and key metrics
-        </p>
+        <p className="text-gray-600 mt-2">{t("welcomeMessage")}</p>
       </div>
 
       <div
@@ -264,7 +262,7 @@ export default function Dashboard() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Today
+                  {t("today")}
                 </button>
                 <button
                   onClick={() => setDateFilter("7days")}
@@ -274,7 +272,7 @@ export default function Dashboard() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Last 7 Days
+                  {t("last7Days")}
                 </button>
                 <button
                   onClick={() => setDateFilter("month")}
@@ -284,7 +282,7 @@ export default function Dashboard() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Last 30 Days
+                  {t("last30Days")}
                 </button>
                 <button
                   onClick={() => setDateFilter("year")}
@@ -294,7 +292,7 @@ export default function Dashboard() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Last Year
+                  {t("lastYear")}
                 </button>
                 <button
                   onClick={() => setDateFilter("custom")}
@@ -304,7 +302,7 @@ export default function Dashboard() {
                       : "text-gray-600 hover:text-gray-900"
                   }`}
                 >
-                  Custom
+                  {t("customRange")}
                 </button>
               </div>
             </div>

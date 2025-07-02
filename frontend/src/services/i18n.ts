@@ -10,6 +10,7 @@ const resources = {
       booking: "Booking",
       programPricing: "Program Pricing",
       profitReport: "Profit Report",
+      roomManagement: "Room Management",
 
       // Common
       add: "Add",
@@ -25,7 +26,16 @@ const resources = {
       totalBookings: "Total Bookings",
       totalRevenue: "Total Revenue",
       totalProfit: "Total Profit",
+      TotalCosts: "Total Costs",
       activePrograms: "Active Programs",
+      welcomeMessage:
+        "Welcome to the Travel Agency Dashboard! Here you can manage your programs, bookings, and view reports.",
+      // Date Filters
+      today: "Today",
+      last7Days: "Last 7 Days",
+      last30Days: "Last 30 Days",
+      lastYear: "Last Year",
+      customRange: "Custom",
 
       // Programs
       programName: "Program Name",
@@ -61,6 +71,8 @@ const resources = {
       booking: "الحجوزات",
       programPricing: "تسعير البرنامج",
       profitReport: "تقرير الأرباح",
+      roomManagement: "إدارة الغرف",
+      employees: "الموظفين",
 
       // Common
       add: "إضافة",
@@ -76,7 +88,15 @@ const resources = {
       totalBookings: "إجمالي الحجوزات",
       totalRevenue: "إجمالي الإيرادات",
       totalProfit: "إجمالي الأرباح",
+      TotalCosts: "إجمالي التكاليف",
       activePrograms: "البرامج النشطة",
+      welcomeMessage:
+        "مرحبًا بك في لوحة تحكم وكالة السفر! هنا يمكنك إدارة برامجك وحجوزاتك وعرض التقارير.",
+      today: "اليوم",
+      last7Days: "اخر 7 ايام",
+      last30Days: "اخر 30 يوما",
+      lastYear: "اخر سنة",
+      customRange: "مخصص",
 
       // Programs
       programName: "اسم البرنامج",
@@ -122,7 +142,15 @@ const resources = {
       totalBookings: "Total Réservations",
       totalRevenue: "Chiffre d'Affaires Total",
       totalProfit: "Profit Total",
+      TotalCosts: "Coûts Totals",
       activePrograms: "Programmes Actifs",
+      welcomeMessage:
+        "Bienvenue dans le Tableau de Bord de l'Agence de Voyage ! Ici, vous pouvez gérer vos programmes, réservations et consulter les rapports.",
+      today: "Aujourd'hui",
+      last7Days: "Derniers semaines",
+      last30Days: "Derniers mois",
+      lastYear: "Dernière Année",
+      customRange: "Personnalisé",
 
       // Programs
       programName: "Nom du Programme",
@@ -150,8 +178,8 @@ const resources = {
 
 i18n.use(initReactI18next).init({
   resources,
-  lng: "en",
-  fallbackLng: "en",
+  lng: "fr",
+  fallbackLng: "fr",
   interpolation: {
     escapeValue: false,
   },
