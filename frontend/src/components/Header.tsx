@@ -1,20 +1,21 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { useAuthContext } from "../context/AuthContext"; // Updated
+import { useAuthContext } from "../context/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { Globe, User, LogOut } from "lucide-react";
 
 export default function Header() {
   const { t, i18n } = useTranslation();
-  const { state, dispatch } = useAuthContext(); // Updated
+  const { state, dispatch } = useAuthContext();
+  const queryClient = useQueryClient(); // Get the query client instance
 
   const changeLanguage = (lang: "en" | "ar" | "fr") => {
     i18n.changeLanguage(lang);
-    // Note: The 'SET_LANGUAGE' action was part of the old AppContext.
-    // This can be moved to a separate 'SettingsContext' or managed by i18n exclusively.
-    // For now, we remove the dispatch call as it doesn't belong in AuthContext.
   };
 
   const handleLogout = () => {
+    // Clear the React Query cache to remove the previous user's data
+    queryClient.clear();
     dispatch({ type: "LOGOUT" });
   };
 
