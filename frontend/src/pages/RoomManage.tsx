@@ -20,6 +20,7 @@ import OccupantSearchBox from "../components/room/OccupantSearchBox";
 type MovePersonState = {
   occupant: Occupant;
   fromRoomName: string;
+  fromRoomType: string;
 } | null;
 
 export default function RoomManage() {
@@ -151,12 +152,15 @@ export default function RoomManage() {
   // Handlers
   const handleAssignOccupant = (
     roomName: string,
+    roomType: string,
     slotIndex: number,
     occupant: Occupant
   ) => {
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
-      const room = newRooms.find((r: Room) => r.name === roomName);
+      const room = newRooms.find(
+        (r: Room) => r.name === roomName && r.type === roomType
+      );
       if (room) {
         room.occupants[slotIndex] = occupant;
       }
@@ -164,10 +168,16 @@ export default function RoomManage() {
     });
   };
 
-  const handleUnassignOccupant = (roomName: string, slotIndex: number) => {
+  const handleUnassignOccupant = (
+    roomName: string,
+    roomType: string,
+    slotIndex: number
+  ) => {
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
-      const room = newRooms.find((r: Room) => r.name === roomName);
+      const room = newRooms.find(
+        (r: Room) => r.name === roomName && r.type === roomType
+      );
       if (room) {
         room.occupants[slotIndex] = null;
       }
@@ -175,18 +185,26 @@ export default function RoomManage() {
     });
   };
 
-  const handleMoveOccupant = (occupant: Occupant, fromRoomName: string) => {
-    setMovePersonState({ occupant, fromRoomName });
+  const handleMoveOccupant = (
+    occupant: Occupant,
+    fromRoomName: string,
+    fromRoomType: string
+  ) => {
+    setMovePersonState({ occupant, fromRoomName, fromRoomType });
   };
 
-  const executeMove = (toRoomName: string) => {
+  const executeMove = (toRoomName: string, toRoomType: string) => {
     if (!movePersonState) return;
-    const { occupant, fromRoomName } = movePersonState;
+    const { occupant, fromRoomName, fromRoomType } = movePersonState;
 
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
-      const fromRoom = newRooms.find((r: Room) => r.name === fromRoomName);
-      const toRoom = newRooms.find((r: Room) => r.name === toRoomName);
+      const fromRoom = newRooms.find(
+        (r: Room) => r.name === fromRoomName && r.type === fromRoomType
+      );
+      const toRoom = newRooms.find(
+        (r: Room) => r.name === toRoomName && r.type === toRoomType
+      );
 
       if (fromRoom && toRoom) {
         const emptySlotIndex = toRoom.occupants.findIndex(
@@ -239,15 +257,19 @@ export default function RoomManage() {
     setNewRoomDetails({ name: "", type: "" });
   };
 
-  const handleDeleteRoom = (roomName: string) => {
-    const roomToDelete = rooms.find((r) => r.name === roomName);
+  const handleDeleteRoom = (roomName: string, roomType: string) => {
+    const roomToDelete = rooms.find(
+      (r) => r.name === roomName && r.type === roomType
+    );
     if (roomToDelete && roomToDelete.occupants.some((o) => o !== null)) {
       toast.error(
         "Cannot delete a room with occupants. Please move them first."
       );
       return;
     }
-    setRooms(rooms.filter((r) => r.name !== roomName));
+    setRooms(
+      rooms.filter((r) => !(r.name === roomName && r.type === roomType))
+    );
   };
 
   const handleRoomNameChange = (oldName: string, roomType: string) => {
@@ -375,7 +397,7 @@ export default function RoomManage() {
               <h3 className="text-center font-bold text-xl">{type}</h3>
               {roomsInType.map((room) => (
                 <div
-                  key={room.name}
+                  key={`${room.name}-${room.type}`}
                   className="bg-white p-4 rounded-lg shadow-sm"
                 >
                   <div className="flex justify-between items-center mb-2">
@@ -416,7 +438,7 @@ export default function RoomManage() {
                         {room.occupants.filter((o) => o).length}/{room.capacity}
                       </span>
                       <button
-                        onClick={() => handleDeleteRoom(room.name)}
+                        onClick={() => handleDeleteRoom(room.name, room.type)}
                         className="ml-2 text-red-500 hover:text-red-700"
                       >
                         <Trash2 size={16} />
@@ -432,10 +454,14 @@ export default function RoomManage() {
                         assignedOccupant={room.occupants[i]}
                         assignedIds={assignedIds}
                         onAssign={(occ) =>
-                          handleAssignOccupant(room.name, i, occ)
+                          handleAssignOccupant(room.name, room.type, i, occ)
                         }
-                        onUnassign={() => handleUnassignOccupant(room.name, i)}
-                        onMove={(occ) => handleMoveOccupant(occ, room.name)}
+                        onUnassign={() =>
+                          handleUnassignOccupant(room.name, room.type, i)
+                        }
+                        onMove={(occ) =>
+                          handleMoveOccupant(occ, room.name, room.type)
+                        }
                       />
                     ))}
                   </div>
@@ -472,15 +498,15 @@ export default function RoomManage() {
             <div className="max-h-64 overflow-y-auto space-y-2">
               {rooms.map((room) => (
                 <button
-                  key={room.name}
-                  onClick={() => executeMove(room.name)}
+                  key={`${room.name}-${room.type}`}
+                  onClick={() => executeMove(room.name, room.type)}
                   disabled={
                     room.occupants.filter((o) => o).length >= room.capacity
                   }
                   className="w-full text-left p-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
                 >
-                  {room.name} ({room.occupants.filter((o) => o).length}/
-                  {room.capacity})
+                  {room.name} ({room.type}) (
+                  {room.occupants.filter((o) => o).length}/{room.capacity})
                 </button>
               ))}
             </div>
