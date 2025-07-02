@@ -5,7 +5,6 @@ const multer = require("multer");
 const {
   getAllBookings,
   getBookingsByProgram,
-  getBookingStatsByProgram, // <-- NEW
   createBooking,
   updateBooking,
   deleteBooking,
@@ -27,7 +26,7 @@ const upload = multer({ dest: "/tmp" });
 // Booking routes
 router.get("/", getAllBookings);
 router.get("/program/:programId", getBookingsByProgram);
-router.get("/program/:programId/stats", getBookingStatsByProgram); // <-- NEW ROUTE
+// The route for /program/:programId/stats has been removed as its logic is now combined into the route above.
 router.post("/", bookingValidation, handleValidationErrors, createBooking);
 router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
 router.delete("/:id", deleteBooking);

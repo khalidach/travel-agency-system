@@ -19,9 +19,16 @@ import { useAuthContext } from "../context/AuthContext";
 import BookingPageHeader from "../components/booking/BookingPageHeader";
 import PaymentManagementModal from "../components/booking/PaymentManagementModal";
 import PaginationControls from "../components/booking/PaginationControls";
+import { useDebounce } from "../hooks/useDebounce"; // Import debounce hook
 
 // Types and API
-import type { Booking, Payment, Program, Employee } from "../context/models";
+import type {
+  Booking,
+  Payment,
+  Program,
+  Employee,
+  BookingSummaryStats, // FIXED: Changed from 'BookingSummary as BookingSummaryType'
+} from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 
@@ -34,7 +41,6 @@ interface BookingPageState {
   isExporting: boolean;
   importFile: File | null;
   currentPage: number;
-  submittedSearchTerm: string;
 }
 
 type BookingPageAction =
@@ -44,8 +50,7 @@ type BookingPageAction =
   | { type: "SET_BOOKING_TO_DELETE"; payload: number | null }
   | { type: "SET_IS_EXPORTING"; payload: boolean }
   | { type: "SET_IMPORT_FILE"; payload: File | null }
-  | { type: "SET_CURRENT_PAGE"; payload: number }
-  | { type: "SET_SUBMITTED_SEARCH"; payload: string };
+  | { type: "SET_CURRENT_PAGE"; payload: number };
 
 const initialState: BookingPageState = {
   isBookingModalOpen: false,
@@ -55,7 +60,6 @@ const initialState: BookingPageState = {
   isExporting: false,
   importFile: null,
   currentPage: 1,
-  submittedSearchTerm: "",
 };
 
 function bookingPageReducer(
@@ -81,8 +85,6 @@ function bookingPageReducer(
       return { ...state, importFile: action.payload };
     case "SET_CURRENT_PAGE":
       return { ...state, currentPage: action.payload };
-    case "SET_SUBMITTED_SEARCH":
-      return { ...state, submittedSearchTerm: action.payload, currentPage: 1 };
     default:
       return state;
   }
@@ -103,15 +105,7 @@ interface BookingResponse {
     totalCount: number;
     totalPages: number;
   };
-}
-
-interface BookingStatsResponse {
-  totalBookings: number;
-  totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
-  totalPaid: number;
-  totalRemaining: number;
+  summary: BookingSummaryStats; // Use the new type
 }
 
 export default function BookingPage() {
@@ -130,12 +124,11 @@ export default function BookingPage() {
     isExporting,
     importFile,
     currentPage,
-    submittedSearchTerm,
   } = state;
 
   const bookingsPerPage = 10;
 
-  const { register, watch, getValues } = useForm<FilterFormData>({
+  const { register, watch } = useForm<FilterFormData>({
     defaultValues: {
       searchTerm: "",
       sortOrder: "newest",
@@ -144,29 +137,21 @@ export default function BookingPage() {
     },
   });
 
+  const searchTerm = watch("searchTerm");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search term
   const sortOrder = watch("sortOrder");
   const statusFilter = watch("statusFilter");
   const employeeFilter = watch("employeeFilter");
 
   useEffect(() => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
-  }, [submittedSearchTerm, sortOrder, statusFilter, employeeFilter]);
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      dispatch({
-        type: "SET_SUBMITTED_SEARCH",
-        payload: getValues("searchTerm"),
-      });
-    }
-  };
+  }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
   const bookingQueryKey = [
-    "bookings",
+    "bookingsByProgram",
     programId,
     sortOrder === "family" ? "all" : currentPage,
-    submittedSearchTerm,
+    debouncedSearchTerm,
     sortOrder,
     statusFilter,
     employeeFilter,
@@ -180,33 +165,17 @@ export default function BookingPage() {
         api.getBookingsByProgram(programId!, {
           page: sortOrder === "family" ? 1 : currentPage,
           limit: sortOrder === "family" ? 9999 : bookingsPerPage,
-          searchTerm: submittedSearchTerm,
+          searchTerm: debouncedSearchTerm,
           sortOrder,
           statusFilter,
           employeeFilter,
         }),
       enabled: !!programId,
-    });
-
-  const { data: summaryStats, isLoading: isLoadingStats } =
-    useQuery<BookingStatsResponse>({
-      queryKey: [
-        "bookingStats",
-        programId,
-        submittedSearchTerm,
-        statusFilter,
-        employeeFilter,
-      ],
-      queryFn: () =>
-        api.getBookingStatsByProgram(programId!, {
-          searchTerm: submittedSearchTerm,
-          statusFilter,
-          employeeFilter,
-        }),
-      enabled: !!programId,
+      placeholderData: (prev) => prev,
     });
 
   const allBookings = bookingResponse?.data ?? [];
+  const summaryStats = bookingResponse?.summary;
   const totalBookingCount =
     sortOrder === "family"
       ? allBookings.length
@@ -251,6 +220,7 @@ export default function BookingPage() {
     queryKey: ["program", programId],
     queryFn: () => api.getProgramById(programId!),
     enabled: !!programId,
+    staleTime: 10 * 60 * 1000, // Stale for 10 minutes
   });
   const programs = program ? [program] : [];
 
@@ -260,6 +230,7 @@ export default function BookingPage() {
     queryKey: ["employees"],
     queryFn: api.getEmployees,
     enabled: userRole === "admin" || userRole === "manager",
+    staleTime: 15 * 60 * 1000, // Stale for 15 minutes
   });
   const employees = employeesData?.employees ?? [];
 
@@ -274,8 +245,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       toast.success("Booking created!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -294,8 +264,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       toast.success("Booking updated!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -306,8 +275,7 @@ export default function BookingPage() {
   const { mutate: deleteBooking } = useMutation({
     mutationFn: api.deleteBooking,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       toast.success("Booking deleted!");
     },
     onError: (error: Error) =>
@@ -320,8 +288,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment added!");
     },
@@ -336,8 +303,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment updated!");
     },
@@ -349,8 +315,7 @@ export default function BookingPage() {
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
       toast.success("Payment deleted!");
     },
@@ -361,8 +326,7 @@ export default function BookingPage() {
   const { mutate: importBookings, isPending: isImporting } = useMutation({
     mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),
@@ -476,7 +440,7 @@ export default function BookingPage() {
     }
   };
 
-  if (isLoadingBookings || isLoadingProgram || isLoadingEmployees) {
+  if (isLoadingProgram || isLoadingEmployees) {
     return <BookingSkeleton />;
   }
 
@@ -492,7 +456,7 @@ export default function BookingPage() {
         importFile={importFile}
       />
 
-      {summaryStats && !isLoadingStats ? (
+      {summaryStats && !isLoadingBookings ? (
         <BookingSummary stats={summaryStats} />
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -513,51 +477,57 @@ export default function BookingPage() {
         handleExport={handleExport}
         isExporting={isExporting}
         employees={employees}
-        onSearchKeyDown={handleSearchKeyDown}
+        onSearchKeyDown={() => {}} // No longer needed as we use debounce
       />
 
-      <BookingTable
-        bookings={processedBookings}
-        programs={programs}
-        onEditBooking={(booking) =>
-          dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
-        }
-        onDeleteBooking={(id) =>
-          dispatch({ type: "SET_BOOKING_TO_DELETE", payload: id })
-        }
-        onManagePayments={(booking) =>
-          dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: booking })
-        }
-      />
+      {isLoadingBookings && !bookingResponse ? (
+        <BookingSkeleton />
+      ) : (
+        <>
+          <BookingTable
+            bookings={processedBookings}
+            programs={programs}
+            onEditBooking={(booking) =>
+              dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
+            }
+            onDeleteBooking={(id) =>
+              dispatch({ type: "SET_BOOKING_TO_DELETE", payload: id })
+            }
+            onManagePayments={(booking) =>
+              dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: booking })
+            }
+          />
 
-      <PaginationControls
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={(page) =>
-          dispatch({ type: "SET_CURRENT_PAGE", payload: page })
-        }
-        paginationRange={paginationRange}
-      />
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) =>
+              dispatch({ type: "SET_CURRENT_PAGE", payload: page })
+            }
+            paginationRange={paginationRange}
+          />
 
-      {allBookings.length === 0 && !isLoadingBookings && (
-        <div className="text-center py-12 bg-white rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-12 h-12 text-gray-400" />
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No bookings found for this program
-          </h3>
-          <p className="text-gray-500 mb-6">
-            Get started by creating the first booking.
-          </p>
-          <button
-            onClick={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            {t("addBooking")}
-          </button>
-        </div>
+          {allBookings.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-2xl">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-12 h-12 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No bookings found for this program
+              </h3>
+              <p className="text-gray-500 mb-6">
+                Get started by creating the first booking.
+              </p>
+              <button
+                onClick={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                {t("addBooking")}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <Modal

@@ -156,3 +156,13 @@ export interface Room {
   capacity: number;
   occupants: Occupant[];
 }
+
+// This new type defines the structure for the booking summary statistics.
+export interface BookingSummaryStats {
+  totalBookings: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalProfit: number;
+  totalPaid: number;
+  totalRemaining: number;
+}

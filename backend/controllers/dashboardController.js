@@ -7,101 +7,77 @@ const getDashboardStats = async (req, res) => {
     dateString && !isNaN(new Date(dateString));
 
   try {
-    // 1. All-time stats
-    const allTimeStatsQuery = `
-      SELECT
-        (SELECT COUNT(*) FROM bookings WHERE "userId" = $1) as "totalBookings",
-        (SELECT COALESCE(SUM("sellingPrice"), 0) FROM bookings WHERE "userId" = $1) as "totalRevenue",
-        (SELECT COALESCE(SUM(profit), 0) FROM bookings WHERE "userId" = $1) as "totalProfit",
-        (SELECT COUNT(*) FROM programs WHERE "userId" = $1) as "activePrograms"
-    `;
-    const allTimeStatsPromise = req.db.query(allTimeStatsQuery, [adminId]);
-
-    // 2. Date-filtered stats
-    let dateFilterCondition = "";
-    const dateFilterParams = [adminId];
+    // FIX: Construct the date filter clause safely.
+    let dateFilterClause = "";
+    const queryParams = [adminId];
     if (isValidDate(startDate) && isValidDate(endDate)) {
-      // FIX: Cast `createdAt` to date to correctly handle the range.
-      dateFilterCondition = `AND "createdAt"::date BETWEEN $2 AND $3`;
-      dateFilterParams.push(startDate, endDate);
+      queryParams.push(startDate, endDate);
+      // The clause now correctly includes the table alias 'b.'
+      dateFilterClause = `AND b."createdAt"::date BETWEEN $2 AND $3`;
     }
 
-    const simplifiedDateFilteredQuery = `
+    // This consolidated query is now corrected to handle the optional date filter.
+    const statsQuery = `
       SELECT
-        COUNT(*) as "filteredBookingsCount",
-        COALESCE(SUM("sellingPrice"), 0) as "filteredRevenue",
-        COALESCE(SUM(profit), 0) as "filteredProfit",
-        COALESCE(SUM("basePrice"), 0) as "filteredCost",
-        COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) as "filteredPaid"
-      FROM bookings
-      WHERE "userId" = $1 ${dateFilterCondition}
-    `;
-    const dateFilteredStatsPromise = req.db.query(
-      simplifiedDateFilteredQuery,
-      dateFilterParams
-    );
+        (SELECT COUNT(*) FROM programs WHERE "userId" = $1) as "activePrograms",
+        
+        COUNT(*) as "allTimeBookings",
+        COALESCE(SUM(b."sellingPrice"), 0) as "allTimeRevenue",
+        COALESCE(SUM(b.profit), 0) as "allTimeProfit",
+        
+        COUNT(*) FILTER (WHERE 1=1 ${dateFilterClause}) as "filteredBookingsCount",
+        COALESCE(SUM(b."sellingPrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredRevenue",
+        COALESCE(SUM(b.profit) FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredProfit",
+        COALESCE(SUM(b."basePrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredCost",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredPaid",
 
-    // 3. Program type distribution
-    const programTypeQuery = `
-        SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type
-    `;
-    const programTypePromise = req.db.query(programTypeQuery, [adminId]);
-
-    // 4. Payment status (added COALESCE for safety)
-    const paymentStatusQuery = `
-      SELECT
         COALESCE(SUM(CASE WHEN "isFullyPaid" = true THEN 1 ELSE 0 END), 0) as "fullyPaid",
         COALESCE(SUM(CASE WHEN "isFullyPaid" = false THEN 1 ELSE 0 END), 0) as "pending"
-      FROM bookings WHERE "userId" = $1
+      FROM bookings b
+      WHERE b."userId" = $1
     `;
-    const paymentStatusPromise = req.db.query(paymentStatusQuery, [adminId]);
 
-    // 5. Recent bookings
-    const recentBookingsQuery = `
-      SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid"
-      FROM bookings WHERE "userId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT 3
-    `;
-    const recentBookingsPromise = req.db.query(recentBookingsQuery, [adminId]);
+    const statsPromise = req.db.query(statsQuery, queryParams);
 
-    // Execute all queries in parallel
-    const [
-      allTimeStatsResult,
-      dateFilteredStatsResult,
-      programTypeResult,
-      paymentStatusResult,
-      recentBookingsResult,
-    ] = await Promise.all([
-      allTimeStatsPromise,
-      dateFilteredStatsPromise,
-      programTypePromise,
-      paymentStatusPromise,
-      recentBookingsPromise,
-    ]);
+    // Other independent queries remain the same
+    const programTypePromise = req.db.query(
+      `SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type`,
+      [adminId]
+    );
+    const recentBookingsPromise = req.db.query(
+      `SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid"
+       FROM bookings WHERE "userId" = $1
+       ORDER BY "createdAt" DESC
+       LIMIT 3`,
+      [adminId]
+    );
 
-    // Format the results
-    const allTimeStats = allTimeStatsResult.rows[0];
-    const dateFilteredStats = dateFilteredStatsResult.rows[0];
+    const [statsResult, programTypeResult, recentBookingsResult] =
+      await Promise.all([
+        statsPromise,
+        programTypePromise,
+        recentBookingsPromise,
+      ]);
+
+    const stats = statsResult.rows[0];
     const programTypes = programTypeResult.rows;
-    const paymentStatus = paymentStatusResult.rows[0];
     const recentBookings = recentBookingsResult.rows;
 
-    const filteredRevenue = parseFloat(dateFilteredStats.filteredRevenue);
-    const filteredPaid = parseFloat(dateFilteredStats.filteredPaid);
+    const filteredRevenue = parseFloat(stats.filteredRevenue);
+    const filteredPaid = parseFloat(stats.filteredPaid);
 
     const formattedResponse = {
       allTimeStats: {
-        totalBookings: parseInt(allTimeStats.totalBookings, 10),
-        totalRevenue: parseFloat(allTimeStats.totalRevenue),
-        totalProfit: parseFloat(allTimeStats.totalProfit),
-        activePrograms: parseInt(allTimeStats.activePrograms, 10),
+        totalBookings: parseInt(stats.allTimeBookings, 10),
+        totalRevenue: parseFloat(stats.allTimeRevenue),
+        totalProfit: parseFloat(stats.allTimeProfit),
+        activePrograms: parseInt(stats.activePrograms, 10),
       },
       dateFilteredStats: {
-        totalBookings: parseInt(dateFilteredStats.filteredBookingsCount, 10),
+        totalBookings: parseInt(stats.filteredBookingsCount, 10),
         totalRevenue: filteredRevenue,
-        totalProfit: parseFloat(dateFilteredStats.filteredProfit),
-        totalCost: parseFloat(dateFilteredStats.filteredCost),
+        totalProfit: parseFloat(stats.filteredProfit),
+        totalCost: parseFloat(stats.filteredCost),
         totalPaid: filteredPaid,
         totalRemaining: filteredRevenue - filteredPaid,
       },
@@ -116,8 +92,8 @@ const getDashboardStats = async (req, res) => {
           0,
       },
       paymentStatus: {
-        fullyPaid: parseInt(paymentStatus.fullyPaid, 10) || 0,
-        pending: parseInt(paymentStatus.pending, 10) || 0,
+        fullyPaid: parseInt(stats.fullyPaid, 10) || 0,
+        pending: parseInt(stats.pending, 10) || 0,
       },
       recentBookings: recentBookings,
     };

@@ -83,17 +83,17 @@ export const getPrograms = (
   });
   return request(`/programs?${params.toString()}`);
 };
-export const getAllProgramsForBooking = (
-  searchTerm = "",
-  filterType = "all"
-) => {
+
+// OPTIMIZED: Now uses server-side search with a limit instead of fetching all.
+export const searchProgramsForBooking = (searchTerm = "", limit = 10) => {
   const params = new URLSearchParams({
-    noPaginate: "true",
+    limit: limit.toString(),
     searchTerm,
-    filterType,
+    filterType: "all", // Assuming we search all types
   });
   return request(`/programs?${params.toString()}`);
 };
+
 export const getProgramById = (id: string) => request(`/programs/${id}`);
 export const createProgram = (program: any) =>
   request("/programs", { method: "POST", body: JSON.stringify(program) });
@@ -121,6 +121,7 @@ export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
 
 // --- Booking API ---
+// OPTIMIZED: This now returns bookings and summary stats together.
 export const getBookingsByProgram = (
   programId: string,
   params: {
@@ -130,35 +131,18 @@ export const getBookingsByProgram = (
     sortOrder: string;
     statusFilter: string;
     employeeFilter: string;
-    noPaginate?: boolean;
   }
 ) => {
-  const queryParamsObject: Record<string, string> = {
-    page: params.page.toString(),
-    limit: params.limit.toString(),
+  // FIXED: Explicitly convert all params to strings for URLSearchParams.
+  const queryParams = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit),
     searchTerm: params.searchTerm,
     sortOrder: params.sortOrder,
     statusFilter: params.statusFilter,
     employeeFilter: params.employeeFilter,
-  };
-  if (params.noPaginate) {
-    queryParamsObject.noPaginate = "true";
-  }
-  const queryParams = new URLSearchParams(queryParamsObject).toString();
+  }).toString();
   return request(`/bookings/program/${programId}?${queryParams}`);
-};
-
-// NEW API function for getting just the stats
-export const getBookingStatsByProgram = (
-  programId: string,
-  params: {
-    searchTerm: string;
-    statusFilter: string;
-    employeeFilter: string;
-  }
-) => {
-  const queryParams = new URLSearchParams(params).toString();
-  return request(`/bookings/program/${programId}/stats?${queryParams}`);
 };
 
 export const searchBookingsInProgram = async (
@@ -177,7 +161,7 @@ export const searchBookingsInProgram = async (
   const result = await request(
     `/bookings/program/${programId}?${params.toString()}`
   );
-  return result.data;
+  return result.data; // The structure from the backend now wraps bookings in a 'data' property
 };
 
 export const createBooking = (booking: any) =>
@@ -188,7 +172,6 @@ export const deleteBooking = (id: number) =>
   request(`/bookings/${id}`, { method: "DELETE" });
 
 // --- Payment API ---
-// ... (rest of the file is unchanged)
 export const addPayment = (bookingId: number, payment: any) =>
   request(`/bookings/${bookingId}/payments`, {
     method: "POST",
