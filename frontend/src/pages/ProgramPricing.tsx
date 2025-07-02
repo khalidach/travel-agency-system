@@ -184,16 +184,14 @@ export default function ProgramPricingPage() {
   return (
     <div className="mx-auto p-6 space-y-8">
       <h1 className="text-2xl font-bold mb-6">{t("programPricing")}</h1>
-      <p className="text-gray-600 -mt-4 mb-4">
-        Select a program to add or edit its pricing details.
-      </p>
+      <p className="text-gray-600 -mt-4 mb-4">{t("programPricingSubtitle")}</p>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
               type="text"
-              placeholder={`${t("search")} programs... (Press Enter to search)`}
+              placeholder={t("searchProgramsPlaceholder") as string}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -205,7 +203,7 @@ export default function ProgramPricingPage() {
             onChange={(e) => handleFilterChange(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Types</option>
+            <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
@@ -333,7 +331,7 @@ export default function ProgramPricingPage() {
                     </div>
                     <div className="flex items-center">
                       <Plane className="w-4 h-4 mr-2 text-gray-400" />
-                      Flight:{" "}
+                      {t("flightTicketPrice")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {Number(pricing.ticketAirline || 0).toLocaleString()}{" "}
                         MAD
@@ -341,7 +339,7 @@ export default function ProgramPricingPage() {
                     </div>
                     <div className="flex items-center">
                       <Bus className="w-4 h-4 mr-2 text-gray-400" />
-                      Transport:{" "}
+                      {t("transportFees")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {Number(pricing.transportFees || 0).toLocaleString()}{" "}
                         MAD
@@ -349,28 +347,28 @@ export default function ProgramPricingPage() {
                     </div>
                     <div className="flex items-center">
                       <CreditCard className="w-4 h-4 mr-2 text-gray-400" />
-                      Visa:{" "}
+                      {t("visaFees")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {Number(pricing.visaFees || 0).toLocaleString()} MAD
                       </span>
                     </div>
                     <div className="flex items-center">
                       <User className="w-4 h-4 mr-2 text-gray-400" />
-                      Guide:{" "}
+                      {t("guideFees")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {Number(pricing.guideFees || 0).toLocaleString()} MAD
                       </span>
                     </div>
                     <div className="flex items-center">
                       <Hotel className="w-4 h-4 mr-2 text-gray-400" />
-                      Hotels:{" "}
+                      {t("hotels")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {totalHotels}
                       </span>
                     </div>
                     <div className="flex items-center">
                       <BedDouble className="w-4 h-4 mr-2 text-gray-400" />
-                      Room Types:{" "}
+                      {t("roomType")}:{" "}
                       <span className="font-medium text-gray-800 ml-1">
                         {totalRoomTypes}
                       </span>
@@ -378,7 +376,7 @@ export default function ProgramPricingPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-400">
-                    No pricing set for this program.
+                    {t("noPricingSet")}
                   </div>
                 )}
               </div>
@@ -389,7 +387,7 @@ export default function ProgramPricingPage() {
                     <div className="flex items-center">
                       <User className="w-4 h-4 mr-2 text-gray-400" />
                       <span>
-                        Added by:{" "}
+                        {t("addedBy")}{" "}
                         <span className="font-medium text-gray-800">
                           {pricing.employeeName}
                         </span>
@@ -411,7 +409,7 @@ export default function ProgramPricingPage() {
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
+            {t("previous")}
           </button>
           <div className="flex items-center space-x-1">
             {paginationRange.map((page, i) =>
@@ -443,7 +441,7 @@ export default function ProgramPricingPage() {
             disabled={currentPage === pagination.totalPages}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
           >
-            Next
+            {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
           </button>
         </div>
@@ -454,8 +452,8 @@ export default function ProgramPricingPage() {
         onClose={() => setIsModalOpen(false)}
         title={
           selectedProgram
-            ? `Pricing for: ${selectedProgram.name}`
-            : "Program Pricing"
+            ? t("pricingFor", { programName: selectedProgram.name })
+            : t("programPricing")
         }
         size="xl"
       >
@@ -474,8 +472,8 @@ export default function ProgramPricingPage() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Pricing"
-        message="Are you sure you want to delete this pricing configuration? This may affect booking calculations. This action cannot be undone."
+        title={t("deletePricingTitle")}
+        message={t("deletePricingMessage")}
       />
     </div>
   );

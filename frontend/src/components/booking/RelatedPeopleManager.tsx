@@ -34,7 +34,7 @@ const RelatedPeopleManager = ({
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        {t("Related People")}
+        {t("relatedPeople")}
       </label>
       <div className="relative">
         <input
@@ -45,8 +45,8 @@ const RelatedPeopleManager = ({
           onBlur={onBlur}
           placeholder={
             selectedProgram
-              ? "Search for a client to add..."
-              : "Select a program first"
+              ? (t("searchClientToAdd") as string)
+              : (t("selectProgramFirst") as string)
           }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
           disabled={!selectedProgram}

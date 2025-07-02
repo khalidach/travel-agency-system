@@ -30,7 +30,7 @@ export default function BookingFilters({
         <div className="flex-1">
           <input
             type="text"
-            placeholder={`${t("search")} bookings... (Press Enter)`}
+            placeholder={t("searchBookingsPlaceholder") as string}
             {...register("searchTerm")}
             onKeyDown={onSearchKeyDown}
             className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -40,17 +40,17 @@ export default function BookingFilters({
           {...register("sortOrder")}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="newest">Sort by Newest</option>
-          <option value="oldest">Sort by Oldest</option>
-          <option value="family">Sort by Family</option>
+          <option value="newest">{t("sortByNewest")}</option>
+          <option value="oldest">{t("sortByOldest")}</option>
+          <option value="family">{t("sortByFamily")}</option>
         </select>
         <select
           {...register("statusFilter")}
           className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
-          <option value="all">All Status</option>
-          <option value="paid">Fully Paid</option>
-          <option value="pending">Pending Payment</option>
+          <option value="all">{t("allStatus")}</option>
+          <option value="paid">{t("fullyPaid")}</option>
+          <option value="pending">{t("pending")}</option>
         </select>
 
         {/* --- Conditionally render the employee filter --- */}
@@ -59,7 +59,7 @@ export default function BookingFilters({
             {...register("employeeFilter")}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Employees</option>
+            <option value="all">{t("allEmployees")}</option>
             {employees.map((employee) => (
               <option key={employee.id} value={employee.id}>
                 {employee.username}
@@ -74,7 +74,7 @@ export default function BookingFilters({
           className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           <Download className="w-4 h-4 mr-2" />
-          {isExporting ? "Exporting..." : "Export to Excel"}
+          {isExporting ? t("exporting") : t("exportToExcel")}
         </button>
       </div>
     </div>

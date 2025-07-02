@@ -99,11 +99,11 @@ export default function PaymentManagementModal({
                 <div>
                   <div className="flex items-center">
                     <span className="text-sm text-gray-900">
-                      {Number(payment.amount).toLocaleString()} MAD
+                      {Number(payment.amount).toLocaleString()} {t("mad")}
                     </span>
                     <span className="mx-2 text-gray-400">•</span>
                     <span className="text-sm text-gray-600 capitalize">
-                      {payment.method}
+                      {t(payment.method)}
                     </span>
                     <span className="mx-2 text-gray-400">•</span>
                     <span className="text-sm text-gray-600">
@@ -113,13 +113,13 @@ export default function PaymentManagementModal({
                   {payment.method === "cheque" && payment.chequeNumber && (
                     <div className="text-sm text-gray-500 mt-1">
                       <span className="font-medium">
-                        Check #{payment.chequeNumber}
+                        {t("chequeNumber")} #{payment.chequeNumber}
                       </span>
                       {payment.bankName && <span> • {payment.bankName}</span>}
                       {payment.chequeCashingDate && (
                         <span>
                           {" "}
-                          • Cashing:{" "}
+                          • {t("checkCashingDate")}:{" "}
                           {new Date(
                             payment.chequeCashingDate
                           ).toLocaleDateString()}
@@ -147,7 +147,7 @@ export default function PaymentManagementModal({
             {(!booking.advancePayments ||
               booking.advancePayments.length === 0) && (
               <div className="text-center py-8 text-gray-500">
-                No payments recorded yet
+                {t("noPaymentsRecorded")}
               </div>
             )}
           </div>
@@ -174,8 +174,8 @@ export default function PaymentManagementModal({
           isOpen={!!paymentToDelete}
           onClose={() => setPaymentToDelete(null)}
           onConfirm={confirmDeletePayment}
-          title="Delete Payment"
-          message="Are you sure you want to delete this payment? This action cannot be undone."
+          title={t("deletePaymentTitle")}
+          message={t("deletePaymentMessage")}
         />
       )}
     </>

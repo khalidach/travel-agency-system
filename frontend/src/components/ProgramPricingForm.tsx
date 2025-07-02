@@ -134,7 +134,7 @@ export default function ProgramPricingForm({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Flight Ticket Price
+              {t("flightTicketPrice")}
             </label>
             <input
               type="number"
@@ -150,7 +150,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Transport Fees
+              {t("transportFees")}
             </label>
             <input
               type="number"
@@ -166,7 +166,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Visa Fees
+              {t("visaFees")}
             </label>
             <input
               type="number"
@@ -182,7 +182,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Guide Fees
+              {t("guideFees")}
             </label>
             <input
               type="number"
@@ -199,12 +199,14 @@ export default function ProgramPricingForm({
         </div>
 
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Person Type Pricing</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            {t("personTypePricing")}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {(currentPricing.personTypes || []).map((personType, index) => (
               <div key={personType.type}>
                 <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                  {personType.type} Ticket Percentage
+                  {t("ticketPercentage", { personType: t(personType.type) })}
                 </label>
                 <div className="relative">
                   <input
@@ -228,7 +230,7 @@ export default function ProgramPricingForm({
         </div>
 
         <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Hotels</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("hotels")}</h2>
           {(currentPricing.allHotels || []).map((hotel, index) => (
             <div
               key={`${hotel.city}-${hotel.name}`}
@@ -238,7 +240,7 @@ export default function ProgramPricingForm({
                 <div>
                   <h3 className="font-medium">{hotel.name}</h3>
                   <p className="text-sm text-gray-600">
-                    {hotel.city} - {hotel.nights} {t("nights")}
+                    {hotel.city} - {t("nightsLabel", { count: hotel.nights })}
                   </p>
                 </div>
               </div>
@@ -246,7 +248,7 @@ export default function ProgramPricingForm({
                 {uniqueRoomTypesForProgram.map((roomType) => (
                   <div key={roomType}>
                     <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                      {t(roomType)} Price
+                      {t("roomTypePrice", { roomType: t(roomType) })}
                     </label>
                     <input
                       type="number"
@@ -257,7 +259,7 @@ export default function ProgramPricingForm({
                         handleHotelPriceChange(index, roomType, e.target.value)
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                      placeholder="Price/Night"
+                      placeholder={t("pricePerNightPlaceholder") as string}
                     />
                   </div>
                 ))}
@@ -272,7 +274,7 @@ export default function ProgramPricingForm({
             onClick={onCancel}
             className="px-4 py-2 bg-gray-100 rounded-lg"
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -281,10 +283,10 @@ export default function ProgramPricingForm({
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
           >
             {isSaving
-              ? "Saving..."
+              ? t("saving")
               : "id" in currentPricing
-              ? "Update Pricing"
-              : "Save Pricing"}
+              ? t("updatePricing")
+              : t("savePricing")}
           </button>
         </div>
       </>

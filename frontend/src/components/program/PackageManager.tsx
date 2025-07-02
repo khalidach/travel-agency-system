@@ -21,12 +21,15 @@ function getGuestsForType(type: string): number {
 
 // Sub-component for managing hotels within a package
 const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
+  const { t } = useTranslation();
   const { watch } = useFormContext();
   const cities = watch("cities");
 
   return (
     <div className="mb-6">
-      <h5 className="text-sm font-medium text-gray-700 mb-3">Hotels by City</h5>
+      <h5 className="text-sm font-medium text-gray-700 mb-3">
+        {t("hotelsByCity")}
+      </h5>
       <div className="space-y-4">
         {cities
           .filter((c: any) => c.name.trim())
@@ -49,6 +52,7 @@ const HotelManager = ({
   packageIndex: number;
   city: any;
 }) => {
+  const { t } = useTranslation();
   const { control, register } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -67,7 +71,7 @@ const HotelManager = ({
           onClick={() => append("")}
           className="text-xs text-blue-600 hover:text-blue-700 font-medium"
         >
-          + Add Hotel
+          {t("addHotel")}
         </button>
       </div>
       <div className="space-y-2">
@@ -77,7 +81,7 @@ const HotelManager = ({
               {...register(
                 `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`
               )}
-              placeholder="Hotel name"
+              placeholder={t("hotelNamePlaceholder") as string}
               className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
             />
             <button
@@ -153,20 +157,20 @@ export default function PackageManager() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <label className="block text-sm font-medium text-gray-700">
-          Packages
+          {t("packages")}
         </label>
         <button
           type="button"
           onClick={() =>
             appendPackage({
-              name: `Package ${packageFields.length + 1}`,
+              name: `${t("packageLabel")} ${packageFields.length + 1}`,
               hotels: {},
               prices: [],
             })
           }
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-1" /> Add Package
+          <Plus className="w-4 h-4 mr-1" /> {t("addPackage")}
         </button>
       </div>
       <div className="space-y-6">
@@ -179,7 +183,7 @@ export default function PackageManager() {
               {/* Package Header */}
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-gray-900">
-                  Package {packageIndex + 1}
+                  {t("packageLabel")} {packageIndex + 1}
                 </h4>
                 <button
                   type="button"
@@ -192,11 +196,11 @@ export default function PackageManager() {
               {/* Package Name */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Package Name
+                  {t("packageName")}
                 </label>
                 <input
                   {...register(`packages.${packageIndex}.name`)}
-                  placeholder="e.g., Standard, Premium"
+                  placeholder={t("packageNamePlaceholder") as string}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   required
                 />
@@ -214,12 +218,9 @@ export default function PackageManager() {
           ))
         ) : (
           <div className="text-center py-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-300">
-            <p className="text-sm text-gray-500">
-              No packages have been added.
-            </p>
+            <p className="text-sm text-gray-500">{t("noPackagesAdded")}</p>
             <p className="text-xs text-gray-400 mt-1">
-              Click "Add Package" to get started, or leave empty for programs
-              without packages.
+              {t("noPackagesLeadForm")}
             </p>
           </div>
         )}
@@ -236,6 +237,7 @@ const PriceStructureManager = ({
   packageIndex: number;
   generateAllHotelOptions: (idx: number) => string[];
 }) => {
+  const { t } = useTranslation();
   const { control } = useFormContext();
   const {
     fields: priceFields,
@@ -251,7 +253,7 @@ const PriceStructureManager = ({
   return (
     <div>
       <h5 className="text-sm font-medium text-gray-700 mb-3">
-        Hotel Combinations & Room Definitions
+        {t("hotelCombinationsTitle")}
       </h5>
       <div className="mb-4">
         <div className="flex flex-wrap gap-2">
@@ -312,6 +314,7 @@ const RoomTypeManager = ({
   packageIndex: number;
   priceIndex: number;
 }) => {
+  const { t } = useTranslation();
   const { control, register } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
@@ -328,7 +331,7 @@ const RoomTypeManager = ({
           >
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Room Type
+                {t("roomType")}
               </label>
               <input
                 {...register(
@@ -339,7 +342,7 @@ const RoomTypeManager = ({
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
-                Guests
+                {t("guests")}
               </label>
               <input
                 type="number"
@@ -369,7 +372,7 @@ const RoomTypeManager = ({
         onClick={() => append({ type: "Custom", guests: 1 })}
         className="text-xs text-blue-600 hover:text-blue-700 font-medium"
       >
-        + Add Custom Room Type
+        {t("addCustomRoomType")}
       </button>
     </div>
   );

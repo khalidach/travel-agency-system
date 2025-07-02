@@ -15,12 +15,12 @@ const ClientInfoFields = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Client Name (French)")}
+            {t("clientNameFr")}
           </label>
           <Controller
             name="clientNameFr"
             control={control}
-            rules={{ required: "Client name in French is required" }}
+            rules={{ required: t("clientNameFrRequired") as string }}
             render={({ field }) => (
               <input
                 {...field}
@@ -37,12 +37,12 @@ const ClientInfoFields = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Client Name (Arabic)")}
+            {t("clientNameAr")}
           </label>
           <Controller
             name="clientNameAr"
             control={control}
-            rules={{ required: "Client name in Arabic is required" }}
+            rules={{ required: t("clientNameArRequired") as string }}
             render={({ field }) => (
               <input
                 {...field}
@@ -60,20 +60,20 @@ const ClientInfoFields = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Person Type
+            {t("personType")}
           </label>
           <Controller
             name="personType"
             control={control}
-            rules={{ required: "Person type is required" }}
+            rules={{ required: t("personTypeRequired") as string }}
             render={({ field }) => (
               <select
                 {...field}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
-                <option value="adult">Adult</option>
-                <option value="child">Child</option>
-                <option value="infant">Infant</option>
+                <option value="adult">{t("adult")}</option>
+                <option value="child">{t("child")}</option>
+                <option value="infant">{t("infant")}</option>
               </select>
             )}
           />
@@ -87,12 +87,12 @@ const ClientInfoFields = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Passport Number")}
+            {t("passportNumber")}
           </label>
           <Controller
             name="passportNumber"
             control={control}
-            rules={{ required: "Passport number is required" }}
+            rules={{ required: t("passportNumberRequired") as string }}
             render={({ field }) => (
               <input
                 {...field}
@@ -109,7 +109,7 @@ const ClientInfoFields = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Phone Number")}
+            {t("phoneNumber")}
           </label>
           <Controller
             name="phoneNumber"

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface BookingSummaryProps {
   stats: {
@@ -12,38 +13,40 @@ interface BookingSummaryProps {
 }
 
 export default function BookingSummary({ stats }: BookingSummaryProps) {
+  const { t } = useTranslation();
+
   const allCards = [
     {
-      title: "Total Bookings",
+      title: t("totalBookings"),
       value: stats.totalBookings,
       unit: "",
     },
     {
-      title: "Total Revenue",
+      title: t("totalRevenue"),
       value: stats.totalRevenue,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
-      title: "Total Cost",
+      title: t("totalCosts"),
       value: stats.totalCost,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
-      title: "Total Profit",
+      title: t("totalProfit"),
       value: stats.totalProfit,
-      unit: "MAD",
+      unit: t("mad"),
       color: "text-emerald-600",
     },
     {
-      title: "Total Paid",
+      title: t("totalPaid"),
       value: stats.totalPaid,
-      unit: "MAD",
+      unit: t("mad"),
       color: "text-blue-600",
     },
     {
-      title: "Total Remaining",
+      title: t("totalRemaining"),
       value: stats.totalRemaining,
-      unit: "MAD",
+      unit: t("mad"),
       color: "text-orange-600",
     },
   ];

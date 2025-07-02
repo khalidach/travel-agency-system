@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Program } from "../../context/models";
 import { Package, Users, Calendar, ArrowRight } from "lucide-react";
 
@@ -9,6 +10,7 @@ interface ProgramCardProps {
 }
 
 const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
+  const { t } = useTranslation();
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
@@ -45,20 +47,27 @@ const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
         <div className="space-y-3">
           <div className="flex items-center text-sm text-gray-600">
             <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-            <span>{program.duration} days</span>
+            <span>
+              {program.duration} {t("days")}
+            </span>
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <Package className="w-4 h-4 mr-2 text-gray-400" />
-            <span>{program.packages?.length || 0} packages</span>
+            <span>
+              {program.packages?.length || 0}{" "}
+              {t("package", { count: program.packages?.length || 0 })}
+            </span>
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <Users className="w-4 h-4 mr-2 text-gray-400" />
-            <span>{program.totalBookings || 0} Bookings</span>
+            <span>
+              {program.totalBookings || 0} {t("bookings")}
+            </span>
           </div>
         </div>
       </div>
       <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-end text-blue-600 font-medium">
-        View Bookings
+        {t("viewBookings")}
         <ArrowRight className="w-4 h-4 ml-2 transform transition-transform group-hover:translate-x-1" />
       </div>
     </div>

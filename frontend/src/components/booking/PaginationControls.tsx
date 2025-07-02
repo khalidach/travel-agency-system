@@ -1,5 +1,6 @@
 // frontend/src/components/booking/PaginationControls.tsx
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationControlsProps {
@@ -15,6 +16,7 @@ export default function PaginationControls({
   onPageChange,
   paginationRange,
 }: PaginationControlsProps) {
+  const { t } = useTranslation();
   if (totalPages <= 1) return null;
 
   return (
@@ -25,7 +27,7 @@ export default function PaginationControls({
         className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
-        Previous
+        {t("previous")}
       </button>
       <div className="flex items-center space-x-1">
         {paginationRange.map((page, i) =>
@@ -53,7 +55,7 @@ export default function PaginationControls({
         disabled={currentPage === totalPages}
         className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Next
+        {t("next")}
         <ChevronRight className="w-4 h-4 ml-1" />
       </button>
     </div>

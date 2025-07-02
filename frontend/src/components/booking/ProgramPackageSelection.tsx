@@ -33,12 +33,12 @@ const ProgramPackageSelection = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Travel Program")}
+          {t("travelProgram")}
         </label>
         <Controller
           name="tripId"
           control={control}
-          rules={{ required: "Travel program is required" }}
+          rules={{ required: t("travelProgramRequired") as string }}
           render={({ field }) => (
             <select
               {...field}
@@ -49,7 +49,7 @@ const ProgramPackageSelection = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
               disabled={!!programId && !booking}
             >
-              <option value="">{t("Select a program")}</option>
+              <option value="">{t("selectAProgram")}</option>
               {programs.map((program) => (
                 <option key={program.id} value={program.id}>
                   {program.name} ({program.type})
@@ -67,12 +67,14 @@ const ProgramPackageSelection = ({
       {hasPackages && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("Package")}
+            {t("package")}
           </label>
           <Controller
             name="packageId"
             control={control}
-            rules={{ required: hasPackages ? "Package is required" : false }}
+            rules={{
+              required: hasPackages ? (t("packageRequired") as string) : false,
+            }}
             render={({ field }) => (
               <select
                 {...field}
@@ -83,7 +85,7 @@ const ProgramPackageSelection = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 disabled={!selectedProgram}
               >
-                <option value="">{t("Select a package")}</option>
+                <option value="">{t("selectAPackage")}</option>
                 {(selectedProgram?.packages || []).map((pkg) => (
                   <option key={pkg.name} value={pkg.name}>
                     {pkg.name}

@@ -116,7 +116,7 @@ export default function ProgramForm({
             <input
               type="text"
               {...methods.register("name", {
-                required: "Program name is required",
+                required: t("programNameRequired") as string,
               })}
               className={`w-full px-3 py-2 border rounded-lg ${
                 errors.name ? "border-red-500" : "border-gray-300"
@@ -142,7 +142,7 @@ export default function ProgramForm({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("duration")} (days)
+            {t("duration")} {t("daysParentheses")}
           </label>
           <input
             type="number"

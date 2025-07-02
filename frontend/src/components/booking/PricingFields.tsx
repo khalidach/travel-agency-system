@@ -25,12 +25,15 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
     >
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          {t("Selling Price")} (MAD)
+          {t("sellingPrice")} ({t("mad")})
         </label>
         <Controller
           name="sellingPrice"
           control={control}
-          rules={{ required: "Selling price is required", min: 0 }}
+          rules={{
+            required: t("sellingPrice") + " " + t("isRequired"),
+            min: 0,
+          }}
           render={({ field }) => (
             <input
               {...field}
@@ -56,7 +59,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("Base Price")} (MAD)
+              {t("basePrice")} ({t("mad")})
             </label>
             <Controller
               name="basePrice"
@@ -73,7 +76,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("Profit")} (MAD)
+              {t("profit")} ({t("mad")})
             </label>
             <Controller
               name="profit"

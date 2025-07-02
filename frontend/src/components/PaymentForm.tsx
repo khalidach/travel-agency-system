@@ -61,13 +61,15 @@ export default function PaymentForm({
 
     if (formData.amount > validationBalance) {
       setError(
-        `Payment amount cannot exceed the remaining balance (${validationBalance.toLocaleString()} MAD)`
+        t("amountExceedsBalance", {
+          balance: validationBalance.toLocaleString(),
+        })
       );
       return;
     }
 
     if (formData.amount <= 0) {
-      setError("Payment amount must be greater than zero.");
+      setError(t("amountGreaterThanZero"));
       return;
     }
 
@@ -87,17 +89,17 @@ export default function PaymentForm({
   };
 
   const paymentMethods = [
-    { value: "cash", label: "Cash" },
-    { value: "cheque", label: "Cheque" },
-    { value: "transfer", label: "Bank Transfer" },
-    { value: "card", label: "Credit/Debit Card" },
+    { value: "cash", label: t("cash") },
+    { value: "cheque", label: t("cheque") },
+    { value: "transfer", label: t("transfer") },
+    { value: "card", label: t("card") },
   ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Payment Amount (MAD)
+          {t("paymentAmount")}
         </label>
         <input
           type="number"
@@ -110,12 +112,13 @@ export default function PaymentForm({
         />
         {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
         <p className="mt-1 text-sm text-gray-500">
-          Remaining balance: {remainingBalance.toLocaleString()} MAD
+          {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
+          {t("mad")}
         </p>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Payment Method
+          {t("paymentMethod")}
         </label>
         <select
           value={formData.method}
@@ -134,7 +137,7 @@ export default function PaymentForm({
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Payment Date
+          {t("paymentDate")}
         </label>
         <input
           type="date"
@@ -210,7 +213,7 @@ export default function PaymentForm({
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          {t("save")} Payment
+          {t("savePayment")}
         </button>
       </div>
     </form>

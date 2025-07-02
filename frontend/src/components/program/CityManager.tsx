@@ -27,7 +27,7 @@ export default function CityManager() {
           onClick={() => append({ name: "", nights: 0 })}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-1" /> Add City
+          <Plus className="w-4 h-4 mr-1" /> {t("addCity")}
         </button>
       </div>
       <div className="space-y-3">
@@ -42,9 +42,9 @@ export default function CityManager() {
                 <MapPin className="w-4 h-4 text-gray-400" />
                 <input
                   {...register(`cities.${index}.name`, {
-                    required: "City name is required",
+                    required: t("cityNameRequired") as string,
                   })}
-                  placeholder="Enter city name"
+                  placeholder={t("enterCityName") as string}
                   className={`flex-1 px-3 py-2 border rounded-lg ${
                     nameError ? "border-red-500" : "border-gray-300"
                   }`}
@@ -55,7 +55,7 @@ export default function CityManager() {
                     valueAsNumber: true,
                     min: 0,
                   })}
-                  placeholder="Nights"
+                  placeholder={t("nights") as string}
                   className="w-24 px-3 py-2 border border-gray-300 rounded-lg"
                   min="0"
                 />
@@ -71,7 +71,7 @@ export default function CityManager() {
               </div>
               {nameError && (
                 <p className="text-red-500 text-xs mt-1 ml-6">
-                  {nameError.message}
+                  {nameError.message as string}
                 </p>
               )}
             </div>

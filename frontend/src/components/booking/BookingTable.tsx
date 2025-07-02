@@ -37,7 +37,7 @@ export default function BookingTable({
       : "bg-orange-100 text-orange-700";
 
   const getStatusText = (isFullyPaid: boolean) =>
-    t(isFullyPaid ? "Fully Paid" : "Pending Payment");
+    t(isFullyPaid ? "fullyPaid" : "pending");
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -46,19 +46,19 @@ export default function BookingTable({
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Client
+                {t("client")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Program & Hotels
+                {t("programAndHotels")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Price Details
+                {t("priceDetails")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Payment Status
+                {t("paymentStatus")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -115,7 +115,9 @@ export default function BookingTable({
                           {booking.passportNumber}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
-                          <span className="font-medium">Tel:</span>{" "}
+                          <span className="font-medium">
+                            {t("phoneNumber")}:
+                          </span>{" "}
                           {booking.phoneNumber}
                         </div>
                         {(currentUser?.role === "admin" ||
@@ -123,7 +125,9 @@ export default function BookingTable({
                           booking.employeeName && (
                             <div className="flex items-center text-xs text-gray-500 mt-1">
                               <Briefcase className="w-3 h-3 mr-1 text-gray-400" />
-                              <span>Added by: {booking.employeeName}</span>
+                              <span>
+                                {t("addedBy")} {booking.employeeName}
+                              </span>
                             </div>
                           )}
                       </div>
@@ -132,10 +136,10 @@ export default function BookingTable({
                   <td className="px-6 py-4 align-top">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-900">
-                        {program?.name || "Unknown Program"}
+                        {program?.name || t("unknownProgram")}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {booking.packageId} Package
+                        {booking.packageId} {t("package")}
                       </div>
                       <div className="space-y-1 mt-2">
                         {(booking.selectedHotel.cities || []).map(
@@ -165,17 +169,20 @@ export default function BookingTable({
                   </td>
                   <td className="px-6 py-4 align-top">
                     <div className="text-sm text-gray-900">
-                      Selling: {Number(booking.sellingPrice).toLocaleString()}{" "}
-                      MAD
+                      {t("selling")}:{" "}
+                      {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
                     </div>
                     {(currentUser?.role === "admin" ||
                       currentUser?.role === "manager") && (
                       <>
                         <div className="text-sm text-gray-500">
-                          Base: {Number(booking.basePrice).toLocaleString()} MAD
+                          {t("base")}:{" "}
+                          {Number(booking.basePrice).toLocaleString()}{" "}
+                          {t("mad")}
                         </div>
                         <div className="text-sm text-emerald-600 font-medium">
-                          Profit: {Number(booking.profit).toLocaleString()} MAD
+                          {t("profit")}:{" "}
+                          {Number(booking.profit).toLocaleString()} {t("mad")}
                         </div>
                       </>
                     )}
@@ -190,11 +197,12 @@ export default function BookingTable({
                         {getStatusText(booking.isFullyPaid)}
                       </span>
                       <div className="text-sm font-medium text-gray-900">
-                        Paid: {totalPaid.toLocaleString()} MAD
+                        {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Remaining:{" "}
-                        {Number(booking.remainingBalance).toLocaleString()} MAD
+                        {t("remainingBalance")}:{" "}
+                        {Number(booking.remainingBalance).toLocaleString()}{" "}
+                        {t("mad")}
                       </div>
                     </div>
                   </td>
@@ -206,22 +214,21 @@ export default function BookingTable({
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <CreditCard className="w-3 h-3 mr-1" />{" "}
-                        {t("Manage Payments")}
+                        {t("managePayments")}
                       </button>
                       <button
                         onClick={() => onEditBooking(booking)}
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Edit2 className="w-3 h-3 mr-1" /> {t("Edit Booking")}
+                        <Edit2 className="w-3 h-3 mr-1" /> {t("editBooking")}
                       </button>
                       <button
                         onClick={() => onDeleteBooking(booking.id)}
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="w-3 h-3 mr-1" />{" "}
-                        {t("Delete Booking")}
+                        <Trash2 className="w-3 h-3 mr-1" /> {t("deleteBooking")}
                       </button>
                     </div>
                   </td>
