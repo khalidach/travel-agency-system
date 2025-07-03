@@ -144,8 +144,14 @@ export default function OwnerPage() {
   const { mutate: updateUser } = useMutation({
     mutationFn: (data: Partial<User>) =>
       api.updateAdminUser(editingUser!.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
+        oldData
+          ? oldData.map((user) =>
+              user.id === updatedUser.id ? updatedUser : user
+            )
+          : []
+      );
       toast.success("Admin user updated successfully!");
       setIsModalOpen(false);
     },
@@ -164,8 +170,14 @@ export default function OwnerPage() {
   const { mutate: toggleStatus } = useMutation({
     mutationFn: (data: { id: number; activeUser: boolean }) =>
       api.toggleAdminUserStatus(data.id, data.activeUser),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
+        oldData
+          ? oldData.map((user) =>
+              user.id === updatedUser.id ? updatedUser : user
+            )
+          : []
+      );
       toast.success("User status updated successfully!");
     },
     onError: (error: Error) => toast.error(error.message),

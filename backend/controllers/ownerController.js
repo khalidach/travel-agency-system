@@ -12,7 +12,7 @@ const authorizeOwner = (req, res, next) => {
 const getAdminUsers = async (req, res) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT id, username, "agencyName", role, "totalEmployees", "activeUser" FROM users WHERE role = 'admin'`
+      `SELECT id, username, "agencyName", role, "totalEmployees", "activeUser" FROM users WHERE role = 'admin' ORDER BY id ASC`
     );
     res.json(rows);
   } catch (error) {
