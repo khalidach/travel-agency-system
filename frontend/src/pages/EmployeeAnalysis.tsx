@@ -7,6 +7,7 @@ import * as api from "../services/api";
 import type { Employee } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 interface EmployeeAnalysisData {
   employee: Employee;
@@ -26,6 +27,7 @@ type DateFilter = "today" | "7days" | "month" | "custom";
 export default function EmployeeAnalysisPage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("month");
   const [customDateRange, setCustomDateRange] = useState({
@@ -86,14 +88,12 @@ export default function EmployeeAnalysisPage() {
   if (isError || !analysisData) {
     return (
       <div className="text-center py-10">
-        <h2 className="text-xl font-semibold">
-          Could not load analysis data for this employee.
-        </h2>
+        <h2 className="text-xl font-semibold">{t("couldNotLoadAnalysis")}</h2>
         <button
           onClick={() => navigate("/employees")}
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
-          Back to Employees
+          {t("backToEmployees")}
         </button>
       </div>
     );
@@ -109,12 +109,12 @@ export default function EmployeeAnalysisPage() {
 
   const statCards = [
     {
-      title: "Programs Added",
+      title: t("programsAdded"),
       value: programsCreatedCount,
       icon: Package,
     },
     {
-      title: "Total Bookings Made",
+      title: t("totalBookingsMade"),
       value: bookingsMadeCount,
       icon: Calendar,
     },
@@ -122,18 +122,18 @@ export default function EmployeeAnalysisPage() {
 
   const financialMetrics = [
     {
-      title: "Total Bookings",
+      title: t("totalBookings"),
       value: dateFilteredStats.totalBookings,
       unit: "",
     },
     {
-      title: "Total Revenue",
+      title: t("totalRevenue"),
       value: dateFilteredStats.totalRevenue,
       unit: "MAD",
     },
-    { title: "Total Cost", value: dateFilteredStats.totalCost, unit: "MAD" },
+    { title: t("totalCost"), value: dateFilteredStats.totalCost, unit: "MAD" },
     {
-      title: "Total Profit",
+      title: t("totalProfit"),
       value: dateFilteredStats.totalProfit,
       unit: "MAD",
     },
@@ -163,10 +163,10 @@ export default function EmployeeAnalysisPage() {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            Employee Analysis: {employee.username}
+            {t("employeeAnalysis", { username: employee.username })}
           </h1>
           <p className="text-gray-600 mt-2">
-            Performance overview for {employee.username}.
+            {t("performanceOverview", { username: employee.username })}
           </p>
         </div>
       </div>
@@ -196,7 +196,7 @@ export default function EmployeeAnalysisPage() {
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Filter Performance by Date
+          {t("filterPerformance")}
         </h3>
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
@@ -208,7 +208,7 @@ export default function EmployeeAnalysisPage() {
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Today
+              {t("today")}
             </button>
             <button
               onClick={() => setDateFilter("7days")}
@@ -218,7 +218,7 @@ export default function EmployeeAnalysisPage() {
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Last 7 Days
+              {t("last7Days")}
             </button>
             <button
               onClick={() => setDateFilter("month")}
@@ -228,7 +228,7 @@ export default function EmployeeAnalysisPage() {
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Last 30 Days
+              {t("last30Days")}
             </button>
             <button
               onClick={() => setDateFilter("custom")}
@@ -238,7 +238,7 @@ export default function EmployeeAnalysisPage() {
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Custom
+              {t("customRange")}
             </button>
           </div>
           {dateFilter === "custom" && (
@@ -291,7 +291,7 @@ export default function EmployeeAnalysisPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">
-            Overall Program Performance
+            {t("overallProgramPerformance")}
           </h3>
         </div>
         <div className="overflow-x-auto">
@@ -299,22 +299,22 @@ export default function EmployeeAnalysisPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Program Name
+                  {t("programName")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  {t("programType")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Bookings
+                  {t("bookings")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Sales
+                  {t("totalSales")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Cost
+                  {t("totalCost")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Profit
+                  {t("totalProfit")}
                 </th>
               </tr>
             </thead>

@@ -35,8 +35,8 @@ const resources = {
       totalProfit: "Total Profit",
       totalCosts: "Total Costs",
       activePrograms: "Active Programs",
-      welcomeMessage:
-        "Welcome to the Travel Agency Dashboard! Here you can manage your programs, bookings, and view reports.",
+      welcomeMessage: "Welcome, {{name}}",
+      dashboardSubtitle: "Here's your travel management dashboard",
       // Date Filters
       today: "Today",
       last7Days: "Last 7 Days",
@@ -210,14 +210,14 @@ const resources = {
       cheque: "Cheque",
       transfer: "Bank Transfer",
       card: "Credit/Debit Card",
+      bankName: "Bank Name",
+      chequeNumber: "Cheque Number",
+      checkCashingDate: "Check Cashing Date",
       paymentDate: "Payment Date",
       amountExceedsBalance:
         "Payment amount cannot exceed the remaining balance ({{balance}} MAD)",
       amountGreaterThanZero: "Payment amount must be greater than zero.",
       savePayment: "Save Payment",
-      chequeNumber: "Cheque Number",
-      bankName: "Bank Name",
-      checkCashingDate: "Check Cashing Date",
 
       // Profit Report
       profitReportTitle: "Profit Report",
@@ -232,6 +232,54 @@ const resources = {
       totalCost: "Total Cost",
       bookings: "Bookings",
       totalSales: "Total Sales",
+
+      // Room Management
+      roomManagementTitle: "Room Management",
+      roomManagementSubtitle: "Choose a program to manage room assignments.",
+      exportToExcelRooming: "Export Rooming List",
+      saveChanges: "Save Changes",
+      addRoom: "Add Room",
+      movePerson: "Move Person",
+      movePersonTo: "Move {{personName}} to:",
+      roomFull: "The destination room is full.",
+      deleteRoomError:
+        "Cannot delete a room with occupants. Please move them first.",
+      roomNameRequired: "Room name is required.",
+      roomTypeRequired: "Room type is required.",
+      roomExistsError:
+        'A room with the name "{{roomName}}" already exists in the "{{roomType}}" type.',
+      searchPlaceholder: "Search to add...",
+      unassign: "Unassign person",
+      move: "Move person to another room",
+      noProgramsRoom: "No programs found",
+      noProgramsLeadRoom:
+        "Create a program on the 'Programs' page to get started.",
+      roomName: "Room Name",
+      addNewRoom: "Add New Room",
+
+      // Employees
+      manageStaff: "Manage your agency's staff and roles.",
+      employeeLimitReached: "You can create up to {{limit}} employees.",
+      addEmployee: "Add Employee",
+      username: "Username",
+      role: "Role",
+      bookingsMade: "Bookings Made",
+      employee: "Employee",
+      manager: "Manager",
+      editEmployee: "Edit Employee",
+      deleteEmployeeTitle: "Delete Employee",
+      deleteEmployeeMessage:
+        "Are you sure you want to delete this employee? This action cannot be undone.",
+
+      // Employee Analysis
+      employeeAnalysis: "Employee Analysis: {{username}}",
+      performanceOverview: "Performance overview for {{username}}.",
+      programsAdded: "Programs Added",
+      totalBookingsMade: "Total Bookings Made",
+      filterPerformance: "Filter Performance by Date",
+      overallProgramPerformance: "Overall Program Performance",
+      backToEmployees: "Back to Employees",
+      couldNotLoadAnalysis: "Could not load analysis data for this employee.",
     },
   },
   ar: {
@@ -267,8 +315,8 @@ const resources = {
       totalProfit: "إجمالي الأرباح",
       totalCosts: "إجمالي التكاليف",
       activePrograms: "البرامج النشطة",
-      welcomeMessage:
-        "مرحبًا بك في لوحة تحكم وكالة السفر! هنا يمكنك إدارة برامجك وحجوزاتك وعرض التقارير.",
+      welcomeMessage: "مرحباً، {{name}}",
+      dashboardSubtitle: "هذه لوحة تحكم إدارة السفر الخاصة بك",
       today: "اليوم",
       last7Days: "اخر 7 ايام",
       last30Days: "اخر 30 يوما",
@@ -421,7 +469,7 @@ const resources = {
       selectRoomType: "اختر نوع الغرفة",
       selectAllHotelsFirst: "اختر جميع الفنادق أولاً",
       update: "تحديث",
-      mad: "درهم",
+      mad: "د.م",
       clientName: "اسم العميل",
       passportNumber: "رقم الجواز",
       sellingPrice: "سعر البيع",
@@ -462,6 +510,52 @@ const resources = {
       totalCost: "التكلفة الإجمالية",
       bookings: "الحجوزات",
       totalSales: "إجمالي المبيعات",
+
+      // Room Management
+      roomManagementTitle: "إدارة الغرف",
+      roomManagementSubtitle: "اختر برنامجًا لإدارة تخصيصات الغرف.",
+      exportToExcelRooming: "تصدير قائمة الغرف",
+      saveChanges: "حفظ التغييرات",
+      addRoom: "إضافة غرفة",
+      movePerson: "نقل الشخص",
+      movePersonTo: "نقل {{personName}} إلى:",
+      roomFull: "الغرفة الوجهة ممتلئة.",
+      deleteRoomError: "لا يمكن حذف غرفة بها نزلاء. يرجى نقلهم أولاً.",
+      roomNameRequired: "اسم الغرفة مطلوب.",
+      roomTypeRequired: "نوع الغرفة مطلوب.",
+      roomExistsError:
+        'غرفة باسم "{{roomName}}" موجودة بالفعل في نوع "{{roomType}}".',
+      searchPlaceholder: "ابحث للإضافة...",
+      unassign: "إلغاء تعيين الشخص",
+      move: "نقل الشخص إلى غرفة أخرى",
+      noProgramsRoom: "لم يتم العثور على برامج",
+      noProgramsLeadRoom: "قم بإنشاء برنامج في صفحة 'البرامج' للبدء.",
+      roomName: "اسم الغرفة",
+      addNewRoom: "إضافة غرفة جديدة",
+
+      // Employees
+      manageStaff: "إدارة موظفي وكالتك وأدوارهم.",
+      employeeLimitReached: "يمكنك إنشاء ما يصل إلى {{limit}} موظفين.",
+      addEmployee: "إضافة موظف",
+      username: "اسم المستخدم",
+      role: "الدور",
+      bookingsMade: "الحجوزات التي تمت",
+      employee: "موظف",
+      manager: "مدير",
+      editEmployee: "تعديل الموظف",
+      deleteEmployeeTitle: "حذف الموظف",
+      deleteEmployeeMessage:
+        "هل أنت متأكد أنك تريد حذف هذا الموظف؟ لا يمكن التراجع عن هذا الإجراء.",
+
+      // Employee Analysis
+      employeeAnalysis: "تحليل الموظف: {{username}}",
+      performanceOverview: "نظرة عامة على أداء {{username}}.",
+      programsAdded: "البرامج المضافة",
+      totalBookingsMade: "إجمالي الحجوزات التي تمت",
+      filterPerformance: "تصفية الأداء حسب التاريخ",
+      overallProgramPerformance: "الأداء العام للبرنامج",
+      backToEmployees: "العودة إلى الموظفين",
+      couldNotLoadAnalysis: "تعذر تحميل بيانات التحليل لهذا الموظف.",
     },
   },
   fr: {
@@ -470,6 +564,7 @@ const resources = {
       dashboard: "Tableau de Bord",
       programs: "Programmes",
       booking: "Réservations",
+      programPricing: "Tarification des Programmes",
       profitReport: "Rapport des Profits",
       roomManagement: "Gestion des Chambres",
       employees: "Employés",
@@ -496,8 +591,8 @@ const resources = {
       totalProfit: "Profit Total",
       totalCosts: "Coûts Totals",
       activePrograms: "Programmes Actifs",
-      welcomeMessage:
-        "Bienvenue dans le Tableau de Bord de l'Agence de Voyage ! Ici, vous pouvez gérer vos programmes, réservations et consulter les rapports.",
+      welcomeMessage: "Bienvenue, {{name}}",
+      dashboardSubtitle: "Voici votre tableau de bord de gestion de voyages",
       today: "Aujourd'hui",
       last7Days: "7 derniers jours",
       last30Days: "30 derniers jours",
@@ -699,6 +794,56 @@ const resources = {
       totalCost: "Coût Total",
       bookings: "Réservations",
       totalSales: "Ventes Totales",
+
+      // Room Management
+      roomManagementTitle: "Gestion des Chambres",
+      roomManagementSubtitle:
+        "Choisissez un programme pour gérer l'attribution des chambres.",
+      exportToExcelRooming: "Exporter la Liste des Chambres",
+      saveChanges: "Enregistrer les modifications",
+      addRoom: "Ajouter une chambre",
+      movePerson: "Déplacer la personne",
+      movePersonTo: "Déplacer {{personName}} vers :",
+      roomFull: "La chambre de destination est pleine.",
+      deleteRoomError:
+        "Impossible de supprimer une chambre avec des occupants. Veuillez d'abord les déplacer.",
+      roomNameRequired: "Le nom de la chambre est requis.",
+      roomTypeRequired: "Le type de chambre est requis.",
+      roomExistsError:
+        'Une chambre nommée "{{roomName}}" existe déjà dans le type "{{roomType}}".',
+      searchPlaceholder: "Rechercher pour ajouter...",
+      unassign: "Désaffecter la personne",
+      move: "Déplacer la personne dans une autre chambre",
+      noProgramsRoom: "Aucun programme trouvé",
+      noProgramsLeadRoom:
+        "Créez un programme sur la page 'Programmes' pour commencer.",
+      roomName: "Nom de la chambre",
+      addNewRoom: "Ajouter une nouvelle chambre",
+
+      // Employees
+      manageStaff: "Gérez le personnel et les rôles de votre agence.",
+      employeeLimitReached: "Vous pouvez créer jusqu'à {{limit}} employés.",
+      addEmployee: "Ajouter un employé",
+      username: "Nom d'utilisateur",
+      role: "Rôle",
+      bookingsMade: "Réservations effectuées",
+      employee: "Employé",
+      manager: "Manager",
+      editEmployee: "Modifier l'employé",
+      deleteEmployeeTitle: "Supprimer l'employé",
+      deleteEmployeeMessage:
+        "Êtes-vous sûr de vouloir supprimer cet employé ? Cette action est irréversible.",
+
+      // Employee Analysis
+      employeeAnalysis: "Analyse de l'employé : {{username}}",
+      performanceOverview: "Aperçu des performances pour {{username}}.",
+      programsAdded: "Programmes ajoutés",
+      totalBookingsMade: "Total des réservations effectuées",
+      filterPerformance: "Filtrer les performances par date",
+      overallProgramPerformance: "Performance globale du programme",
+      backToEmployees: "Retour aux employés",
+      couldNotLoadAnalysis:
+        "Impossible de charger les données d'analyse pour cet employé.",
     },
   },
 };

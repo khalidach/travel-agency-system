@@ -5,6 +5,7 @@ import { Occupant } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
 import { X, ArrowRight } from "lucide-react";
 import * as api from "../../services/api";
+import { useTranslation } from "react-i18next";
 
 interface OccupantSearchBoxProps {
   programId: string;
@@ -25,6 +26,7 @@ export default function OccupantSearchBox({
   onUnassign,
   onMove,
 }: OccupantSearchBoxProps) {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
@@ -56,14 +58,14 @@ export default function OccupantSearchBox({
           <button
             onClick={() => onMove(assignedOccupant)}
             className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-            title="Move person to another room"
+            title={t("move") as string}
           >
             <ArrowRight size={16} />
           </button>
           <button
             onClick={onUnassign}
             className="p-1 text-red-600 hover:bg-red-100 rounded"
-            title="Unassign person"
+            title={t("unassign") as string}
           >
             <X size={16} />
           </button>
@@ -80,7 +82,7 @@ export default function OccupantSearchBox({
         onChange={(e) => setSearchTerm(e.target.value)}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-        placeholder="Search to add..."
+        placeholder={t("searchPlaceholder") as string}
         className="w-full p-2 border border-gray-300 rounded-lg text-sm"
       />
       {showDropdown && finalResults.length > 0 && (

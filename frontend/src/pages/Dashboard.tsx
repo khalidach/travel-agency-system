@@ -134,14 +134,14 @@ export default function Dashboard() {
     },
     {
       title: t("totalRevenue"),
-      value: `${allTimeStats.totalRevenue.toLocaleString()} MAD`,
+      value: `${allTimeStats.totalRevenue.toLocaleString()} ${t("mad")}`,
       icon: DollarSign,
       color: "bg-emerald-500",
       roles: ["admin"],
     },
     {
       title: t("totalProfit"),
-      value: `${allTimeStats.totalProfit.toLocaleString()} MAD`,
+      value: `${allTimeStats.totalProfit.toLocaleString()} ${t("mad")}`,
       icon: TrendingUp,
       color: "bg-orange-500",
       roles: ["admin"],
@@ -163,15 +163,15 @@ export default function Dashboard() {
     { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
     {
       title: t("totalRevenue"),
-      value: `${dateFilteredStats.totalRevenue.toLocaleString()} MAD`,
+      value: `${dateFilteredStats.totalRevenue.toLocaleString()} ${t("mad")}`,
     },
     {
       title: t("totalCosts"),
-      value: `${dateFilteredStats.totalCost.toLocaleString()} MAD`,
+      value: `${dateFilteredStats.totalCost.toLocaleString()} ${t("mad")}`,
     },
     {
       title: t("totalProfit"),
-      value: `${dateFilteredStats.totalProfit.toLocaleString()} MAD`,
+      value: `${dateFilteredStats.totalProfit.toLocaleString()} ${t("mad")}`,
     },
   ];
 
@@ -179,11 +179,11 @@ export default function Dashboard() {
     { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
     {
       title: t("totalPaid"),
-      value: `${dateFilteredStats.totalPaid.toLocaleString()} MAD`,
+      value: `${dateFilteredStats.totalPaid.toLocaleString()} ${t("mad")}`,
     },
     {
       title: t("totalRemaining"),
-      value: `${dateFilteredStats.totalRemaining.toLocaleString()} MAD`,
+      value: `${dateFilteredStats.totalRemaining.toLocaleString()} ${t("mad")}`,
     },
   ];
 
@@ -402,7 +402,7 @@ export default function Dashboard() {
               to="/booking"
               className="w-full flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <Calendar className="w-5 h-5 text-blue-500 mr-3" />
+              <Calendar className="w-5 h-5 text-blue-500 mx-3" />
               <span className="text-sm font-medium text-gray-700">
                 {t("newBooking")}
               </span>
@@ -411,7 +411,7 @@ export default function Dashboard() {
               to="/programs"
               className="w-full flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <Package className="w-5 h-5 text-emerald-500 mr-3" />
+              <Package className="w-5 h-5 text-emerald-500 mx-3" />
               <span className="text-sm font-medium text-gray-700">
                 {t("addProgram")}
               </span>
@@ -421,7 +421,7 @@ export default function Dashboard() {
                 to="/profit-report"
                 className="w-full flex items-center p-3 text-left hover:bg-gray-50 rounded-lg transition-colors"
               >
-                <TrendingUp className="w-5 h-5 text-orange-500 mr-3" />
+                <TrendingUp className="w-5 h-5 text-orange-500 mx-3" />
                 <span className="text-sm font-medium text-gray-700">
                   {t("viewReports")}
                 </span>
@@ -476,7 +476,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-gray-900">
-                    {Number(booking.sellingPrice).toLocaleString()} MAD
+                    {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
                   </p>
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${

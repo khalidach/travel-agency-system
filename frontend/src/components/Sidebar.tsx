@@ -102,7 +102,7 @@ export default function Sidebar() {
                   }`}
                 >
                   <Icon
-                    className={`mr-3 h-5 w-5 transition-colors ${
+                    className={`mx-3 h-5 w-5 transition-colors ${
                       isActive
                         ? "text-blue-600"
                         : "text-gray-400 group-hover:text-gray-600"

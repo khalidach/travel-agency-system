@@ -78,10 +78,10 @@ export default function RoomManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Room Management</h1>
-          <p className="text-gray-600 mt-2">
-            Choose a program to manage room assignments.
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t("roomManagementTitle")}
+          </h1>
+          <p className="text-gray-600 mt-2">{t("roomManagementSubtitle")}</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ export default function RoomManagementPage() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder={`${t("search")} programs... (Press Enter to search)`}
+              placeholder={t("searchProgramsPlaceholder") as string}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -102,7 +102,7 @@ export default function RoomManagementPage() {
             onChange={(e) => handleFilterChange(e.target.value)}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="all">All Types</option>
+            <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
@@ -129,7 +129,7 @@ export default function RoomManagementPage() {
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
-            Previous
+            {t("previous")}
           </button>
           <div className="flex items-center space-x-1">
             {paginationRange.map((pageNumber, index) => {
@@ -164,7 +164,7 @@ export default function RoomManagementPage() {
             disabled={currentPage === pagination.totalPages}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Next
+            {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
           </button>
         </div>
@@ -176,11 +176,9 @@ export default function RoomManagementPage() {
             <BedDouble className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            No programs found
+            {t("noProgramsRoom")}
           </h3>
-          <p className="text-gray-500">
-            Create a program on the 'Programs' page to get started.
-          </p>
+          <p className="text-gray-500">{t("noProgramsLeadRoom")}</p>
         </div>
       )}
     </div>

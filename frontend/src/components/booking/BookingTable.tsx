@@ -104,7 +104,13 @@ export default function BookingTable({
                           <Users className="w-5 h-5 text-white" />
                         )}
                       </div>
-                      <div className="ml-4">
+                      <div
+                        className={
+                          document.documentElement.dir === "rtl"
+                            ? "mr-4"
+                            : "ml-4"
+                        }
+                      >
                         <div className="text-sm font-medium text-gray-900">
                           {booking.clientNameFr}
                         </div>
@@ -156,7 +162,13 @@ export default function BookingTable({
                               >
                                 <MapPin className="w-3 h-3 mr-1 text-gray-400" />
                                 <span className="font-medium">{city}:</span>
-                                <Hotel className="w-3 h-3 ml-2 mr-1 text-gray-400" />
+                                <Hotel
+                                  className={`${
+                                    document.documentElement.dir === "rtl"
+                                      ? "ml-1 mr-2"
+                                      : "ml-2 mr-1"
+                                  }w-3 h-3 text-gray-400`}
+                                />
                                 <span>
                                   {hotelName} ({roomType})
                                 </span>

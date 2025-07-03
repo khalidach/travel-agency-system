@@ -66,7 +66,7 @@ export default function BookingSkeleton() {
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <Skeleton className="w-10 h-10 rounded-full flex-shrink-0" />
-                      <div className="ml-4 w-full">
+                      <div className={`${document.documentElement.dir === "rtl" ? "mr-4" : "ml-4"} w-full`}>
                         <Skeleton className="h-4 w-3/4" />
                         <Skeleton className="h-3 w-1/2 mt-2" />
                       </div>

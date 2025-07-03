@@ -16,6 +16,7 @@ import {
 import { toast } from "react-hot-toast";
 import Modal from "../components/Modal";
 import OccupantSearchBox from "../components/room/OccupantSearchBox";
+import { useTranslation } from "react-i18next";
 
 type MovePersonState = {
   occupant: Occupant;
@@ -27,6 +28,7 @@ export default function RoomManage() {
   const { programId } = useParams<{ programId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
 
   // State
   const [hotels, setHotels] = useState<string[]>([]);
@@ -63,7 +65,7 @@ export default function RoomManage() {
     mutationFn: (newRooms: Room[]) =>
       api.saveRooms(programId!, currentHotelName, newRooms),
     onSuccess: (data) => {
-      toast.success("Room assignments saved!");
+      toast.success(t("saveChanges"));
       queryClient.setQueryData(["rooms", programId, currentHotelName], data);
       setInitialRoomsData(JSON.parse(JSON.stringify(data))); // Update initial state after save
     },
@@ -211,7 +213,7 @@ export default function RoomManage() {
           (occ: Occupant | null) => occ === null
         );
         if (emptySlotIndex === -1) {
-          toast.error("The destination room is full.");
+          toast.error(t("roomFull"));
           return currentRooms;
         }
         const occupantIndex = fromRoom.occupants.findIndex(
@@ -228,8 +230,12 @@ export default function RoomManage() {
   };
 
   const handleAddNewRoom = () => {
-    if (!newRoomDetails.name.trim() || !newRoomDetails.type) {
-      toast.error("Room name and type are required.");
+    if (!newRoomDetails.name.trim()) {
+      toast.error(t("roomNameRequired"));
+      return;
+    }
+    if (!newRoomDetails.type) {
+      toast.error(t("roomTypeRequired"));
       return;
     }
     // Check for uniqueness within the same type
@@ -241,7 +247,10 @@ export default function RoomManage() {
       )
     ) {
       toast.error(
-        `A room with the name "${newRoomDetails.name}" already exists in the "${newRoomDetails.type}" type.`
+        t("roomExistsError", {
+          roomName: newRoomDetails.name,
+          roomType: newRoomDetails.type,
+        })
       );
       return;
     }
@@ -262,9 +271,7 @@ export default function RoomManage() {
       (r) => r.name === roomName && r.type === roomType
     );
     if (roomToDelete && roomToDelete.occupants.some((o) => o !== null)) {
-      toast.error(
-        "Cannot delete a room with occupants. Please move them first."
-      );
+      toast.error(t("deleteRoomError"));
       return;
     }
     setRooms(
@@ -274,7 +281,7 @@ export default function RoomManage() {
 
   const handleRoomNameChange = (oldName: string, roomType: string) => {
     if (!tempRoomName.trim()) {
-      toast.error("Room name cannot be empty.");
+      toast.error(t("roomNameRequired"));
       setEditingRoom(null);
       return;
     }
@@ -284,7 +291,10 @@ export default function RoomManage() {
         rooms.some((r) => r.name === tempRoomName.trim() && r.type === roomType)
       ) {
         toast.error(
-          `A room with this name already exists in the "${roomType}" type.`
+          t("roomExistsError", {
+            roomName: tempRoomName.trim(),
+            roomType: roomType,
+          })
         );
         setEditingRoom(null); // Exit edit mode without saving
         return;
@@ -304,7 +314,7 @@ export default function RoomManage() {
   const handleExport = async () => {
     if (!programId) return;
     setIsExporting(true);
-    toast.loading("Exporting rooming list...");
+    toast.loading(t("exporting"));
     try {
       const blob = await api.exportRoomAssignmentsToExcel(programId);
       const url = window.URL.createObjectURL(blob);
@@ -340,7 +350,7 @@ export default function RoomManage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              {program?.name} - Room Management
+              {program?.name} - {t("roomManagementTitle")}
             </h1>
           </div>
         </div>
@@ -351,7 +361,7 @@ export default function RoomManage() {
             className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <Download className="mr-2" />{" "}
-            {isExporting ? "Exporting..." : "Export to Excel"}
+            {isExporting ? t("exporting") : t("exportToExcelRooming")}
           </button>
           <button
             onClick={() =>
@@ -365,7 +375,8 @@ export default function RoomManage() {
             disabled={isSaving || !hasChanges}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <Save className="mr-2" /> {isSaving ? "Saving..." : "Save Changes"}
+            <Save className="mr-2" />{" "}
+            {isSaving ? t("saving") : t("saveChanges")}
           </button>
         </div>
       </div>
@@ -477,7 +488,7 @@ export default function RoomManage() {
                 }}
                 className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
               >
-                <Plus size={16} className="mr-1" /> Add Room
+                <Plus size={16} className="mr-1" /> {t("addRoom")}
               </button>
             </div>
           );
@@ -488,12 +499,14 @@ export default function RoomManage() {
       <Modal
         isOpen={!!movePersonState}
         onClose={() => setMovePersonState(null)}
-        title="Move Person"
+        title={t("movePerson")}
       >
         {movePersonState && (
           <div className="space-y-4">
             <p>
-              Move <strong>{movePersonState.occupant.clientName}</strong> to:
+              {t("movePersonTo", {
+                personName: movePersonState.occupant.clientName,
+              })}
             </p>
             <div className="max-h-64 overflow-y-auto space-y-2">
               {rooms.map((room) => (
@@ -518,11 +531,11 @@ export default function RoomManage() {
       <Modal
         isOpen={isNewRoomModalOpen}
         onClose={() => setIsNewRoomModalOpen(false)}
-        title="Add New Room"
+        title={t("addNewRoom")}
       >
         <div className="space-y-4">
           <div>
-            <label>Room Name</label>
+            <label>{t("roomName")}</label>
             <input
               type="text"
               value={newRoomDetails.name}
@@ -537,13 +550,13 @@ export default function RoomManage() {
               onClick={() => setIsNewRoomModalOpen(false)}
               className="p-2 bg-gray-200 rounded"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               onClick={handleAddNewRoom}
               className="p-2 bg-blue-600 text-white rounded"
             >
-              Add Room
+              {t("addRoom")}
             </button>
           </div>
         </div>

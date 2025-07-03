@@ -8,6 +8,7 @@ import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Employee } from "../context/models";
+import { useTranslation } from "react-i18next";
 
 // Form for adding/editing an employee
 const EmployeeForm = ({
@@ -19,6 +20,7 @@ const EmployeeForm = ({
   onSave: (data: Partial<Employee>) => void;
   onCancel: () => void;
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     username: employee?.username || "",
     password: "",
@@ -38,7 +40,7 @@ const EmployeeForm = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700">
-          Username
+          {t("username")}
         </label>
         <input
           type="text"
@@ -64,7 +66,9 @@ const EmployeeForm = ({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Role</label>
+        <label className="block text-sm font-medium text-gray-700">
+          {t("role")}
+        </label>
         <select
           value={formData.role}
           onChange={(e) =>
@@ -75,8 +79,8 @@ const EmployeeForm = ({
           }
           className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
         >
-          <option value="employee">Employee</option>
-          <option value="manager">Manager</option>
+          <option value="employee">{t("employee")}</option>
+          <option value="manager">{t("manager")}</option>
         </select>
       </div>
       <div className="flex justify-end space-x-3 pt-4">
@@ -85,13 +89,13 @@ const EmployeeForm = ({
           onClick={onCancel}
           className="px-4 py-2 bg-gray-100 rounded-lg"
         >
-          Cancel
+          {t("cancel")}
         </button>
         <button
           type="submit"
           className="px-4 py-2 bg-blue-600 text-white rounded-lg"
         >
-          Save
+          {t("save")}
         </button>
       </div>
     </form>
@@ -99,6 +103,7 @@ const EmployeeForm = ({
 };
 
 export default function EmployeesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -185,10 +190,10 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Employees</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t("employees")}</h1>
           <p className="text-gray-600 mt-2">
-            Manage your agency's staff and roles. You can create up to{" "}
-            {employeeLimit} employees.
+            {t("manageStaff")}{" "}
+            {t("employeeLimitReached", { limit: employeeLimit })}
           </p>
         </div>
         <button
@@ -202,7 +207,7 @@ export default function EmployeesPage() {
           }
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add Employee
+          {t("addEmployee")}
         </button>
       </div>
 
@@ -211,16 +216,16 @@ export default function EmployeesPage() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Username
+                {t("username")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
+                {t("role")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Bookings Made
+                {t("bookingsMade")}
               </th>
               <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
+                {t("actions")}
               </th>
             </tr>
           </thead>
@@ -228,7 +233,7 @@ export default function EmployeesPage() {
             {isLoadingEmployees ? (
               <tr>
                 <td colSpan={4} className="text-center p-4">
-                  Loading...
+                  {t("loading")}...
                 </td>
               </tr>
             ) : (
@@ -240,7 +245,7 @@ export default function EmployeesPage() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Users className="w-5 h-5 text-gray-400 mr-3" />
+                      <Users className="w-5 h-5 text-gray-400 mx-3" />
                       <span className="text-sm font-medium text-gray-900">
                         {emp.username}
                       </span>
@@ -255,7 +260,7 @@ export default function EmployeesPage() {
                       }`}
                     >
                       <Briefcase className="w-3 h-3 mr-1.5" />
-                      {emp.role.charAt(0).toUpperCase() + emp.role.slice(1)}
+                      {t(emp.role)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -292,7 +297,7 @@ export default function EmployeesPage() {
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => setIsFormModalOpen(false)}
-        title={editingEmployee ? "Edit Employee" : "Add Employee"}
+        title={editingEmployee ? t("editEmployee") : t("addEmployee")}
       >
         <EmployeeForm
           employee={editingEmployee}
@@ -305,8 +310,8 @@ export default function EmployeesPage() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Employee"
-        message="Are you sure you want to delete this employee? This action cannot be undone."
+        title={t("deleteEmployeeTitle")}
+        message={t("deleteEmployeeMessage")}
       />
     </div>
   );
