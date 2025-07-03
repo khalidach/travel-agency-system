@@ -83,7 +83,11 @@ export default function PaymentManagementModal({
               onClick={handleAddPaymentClick}
               className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              <CreditCard className="w-4 h-4 mr-2" />
+              <CreditCard
+                className={`w-4 h-4 ${
+                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                }`}
+              />
               {t("addPayment")}
             </button>
           </div>

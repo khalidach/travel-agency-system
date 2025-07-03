@@ -134,7 +134,7 @@ export default function Booking() {
             disabled={currentPage === 1}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
+            <ChevronLeft className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
             {t("previous")}
           </button>
           <div className="flex items-center space-x-1">

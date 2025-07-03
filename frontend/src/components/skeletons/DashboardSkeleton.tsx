@@ -60,7 +60,7 @@ export default function DashboardSkeleton() {
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-3 w-1/2" />
               </div>
-              <div className="w-1/3 space-y-2 ml-4">
+              <div className={`w-1/3 space-y-2 ${document.documentElement.dir === "rtl" ? "mr-4" : "ml-4"}`}>
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4 ml-auto" />
               </div>

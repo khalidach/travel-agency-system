@@ -31,11 +31,7 @@ export default function ConfirmationModal({
           <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
         </div>
         <div
-          className={`${
-            document.documentElement.dir === "rtl"
-              ? "sm:text-right sm:mr-4"
-              : "sm:text-left sm:ml-4 "
-          } mt-3 text-center sm:mt-0`}
+          className={`mt-3 text-center sm:mt-0 ${document.documentElement.dir === "rtl" ? "sm:text-right sm:mr-4" : "sm:text-left sm:ml-4"}`}
         >
           <h3
             className="text-lg leading-6 font-medium text-gray-900"

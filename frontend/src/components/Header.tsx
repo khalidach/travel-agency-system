@@ -49,7 +49,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             {/* Language Selector */}
             <div className="relative">
-              <div className="flex items-center space-x-1 bg-gray-50 rounded-lg p-1">
+              <div className="flex items-center gap-x-3 bg-gray-50 rounded-lg p-1">
                 <button
                   onClick={() => changeLanguage("fr")}
                   className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -85,7 +85,7 @@ export default function Header() {
             </div>
 
             {/* Profile & Logout */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center ring-2 ring-white">
                 <User className="w-5 h-5 text-white" />
               </div>

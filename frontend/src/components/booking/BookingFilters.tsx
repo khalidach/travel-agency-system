@@ -73,7 +73,11 @@ export default function BookingFilters({
           disabled={isExporting}
           className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          <Download className="w-4 h-4 mr-2" />
+          <Download
+            className={`w-4 h-4 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {isExporting ? t("exporting") : t("exportToExcel")}
         </button>
       </div>

@@ -520,7 +520,11 @@ export default function BookingPage() {
                 onClick={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
               >
-                <Plus className="w-5 h-5 mr-2" />
+                <Plus
+                  className={`w-5 h-5 ${
+                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                  }`}
+                />
                 {t("addBooking")}
               </button>
             </div>

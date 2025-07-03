@@ -63,7 +63,7 @@ const HotelManager = ({
     <div className="bg-white p-4 rounded-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-gray-700 flex items-center">
-          <Hotel className="w-4 h-4 mr-2" />
+          <Hotel className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
           {city.name}
         </span>
         <button
@@ -285,7 +285,7 @@ const PriceStructureManager = ({
           >
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-sm font-medium text-gray-900 flex items-center">
-                <Users className="w-4 h-4 mr-2" />
+                <Users className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
                 {(price as any).hotelCombination.replace(/_/g, " → ")}
               </h6>
               <button

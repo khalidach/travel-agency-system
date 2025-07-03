@@ -45,19 +45,19 @@ export default function BookingTable({
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
                 {t("client")}
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
                 {t("programAndHotels")}
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
                 {t("priceDetails")}
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
                 {t("paymentStatus")}
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
                 {t("actions")}
               </th>
             </tr>
@@ -130,7 +130,7 @@ export default function BookingTable({
                           currentUser?.role === "manager") &&
                           booking.employeeName && (
                             <div className="flex items-center text-xs text-gray-500 mt-1">
-                              <Briefcase className="w-3 h-3 mr-1 text-gray-400" />
+                              <Briefcase className={`w-3 h-3 text-gray-400 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
                               <span>
                                 {t("addedBy")} {booking.employeeName}
                               </span>
@@ -160,7 +160,7 @@ export default function BookingTable({
                                 key={index}
                                 className="flex items-center text-xs text-gray-600"
                               >
-                                <MapPin className="w-3 h-3 mr-1 text-gray-400" />
+                                <MapPin className={`w-3 h-3 text-gray-400 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
                                 <span className="font-medium">{city}:</span>
                                 <Hotel
                                   className={`${
@@ -225,7 +225,7 @@ export default function BookingTable({
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <CreditCard className="w-3 h-3 mr-1" />{" "}
+                        <CreditCard className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />{" "}
                         {t("managePayments")}
                       </button>
                       <button
@@ -233,14 +233,14 @@ export default function BookingTable({
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Edit2 className="w-3 h-3 mr-1" /> {t("editBooking")}
+                        <Edit2 className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} /> {t("editBooking")}
                       </button>
                       <button
                         onClick={() => onDeleteBooking(booking.id)}
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className="w-3 h-3 mr-1" /> {t("deleteBooking")}
+                        <Trash2 className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} /> {t("deleteBooking")}
                       </button>
                     </div>
                   </td>

@@ -27,7 +27,7 @@ export default function CityManager() {
           onClick={() => append({ name: "", nights: 0 })}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-1" /> {t("addCity")}
+          <Plus className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} /> {t("addCity")}
         </button>
       </div>
       <div className="space-y-3">

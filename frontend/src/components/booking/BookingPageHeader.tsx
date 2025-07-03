@@ -49,7 +49,11 @@ export default function BookingPageHeader({
           onClick={onExportTemplate}
           className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
         >
-          <Download className="w-5 h-5 mr-2" />
+          <Download
+            className={`w-5 h-5 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {t("downloadTemplate")}
         </button>
         <input
@@ -65,7 +69,11 @@ export default function BookingPageHeader({
             disabled={isImporting}
             className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm disabled:bg-gray-400"
           >
-            <Upload className="w-5 h-5 mr-2" />
+            <Upload
+              className={`w-5 h-5 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
             {isImporting ? t("uploading") : t("uploadFile")}
           </button>
         ) : (
@@ -73,7 +81,11 @@ export default function BookingPageHeader({
             onClick={() => fileInputRef.current?.click()}
             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
           >
-            <Upload className="w-5 h-5 mr-2" />
+            <Upload
+              className={`w-5 h-5 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
             {t("import")}
           </button>
         )}
@@ -81,7 +93,11 @@ export default function BookingPageHeader({
           onClick={onAddBooking}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
         >
-          <Plus className="w-5 h-5 mr-2" />
+          <Plus
+            className={`w-5 h-5 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {t("addBooking")}
         </button>
       </div>

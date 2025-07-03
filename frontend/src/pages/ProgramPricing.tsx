@@ -304,7 +304,13 @@ export default function ProgramPricingPage() {
                   <div className="space-y-3 mb-4 text-sm text-gray-600">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-gray-400" />
+                        <Users
+                          className={`w-4 h-4 text-gray-400 ${
+                            document.documentElement.dir === "rtl"
+                              ? "ml-2"
+                              : "mr-2"
+                          }`}
+                        />
                         <span>
                           Adult:{" "}
                           <span className="font-medium text-gray-800">
@@ -330,46 +336,118 @@ export default function ProgramPricingPage() {
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <Plane className="w-4 h-4 mr-2 text-gray-400" />
+                      <Plane
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("flightTicketPrice")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
                         {Number(pricing.ticketAirline || 0).toLocaleString()}{" "}
-                        MAD
+                        {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <Bus className="w-4 h-4 mr-2 text-gray-400" />
+                      <Bus
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("transportFees")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
                         {Number(pricing.transportFees || 0).toLocaleString()}{" "}
-                        MAD
+                        {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <CreditCard className="w-4 h-4 mr-2 text-gray-400" />
+                      <CreditCard
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("visaFees")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
-                        {Number(pricing.visaFees || 0).toLocaleString()} MAD
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
+                        {Number(pricing.visaFees || 0).toLocaleString()} {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <User
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("guideFees")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
-                        {Number(pricing.guideFees || 0).toLocaleString()} MAD
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
+                        {Number(pricing.guideFees || 0).toLocaleString()} {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <Hotel className="w-4 h-4 mr-2 text-gray-400" />
+                      <Hotel
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("hotels")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
                         {totalHotels}
                       </span>
                     </div>
                     <div className="flex items-center">
-                      <BedDouble className="w-4 h-4 mr-2 text-gray-400" />
+                      <BedDouble
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       {t("roomType")}:{" "}
-                      <span className="font-medium text-gray-800 ml-1">
+                      <span
+                        className={`font-medium text-gray-800 ${
+                          document.documentElement.dir === "rtl"
+                            ? "mr-1"
+                            : "ml-1"
+                        }`}
+                      >
                         {totalRoomTypes}
                       </span>
                     </div>
@@ -385,7 +463,13 @@ export default function ProgramPricingPage() {
                 <div className="pt-4 border-t border-gray-100 space-y-2 text-sm text-gray-600">
                   {pricing.employeeName && (
                     <div className="flex items-center">
-                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <User
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       <span>
                         {t("addedBy")}{" "}
                         <span className="font-medium text-gray-800">
@@ -408,7 +492,11 @@ export default function ProgramPricingPage() {
             disabled={currentPage === 1}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
           >
-            <ChevronLeft className="w-4 h-4 mr-1" />
+            <ChevronLeft
+              className={`w-4 h-4 ${
+                document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
+              }`}
+            />
             {t("previous")}
           </button>
           <div className="flex items-center space-x-1">
@@ -442,7 +530,11 @@ export default function ProgramPricingPage() {
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50"
           >
             {t("next")}
-            <ChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRight
+              className={`w-4 h-4 ${
+                document.documentElement.dir === "rtl" ? "mr-1" : "ml-1"
+              }`}
+            />
           </button>
         </div>
       )}

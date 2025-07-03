@@ -360,7 +360,11 @@ export default function RoomManage() {
             disabled={isExporting}
             className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <Download className="mr-2" />{" "}
+            <Download
+              className={`${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />{" "}
             {isExporting ? t("exporting") : t("exportToExcelRooming")}
           </button>
           <button
@@ -375,7 +379,11 @@ export default function RoomManage() {
             disabled={isSaving || !hasChanges}
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            <Save className="mr-2" />{" "}
+            <Save
+              className={`${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />{" "}
             {isSaving ? t("saving") : t("saveChanges")}
           </button>
         </div>
@@ -444,7 +452,14 @@ export default function RoomManage() {
                       </h4>
                     )}
                     <div className="flex items-center">
-                      <Users size={16} className="mr-1" />
+                      <Users
+                        size={16}
+                        className={`${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-1"
+                            : "mr-1"
+                        }`}
+                      />
                       <span>
                         {room.occupants.filter((o) => o).length}/{room.capacity}
                       </span>
@@ -488,7 +503,13 @@ export default function RoomManage() {
                 }}
                 className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
               >
-                <Plus size={16} className="mr-1" /> {t("addRoom")}
+                <Plus
+                  size={16}
+                  className={`${
+                    document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
+                  }`}
+                />{" "}
+                {t("addRoom")}
               </button>
             </div>
           );
@@ -516,7 +537,11 @@ export default function RoomManage() {
                   disabled={
                     room.occupants.filter((o) => o).length >= room.capacity
                   }
-                  className="w-full text-left p-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                  className={`w-full p-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 ${
+                    document.documentElement.dir === "rtl"
+                      ? "text-right"
+                      : "text-left"
+                  }`}
                 >
                   {room.name} ({room.type}) (
                   {room.occupants.filter((o) => o).length}/{room.capacity})

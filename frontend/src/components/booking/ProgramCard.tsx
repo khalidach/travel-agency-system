@@ -46,20 +46,32 @@ const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
         </div>
         <div className="space-y-3">
           <div className="flex items-center text-sm text-gray-600">
-            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+            <Calendar
+              className={`w-4 h-4 text-gray-400 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
             <span>
               {program.duration} {t("days")}
             </span>
           </div>
           <div className="flex items-center text-sm text-gray-600">
-            <Package className="w-4 h-4 mr-2 text-gray-400" />
+            <Package
+              className={`w-4 h-4 text-gray-400 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
             <span>
               {program.packages?.length || 0}{" "}
               {t("package", { count: program.packages?.length || 0 })}
             </span>
           </div>
           <div className="flex items-center text-sm text-gray-600">
-            <Users className="w-4 h-4 mr-2 text-gray-400" />
+            <Users
+              className={`w-4 h-4 text-gray-400 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
             <span>
               {program.totalBookings || 0} {t("bookings")}
             </span>
@@ -68,7 +80,11 @@ const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
       </div>
       <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-end text-blue-600 font-medium">
         {t("viewBookings")}
-        <ArrowRight className="w-4 h-4 ml-2 transform transition-transform group-hover:translate-x-1" />
+        <ArrowRight
+          className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ${
+            document.documentElement.dir === "rtl" ? "mr-2" : "ml-2"
+          }`}
+        />
       </div>
     </div>
   );
