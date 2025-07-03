@@ -566,7 +566,7 @@ const resources = {
       booking: "Réservations",
       programPricing: "Tarification des Programmes",
       profitReport: "Rapport des Profits",
-      roomManagement: "Gestion des Chambres",
+      roomManagement: "Hébergement",
       employees: "Employés",
       owner: "Propriétaire",
 
@@ -796,10 +796,10 @@ const resources = {
       totalSales: "Ventes Totales",
 
       // Room Management
-      roomManagementTitle: "Gestion des Chambres",
+      roomManagementTitle: "Hébergement",
       roomManagementSubtitle:
         "Choisissez un programme pour gérer l'attribution des chambres.",
-      exportToExcelRooming: "Exporter la Liste des Chambres",
+      exportToExcelRooming: "Exporter Hébergement",
       saveChanges: "Enregistrer les modifications",
       addRoom: "Ajouter une chambre",
       movePerson: "Déplacer la personne",
