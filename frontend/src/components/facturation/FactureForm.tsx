@@ -23,37 +23,50 @@ export default function FactureForm({
   existingFacture,
 }: FactureFormProps) {
   const { t } = useTranslation();
-  const [type, setType] = useState<"facture" | "devis">(
-    existingFacture?.type || "facture"
-  );
-  const [clientName, setClientName] = useState(
-    existingFacture?.clientName || ""
-  );
-  const [clientAddress, setClientAddress] = useState(
-    existingFacture?.clientAddress || ""
-  );
-  const [date, setDate] = useState(
-    existingFacture?.date
-      ? new Date(existingFacture.date).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0]
-  );
-  const [items, setItems] = useState<FactureItem[]>(
-    existingFacture?.items || [emptyItem]
-  );
-  const [fraisDeService, setFraisDeService] = useState(
-    existingFacture?.fraisDeService || 0
-  );
-  const [notes, setNotes] = useState(existingFacture?.notes || "");
+  const [type, setType] = useState<"facture" | "devis">("facture");
+  const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [items, setItems] = useState<FactureItem[]>([emptyItem]);
+  const [fraisDeService, setFraisDeService] = useState(0);
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (existingFacture) {
       setType(existingFacture.type);
       setClientName(existingFacture.clientName);
-      setClientAddress(existingFacture.clientAddress);
+      setClientAddress(existingFacture.clientAddress || "");
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
-      setItems(existingFacture.items);
+
+      // FIX: Ensure 'items' is always an array by parsing it if it's a string.
+      let parsedItems = [emptyItem];
+      if (existingFacture.items) {
+        try {
+          const itemsData =
+            typeof existingFacture.items === "string"
+              ? JSON.parse(existingFacture.items)
+              : existingFacture.items;
+          if (Array.isArray(itemsData) && itemsData.length > 0) {
+            parsedItems = itemsData;
+          }
+        } catch (e) {
+          console.error("Failed to parse facture items:", e);
+          // Fallback to default if parsing fails
+        }
+      }
+      setItems(parsedItems);
+
       setFraisDeService(existingFacture.fraisDeService || 0);
       setNotes(existingFacture.notes || "");
+    } else {
+      // Reset form for a new document
+      setType("facture");
+      setClientName("");
+      setClientAddress("");
+      setDate(new Date().toISOString().split("T")[0]);
+      setItems([emptyItem]);
+      setFraisDeService(0);
+      setNotes("");
     }
   }, [existingFacture]);
 
@@ -71,7 +84,7 @@ export default function FactureForm({
     setItems(newItems);
   };
 
-  const addItem = () => setItems([...items, emptyItem]);
+  const addItem = () => setItems([...items, { ...emptyItem }]);
   const removeItem = (index: number) =>
     setItems(items.filter((_, i) => i !== index));
 

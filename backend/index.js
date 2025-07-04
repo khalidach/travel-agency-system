@@ -53,7 +53,7 @@ pool
       );
     `);
 
-    // Create factures table
+    // Create factures table if it doesn't exist
     await client.query(`
       CREATE TABLE IF NOT EXISTS factures (
         id SERIAL PRIMARY KEY,
@@ -64,14 +64,36 @@ pool
         "date" DATE NOT NULL,
         "items" JSONB NOT NULL,
         "type" VARCHAR(50) NOT NULL, -- 'facture' or 'devis'
-        "fraisDeService" NUMERIC(10, 2) DEFAULT 0,
-        "tva" NUMERIC(10, 2) DEFAULT 0,
         "total" NUMERIC(10, 2) NOT NULL,
         "notes" TEXT,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+
+    // Check and add 'fraisDeService' column to factures table if it doesn't exist
+    const fraisCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='factures' AND column_name='fraisDeService'
+    `);
+    if (fraisCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE factures ADD COLUMN "fraisDeService" NUMERIC(10, 2) DEFAULT 0;`
+      );
+      console.log("'fraisDeService' column added to factures table.");
+    }
+
+    // Check and add 'tva' column to factures table if it doesn't exist
+    const tvaCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='factures' AND column_name='tva'
+    `);
+    if (tvaCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE factures ADD COLUMN "tva" NUMERIC(10, 2) DEFAULT 0;`
+      );
+      console.log("'tva' column added to factures table.");
+    }
 
     // Add facturationSettings column to users table if it doesn't exist
     const columnCheck = await client.query(`
