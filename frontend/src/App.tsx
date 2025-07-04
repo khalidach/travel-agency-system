@@ -7,7 +7,7 @@ import {
 import { I18nextProvider } from "react-i18next";
 import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useMemo } from "react";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
 import Layout from "./components/Layout";
@@ -33,7 +33,25 @@ const Settings = lazy(() => import("./pages/Settings")); // New
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
   const { state } = useAuthContext();
-  const userRole = state.user?.role;
+  const user = state.user;
+  const userRole = user?.role;
+
+  const hasInvoicingAccess = useMemo(() => {
+    if (!user) return false;
+    // 1. Check for a specific custom limit on the user.
+    if (typeof user.limits?.invoicing === "boolean") {
+      return user.limits.invoicing;
+    }
+    // 2. Fallback to the limits defined by the user's tier.
+    if (typeof user.tierLimits?.invoicing === "boolean") {
+      return user.tierLimits.invoicing;
+    }
+    // 3. A final fallback for older data structures or if tierLimits isn't populated.
+    if (user.tierId) {
+      return user.tierId !== 1;
+    }
+    return false; // Default to no access if no information is available.
+  }, [user]);
 
   useIdleTimeout();
 
@@ -69,7 +87,16 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
-                    <Route path="/facturation" element={<Facturation />} />
+                    <Route
+                      path="/facturation"
+                      element={
+                        hasInvoicingAccess ? (
+                          <Facturation />
+                        ) : (
+                          <Navigate to="/" replace />
+                        )
+                      }
+                    />
                     {(userRole === "admin" || userRole === "manager") && (
                       <>
                         <Route

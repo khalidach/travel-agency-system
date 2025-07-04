@@ -22,7 +22,10 @@ const protect = async (req, res, next) => {
       // Attach full user/employee details for convenience in other routes
       if (decoded.role === "admin" || decoded.role === "owner") {
         const { rows } = await req.db.query(
-          'SELECT id, username, "agencyName", "facturationSettings", "tierId", "limits" FROM users WHERE id = $1',
+          `SELECT u.id, u.username, u."agencyName", u."facturationSettings", u."tierId", u.limits, t.limits as "tierLimits"
+           FROM users u
+           LEFT JOIN tiers t ON u."tierId" = t.id
+           WHERE u.id = $1`,
           [decoded.id]
         );
         if (rows.length > 0) req.user = { ...req.user, ...rows[0] };
@@ -33,7 +36,10 @@ const protect = async (req, res, next) => {
         );
         if (rows.length > 0) {
           const adminRes = await req.db.query(
-            'SELECT "agencyName", "facturationSettings", "tierId", "limits" FROM users WHERE id = $1',
+            `SELECT u."agencyName", u."facturationSettings", u."tierId", u.limits, t.limits as "tierLimits"
+             FROM users u
+             LEFT JOIN tiers t ON u."tierId" = t.id
+             WHERE u.id = $1`,
             [rows[0].adminId]
           );
           req.user = {
@@ -43,6 +49,7 @@ const protect = async (req, res, next) => {
             facturationSettings: adminRes.rows[0]?.facturationSettings,
             tierId: adminRes.rows[0]?.tierId,
             limits: adminRes.rows[0]?.limits,
+            tierLimits: adminRes.rows[0]?.tierLimits,
           };
         }
       }

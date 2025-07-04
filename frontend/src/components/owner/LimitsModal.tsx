@@ -34,9 +34,15 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     let processedValue: string | number | boolean = value;
 
     if (type === "number") {
+      // Store empty string for empty input, otherwise store a number
       processedValue = value === "" ? "" : Number(value);
     } else if (name === "invoicing") {
-      processedValue = value === "true";
+      // Convert string from select to boolean, or keep as empty string for default
+      if (value === "true") {
+        processedValue = true;
+      } else if (value === "false") {
+        processedValue = false;
+      }
     }
 
     setLimits((prev) => ({ ...prev, [name]: processedValue }));
@@ -44,14 +50,19 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Filter out empty string values before saving
+    // FIX: Filter out empty string values.
+    // The previous fix still caused a type error because TypeScript rightfully
+    // points out that comparing a number or boolean to an empty string is
+    // always true and likely a logic error.
+    // By converting the value to a string for the comparison, we avoid this issue
+    // while correctly filtering out the `""` values which represent an unset custom limit.
     const finalLimits = Object.fromEntries(
-      Object.entries(limits).filter(([, value]) => value !== "")
+      Object.entries(limits).filter(([, value]) => String(value) !== "")
     );
     onSave(user.id, finalLimits);
   };
 
-  const limitFields: (keyof TierLimits)[] = [
+  const limitFields: (keyof Omit<TierLimits, "invoicing">)[] = [
     "bookingsPerMonth",
     "programsPerMonth",
     "programPricingsPerMonth",
@@ -80,7 +91,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <input
               type="number"
               name={field}
-              value={limits[field] ?? ""}
+              value={(limits[field] as number | "") ?? ""}
               onChange={handleChange}
               placeholder={`Default: ${user.tierLimits?.[field] ?? "N/A"}`}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"

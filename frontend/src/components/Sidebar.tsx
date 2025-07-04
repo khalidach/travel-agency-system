@@ -15,6 +15,7 @@ import {
   FileText,
   Settings,
 } from "lucide-react";
+import { useMemo } from "react";
 
 const allMenuItems = [
   {
@@ -80,16 +81,32 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
   const { state } = useAuthContext();
-  const userRole = state.user?.role;
-  const userTier = state.user?.tierId;
+  const user = state.user;
+  const userRole = user?.role;
+
+  const hasInvoicingAccess = useMemo(() => {
+    if (!user) return false;
+    // 1. Check for a specific custom limit on the user.
+    if (typeof user.limits?.invoicing === "boolean") {
+      return user.limits.invoicing;
+    }
+    // 2. Fallback to the limits defined by the user's tier.
+    if (typeof user.tierLimits?.invoicing === "boolean") {
+      return user.tierLimits.invoicing;
+    }
+    // 3. A final fallback for older data structures or if tierLimits isn't populated.
+    if (user.tierId) {
+      return user.tierId !== 1;
+    }
+    return false; // Default to no access if no information is available.
+  }, [user]);
 
   const menuItems = allMenuItems.filter((item) => {
     if (!userRole || !item.roles.includes(userRole)) {
       return false;
     }
     if (item.key === "facturation") {
-      // Tier 1 cannot access invoicing
-      return userTier !== 1;
+      return hasInvoicingAccess;
     }
     return true;
   });

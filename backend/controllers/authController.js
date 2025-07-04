@@ -8,12 +8,29 @@ const generateToken = (id, role, adminId, tierId) => {
   });
 };
 
+// Helper to safely parse JSON that might already be an object or a string
+const safeJsonParse = (data) => {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      // Return null or an empty object if parsing fails
+      return null;
+    }
+  }
+  // Return data as is if it's already an object (or null/undefined)
+  return data;
+};
+
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
   try {
     // Check users table (admins and owners)
     let userResult = await req.db.query(
-      "SELECT * FROM users WHERE username = $1",
+      `SELECT u.*, t.limits as "tierLimits"
+       FROM users u
+       LEFT JOIN tiers t ON u."tierId" = t.id
+       WHERE u.username = $1`,
       [username]
     );
     if (userResult.rows.length > 0) {
@@ -32,6 +49,9 @@ const loginUser = async (req, res) => {
           role: user.role,
           activeUser: user.activeUser,
           tierId: user.tierId,
+          // FIX: Ensure limits are always parsed to objects
+          limits: safeJsonParse(user.limits),
+          tierLimits: safeJsonParse(user.tierLimits),
           token: generateToken(user.id, user.role, user.id, user.tierId),
         });
       }
@@ -46,7 +66,10 @@ const loginUser = async (req, res) => {
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
       const adminResult = await req.db.query(
-        'SELECT "agencyName", "activeUser", "tierId" FROM users WHERE id = $1',
+        `SELECT u."agencyName", u."activeUser", u."tierId", u.limits, t.limits as "tierLimits"
+         FROM users u
+         LEFT JOIN tiers t ON u."tierId" = t.id
+         WHERE u.id = $1`,
         [employee.adminId]
       );
 
@@ -68,6 +91,9 @@ const loginUser = async (req, res) => {
           adminId: employee.adminId,
           activeUser: true, // Employees inherit active status from their admin
           tierId: adminData.tierId,
+          // FIX: Ensure limits are always parsed to objects
+          limits: safeJsonParse(adminData.limits),
+          tierLimits: safeJsonParse(adminData.tierLimits),
           token: generateToken(
             employee.id,
             employee.role,
@@ -87,7 +113,9 @@ const loginUser = async (req, res) => {
 };
 
 const refreshToken = async (req, res) => {
-  const { id, role, adminId, agencyName, tierId } = req.user;
+  // The user object is already fully populated by the 'protect' middleware
+  const { id, role, adminId, agencyName, tierId, limits, tierLimits } =
+    req.user;
   res.json({
     id,
     username: req.user.username,
@@ -95,6 +123,9 @@ const refreshToken = async (req, res) => {
     role,
     adminId,
     tierId,
+    // FIX: Ensure limits are always parsed to objects, even on refresh
+    limits: safeJsonParse(limits),
+    tierLimits: safeJsonParse(tierLimits),
     token: generateToken(id, role, adminId, tierId),
   });
 };
