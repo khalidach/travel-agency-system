@@ -46,12 +46,7 @@ const allMenuItems = [
     icon: Calendar,
     roles: ["admin", "manager", "employee"],
   },
-  {
-    key: "facturation",
-    path: "/facturation",
-    icon: FileText,
-    roles: ["admin", "manager", "employee"],
-  },
+
   {
     key: "roomManagement",
     path: "/room-management",
@@ -64,7 +59,14 @@ const allMenuItems = [
     icon: TrendingUp,
     roles: ["admin"],
   },
+  {
+    key: "facturation",
+    path: "/facturation",
+    icon: FileText,
+    roles: ["admin", "manager", "employee"],
+  },
   { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
+
   {
     key: "settings",
     path: "/settings",
