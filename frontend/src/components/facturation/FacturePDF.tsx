@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as api from "../../services/api";
 import { Facture, FacturationSettings } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
+import { numberToWordsFr } from "../../services/numberToWords";
 
 interface FacturePDFProps {
   facture: Facture;
@@ -17,6 +18,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
   const { state: authState } = useAuthContext();
 
   const subTotal = facture.items.reduce((sum, item) => sum + item.total, 0);
+  const totalInWords = numberToWordsFr(facture.total);
 
   return (
     <div
@@ -97,6 +99,12 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
           <p className="text-xs">{facture.notes}</p>
         </div>
       )}
+
+      <div className="mt-8 text-sm">
+        <p>Arrêté la présente facture à la somme de :</p>
+        <p className="font-bold capitalize">{totalInWords}</p>
+      </div>
+
       <div className="mt-10 border-t pt-5">
         <div className="flex gap-2 justify-center flex-wrap">
           <div className="flex gap-2 flex-wrap justify-center w-full">

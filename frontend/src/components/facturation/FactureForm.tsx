@@ -38,7 +38,6 @@ export default function FactureForm({
       setClientAddress(existingFacture.clientAddress || "");
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
 
-      // FIX: Ensure 'items' is always an array by parsing it if it's a string.
       let parsedItems = [emptyItem];
       if (existingFacture.items) {
         try {
@@ -51,12 +50,12 @@ export default function FactureForm({
           }
         } catch (e) {
           console.error("Failed to parse facture items:", e);
-          // Fallback to default if parsing fails
         }
       }
       setItems(parsedItems);
 
-      setFraisDeService(existingFacture.fraisDeService || 0);
+      // FIX: Ensure fraisDeService from existing data is treated as a number
+      setFraisDeService(Number(existingFacture.fraisDeService) || 0);
       setNotes(existingFacture.notes || "");
     } else {
       // Reset form for a new document
@@ -92,10 +91,18 @@ export default function FactureForm({
     () => items.reduce((sum, item) => sum + item.total, 0),
     [items]
   );
-  const tva = useMemo(() => fraisDeService * 0.2, [fraisDeService]);
+
+  // FIX: Ensure fraisDeService is treated as a number for calculation
+  const numericFraisDeService = Number(fraisDeService) || 0;
+
+  const tva = useMemo(
+    () => numericFraisDeService * 0.2,
+    [numericFraisDeService]
+  );
+
   const total = useMemo(
-    () => subTotal + fraisDeService,
-    [subTotal, fraisDeService]
+    () => subTotal + numericFraisDeService,
+    [subTotal, numericFraisDeService]
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -106,7 +113,7 @@ export default function FactureForm({
       date,
       items,
       type,
-      fraisDeService,
+      fraisDeService: numericFraisDeService,
       tva,
       total,
       notes,
