@@ -5,7 +5,12 @@ import { Facture, FactureItem } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
 
 interface FactureFormProps {
-  onSave: (data: Omit<Facture, "id" | "createdAt" | "updatedAt">) => void;
+  onSave: (
+    data: Omit<
+      Facture,
+      "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
+    >
+  ) => void;
   onCancel: () => void;
   existingFacture?: Facture | null;
 }
@@ -117,7 +122,6 @@ export default function FactureForm({
       tva,
       total,
       notes,
-      userId: 0,
     });
   };
 

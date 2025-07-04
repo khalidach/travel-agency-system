@@ -33,6 +33,7 @@ export interface FactureItem {
 
 export interface Facture {
   id: number;
+  facture_number: string;
   userId: number;
   employeeId?: number;
   clientName: string;

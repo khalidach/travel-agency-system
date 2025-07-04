@@ -29,8 +29,12 @@ export default function Facturation() {
   });
 
   const { mutate: createFacture } = useMutation({
-    mutationFn: (data: Omit<Facture, "id" | "createdAt" | "updatedAt">) =>
-      api.createFacture(data),
+    mutationFn: (
+      data: Omit<
+        Facture,
+        "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
+      >
+    ) => api.createFacture(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["factures"] });
       toast.success("Document created successfully!");
@@ -60,7 +64,10 @@ export default function Facturation() {
   });
 
   const handleSave = (
-    data: Omit<Facture, "id" | "createdAt" | "updatedAt">
+    data: Omit<
+      Facture,
+      "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
+    >
   ) => {
     if (editingFacture) {
       updateFacture({ ...editingFacture, ...data });
@@ -125,6 +132,15 @@ export default function Facturation() {
                     : "text-left"
                 }`}
               >
+                N°
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("documentType")}
               </th>
               <th
@@ -168,13 +184,13 @@ export default function Facturation() {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="text-center p-4">
+                <td colSpan={6} className="text-center p-4">
                   Loading...
                 </td>
               </tr>
             ) : factures.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center p-12">
+                <td colSpan={6} className="text-center p-12">
                   <FileText className="w-12 h-12 mx-auto text-gray-300" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">
                     {t("noDocuments")}
@@ -187,6 +203,9 @@ export default function Facturation() {
             ) : (
               factures.map((facture) => (
                 <tr key={facture.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {facture.facture_number}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm capitalize">
                     {t(facture.type)}
                   </td>

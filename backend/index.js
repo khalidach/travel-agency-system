@@ -95,6 +95,23 @@ pool
       console.log("'tva' column added to factures table.");
     }
 
+    // Check and add 'facture_number' column
+    const factureNumberCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='factures' AND column_name='facture_number'
+    `);
+    if (factureNumberCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE factures ADD COLUMN "facture_number" TEXT;`
+      );
+      await client.query(
+        `ALTER TABLE factures ADD CONSTRAINT unique_facture_number_per_user UNIQUE ("userId", "facture_number");`
+      );
+      console.log(
+        "'facture_number' column and unique constraint added to factures table."
+      );
+    }
+
     // Add facturationSettings column to users table if it doesn't exist
     const columnCheck = await client.query(`
         SELECT 1 FROM information_schema.columns 

@@ -31,12 +31,12 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
             {authState.user?.agencyName || "Your Agency"}
           </h1>
         </div>
-        <div className="text-right">
+        <div className="text-right flex flex-col items-end gap-2">
           <h2 className="text-4xl font-bold uppercase text-gray-700">
             {facture.type}
           </h2>
-          <p className="text-sm"># {facture.id}</p>
-          <p className="text-sm">
+          <p className="text-base"># {facture.facture_number}</p>
+          <p className="text-base">
             Date: {new Date(facture.date).toLocaleDateString()}
           </p>
         </div>
@@ -109,23 +109,25 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
         <div className="flex gap-2 justify-center flex-wrap">
           <div className="flex gap-2 flex-wrap justify-center w-full">
             {settings?.address && (
-              <p className="text-lg">Address: {settings.address}</p>
+              <p className="text-lg">Address: {settings.address} /</p>
             )}
             {settings?.phone && (
-              <p className="text-lg">Tel: {settings.phone}</p>
+              <p className="text-lg">Tel: {settings.phone} /</p>
             )}
             {settings?.email && (
               <p className="text-lg">Email: {settings.email}</p>
             )}
           </div>
           <div className="flex gap-2 flex-wrap justify-center w-full">
-            {settings?.ice && <p className="text-lg">ICE: {settings.ice}</p>}
-            {settings?.if && <p className="text-lg">IF: {settings.if}</p>}
-            {settings?.rc && <p className="text-lg">RC: {settings.rc}</p>}
+            {settings?.ice && <p className="text-lg">ICE: {settings.ice} /</p>}
+            {settings?.if && <p className="text-lg">IF: {settings.if} /</p>}
+            {settings?.rc && <p className="text-lg">RC: {settings.rc} /</p>}
             {settings?.patente && (
-              <p className="text-lg">Patente: {settings.patente}</p>
+              <p className="text-lg">Patente: {settings.patente} /</p>
             )}
-            {settings?.cnss && <p className="text-lg">CNSS: {settings.cnss}</p>}
+            {settings?.cnss && (
+              <p className="text-lg">CNSS: {settings.cnss} /</p>
+            )}
           </div>
         </div>
       </div>

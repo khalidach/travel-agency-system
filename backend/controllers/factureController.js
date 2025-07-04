@@ -14,7 +14,10 @@ const getFactures = async (req, res) => {
 };
 
 const createFacture = async (req, res) => {
+  const client = await req.db.connect();
   try {
+    await client.query("BEGIN");
+
     const { adminId, id: employeeId, role } = req.user;
     const {
       clientName,
@@ -28,9 +31,24 @@ const createFacture = async (req, res) => {
       tva,
     } = req.body;
 
-    const { rows } = await req.db.query(
-      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", date, items, type, "fraisDeService", tva, total, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+    const lastFactureRes = await client.query(
+      `SELECT facture_number FROM factures WHERE "userId" = $1 AND facture_number IS NOT NULL ORDER BY CAST(facture_number AS INTEGER) DESC LIMIT 1`,
+      [adminId]
+    );
+
+    let nextFactureNumber = 1;
+    if (lastFactureRes.rows.length > 0) {
+      nextFactureNumber =
+        parseInt(lastFactureRes.rows[0].facture_number, 10) + 1;
+    }
+
+    const formattedFactureNumber = nextFactureNumber
+      .toString()
+      .padStart(5, "0");
+
+    const { rows } = await client.query(
+      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", date, items, type, "fraisDeService", tva, total, notes, facture_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -43,12 +61,25 @@ const createFacture = async (req, res) => {
         tva,
         total,
         notes,
+        formattedFactureNumber,
       ]
     );
+    await client.query("COMMIT");
     res.status(201).json(rows[0]);
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("Create Facture Error:", error);
+    if (
+      error.code === "23505" &&
+      error.constraint === "unique_facture_number_per_user"
+    ) {
+      return res.status(409).json({
+        message: "A facture with this number already exists. Please try again.",
+      });
+    }
     res.status(400).json({ message: "Failed to create facture." });
+  } finally {
+    client.release();
   }
 };
 
