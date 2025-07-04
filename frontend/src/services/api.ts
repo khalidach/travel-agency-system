@@ -49,6 +49,23 @@ export const refreshToken = async () => {
   return request("/auth/refresh", { method: "POST" });
 };
 
+// --- Settings API ---
+export const getSettings = () => request("/settings");
+export const updateSettings = (settings: any) =>
+  request("/settings", { method: "PUT", body: JSON.stringify(settings) });
+
+// --- Facturation API ---
+export const getFactures = () => request("/facturation");
+export const createFacture = (facture: any) =>
+  request("/facturation", { method: "POST", body: JSON.stringify(facture) });
+export const updateFacture = (id: number, facture: any) =>
+  request(`/facturation/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(facture),
+  });
+export const deleteFacture = (id: number) =>
+  request(`/facturation/${id}`, { method: "DELETE" });
+
 // --- Dashboard API ---
 export const getDashboardStats = (startDate?: string, endDate?: string) => {
   let endpoint = "/dashboard/stats";

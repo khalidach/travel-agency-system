@@ -11,6 +11,8 @@ import {
   Users,
   Crown,
   BedDouble,
+  FileText,
+  Settings,
 } from "lucide-react";
 
 const allMenuItems = [
@@ -45,6 +47,12 @@ const allMenuItems = [
     roles: ["admin", "manager", "employee"],
   },
   {
+    key: "facturation",
+    path: "/facturation",
+    icon: FileText,
+    roles: ["admin", "manager", "employee"],
+  },
+  {
     key: "roomManagement",
     path: "/room-management",
     icon: BedDouble,
@@ -57,6 +65,12 @@ const allMenuItems = [
     roles: ["admin"],
   },
   { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
+  {
+    key: "settings",
+    path: "/settings",
+    icon: Settings,
+    roles: ["admin"],
+  },
 ];
 
 export default function Sidebar() {

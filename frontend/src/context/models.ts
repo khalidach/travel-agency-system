@@ -8,6 +8,44 @@ export interface User {
   adminId?: number;
   totalEmployees?: number;
   activeUser?: boolean;
+  facturationSettings?: FacturationSettings;
+}
+
+export interface FacturationSettings {
+  ice?: string;
+  if?: string;
+  rc?: string;
+  patente?: string;
+  cnss?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  bankName?: string;
+  rib?: string;
+}
+
+export interface FactureItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Facture {
+  id: number;
+  userId: number;
+  employeeId?: number;
+  clientName: string;
+  clientAddress: string;
+  date: string;
+  items: FactureItem[];
+  type: "facture" | "devis";
+  fraisDeService: number;
+  tva: number;
+  total: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Employee {

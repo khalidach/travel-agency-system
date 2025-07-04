@@ -27,17 +27,13 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const OwnerPage = lazy(() => import("./pages/Owner"));
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
 const RoomManage = lazy(() => import("./pages/RoomManage"));
+const Facturation = lazy(() => import("./pages/Facturation")); // New
+const Settings = lazy(() => import("./pages/Settings")); // New
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
   const { state } = useAuthContext();
   const userRole = state.user?.role;
-
-  // // Logout user after 1 hour of inactivity
-  // const IDLE_TIMEOUT = 60 * 60 * 1000;
-
-  // // Refresh the session token every 55 minutes to stay ahead of the 1-hour expiration
-  // const REFRESH_INTERVAL = 55 * 60 * 1000;
 
   useIdleTimeout();
 
@@ -73,6 +69,7 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
+                    <Route path="/facturation" element={<Facturation />} />
                     {(userRole === "admin" || userRole === "manager") && (
                       <>
                         <Route
@@ -95,15 +92,17 @@ function AppRoutes() {
                       element={<BookingPage />}
                     />
                     {userRole === "admin" && (
-                      <Route path="/profit-report" element={<ProfitReport />} />
-                    )}
-                    {userRole === "admin" && (
                       <>
+                        <Route
+                          path="/profit-report"
+                          element={<ProfitReport />}
+                        />
                         <Route path="/employees" element={<EmployeesPage />} />
                         <Route
                           path="/employees/:username"
                           element={<EmployeeAnalysisPage />}
                         />
+                        <Route path="/settings" element={<Settings />} />
                       </>
                     )}
                     <Route path="*" element={<Navigate to="/" replace />} />
