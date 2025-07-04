@@ -72,8 +72,11 @@ export default function ProgramPricingPage() {
 
   const { mutate: createPricing, isPending: isCreating } = useMutation({
     mutationFn: (data: any) => api.createProgramPricing(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries();
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+      queryClient.invalidateQueries({
+        queryKey: ["bookingsByProgram", String(variables.programId)],
+      });
       toast.success("Pricing saved successfully.");
       setIsModalOpen(false);
     },
@@ -85,8 +88,11 @@ export default function ProgramPricingPage() {
   const { mutate: updatePricing, isPending: isUpdating } = useMutation({
     mutationFn: (data: ProgramPricing) =>
       api.updateProgramPricing(data.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries();
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+      queryClient.invalidateQueries({
+        queryKey: ["bookingsByProgram", String(variables.programId)],
+      });
       toast.success("Pricing updated successfully.");
       setIsModalOpen(false);
     },
@@ -98,7 +104,8 @@ export default function ProgramPricingPage() {
   const { mutate: deletePricing } = useMutation({
     mutationFn: (id: number) => api.deleteProgramPricing(id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       toast.success("Pricing deleted successfully.");
     },
     onError: (error: any) => {

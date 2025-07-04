@@ -1,4 +1,51 @@
 // backend/services/ProgramPricingService.js
+const { calculateBasePrice } = require("./BookingService");
+
+/**
+ * Recalculates base price and profit for all bookings related to a program.
+ * @param {object} client - The database client for the transaction.
+ * @param {number} userId - The ID of the admin user.
+ * @param {number} programId - The ID of the program whose bookings need updating.
+ */
+async function updateRelatedBookings(client, userId, programId) {
+  const { rows: relatedBookings } = await client.query(
+    'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
+    [programId, userId]
+  );
+
+  if (relatedBookings.length > 0) {
+    const updatePromises = relatedBookings.map(async (booking) => {
+      const newBasePrice = await calculateBasePrice(
+        client,
+        userId,
+        booking.tripId,
+        booking.packageId,
+        booking.selectedHotel,
+        booking.personType
+      );
+
+      const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
+      const totalPaid = (booking.advancePayments || []).reduce(
+        (sum, p) => sum + p.amount,
+        0
+      );
+      const newRemainingBalance = Number(booking.sellingPrice || 0) - totalPaid;
+      const newIsFullyPaid = newRemainingBalance <= 0;
+
+      return client.query(
+        'UPDATE bookings SET "basePrice" = $1, profit = $2, "remainingBalance" = $3, "isFullyPaid" = $4 WHERE id = $5',
+        [
+          newBasePrice,
+          newProfit,
+          newRemainingBalance,
+          newIsFullyPaid,
+          booking.id,
+        ]
+      );
+    });
+    await Promise.all(updatePromises);
+  }
+}
 
 /**
  * Creates a new program pricing and recalculates the base price and profit for all related bookings.
@@ -24,7 +71,6 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       personTypes,
     } = pricingData;
 
-    // Get userId and employeeId from user object
     const userId = user.adminId;
     const employeeId = user.role !== "admin" ? user.id : null;
 
@@ -44,13 +90,10 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       ]
     );
 
-    const newProgramPricing = createdPricingRows[0];
-
-    // After creating the pricing, update all related bookings for that program
-    await updateRelatedBookings(client, userId, programId, newProgramPricing);
+    await updateRelatedBookings(client, userId, programId);
 
     await client.query("COMMIT");
-    return newProgramPricing;
+    return createdPricingRows[0];
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -73,7 +116,6 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
   try {
     await client.query("BEGIN");
 
-    // Authorization check
     const pricingRes = await client.query(
       'SELECT "employeeId" FROM program_pricing WHERE id = $1 AND "userId" = $2',
       [pricingId, user.adminId]
@@ -108,17 +150,10 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
       throw new Error("Program pricing not found or user not authorized");
     }
 
-    const updatedProgramPricing = updatedPricingRows[0];
-
-    await updateRelatedBookings(
-      client,
-      user.adminId,
-      pricingData.programId,
-      updatedProgramPricing
-    );
+    await updateRelatedBookings(client, user.adminId, pricingData.programId);
 
     await client.query("COMMIT");
-    return updatedProgramPricing;
+    return updatedPricingRows[0];
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -126,100 +161,3 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
     client.release();
   }
 };
-
-async function updateRelatedBookings(
-  client,
-  userId,
-  programId,
-  programPricing
-) {
-  const { rows: programs } = await client.query(
-    'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
-    [programId, userId]
-  );
-  if (programs.length === 0) {
-    throw new Error("Associated program not found.");
-  }
-  const program = programs[0];
-
-  const { rows: relatedBookings } = await client.query(
-    'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-    [programPricing.programId, userId]
-  );
-
-  if (relatedBookings.length > 0) {
-    const updatePromises = relatedBookings.map((booking) => {
-      const bookingPackage = (program.packages || []).find(
-        (p) => p.name === booking.packageId
-      );
-      if (!bookingPackage) return Promise.resolve();
-
-      const hotelCombination = (booking.selectedHotel.hotelNames || []).join(
-        "_"
-      );
-      const priceStructure = (bookingPackage.prices || []).find(
-        (p) => p.hotelCombination === hotelCombination
-      );
-      if (!priceStructure) return Promise.resolve();
-
-      const guestMap = new Map(
-        priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
-      );
-
-      const hotelCosts = (booking.selectedHotel.cities || []).reduce(
-        (total, city, index) => {
-          const hotelName = booking.selectedHotel.hotelNames[index];
-          const roomTypeName = booking.selectedHotel.roomTypes[index];
-
-          const hotelPricingInfo = (programPricing.allHotels || []).find(
-            (h) => h.name === hotelName && h.city === city
-          );
-          const cityInfo = (program.cities || []).find((c) => c.name === city);
-
-          if (hotelPricingInfo && cityInfo && roomTypeName) {
-            const pricePerNight = Number(
-              hotelPricingInfo.PricePerNights?.[roomTypeName] || 0
-            );
-            const nights = Number(cityInfo.nights || 0);
-            const guests = Number(guestMap.get(roomTypeName) || 1);
-
-            if (guests > 0) {
-              return total + (pricePerNight * nights) / guests;
-            }
-          }
-          return total;
-        },
-        0
-      );
-
-      const personTypeInfo = (programPricing.personTypes || []).find(
-        (p) => p.type === booking.personType
-      );
-      const ticketPercentage = personTypeInfo
-        ? personTypeInfo.ticketPercentage / 100
-        : 1;
-      const ticketPrice =
-        Number(programPricing.ticketAirline || 0) * ticketPercentage;
-
-      const visaPrice = Number(programPricing.visaFees || 0);
-      const guidePrice = Number(programPricing.guideFees || 0);
-      const transportPrice = Number(programPricing.transportFees || 0);
-
-      const newBasePrice = Math.round(
-        ticketPrice + visaPrice + guidePrice + transportPrice + hotelCosts
-      );
-      const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
-      const totalPaid = (booking.advancePayments || []).reduce(
-        (sum, p) => sum + p.amount,
-        0
-      );
-      const newRemainingBalance = Number(booking.sellingPrice || 0) - totalPaid;
-
-      return client.query(
-        'UPDATE bookings SET "basePrice" = $1, profit = $2, "remainingBalance" = $3 WHERE id = $4',
-        [newBasePrice, newProfit, newRemainingBalance, booking.id]
-      );
-    });
-    await Promise.all(updatePromises);
-  }
-}

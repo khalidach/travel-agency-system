@@ -1,5 +1,4 @@
 // backend/services/BookingService.js
-const ProgramPricingService = require("./ProgramPricingService"); // We need this to get pricing info
 
 const calculateBasePrice = async (
   db,
@@ -433,6 +432,7 @@ const deletePayment = async (db, user, bookingId, paymentId) => {
 };
 
 module.exports = {
+  calculateBasePrice,
   getAllBookings,
   createBooking,
   updateBooking,
