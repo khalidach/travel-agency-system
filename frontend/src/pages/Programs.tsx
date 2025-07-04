@@ -68,9 +68,8 @@ export default function Programs() {
   const { mutate: createProgram } = useMutation({
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      // Invalidate dashboard stats to update "Active Programs" count
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      // Invalidate all queries in the cache to ensure the entire application state is fresh.
+      queryClient.invalidateQueries();
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
     },
@@ -81,14 +80,9 @@ export default function Programs() {
 
   const { mutate: updateProgram } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
-    onSuccess: (updatedProgram) => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      queryClient.invalidateQueries({
-        queryKey: ["program", updatedProgram.id.toString()],
-      });
-      // Invalidate related data that might be affected
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+    onSuccess: () => {
+      // Invalidate all queries in the cache to ensure the entire application state is fresh.
+      queryClient.invalidateQueries();
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);
@@ -101,11 +95,8 @@ export default function Programs() {
   const { mutate: deleteProgram } = useMutation({
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
-      // Invalidate related data that is now stale
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      // Invalidate all queries in the cache to ensure the entire application state is fresh.
+      queryClient.invalidateQueries();
       toast.success("Program deleted successfully!");
     },
     onError: (error: Error) => {
@@ -196,7 +187,11 @@ export default function Programs() {
           onClick={handleAddProgram}
           className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
         >
-          <Plus className={`w-5 h-5 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+          <Plus
+            className={`w-5 h-5 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {t("addProgram")}
         </button>
       </div>
@@ -269,19 +264,31 @@ export default function Programs() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                  <Calendar
+                    className={`w-4 h-4 ${
+                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                    }`}
+                  />
                   <span>
                     {program.duration} {t("days")}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                  <MapPin
+                    className={`w-4 h-4 ${
+                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                    }`}
+                  />
                   <span>
                     {program.cities.map((city) => city.name).join(", ")}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <Users className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                  <Users
+                    className={`w-4 h-4 ${
+                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                    }`}
+                  />
                   <span>
                     {packageCount} {t("package", { count: packageCount })}
                   </span>
@@ -299,7 +306,11 @@ export default function Programs() {
                   ))}
                 </div>
                 <div className="flex items-center text-sm text-gray-600 pt-3 mt-3 border-t border-gray-100">
-                  <Users className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                  <Users
+                    className={`w-4 h-4 ${
+                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                    }`}
+                  />
                   <span>
                     {t("totalBookings")}: {program.totalBookings || 0}
                   </span>

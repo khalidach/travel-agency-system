@@ -3,7 +3,6 @@ import React, { useMemo, useEffect, useReducer } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
 import { Calendar, Plus } from "lucide-react";
 
 // Components and Hooks
@@ -19,7 +18,7 @@ import { useAuthContext } from "../context/AuthContext";
 import BookingPageHeader from "../components/booking/BookingPageHeader";
 import PaymentManagementModal from "../components/booking/PaymentManagementModal";
 import PaginationControls from "../components/booking/PaginationControls";
-import { useDebounce } from "../hooks/useDebounce"; // Import debounce hook
+import { useDebounce } from "../hooks/useDebounce";
 
 // Types and API
 import type {
@@ -27,10 +26,11 @@ import type {
   Payment,
   Program,
   Employee,
-  BookingSummaryStats, // FIXED: Changed from 'BookingSummary as BookingSummaryType'
+  BookingSummaryStats,
 } from "../context/models";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+import { useForm } from "react-hook-form";
 
 // State and Actions for useReducer
 interface BookingPageState {
@@ -105,7 +105,7 @@ interface BookingResponse {
     totalCount: number;
     totalPages: number;
   };
-  summary: BookingSummaryStats; // Use the new type
+  summary: BookingSummaryStats;
 }
 
 export default function BookingPage() {
@@ -138,7 +138,7 @@ export default function BookingPage() {
   });
 
   const searchTerm = watch("searchTerm");
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const sortOrder = watch("sortOrder");
   const statusFilter = watch("statusFilter");
   const employeeFilter = watch("employeeFilter");
@@ -157,7 +157,6 @@ export default function BookingPage() {
     employeeFilter,
   ];
 
-  // --- Data Fetching ---
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
       queryKey: bookingQueryKey,
@@ -220,7 +219,7 @@ export default function BookingPage() {
     queryKey: ["program", programId],
     queryFn: () => api.getProgramById(programId!),
     enabled: !!programId,
-    staleTime: 10 * 60 * 1000, // Stale for 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
   const programs = program ? [program] : [];
 
@@ -230,11 +229,10 @@ export default function BookingPage() {
     queryKey: ["employees"],
     queryFn: api.getEmployees,
     enabled: userRole === "admin" || userRole === "manager",
-    staleTime: 15 * 60 * 1000, // Stale for 15 minutes
+    staleTime: 15 * 60 * 1000,
   });
   const employees = employeesData?.employees ?? [];
 
-  // Mutations
   const { mutate: createBooking } = useMutation({
     mutationFn: (data: {
       bookingData: BookingFormData;
@@ -245,7 +243,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries();
       toast.success("Booking created!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -264,7 +262,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries();
       toast.success("Booking updated!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -275,7 +273,7 @@ export default function BookingPage() {
   const { mutate: deleteBooking } = useMutation({
     mutationFn: api.deleteBooking,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries();
       toast.success("Booking deleted!");
     },
     onError: (error: Error) =>
@@ -287,9 +285,8 @@ export default function BookingPage() {
       bookingId: number;
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
-      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("Payment added!");
     },
     onError: (error: Error) =>
@@ -302,9 +299,8 @@ export default function BookingPage() {
       paymentId: string;
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
-      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("Payment updated!");
     },
     onError: (error: Error) =>
@@ -314,9 +310,8 @@ export default function BookingPage() {
   const { mutate: deletePayment } = useMutation({
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
-    onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
-      dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: updatedBooking });
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("Payment deleted!");
     },
     onError: (error: Error) =>
@@ -326,7 +321,7 @@ export default function BookingPage() {
   const { mutate: importBookings, isPending: isImporting } = useMutation({
     mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries();
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),
@@ -477,7 +472,7 @@ export default function BookingPage() {
         handleExport={handleExport}
         isExporting={isExporting}
         employees={employees}
-        onSearchKeyDown={() => {}} // No longer needed as we use debounce
+        onSearchKeyDown={() => {}}
       />
 
       {isLoadingBookings && !bookingResponse ? (

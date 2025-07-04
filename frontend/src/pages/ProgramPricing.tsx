@@ -1,5 +1,5 @@
 // frontend/src/pages/ProgramPricing.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -26,7 +26,7 @@ import { usePagination } from "../hooks/usePagination";
 import { useAuthContext } from "../context/AuthContext";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import Modal from "../components/Modal";
-import ProgramPricingForm from "../components/ProgramPricingForm"; // Import the new form
+import ProgramPricingForm from "../components/ProgramPricingForm";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 
 export default function ProgramPricingPage() {
@@ -35,27 +35,20 @@ export default function ProgramPricingPage() {
   const { state: authState } = useAuthContext();
   const currentUser = authState.user;
 
-  // State for modal and selected program
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
-
-  // State for deletion confirmation
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [pricingToDelete, setPricingToDelete] = useState<number | null>(null);
-
-  // State for pagination, search, and filter
   const [currentPage, setCurrentPage] = useState(1);
   const programsPerPage = 6;
   const [searchTerm, setSearchTerm] = useState("");
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
-  // Reset page to 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
   }, [submittedSearchTerm, filterType]);
 
-  // --- Data Fetching ---
   const { data: programsResponse, isLoading: isLoadingPrograms } = useQuery<
     PaginatedResponse<Program>
   >({
@@ -80,9 +73,7 @@ export default function ProgramPricingPage() {
   const { mutate: createPricing, isPending: isCreating } = useMutation({
     mutationFn: (data: any) => api.createProgramPricing(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries();
       toast.success("Pricing saved successfully.");
       setIsModalOpen(false);
     },
@@ -95,11 +86,7 @@ export default function ProgramPricingPage() {
     mutationFn: (data: ProgramPricing) =>
       api.updateProgramPricing(data.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingStats"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries();
       toast.success("Pricing updated successfully.");
       setIsModalOpen(false);
     },
@@ -111,9 +98,7 @@ export default function ProgramPricingPage() {
   const { mutate: deletePricing } = useMutation({
     mutationFn: (id: number) => api.deleteProgramPricing(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries();
       toast.success("Pricing deleted successfully.");
     },
     onError: (error: any) => {
@@ -219,7 +204,6 @@ export default function ProgramPricingPage() {
             currentUser?.id === pricing?.employeeId ||
             !pricing;
 
-          // --- Calculations for Hotels and Room Types ---
           const hotelSet = new Set<string>();
           if (program.packages) {
             program.packages.forEach((pkg) => {
@@ -250,7 +234,6 @@ export default function ProgramPricingPage() {
           }
           const totalRoomTypes = roomTypeSet.size;
 
-          // --- Calculations for Person Type Percentages ---
           const adultTicket =
             pricing?.personTypes?.find((p) => p.type === "adult")
               ?.ticketPercentage ?? "N/A";
@@ -391,7 +374,8 @@ export default function ProgramPricingPage() {
                             : "ml-1"
                         }`}
                       >
-                        {Number(pricing.visaFees || 0).toLocaleString()} {t("mad")}
+                        {Number(pricing.visaFees || 0).toLocaleString()}{" "}
+                        {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -410,7 +394,8 @@ export default function ProgramPricingPage() {
                             : "ml-1"
                         }`}
                       >
-                        {Number(pricing.guideFees || 0).toLocaleString()} {t("mad")}
+                        {Number(pricing.guideFees || 0).toLocaleString()}{" "}
+                        {t("mad")}
                       </span>
                     </div>
                     <div className="flex items-center">

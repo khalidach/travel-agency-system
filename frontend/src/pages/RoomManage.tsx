@@ -30,7 +30,6 @@ export default function RoomManage() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
-  // State
   const [hotels, setHotels] = useState<string[]>([]);
   const [currentHotelIndex, setCurrentHotelIndex] = useState(0);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -39,7 +38,6 @@ export default function RoomManage() {
   const [newRoomDetails, setNewRoomDetails] = useState({ name: "", type: "" });
   const [movePersonState, setMovePersonState] = useState<MovePersonState>(null);
   const [isExporting, setIsExporting] = useState(false);
-  // Changed state to track both name and type for uniqueness
   const [editingRoom, setEditingRoom] = useState<{
     name: string;
     type: string;
@@ -48,7 +46,6 @@ export default function RoomManage() {
 
   const currentHotelName = hotels[currentHotelIndex];
 
-  // Data Fetching
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
     queryFn: () => api.getProgramById(programId!),
@@ -66,15 +63,19 @@ export default function RoomManage() {
       api.saveRooms(programId!, currentHotelName, newRooms),
     onSuccess: (data) => {
       toast.success(t("saveChanges"));
-      queryClient.setQueryData(["rooms", programId, currentHotelName], data);
-      setInitialRoomsData(JSON.parse(JSON.stringify(data))); // Update initial state after save
+      queryClient.invalidateQueries({
+        queryKey: ["rooms", programId, currentHotelName],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["unassignedOccupantsSearch"],
+      });
+      setInitialRoomsData(JSON.parse(JSON.stringify(data)));
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to save rooms.");
     },
   });
 
-  // Derived State
   const hasChanges = useMemo(() => {
     return JSON.stringify(rooms) !== JSON.stringify(initialRoomsData);
   }, [rooms, initialRoomsData]);
@@ -119,7 +120,6 @@ export default function RoomManage() {
     return types;
   }, [program, currentHotelName]);
 
-  // Effects
   useEffect(() => {
     if (program) {
       const hotelSet = new Set<string>();
@@ -151,7 +151,6 @@ export default function RoomManage() {
     }
   }, [initialRooms]);
 
-  // Handlers
   const handleAssignOccupant = (
     roomName: string,
     roomType: string,
@@ -238,7 +237,6 @@ export default function RoomManage() {
       toast.error(t("roomTypeRequired"));
       return;
     }
-    // Check for uniqueness within the same type
     if (
       rooms.some(
         (r) =>
@@ -286,7 +284,6 @@ export default function RoomManage() {
       return;
     }
     if (tempRoomName.trim() && tempRoomName.trim() !== oldName) {
-      // Check for uniqueness within the same type
       if (
         rooms.some((r) => r.name === tempRoomName.trim() && r.type === roomType)
       ) {
@@ -296,7 +293,7 @@ export default function RoomManage() {
             roomType: roomType,
           })
         );
-        setEditingRoom(null); // Exit edit mode without saving
+        setEditingRoom(null);
         return;
       }
 
@@ -339,7 +336,6 @@ export default function RoomManage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -389,7 +385,6 @@ export default function RoomManage() {
         </div>
       </div>
 
-      {/* Hotel Selector */}
       <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
         {hotels.map((hotel, index) => (
           <button
@@ -407,7 +402,6 @@ export default function RoomManage() {
         ))}
       </div>
 
-      {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {Array.from(roomTypesForCurrentHotel.keys()).map((type) => {
           const roomsInType = groupedRooms[type] || [];
@@ -516,7 +510,6 @@ export default function RoomManage() {
         })}
       </div>
 
-      {/* Move Person Modal */}
       <Modal
         isOpen={!!movePersonState}
         onClose={() => setMovePersonState(null)}
@@ -552,7 +545,6 @@ export default function RoomManage() {
         )}
       </Modal>
 
-      {/* New Room Modal */}
       <Modal
         isOpen={isNewRoomModalOpen}
         onClose={() => setIsNewRoomModalOpen(false)}

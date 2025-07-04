@@ -25,8 +25,8 @@ export default function Settings() {
 
   const { mutate: updateSettings, isPending } = useMutation({
     mutationFn: (data: FacturationSettings) => api.updateSettings(data),
-    onSuccess: (data) => {
-      queryClient.setQueryData(["settings"], data);
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("Settings saved successfully!");
     },
     onError: (error: Error) => {

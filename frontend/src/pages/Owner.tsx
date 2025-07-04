@@ -9,7 +9,6 @@ import { toast } from "react-hot-toast";
 import type { User, TierLimits } from "../context/models";
 import LimitsModal from "../components/owner/LimitsModal";
 
-// Form for adding/editing an admin user
 const AdminForm = ({
   user,
   onSave,
@@ -117,7 +116,7 @@ export default function OwnerPage() {
   const { mutate: createUser } = useMutation({
     mutationFn: (data: Partial<User>) => api.createAdminUser(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries();
       toast.success("Admin user created successfully!");
       setIsModalOpen(false);
     },
@@ -129,14 +128,8 @@ export default function OwnerPage() {
   const { mutate: updateUser } = useMutation({
     mutationFn: (data: Partial<User>) =>
       api.updateAdminUser(editingUser!.id, data),
-    onSuccess: (updatedUser: User) => {
-      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
-        oldData
-          ? oldData.map((user) =>
-              user.id === updatedUser.id ? updatedUser : user
-            )
-          : []
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("Admin user updated successfully!");
       setIsModalOpen(false);
     },
@@ -146,7 +139,7 @@ export default function OwnerPage() {
   const { mutate: deleteUser } = useMutation({
     mutationFn: (id: number) => api.deleteAdminUser(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries();
       toast.success("Admin user deleted successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -155,14 +148,8 @@ export default function OwnerPage() {
   const { mutate: toggleStatus } = useMutation({
     mutationFn: (data: { id: number; activeUser: boolean }) =>
       api.toggleAdminUserStatus(data.id, data.activeUser),
-    onSuccess: (updatedUser: User) => {
-      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
-        oldData
-          ? oldData.map((user) =>
-              user.id === updatedUser.id ? updatedUser : user
-            )
-          : []
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("User status updated successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -171,14 +158,8 @@ export default function OwnerPage() {
   const { mutate: updateUserTier } = useMutation({
     mutationFn: (data: { id: number; tierId: number }) =>
       api.updateAdminUserTier(data.id, data.tierId),
-    onSuccess: (updatedUser: User) => {
-      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
-        oldData
-          ? oldData.map((user) =>
-              user.id === updatedUser.id ? updatedUser : user
-            )
-          : []
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("User tier updated successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -187,14 +168,8 @@ export default function OwnerPage() {
   const { mutate: updateUserLimits } = useMutation({
     mutationFn: (data: { id: number; limits: Partial<TierLimits> }) =>
       api.updateAdminUserLimits(data.id, data.limits),
-    onSuccess: (updatedUser: User) => {
-      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
-        oldData
-          ? oldData.map((user) =>
-              user.id === updatedUser.id ? { ...user, ...updatedUser } : user
-            )
-          : []
-      );
+    onSuccess: () => {
+      queryClient.invalidateQueries();
       toast.success("User limits updated successfully!");
       setIsLimitsModalOpen(false);
     },

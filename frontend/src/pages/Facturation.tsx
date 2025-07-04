@@ -36,7 +36,7 @@ export default function Facturation() {
       >
     ) => api.createFacture(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries();
       toast.success("Document created successfully!");
       setIsModalOpen(false);
     },
@@ -46,7 +46,7 @@ export default function Facturation() {
   const { mutate: updateFacture } = useMutation({
     mutationFn: (data: Facture) => api.updateFacture(data.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries();
       toast.success("Document updated successfully!");
       setIsModalOpen(false);
     },
@@ -56,7 +56,7 @@ export default function Facturation() {
   const { mutate: deleteFacture } = useMutation({
     mutationFn: (id: number) => api.deleteFacture(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["factures"] });
+      queryClient.invalidateQueries();
       toast.success("Document deleted successfully!");
       setFactureToDelete(null);
     },
@@ -78,7 +78,7 @@ export default function Facturation() {
 
   const handleDownloadPDF = async (facture: Facture) => {
     setFactureToPreview(facture);
-    await new Promise((resolve) => setTimeout(resolve, 100)); // allow state to update and component to render
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     const input = document.getElementById("pdf-preview");
     if (input) {
@@ -254,7 +254,7 @@ export default function Facturation() {
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingFacture(null); // Reset editing state on close
+          setEditingFacture(null);
         }}
         title={editingFacture ? t("updateDocument") : t("newDocument")}
         size="xl"

@@ -10,7 +10,6 @@ import { toast } from "react-hot-toast";
 import type { Employee } from "../context/models";
 import { useTranslation } from "react-i18next";
 
-// Form for adding/editing an employee
 const EmployeeForm = ({
   employee,
   onSave,
@@ -126,7 +125,7 @@ export default function EmployeesPage() {
   const { mutate: createEmployee } = useMutation({
     mutationFn: (data: Partial<Employee>) => api.createEmployee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
+      queryClient.invalidateQueries();
       toast.success("Employee created successfully!");
       setIsFormModalOpen(false);
     },
@@ -139,7 +138,7 @@ export default function EmployeesPage() {
     mutationFn: (data: Partial<Employee>) =>
       api.updateEmployee(editingEmployee!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
+      queryClient.invalidateQueries();
       toast.success("Employee updated successfully!");
       setIsFormModalOpen(false);
     },
@@ -149,7 +148,7 @@ export default function EmployeesPage() {
   const { mutate: deleteEmployee } = useMutation({
     mutationFn: (id: number) => api.deleteEmployee(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
+      queryClient.invalidateQueries();
       toast.success("Employee deleted successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -206,7 +205,11 @@ export default function EmployeesPage() {
               : "Add a new employee"
           }
         >
-          <Plus className={`w-5 h-5 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+          <Plus
+            className={`w-5 h-5 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {t("addEmployee")}
         </button>
       </div>
@@ -215,16 +218,40 @@ export default function EmployeesPage() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("username")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("role")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("bookingsMade")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("actions")}
               </th>
             </tr>
@@ -265,7 +292,13 @@ export default function EmployeesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Hash className={`w-4 h-4 text-gray-400 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                      <Hash
+                        className={`w-4 h-4 text-gray-400 ${
+                          document.documentElement.dir === "rtl"
+                            ? "ml-2"
+                            : "mr-2"
+                        }`}
+                      />
                       <span className="text-sm text-gray-700">
                         {emp.bookingCount || 0}
                       </span>
