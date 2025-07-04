@@ -28,14 +28,6 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
           <h1 className="text-2xl font-bold">
             {authState.user?.agencyName || "Your Agency"}
           </h1>
-          <p className="text-xs">{settings?.address}</p>
-          <p className="text-xs">ICE: {settings?.ice}</p>
-          <p className="text-xs">IF: {settings?.if}</p>
-          <p className="text-xs">RC: {settings?.rc}</p>
-          <p className="text-xs">Patente: {settings?.patente}</p>
-          <p className="text-xs">CNSS: {settings?.cnss}</p>
-          <p className="text-xs">Tel: {settings?.phone}</p>
-          <p className="text-xs">Email: {settings?.email}</p>
         </div>
         <div className="text-right">
           <h2 className="text-4xl font-bold uppercase text-gray-700">
@@ -87,13 +79,14 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
             <span>Frais de service</span>
             <span>{facture.fraisDeService.toLocaleString()} MAD</span>
           </div>
-          <div className="flex justify-between">
-            <span>TVA (20%)</span>
-            <span>{facture.tva.toLocaleString()} MAD</span>
-          </div>
+
           <div className="flex justify-between font-bold text-xl bg-gray-100 p-2 rounded">
             <span>TOTAL TTC</span>
             <span>{facture.total.toLocaleString()} MAD</span>
+          </div>
+          <div className="flex justify-between">
+            <span>TVA (20%)</span>
+            <span>{facture.tva.toLocaleString()} MAD</span>
           </div>
         </div>
       </div>
@@ -104,6 +97,30 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
           <p className="text-xs">{facture.notes}</p>
         </div>
       )}
+      <div className="mt-10 border-t pt-5">
+        <div className="flex gap-2 justify-center flex-wrap">
+          <div className="flex gap-2 flex-wrap justify-center w-full">
+            {settings?.address && (
+              <p className="text-lg">Address: {settings.address}</p>
+            )}
+            {settings?.phone && (
+              <p className="text-lg">Tel: {settings.phone}</p>
+            )}
+            {settings?.email && (
+              <p className="text-lg">Email: {settings.email}</p>
+            )}
+          </div>
+          <div className="flex gap-2 flex-wrap justify-center w-full">
+            {settings?.ice && <p className="text-lg">ICE: {settings.ice}</p>}
+            {settings?.if && <p className="text-lg">IF: {settings.if}</p>}
+            {settings?.rc && <p className="text-lg">RC: {settings.rc}</p>}
+            {settings?.patente && (
+              <p className="text-lg">Patente: {settings.patente}</p>
+            )}
+            {settings?.cnss && <p className="text-lg">CNSS: {settings.cnss}</p>}
+          </div>
+        </div>
+      </div>
 
       {settings?.bankName && (
         <div className="mt-10 border-t pt-5">
