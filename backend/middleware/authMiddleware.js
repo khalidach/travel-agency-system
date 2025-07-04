@@ -20,7 +20,7 @@ const protect = async (req, res, next) => {
       // Attach full user/employee details for convenience in other routes
       if (decoded.role === "admin" || decoded.role === "owner") {
         const { rows } = await req.db.query(
-          'SELECT id, username, "agencyName", "totalEmployees" FROM users WHERE id = $1',
+          'SELECT id, username, "agencyName", "totalEmployees", "facturationSettings" FROM users WHERE id = $1',
           [decoded.id]
         );
         if (rows.length > 0) req.user = { ...req.user, ...rows[0] };
@@ -31,7 +31,7 @@ const protect = async (req, res, next) => {
         );
         if (rows.length > 0) {
           const adminRes = await req.db.query(
-            'SELECT "agencyName", "totalEmployees" FROM users WHERE id = $1',
+            'SELECT "agencyName", "totalEmployees", "facturationSettings" FROM users WHERE id = $1',
             [rows[0].adminId]
           );
           req.user = {
@@ -39,6 +39,7 @@ const protect = async (req, res, next) => {
             ...rows[0],
             agencyName: adminRes.rows[0]?.agencyName,
             totalEmployees: adminRes.rows[0]?.totalEmployees,
+            facturationSettings: adminRes.rows[0]?.facturationSettings,
           };
         }
       }

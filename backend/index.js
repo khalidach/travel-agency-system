@@ -16,7 +16,9 @@ const bookingRoutes = require("./routes/bookingRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
-const roomManagementRoutes = require("./routes/roomManagementRoutes"); // New
+const roomManagementRoutes = require("./routes/roomManagementRoutes");
+const factureRoutes = require("./routes/factureRoutes"); // New
+const settingsRoutes = require("./routes/settingsRoutes"); // New
 
 const app = express();
 const corsOptions = {
@@ -34,10 +36,11 @@ const pool = new Pool({
 
 pool
   .connect()
-  .then(() => {
+  .then(async (client) => {
     console.log("Connected to PostgreSQL");
-    // Create room_managements table if it doesn't exist
-    const createTableQuery = `
+
+    // Create room_managements table
+    await client.query(`
       CREATE TABLE IF NOT EXISTS room_managements (
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL,
@@ -48,14 +51,44 @@ pool
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE("userId", "programId", "hotelName")
       );
-    `;
-    pool
-      .query(createTableQuery)
-      .catch((err) =>
-        console.error("Error creating room_managements table", err)
+    `);
+
+    // Create factures table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS factures (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL,
+        "employeeId" INTEGER,
+        "clientName" VARCHAR(255) NOT NULL,
+        "clientAddress" TEXT,
+        "date" DATE NOT NULL,
+        "items" JSONB NOT NULL,
+        "type" VARCHAR(50) NOT NULL, -- 'facture' or 'devis'
+        "fraisDeService" NUMERIC(10, 2) DEFAULT 0,
+        "tva" NUMERIC(10, 2) DEFAULT 0,
+        "total" NUMERIC(10, 2) NOT NULL,
+        "notes" TEXT,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add facturationSettings column to users table if it doesn't exist
+    const columnCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='facturationSettings'
+    `);
+
+    if (columnCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE users ADD COLUMN "facturationSettings" JSONB;`
+      );
+      console.log("'facturationSettings' column added to users table.");
+    }
+
+    client.release();
   })
-  .catch((err) => console.error("PostgreSQL connection error:", err));
+  .catch((err) => console.error("Database initialization error:", err));
 
 // Make the database pool available to all routes
 app.use((req, res, next) => {
@@ -71,7 +104,9 @@ app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
 app.use("/api/bookings", protect, bookingRoutes);
 app.use("/api/employees", protect, employeeRoutes);
-app.use("/api/room-management", protect, roomManagementRoutes); // New
+app.use("/api/room-management", protect, roomManagementRoutes);
+app.use("/api/facturation", protect, factureRoutes); // New
+app.use("/api/settings", protect, settingsRoutes); // New
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));
