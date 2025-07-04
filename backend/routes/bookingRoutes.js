@@ -20,14 +20,20 @@ const {
   paymentValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
+const { checkBookingLimit } = require("../middleware/tierMiddleware");
 
 const upload = multer({ dest: "/tmp" });
 
 // Booking routes
 router.get("/", getAllBookings);
 router.get("/program/:programId", getBookingsByProgram);
-// The route for /program/:programId/stats has been removed as its logic is now combined into the route above.
-router.post("/", bookingValidation, handleValidationErrors, createBooking);
+router.post(
+  "/",
+  bookingValidation,
+  handleValidationErrors,
+  checkBookingLimit,
+  createBooking
+);
 router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
 router.delete("/:id", deleteBooking);
 

@@ -12,7 +12,10 @@ const authorizeOwner = (req, res, next) => {
 const getAdminUsers = async (req, res) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT id, username, "agencyName", role, "totalEmployees", "activeUser" FROM users WHERE role = 'admin' ORDER BY id ASC`
+      `SELECT u.id, u.username, u."agencyName", u.role, u."activeUser", u."tierId", u.limits, t.limits as "tierLimits" 
+       FROM users u 
+       JOIN tiers t ON u."tierId" = t.id 
+       WHERE u.role = 'admin' ORDER BY u.id ASC`
     );
     res.json(rows);
   } catch (error) {
@@ -22,7 +25,7 @@ const getAdminUsers = async (req, res) => {
 };
 
 const createAdminUser = async (req, res) => {
-  const { username, password, agencyName, totalEmployees } = req.body;
+  const { username, password, agencyName } = req.body;
 
   if (!username || !password || !agencyName) {
     return res.status(400).json({ message: "Please provide all fields" });
@@ -33,8 +36,8 @@ const createAdminUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const { rows } = await req.db.query(
-      'INSERT INTO users (username, password, "agencyName", role, "totalEmployees", "activeUser") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, "agencyName", role, "totalEmployees", "activeUser"',
-      [username, hashedPassword, agencyName, "admin", totalEmployees || 2, true]
+      'INSERT INTO users (username, password, "agencyName", role, "activeUser") VALUES ($1, $2, $3, $4, $5) RETURNING id, username, "agencyName", role, "activeUser", "tierId"',
+      [username, hashedPassword, agencyName, "admin", true]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -49,7 +52,7 @@ const createAdminUser = async (req, res) => {
 
 const updateAdminUser = async (req, res) => {
   const { id } = req.params;
-  const { username, password, agencyName, totalEmployees } = req.body;
+  const { username, password, agencyName } = req.body;
 
   try {
     let hashedPassword;
@@ -62,10 +65,9 @@ const updateAdminUser = async (req, res) => {
       `UPDATE users SET 
         username = COALESCE($1, username), 
         password = COALESCE($2, password), 
-        "agencyName" = COALESCE($3, "agencyName"),
-        "totalEmployees" = COALESCE($4, "totalEmployees")
-       WHERE id = $5 AND role = 'admin' RETURNING id, username, "agencyName", role, "totalEmployees", "activeUser"`,
-      [username, hashedPassword, agencyName, totalEmployees, id]
+        "agencyName" = COALESCE($3, "agencyName")
+       WHERE id = $4 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
+      [username, hashedPassword, agencyName, id]
     );
 
     if (rows.length === 0) {
@@ -90,7 +92,7 @@ const toggleUserStatus = async (req, res) => {
 
   try {
     const { rows } = await req.db.query(
-      `UPDATE users SET "activeUser" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "totalEmployees", "activeUser"`,
+      `UPDATE users SET "activeUser" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
       [activeUser, id]
     );
 
@@ -107,8 +109,6 @@ const toggleUserStatus = async (req, res) => {
 const deleteAdminUser = async (req, res) => {
   const { id } = req.params;
   try {
-    // We should also delete related employees, bookings, etc.
-    // For now, we'll just delete the user.
     const { rowCount } = await req.db.query(
       "DELETE FROM users WHERE id = $1 AND role = 'admin'",
       [id]
@@ -123,6 +123,54 @@ const deleteAdminUser = async (req, res) => {
   }
 };
 
+const updateAdminTier = async (req, res) => {
+  const { id } = req.params;
+  const { tierId } = req.body;
+
+  if (!tierId || ![1, 2, 3].includes(tierId)) {
+    return res.status(400).json({ message: "Invalid Tier ID provided." });
+  }
+
+  try {
+    const { rows } = await req.db.query(
+      `UPDATE users SET "tierId" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
+      [tierId, id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Admin user not found" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const updateAdminUserLimits = async (req, res) => {
+  const { id } = req.params;
+  const { limits } = req.body;
+
+  if (!limits || typeof limits !== "object") {
+    return res.status(400).json({ message: "Invalid limits data provided." });
+  }
+
+  try {
+    const { rows } = await req.db.query(
+      `UPDATE users SET "limits" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", limits`,
+      [JSON.stringify(limits), id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Admin user not found" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   authorizeOwner,
   getAdminUsers,
@@ -130,4 +178,6 @@ module.exports = {
   updateAdminUser,
   deleteAdminUser,
   toggleUserStatus,
+  updateAdminTier,
+  updateAdminUserLimits,
 };

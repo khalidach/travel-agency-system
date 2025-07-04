@@ -1,3 +1,4 @@
+// frontend/src/components/Sidebar.tsx
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
@@ -80,10 +81,18 @@ export default function Sidebar() {
   const location = useLocation();
   const { state } = useAuthContext();
   const userRole = state.user?.role;
+  const userTier = state.user?.tierId;
 
-  const menuItems = allMenuItems.filter(
-    (item) => userRole && item.roles.includes(userRole)
-  );
+  const menuItems = allMenuItems.filter((item) => {
+    if (!userRole || !item.roles.includes(userRole)) {
+      return false;
+    }
+    if (item.key === "facturation") {
+      // Tier 1 cannot access invoicing
+      return userTier !== 1;
+    }
+    return true;
+  });
 
   return (
     <div className="w-64 bg-white shadow-xl border-r border-gray-100 flex flex-col">

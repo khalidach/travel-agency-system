@@ -1,3 +1,4 @@
+// backend/routes/programRoutes.js
 const express = require("express");
 const router = express.Router();
 const {
@@ -11,10 +12,17 @@ const {
   programValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
+const { checkProgramLimit } = require("../middleware/tierMiddleware");
 
 router.get("/", getAllPrograms);
 router.get("/:id", getProgramById);
-router.post("/", programValidation, handleValidationErrors, createProgram);
+router.post(
+  "/",
+  programValidation,
+  handleValidationErrors,
+  checkProgramLimit,
+  createProgram
+);
 router.put("/:id", programValidation, handleValidationErrors, updateProgram);
 router.delete("/:id", deleteProgram);
 

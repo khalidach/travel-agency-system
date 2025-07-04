@@ -7,10 +7,15 @@ const {
   updateFacture,
   deleteFacture,
 } = require("../controllers/factureController");
+const {
+  checkInvoicingAccess,
+  checkFactureLimit,
+} = require("../middleware/tierMiddleware");
 
 // Note: The 'protect' middleware is applied in index.js for this route group
+router.use(checkInvoicingAccess);
 router.get("/", getFactures);
-router.post("/", createFacture);
+router.post("/", checkFactureLimit, createFacture);
 router.put("/:id", updateFacture);
 router.delete("/:id", deleteFacture);
 

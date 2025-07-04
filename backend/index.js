@@ -1,3 +1,4 @@
+// backend/index.js
 // backend/server.js
 const express = require("express");
 const { Pool } = require("pg");
@@ -17,8 +18,8 @@ const employeeRoutes = require("./routes/employeeRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const roomManagementRoutes = require("./routes/roomManagementRoutes");
-const factureRoutes = require("./routes/factureRoutes"); // New
-const settingsRoutes = require("./routes/settingsRoutes"); // New
+const factureRoutes = require("./routes/factureRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
 
 const app = express();
 const corsOptions = {
@@ -38,6 +39,68 @@ pool
   .connect()
   .then(async (client) => {
     console.log("Connected to PostgreSQL");
+
+    // Create tiers table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tiers (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(50) NOT NULL UNIQUE,
+        limits JSONB NOT NULL
+      );
+    `);
+
+    // Add limits column to users table if it doesn't exist
+    const userLimitsCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='limits'
+    `);
+    if (userLimitsCheck.rows.length === 0) {
+      await client.query(`ALTER TABLE users ADD COLUMN "limits" JSONB;`);
+      console.log("'limits' column added to users table.");
+    }
+
+    // Add tierId to users table if it doesn't exist
+    const tierIdCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='users' AND column_name='tierId'
+    `);
+    if (tierIdCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE users ADD COLUMN "tierId" INTEGER REFERENCES tiers(id) DEFAULT 1;`
+      );
+      console.log("'tierId' column added to users table.");
+    }
+
+    // Populate tiers table if they don't exist
+    await client.query(`
+      INSERT INTO tiers (id, name, limits) VALUES
+      (1, 'Tier 1', '{
+        "bookingsPerMonth": 300,
+        "programsPerMonth": 5,
+        "programPricingsPerMonth": 5,
+        "employees": 2,
+        "invoicing": false,
+        "facturesPerMonth": 0
+      }'),
+      (2, 'Tier 2', '{
+        "bookingsPerMonth": 500,
+        "programsPerMonth": 10,
+        "programPricingsPerMonth": 10,
+        "employees": 5,
+        "invoicing": true,
+        "facturesPerMonth": 100
+      }'),
+      (3, 'Tier 3', '{
+        "bookingsPerMonth": -1,
+        "programsPerMonth": -1,
+        "programPricingsPerMonth": -1,
+        "employees": 7,
+        "invoicing": true,
+        "facturesPerMonth": -1
+      }')
+      ON CONFLICT (id) DO NOTHING;
+    `);
+    console.log("Tiers table seeded.");
 
     // Create room_managements table
     await client.query(`
@@ -144,8 +207,8 @@ app.use("/api/program-pricing", protect, programPricingRoutes);
 app.use("/api/bookings", protect, bookingRoutes);
 app.use("/api/employees", protect, employeeRoutes);
 app.use("/api/room-management", protect, roomManagementRoutes);
-app.use("/api/facturation", protect, factureRoutes); // New
-app.use("/api/settings", protect, settingsRoutes); // New
+app.use("/api/facturation", protect, factureRoutes);
+app.use("/api/settings", protect, settingsRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

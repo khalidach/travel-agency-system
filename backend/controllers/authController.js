@@ -2,14 +2,10 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
-const generateToken = (id, role, adminId, totalEmployees) => {
-  return jwt.sign(
-    { id, role, adminId, totalEmployees },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1h",
-    }
-  );
+const generateToken = (id, role, adminId, tierId) => {
+  return jwt.sign({ id, role, adminId, tierId }, process.env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
 };
 
 const loginUser = async (req, res) => {
@@ -33,15 +29,10 @@ const loginUser = async (req, res) => {
           id: user.id,
           username: user.username,
           agencyName: user.agencyName,
-          role: user.role, // This can be 'admin' or 'owner'
-          totalEmployees: user.totalEmployees,
+          role: user.role,
           activeUser: user.activeUser,
-          token: generateToken(
-            user.id,
-            user.role,
-            user.id,
-            user.totalEmployees
-          ),
+          tierId: user.tierId,
+          token: generateToken(user.id, user.role, user.id, user.tierId),
         });
       }
     }
@@ -55,7 +46,7 @@ const loginUser = async (req, res) => {
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
       const adminResult = await req.db.query(
-        'SELECT "agencyName", "totalEmployees", "activeUser" FROM users WHERE id = $1',
+        'SELECT "agencyName", "activeUser", "tierId" FROM users WHERE id = $1',
         [employee.adminId]
       );
 
@@ -75,13 +66,13 @@ const loginUser = async (req, res) => {
           agencyName: adminData.agencyName || "Agency",
           role: employee.role,
           adminId: employee.adminId,
-          totalEmployees: adminData.totalEmployees,
           activeUser: true, // Employees inherit active status from their admin
+          tierId: adminData.tierId,
           token: generateToken(
             employee.id,
             employee.role,
             employee.adminId,
-            adminData.totalEmployees
+            adminData.tierId
           ),
         });
       }
@@ -96,15 +87,15 @@ const loginUser = async (req, res) => {
 };
 
 const refreshToken = async (req, res) => {
-  const { id, role, adminId, agencyName, totalEmployees } = req.user;
+  const { id, role, adminId, agencyName, tierId } = req.user;
   res.json({
     id,
     username: req.user.username,
     agencyName,
     role,
     adminId,
-    totalEmployees,
-    token: generateToken(id, role, adminId, totalEmployees),
+    tierId,
+    token: generateToken(id, role, adminId, tierId),
   });
 };
 

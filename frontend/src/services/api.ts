@@ -101,12 +101,11 @@ export const getPrograms = (
   return request(`/programs?${params.toString()}`);
 };
 
-// OPTIMIZED: Now uses server-side search with a limit instead of fetching all.
 export const searchProgramsForBooking = (searchTerm = "", limit = 10) => {
   const params = new URLSearchParams({
     limit: limit.toString(),
     searchTerm,
-    filterType: "all", // Assuming we search all types
+    filterType: "all",
   });
   return request(`/programs?${params.toString()}`);
 };
@@ -138,7 +137,6 @@ export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
 
 // --- Booking API ---
-// OPTIMIZED: This now returns bookings and summary stats together.
 export const getBookingsByProgram = (
   programId: string,
   params: {
@@ -150,7 +148,6 @@ export const getBookingsByProgram = (
     employeeFilter: string;
   }
 ) => {
-  // FIXED: Explicitly convert all params to strings for URLSearchParams.
   const queryParams = new URLSearchParams({
     page: String(params.page),
     limit: String(params.limit),
@@ -178,7 +175,7 @@ export const searchBookingsInProgram = async (
   const result = await request(
     `/bookings/program/${programId}?${params.toString()}`
   );
-  return result.data; // The structure from the backend now wraps bookings in a 'data' property
+  return result.data;
 };
 
 export const createBooking = (booking: any) =>
@@ -247,6 +244,16 @@ export const toggleAdminUserStatus = (id: number, activeUser: boolean) =>
   });
 export const deleteAdminUser = (id: number) =>
   request(`/owner/admins/${id}`, { method: "DELETE" });
+export const updateAdminUserTier = (id: number, tierId: number) =>
+  request(`/owner/admins/${id}/tier`, {
+    method: "PUT",
+    body: JSON.stringify({ tierId }),
+  });
+export const updateAdminUserLimits = (id: number, limits: any) =>
+  request(`/owner/admins/${id}/limits`, {
+    method: "PUT",
+    body: JSON.stringify({ limits }),
+  });
 
 // --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) =>
@@ -298,6 +305,5 @@ export const searchUnassignedOccupants = (
   );
 };
 
-// New function for rooming list export
 export const exportRoomAssignmentsToExcel = (programId: string) =>
   request(`/room-management/program/${programId}/export-excel`, {}, true);

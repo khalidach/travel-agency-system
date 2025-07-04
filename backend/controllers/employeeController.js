@@ -14,24 +14,7 @@ exports.createEmployee = async (req, res) => {
   }
 
   try {
-    const adminUser = await req.db.query(
-      'SELECT "totalEmployees" FROM users WHERE id = $1',
-      [adminId]
-    );
-    const employeeLimit = adminUser.rows[0]?.totalEmployees ?? 2;
-
-    const countResult = await req.db.query(
-      'SELECT COUNT(*) FROM employees WHERE "adminId" = $1',
-      [adminId]
-    );
-    const employeeCount = parseInt(countResult.rows[0].count, 10);
-
-    if (employeeCount >= employeeLimit) {
-      return res.status(403).json({
-        message: `You can only create up to ${employeeLimit} employees.`,
-      });
-    }
-
+    // The check for employee limit is now handled by the tierMiddleware
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -63,19 +46,25 @@ exports.getEmployees = async (req, res) => {
       GROUP BY e.id
       ORDER BY e.username;
     `;
-    const employeesPromise = req.db.query(employeesQuery, [req.user.adminId]);
-
-    const limitPromise = req.db.query(
-      'SELECT "totalEmployees" FROM users WHERE id = $1',
-      [req.user.adminId]
-    );
-
-    const [employeesResult, limitResult] = await Promise.all([
-      employeesPromise,
-      limitPromise,
+    const employeesResult = await req.db.query(employeesQuery, [
+      req.user.adminId,
     ]);
 
-    const employeeLimit = limitResult.rows[0]?.totalEmployees ?? 2;
+    // Get the effective limits (custom or tier-based)
+    const getLimits = async (req) => {
+      if (req.user.limits && Object.keys(req.user.limits).length > 0) {
+        return req.user.limits;
+      }
+      let { tierId } = req.user;
+      if (!tierId) tierId = 1;
+      const { rows } = await req.db.query(
+        "SELECT limits FROM tiers WHERE id = $1",
+        [tierId]
+      );
+      return rows.length > 0 ? rows[0].limits : {};
+    };
+    const limits = await getLimits(req);
+    const employeeLimit = limits.employees ?? 2;
 
     res.json({
       employees: employeesResult.rows.map((emp) => ({

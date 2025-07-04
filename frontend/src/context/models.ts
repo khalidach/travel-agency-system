@@ -1,4 +1,13 @@
 // frontend/src/context/models.ts
+export interface TierLimits {
+  bookingsPerMonth: number;
+  programsPerMonth: number;
+  programPricingsPerMonth: number;
+  employees: number;
+  invoicing: boolean;
+  facturesPerMonth: number;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -6,9 +15,11 @@ export interface User {
   token: string;
   role: "admin" | "manager" | "employee" | "owner";
   adminId?: number;
-  totalEmployees?: number;
   activeUser?: boolean;
   facturationSettings?: FacturationSettings;
+  tierId?: number;
+  limits?: TierLimits; // Custom limits
+  tierLimits?: TierLimits; // Limits from their tier
 }
 
 export interface FacturationSettings {
@@ -196,7 +207,6 @@ export interface Room {
   occupants: Occupant[];
 }
 
-// This new type defines the structure for the booking summary statistics.
 export interface BookingSummaryStats {
   totalBookings: number;
   totalRevenue: number;

@@ -8,6 +8,8 @@ const {
   updateAdminUser,
   deleteAdminUser,
   toggleUserStatus,
+  updateAdminTier,
+  updateAdminUserLimits,
 } = require("../controllers/ownerController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -18,6 +20,8 @@ router.get("/admins", getAdminUsers);
 router.post("/admins", createAdminUser);
 router.put("/admins/:id", updateAdminUser);
 router.put("/admins/:id/status", toggleUserStatus);
+router.put("/admins/:id/tier", updateAdminTier);
+router.put("/admins/:id/limits", updateAdminUserLimits);
 router.delete("/admins/:id", deleteAdminUser);
 
 module.exports = router;

@@ -1,12 +1,13 @@
 // frontend/src/pages/Owner.tsx
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2 } from "lucide-react";
+import { Plus, Edit2, Trash2, SlidersHorizontal } from "lucide-react";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
-import type { User } from "../context/models";
+import type { User, TierLimits } from "../context/models";
+import LimitsModal from "../components/owner/LimitsModal";
 
 // Form for adding/editing an admin user
 const AdminForm = ({
@@ -22,7 +23,6 @@ const AdminForm = ({
     username: user?.username || "",
     password: "",
     agencyName: user?.agencyName || "",
-    totalEmployees: user?.totalEmployees || 2,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -81,23 +81,6 @@ const AdminForm = ({
           required
         />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Employee Limit
-        </label>
-        <input
-          type="number"
-          value={formData.totalEmployees}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              totalEmployees: Number(e.target.value),
-            })
-          }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
-          required
-        />
-      </div>
       <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
@@ -123,6 +106,8 @@ export default function OwnerPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<number | null>(null);
+  const [isLimitsModalOpen, setIsLimitsModalOpen] = useState(false);
+  const [userForLimits, setUserForLimits] = useState<User | null>(null);
 
   const { data: adminUsers = [], isLoading } = useQuery<User[]>({
     queryKey: ["adminUsers"],
@@ -183,6 +168,39 @@ export default function OwnerPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const { mutate: updateUserTier } = useMutation({
+    mutationFn: (data: { id: number; tierId: number }) =>
+      api.updateAdminUserTier(data.id, data.tierId),
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
+        oldData
+          ? oldData.map((user) =>
+              user.id === updatedUser.id ? updatedUser : user
+            )
+          : []
+      );
+      toast.success("User tier updated successfully!");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const { mutate: updateUserLimits } = useMutation({
+    mutationFn: (data: { id: number; limits: Partial<TierLimits> }) =>
+      api.updateAdminUserLimits(data.id, data.limits),
+    onSuccess: (updatedUser: User) => {
+      queryClient.setQueryData(["adminUsers"], (oldData: User[] | undefined) =>
+        oldData
+          ? oldData.map((user) =>
+              user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+            )
+          : []
+      );
+      toast.success("User limits updated successfully!");
+      setIsLimitsModalOpen(false);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const handleToggleStatus = (user: User) => {
     toggleStatus({ id: user.id, activeUser: !user.activeUser });
   };
@@ -216,6 +234,19 @@ export default function OwnerPage() {
     }
   };
 
+  const handleTierChange = (userId: number, tierId: number) => {
+    updateUserTier({ id: userId, tierId });
+  };
+
+  const openLimitsModal = (user: User) => {
+    setUserForLimits(user);
+    setIsLimitsModalOpen(true);
+  };
+
+  const handleSaveLimits = (userId: number, limits: Partial<TierLimits>) => {
+    updateUserLimits({ id: userId, limits });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -227,7 +258,11 @@ export default function OwnerPage() {
           onClick={openAddModal}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
         >
-          <Plus className={`w-5 h-5 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+          <Plus
+            className={`w-5 h-5 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           Add Admin
         </button>
       </div>
@@ -236,19 +271,49 @@ export default function OwnerPage() {
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 Username
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 Agency Name
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
-                Employee Limit
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                Tier
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 Status
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 Actions
               </th>
             </tr>
@@ -272,7 +337,18 @@ export default function OwnerPage() {
                     {user.agencyName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {user.totalEmployees}
+                    <select
+                      value={user.tierId || 1}
+                      onChange={(e) =>
+                        handleTierChange(user.id, Number(e.target.value))
+                      }
+                      className="px-3 py-1 border border-gray-300 rounded-lg bg-white"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <option value={1}>Tier 1</option>
+                      <option value={2}>Tier 2</option>
+                      <option value={3}>Tier 3</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <label
@@ -306,6 +382,13 @@ export default function OwnerPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
+                        onClick={() => openLimitsModal(user)}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        title="Manage Limits"
+                      >
+                        <SlidersHorizontal className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => openEditModal(user)}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
                       >
@@ -337,6 +420,13 @@ export default function OwnerPage() {
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>
+
+      <LimitsModal
+        user={userForLimits}
+        isOpen={isLimitsModalOpen}
+        onClose={() => setIsLimitsModalOpen(false)}
+        onSave={handleSaveLimits}
+      />
 
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
