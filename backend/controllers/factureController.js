@@ -25,10 +25,11 @@ const createFacture = async (req, res) => {
       date,
       items,
       type,
+      prixTotalHorsFrais,
+      totalFraisServiceHT,
+      tva,
       total,
       notes,
-      fraisDeService,
-      tva,
     } = req.body;
 
     const lastFactureRes = await client.query(
@@ -47,8 +48,8 @@ const createFacture = async (req, res) => {
       .padStart(5, "0");
 
     const { rows } = await client.query(
-      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", date, items, type, "fraisDeService", tva, total, notes, facture_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", date, items, type, "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -57,7 +58,8 @@ const createFacture = async (req, res) => {
         date,
         JSON.stringify(items),
         type,
-        fraisDeService,
+        prixTotalHorsFrais,
+        totalFraisServiceHT,
         tva,
         total,
         notes,
@@ -93,22 +95,24 @@ const updateFacture = async (req, res) => {
       date,
       items,
       type,
+      prixTotalHorsFrais,
+      totalFraisServiceHT,
+      tva,
       total,
       notes,
-      fraisDeService,
-      tva,
     } = req.body;
 
     const { rows } = await req.db.query(
-      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, date = $3, items = $4, type = $5, "fraisDeService" = $6, tva = $7, total = $8, notes = $9, "updatedAt" = NOW()
-       WHERE id = $10 AND "userId" = $11 RETURNING *`,
+      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, date = $3, items = $4, type = $5, "prixTotalHorsFrais" = $6, "totalFraisServiceHT" = $7, tva = $8, total = $9, notes = $10, "updatedAt" = NOW()
+       WHERE id = $11 AND "userId" = $12 RETURNING *`,
       [
         clientName,
         clientAddress,
         date,
         JSON.stringify(items),
         type,
-        fraisDeService,
+        prixTotalHorsFrais,
+        totalFraisServiceHT,
         tva,
         total,
         notes,

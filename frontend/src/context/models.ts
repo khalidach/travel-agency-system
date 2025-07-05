@@ -44,7 +44,8 @@ export interface FacturationSettings {
 export interface FactureItem {
   description: string;
   quantity: number;
-  unitPrice: number;
+  prixUnitaire: number;
+  fraisServiceUnitaire: number;
   total: number;
 }
 
@@ -58,7 +59,8 @@ export interface Facture {
   date: string;
   items: FactureItem[];
   type: "facture" | "devis";
-  fraisDeService: number;
+  prixTotalHorsFrais: number;
+  totalFraisServiceHT: number;
   tva: number;
   total: number;
   notes?: string;

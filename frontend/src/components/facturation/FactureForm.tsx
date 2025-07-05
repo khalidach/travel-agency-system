@@ -15,11 +15,17 @@ interface FactureFormProps {
   existingFacture?: Facture | null;
 }
 
-const emptyItem: FactureItem = {
+// Updated FactureItem to match the new structure
+interface FactureItemForm extends Omit<FactureItem, "total"> {
+  prixUnitaire: number;
+  fraisServiceUnitaire: number;
+}
+
+const emptyItem: FactureItemForm = {
   description: "",
   quantity: 1,
-  unitPrice: 0,
-  total: 0,
+  prixUnitaire: 0,
+  fraisServiceUnitaire: 0,
 };
 
 export default function FactureForm({
@@ -32,8 +38,7 @@ export default function FactureForm({
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [items, setItems] = useState<FactureItem[]>([emptyItem]);
-  const [fraisDeService, setFraisDeService] = useState(0);
+  const [items, setItems] = useState<FactureItemForm[]>([emptyItem]);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
@@ -43,7 +48,7 @@ export default function FactureForm({
       setClientAddress(existingFacture.clientAddress || "");
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
 
-      let parsedItems = [emptyItem];
+      let parsedItems: FactureItemForm[] = [emptyItem];
       if (existingFacture.items) {
         try {
           const itemsData =
@@ -51,16 +56,19 @@ export default function FactureForm({
               ? JSON.parse(existingFacture.items)
               : existingFacture.items;
           if (Array.isArray(itemsData) && itemsData.length > 0) {
-            parsedItems = itemsData;
+            // Map existing data to the new form structure
+            parsedItems = itemsData.map((item) => ({
+              description: item.description || "",
+              quantity: Number(item.quantity) || 1,
+              prixUnitaire: Number(item.prixUnitaire) || 0,
+              fraisServiceUnitaire: Number(item.fraisServiceUnitaire) || 0,
+            }));
           }
         } catch (e) {
           console.error("Failed to parse facture items:", e);
         }
       }
       setItems(parsedItems);
-
-      // FIX: Ensure fraisDeService from existing data is treated as a number
-      setFraisDeService(Number(existingFacture.fraisDeService) || 0);
       setNotes(existingFacture.notes || "");
     } else {
       // Reset form for a new document
@@ -69,21 +77,17 @@ export default function FactureForm({
       setClientAddress("");
       setDate(new Date().toISOString().split("T")[0]);
       setItems([emptyItem]);
-      setFraisDeService(0);
       setNotes("");
     }
   }, [existingFacture]);
 
   const handleItemChange = (
     index: number,
-    field: keyof FactureItem,
+    field: keyof FactureItemForm,
     value: string | number
   ) => {
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
-    if (field === "quantity" || field === "unitPrice") {
-      item.total = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
-    }
     newItems[index] = item;
     setItems(newItems);
   };
@@ -92,35 +96,59 @@ export default function FactureForm({
   const removeItem = (index: number) =>
     setItems(items.filter((_, i) => i !== index));
 
-  const subTotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.total, 0),
-    [items]
-  );
+  // --- Automatic Calculations ---
 
-  // FIX: Ensure fraisDeService is treated as a number for calculation
-  const numericFraisDeService = Number(fraisDeService) || 0;
+  const calculatedTotals = useMemo(() => {
+    let prixTotalHorsFrais = 0;
+    let totalFraisServiceTTC = 0;
 
-  const tva = useMemo(
-    () => numericFraisDeService * 0.2,
-    [numericFraisDeService]
-  );
+    const itemsWithTotals = items.map((item) => {
+      const quantite = Number(item.quantity) || 0;
+      const prixUnitaire = Number(item.prixUnitaire) || 0;
+      const fraisServiceUnitaireTTC = Number(item.fraisServiceUnitaire) || 0;
 
-  const total = useMemo(
-    () => subTotal + numericFraisDeService,
-    [subTotal, numericFraisDeService]
-  );
+      const montantTotal =
+        quantite * prixUnitaire + quantite * fraisServiceUnitaireTTC;
+
+      prixTotalHorsFrais += quantite * prixUnitaire;
+      totalFraisServiceTTC += quantite * fraisServiceUnitaireTTC;
+
+      return { ...item, total: montantTotal };
+    });
+
+    const totalFraisServiceHT = totalFraisServiceTTC / 1.2;
+    const tva = totalFraisServiceHT * 0.2;
+    const totalFacture = prixTotalHorsFrais + totalFraisServiceTTC;
+
+    return {
+      itemsWithTotals,
+      prixTotalHorsFrais,
+      totalFraisServiceHT,
+      tva,
+      totalFacture,
+    };
+  }, [items]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalItems = calculatedTotals.itemsWithTotals.map((item) => ({
+      description: item.description,
+      quantity: item.quantity,
+      prixUnitaire: item.prixUnitaire,
+      fraisServiceUnitaire: item.fraisServiceUnitaire,
+      total: item.total,
+    }));
+
     onSave({
       clientName,
       clientAddress,
       date,
-      items,
+      items: finalItems,
       type,
-      fraisDeService: numericFraisDeService,
-      tva,
-      total,
+      prixTotalHorsFrais: calculatedTotals.prixTotalHorsFrais,
+      totalFraisServiceHT: calculatedTotals.totalFraisServiceHT,
+      tva: calculatedTotals.tva,
+      total: calculatedTotals.totalFacture,
       notes,
     });
   };
@@ -187,48 +215,108 @@ export default function FactureForm({
         {t("items")}
       </h3>
       <div className="space-y-4">
-        {items.map((item, index) => (
+        {/* Table Headers */}
+        <div className="hidden md:grid grid-cols-12 gap-2 text-sm font-medium text-gray-500">
+          <div className="col-span-4">DESIGNATION</div>
+          <div className="col-span-1 text-center">QU</div>
+          <div className="col-span-2 text-right">PRIX UNITAIRE</div>
+          <div className="col-span-2 text-right">FRAIS. SCE UNITAIRE</div>
+          <div className="col-span-2 text-right">MONTANT TOTAL</div>
+          <div className="col-span-1"></div>
+        </div>
+        {calculatedTotals.itemsWithTotals.map((item, index) => (
           <div key={index} className="grid grid-cols-12 gap-2 items-center">
-            <input
-              type="text"
-              placeholder={t("description") as string}
-              value={item.description}
-              onChange={(e) =>
-                handleItemChange(index, "description", e.target.value)
-              }
-              className="col-span-5 px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-            <input
-              type="number"
-              placeholder={t("quantity") as string}
-              value={item.quantity}
-              onChange={(e) =>
-                handleItemChange(index, "quantity", Number(e.target.value))
-              }
-              className="col-span-2 px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-            <input
-              type="number"
-              placeholder={t("unitPrice") as string}
-              value={item.unitPrice}
-              onChange={(e) =>
-                handleItemChange(index, "unitPrice", Number(e.target.value))
-              }
-              className="col-span-2 px-3 py-2 border border-gray-300 rounded-md"
-              required
-            />
-            <div className="col-span-2 px-3 py-2 text-right">
-              {item.total.toLocaleString()} {t("mad")}
+            {/* Description */}
+            <div className="col-span-12 md:col-span-4">
+              <label className="md:hidden text-xs font-medium text-gray-500">
+                DESIGNATION
+              </label>
+              <input
+                type="text"
+                placeholder={t("description") as string}
+                value={item.description}
+                onChange={(e) =>
+                  handleItemChange(index, "description", e.target.value)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                required
+              />
             </div>
-            <button
-              type="button"
-              onClick={() => removeItem(index)}
-              className="col-span-1 text-red-500 hover:text-red-700"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            {/* Quantity */}
+            <div className="col-span-4 md:col-span-1">
+              <label className="md:hidden text-xs font-medium text-gray-500">
+                QU
+              </label>
+              <input
+                type="number"
+                value={item.quantity}
+                onChange={(e) =>
+                  handleItemChange(index, "quantity", Number(e.target.value))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-center"
+                required
+              />
+            </div>
+            {/* Prix Unitaire */}
+            <div className="col-span-4 md:col-span-2">
+              <label className="md:hidden text-xs font-medium text-gray-500">
+                PRIX UNITAIRE
+              </label>
+              <input
+                type="number"
+                value={item.prixUnitaire}
+                onChange={(e) =>
+                  handleItemChange(
+                    index,
+                    "prixUnitaire",
+                    Number(e.target.value)
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
+                required
+              />
+            </div>
+            {/* Frais Service Unitaire */}
+            <div className="col-span-4 md:col-span-2">
+              <label className="md:hidden text-xs font-medium text-gray-500">
+                FRAIS. SCE UNITAIRE
+              </label>
+              <input
+                type="number"
+                value={item.fraisServiceUnitaire}
+                onChange={(e) =>
+                  handleItemChange(
+                    index,
+                    "fraisServiceUnitaire",
+                    Number(e.target.value)
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
+                required
+              />
+            </div>
+            {/* Montant Total */}
+            <div className="col-span-10 md:col-span-2">
+              <label className="md:hidden text-xs font-medium text-gray-500">
+                MONTANT TOTAL
+              </label>
+              <div className="w-full px-3 py-2 text-right font-medium bg-gray-100 rounded-md">
+                {item.total.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </div>
+            </div>
+            {/* Remove Button */}
+            <div className="col-span-2 md:col-span-1 flex items-end justify-end">
+              <button
+                type="button"
+                onClick={() => removeItem(index)}
+                className="text-red-500 hover:text-red-700 p-2"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         ))}
         <button
@@ -240,35 +328,50 @@ export default function FactureForm({
         </button>
       </div>
 
-      <div className="flex justify-end">
-        <div className="w-1/2 space-y-2">
-          <div className="flex justify-between">
-            <span>{t("subTotal")}</span>
-            <span>
-              {subTotal.toLocaleString()} {t("mad")}
+      <div className="flex justify-end mt-6">
+        <div className="w-full max-w-sm space-y-2 text-sm">
+          <div className="flex justify-between p-2 bg-gray-50 rounded-md">
+            <span className="font-medium text-gray-600">
+              Prix Total H. Frais de SCE
+            </span>
+            <span className="font-semibold text-gray-800">
+              {calculatedTotals.prixTotalHorsFrais.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              {t("mad")}
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-gray-700">
-              {t("serviceFee")}
-            </label>
-            <input
-              type="number"
-              value={fraisDeService}
-              onChange={(e) => setFraisDeService(Number(e.target.value))}
-              className="w-32 px-3 py-1 border border-gray-300 rounded-md"
-            />
-          </div>
-          <div className="flex justify-between">
-            <span>{t("tva")} (20%)</span>
-            <span>
-              {tva.toLocaleString()} {t("mad")}
+          <div className="flex justify-between p-2">
+            <span className="font-medium text-gray-600">
+              Frais de Service Hors TVA
+            </span>
+            <span className="font-semibold text-gray-800">
+              {calculatedTotals.totalFraisServiceHT.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              {t("mad")}
             </span>
           </div>
-          <div className="flex justify-between font-bold text-lg border-t pt-2">
-            <span>{t("totalTTC")}</span>
+          <div className="flex justify-between p-2">
+            <span className="font-medium text-gray-600">TVA 20%</span>
+            <span className="font-semibold text-gray-800">
+              {calculatedTotals.tva.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              {t("mad")}
+            </span>
+          </div>
+          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2 p-2 bg-gray-100 rounded-md">
+            <span>Total Facture</span>
             <span>
-              {total.toLocaleString()} {t("mad")}
+              {calculatedTotals.totalFacture.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              {t("mad")}
             </span>
           </div>
         </div>

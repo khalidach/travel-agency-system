@@ -315,6 +315,11 @@ const resources = {
       createQuote: "Create Quote",
       updateDocument: "Update Document",
       downloadPDF: "Download PDF",
+      fraisUnitaire: "Unit Svc. Fee",
+      prixTotalHFraisSce: "Total Price Excl. Svc. Fees",
+      fraisServiceHTVA: "Service Fees Excl. VAT",
+      tva20: "VAT 20%",
+      totalFacture: "Total Invoice",
 
       // Settings
       settingsTitle: "Settings",
@@ -648,6 +653,11 @@ const resources = {
       createQuote: "إنشاء عرض سعر",
       updateDocument: "تحديث المستند",
       downloadPDF: "تحميل PDF",
+      fraisUnitaire: "رسوم خدمة للوحدة",
+      prixTotalHFraisSce: "السعر الإجمالي بدون رسوم الخدمة",
+      fraisServiceHTVA: "رسوم الخدمة بدون ضريبة القيمة المضافة",
+      tva20: "ضريبة القيمة المضافة 20%",
+      totalFacture: "إجمالي الفاتورة",
 
       // Settings
       settingsTitle: "الإعدادات",
@@ -993,6 +1003,11 @@ const resources = {
       createQuote: "Créer le Devis",
       updateDocument: "Mettre à jour le Document",
       downloadPDF: "Télécharger en PDF",
+      fraisUnitaire: "Frais Sce. Unitaire",
+      prixTotalHFraisSce: "Prix Total H. Frais de SCE",
+      fraisServiceHTVA: "Frais de Service Hors TVA",
+      tva20: "TVA 20%",
+      totalFacture: "Total Facture",
 
       // Settings
       settingsTitle: "Paramètres",

@@ -135,16 +135,38 @@ pool
       );
     `);
 
-    // Check and add 'fraisDeService' column to factures table if it doesn't exist
+    // Drop old 'fraisDeService' column if it exists
     const fraisCheck = await client.query(`
         SELECT 1 FROM information_schema.columns 
         WHERE table_name='factures' AND column_name='fraisDeService'
     `);
-    if (fraisCheck.rows.length === 0) {
+    if (fraisCheck.rows.length > 0) {
+      await client.query(`ALTER TABLE factures DROP COLUMN "fraisDeService";`);
+      console.log("'fraisDeService' column dropped from factures table.");
+    }
+
+    // Add 'prixTotalHorsFrais' column if it doesn't exist
+    const prixTotalHorsFraisCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='factures' AND column_name='prixTotalHorsFrais'
+    `);
+    if (prixTotalHorsFraisCheck.rows.length === 0) {
       await client.query(
-        `ALTER TABLE factures ADD COLUMN "fraisDeService" NUMERIC(10, 2) DEFAULT 0;`
+        `ALTER TABLE factures ADD COLUMN "prixTotalHorsFrais" NUMERIC(10, 2) DEFAULT 0;`
       );
-      console.log("'fraisDeService' column added to factures table.");
+      console.log("'prixTotalHorsFrais' column added to factures table.");
+    }
+
+    // Add 'totalFraisServiceHT' column if it doesn't exist
+    const totalFraisServiceHTCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='factures' AND column_name='totalFraisServiceHT'
+    `);
+    if (totalFraisServiceHTCheck.rows.length === 0) {
+      await client.query(
+        `ALTER TABLE factures ADD COLUMN "totalFraisServiceHT" NUMERIC(10, 2) DEFAULT 0;`
+      );
+      console.log("'totalFraisServiceHT' column added to factures table.");
     }
 
     // Check and add 'tva' column to factures table if it doesn't exist

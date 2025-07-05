@@ -11,14 +11,7 @@ import {
   Clock,
   CheckCircle2,
 } from "lucide-react";
-import {
-  subDays,
-  startOfDay,
-  endOfDay,
-  startOfYear,
-  format,
-  subYears,
-} from "date-fns";
+import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
 import type { Booking } from "../context/models";
