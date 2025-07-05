@@ -8,6 +8,12 @@ export interface TierLimits {
   facturesPerMonth: number;
 }
 
+export interface Tier {
+  id: number;
+  name: string;
+  limits: TierLimits;
+}
+
 export interface User {
   id: number;
   username: string;

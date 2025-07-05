@@ -20,6 +20,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const roomManagementRoutes = require("./routes/roomManagementRoutes");
 const factureRoutes = require("./routes/factureRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const tierRoutes = require("./routes/tierRoutes"); // New
 
 const app = express();
 const corsOptions = {
@@ -201,6 +202,7 @@ app.use((req, res, next) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/owner", ownerRoutes);
+app.use("/api/tiers", protect, tierRoutes); // New
 app.use("/api/dashboard", protect, dashboardRoutes);
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);

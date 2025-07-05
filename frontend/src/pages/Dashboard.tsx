@@ -212,7 +212,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">{t("dashboard")}</h1>
-        <p className="text-gray-600 mt-2">{t("welcomeMessage")}</p>
+        <p className="text-gray-600 mt-2">{t("dashboardSubtitle")}</p>
       </div>
 
       <div
@@ -382,7 +382,9 @@ export default function Dashboard() {
             {programTypeDataForChart.map((item, index) => (
               <div key={index} className="flex items-center">
                 <div
-                  className={`w-3 h-3 rounded-full ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
+                  className={`w-3 h-3 rounded-full ${
+                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                  }`}
                   style={{ backgroundColor: item.color }}
                 ></div>
                 <span className="text-sm text-gray-600">{item.name}</span>
@@ -400,7 +402,11 @@ export default function Dashboard() {
           <div className="space-y-3">
             <Link
               to="/booking"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}
+              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+                document.documentElement.dir === "rtl"
+                  ? "text-right"
+                  : "text-left"
+              }`}
             >
               <Calendar className="w-5 h-5 text-blue-500 mx-3" />
               <span className="text-sm font-medium text-gray-700">
@@ -409,7 +415,11 @@ export default function Dashboard() {
             </Link>
             <Link
               to="/programs"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}
+              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+                document.documentElement.dir === "rtl"
+                  ? "text-right"
+                  : "text-left"
+              }`}
             >
               <Package className="w-5 h-5 text-emerald-500 mx-3" />
               <span className="text-sm font-medium text-gray-700">
@@ -419,7 +429,11 @@ export default function Dashboard() {
             {(userRole === "admin" || userRole === "manager") && (
               <Link
                 to="/profit-report"
-                className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}
+                className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
               >
                 <TrendingUp className="w-5 h-5 text-orange-500 mx-3" />
                 <span className="text-sm font-medium text-gray-700">
@@ -437,7 +451,11 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <CheckCircle2 className={`w-5 h-5 text-emerald-500 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                <CheckCircle2
+                  className={`w-5 h-5 text-emerald-500 ${
+                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                  }`}
+                />
                 <span className="text-sm text-gray-600">{t("fullyPaid")}</span>
               </div>
               <span className="text-sm font-semibold text-gray-900">
@@ -446,7 +464,11 @@ export default function Dashboard() {
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center">
-                <Clock className={`w-5 h-5 text-orange-500 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                <Clock
+                  className={`w-5 h-5 text-orange-500 ${
+                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                  }`}
+                />
                 <span className="text-sm text-gray-600">{t("pending")}</span>
               </div>
               <span className="text-sm font-semibold text-gray-900">
@@ -474,7 +496,13 @@ export default function Dashboard() {
                     {booking.passportNumber}
                   </p>
                 </div>
-                <div className={`${document.documentElement.dir === "rtl" ? "text-left" : "text-right"}`}>
+                <div
+                  className={`${
+                    document.documentElement.dir === "rtl"
+                      ? "text-left"
+                      : "text-right"
+                  }`}
+                >
                   <p className="text-sm font-semibold text-gray-900">
                     {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
                   </p>

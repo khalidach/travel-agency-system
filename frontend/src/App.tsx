@@ -25,6 +25,7 @@ const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const OwnerPage = lazy(() => import("./pages/Owner"));
+const TiersPage = lazy(() => import("./pages/Tiers")); // New
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
 const RoomManage = lazy(() => import("./pages/RoomManage"));
 const Facturation = lazy(() => import("./pages/Facturation")); // New
@@ -79,6 +80,8 @@ function AppRoutes() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<OwnerPage />} />
+                    <Route path="/tiers" element={<TiersPage />} />{" "}
+                    {/* New Route */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </Layout>

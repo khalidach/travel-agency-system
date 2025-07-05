@@ -255,6 +255,15 @@ export const updateAdminUserLimits = (id: number, limits: any) =>
     body: JSON.stringify({ limits }),
   });
 
+// --- Tier Management API (New) ---
+export const getTiers = () => request("/tiers");
+export const createTier = (tierData: any) =>
+  request("/tiers", { method: "POST", body: JSON.stringify(tierData) });
+export const updateTier = (id: number, tierData: any) =>
+  request(`/tiers/${id}`, { method: "PUT", body: JSON.stringify(tierData) });
+export const deleteTier = (id: number) =>
+  request(`/tiers/${id}`, { method: "DELETE" });
+
 // --- Export/Import API ---
 export const exportBookingsToExcel = (programId: string) =>
   request(`/bookings/export-excel/program/${programId}`, {}, true);

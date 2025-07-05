@@ -15,6 +15,8 @@ const resources = {
       owner: "Owner",
       facturation: "Invoicing",
       settings: "Settings",
+      // Header
+      headerSubtitle: "Manage your travel agency efficiently",
 
       // Common
       add: "Add",
@@ -348,6 +350,8 @@ const resources = {
       owner: "المالك",
       facturation: "الفواتير",
       settings: "الإعدادات",
+      // Header
+      headerSubtitle: "إدارة وكالتك السياحية بكفاءة",
 
       // Common
       add: "إضافة",
@@ -677,6 +681,8 @@ const resources = {
       owner: "Propriétaire",
       facturation: "Facturation",
       settings: "Paramètres",
+      // Header
+      headerSubtitle: "Gérez votre agence de voyage efficacement",
 
       // Common
       add: "Ajouter",

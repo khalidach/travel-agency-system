@@ -42,7 +42,7 @@ export default function Header() {
               {t("welcomeMessage", { name: state.user?.agencyName || "User" })}
             </h2>
             <p className="text-sm text-gray-600 mt-1">
-              {t("dashboardSubtitle")}
+              {t("headerSubtitle")}
             </p>
           </div>
 

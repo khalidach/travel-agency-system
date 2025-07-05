@@ -14,6 +14,7 @@ import {
   BedDouble,
   FileText,
   Settings,
+  Layers, // New Icon
 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -22,6 +23,12 @@ const allMenuItems = [
     key: "owner",
     path: "/",
     icon: Crown,
+    roles: ["owner"],
+  },
+  {
+    key: "tiers", // New Menu Item
+    path: "/tiers",
+    icon: Layers,
     roles: ["owner"],
   },
   {
@@ -78,7 +85,7 @@ const allMenuItems = [
 ];
 
 export default function Sidebar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const { state } = useAuthContext();
   const user = state.user;
