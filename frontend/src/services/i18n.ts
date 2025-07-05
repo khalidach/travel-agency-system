@@ -15,8 +15,8 @@ const resources = {
       owner: "Owner",
       facturation: "Invoicing",
       settings: "Settings",
-      // Header
-      headerSubtitle: "Manage your travel agency efficiently",
+      tiers: "Tiers",
+      gestionPrograms: "Program Management",
 
       // Common
       add: "Add",
@@ -32,6 +32,8 @@ const resources = {
       saving: "Saving...",
       isRequired: "is required",
       fieldIsRequired: "{{field}} is required",
+      // Header
+      headerSubtitle: "Manage your travel agency in one place",
 
       // Dashboard
       totalBookings: "Total Bookings",
@@ -350,8 +352,8 @@ const resources = {
       owner: "المالك",
       facturation: "الفواتير",
       settings: "الإعدادات",
-      // Header
-      headerSubtitle: "إدارة وكالتك السياحية بكفاءة",
+      tiers: "الفئات",
+      gestionPrograms: "إدارة البرامج",
 
       // Common
       add: "إضافة",
@@ -367,6 +369,8 @@ const resources = {
       saving: "جار الحفظ...",
       isRequired: "مطلوب",
       fieldIsRequired: "{{field}} مطلوب",
+      // Header
+      headerSubtitle: "نظام إدارة السفر لوكالتك في مكان واحد",
 
       // Dashboard
       totalBookings: "إجمالي الحجوزات",
@@ -674,15 +678,15 @@ const resources = {
       dashboard: "Tableau de Bord",
       programs: "Programmes",
       booking: "Réservations",
-      programPricing: "Tarification des Programmes",
+      programPricing: "Tarification",
       profitReport: "Rapport des Profits",
       roomManagement: "Hébergement",
       employees: "Employés",
       owner: "Propriétaire",
       facturation: "Facturation",
       settings: "Paramètres",
-      // Header
-      headerSubtitle: "Gérez votre agence de voyage efficacement",
+      tiers: "Niveaux",
+      gestionPrograms: "Gestion Programmes",
 
       // Common
       add: "Ajouter",
@@ -698,6 +702,8 @@ const resources = {
       saving: "Enregistrement...",
       isRequired: "est requis",
       fieldIsRequired: "{{field}} est requis",
+      // Header
+      headerSubtitle: "Gérez votre agence de voyages en un seul endroit",
 
       // Dashboard
       totalBookings: "Total Réservations",
