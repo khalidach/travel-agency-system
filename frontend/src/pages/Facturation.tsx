@@ -2,9 +2,17 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Edit2, Trash2, FileText } from "lucide-react";
+import {
+  Plus,
+  Download,
+  Edit2,
+  Trash2,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import * as api from "../services/api";
-import { Facture } from "../context/models";
+import { Facture, PaginatedResponse } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import FactureForm from "../components/facturation/FactureForm";
@@ -12,6 +20,8 @@ import FacturePDF from "../components/facturation/FacturePDF";
 import { toast } from "react-hot-toast";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { usePagination } from "../hooks/usePagination";
+import PaginationControls from "../components/booking/PaginationControls";
 
 export default function Facturation() {
   const { t } = useTranslation();
@@ -22,10 +32,25 @@ export default function Facturation() {
   const [factureToPreview, setFactureToPreview] = useState<Facture | null>(
     null
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const facturesPerPage = 10;
 
-  const { data: factures = [], isLoading } = useQuery<Facture[]>({
-    queryKey: ["factures"],
-    queryFn: api.getFactures,
+  const { data: facturesResponse, isLoading } = useQuery<
+    PaginatedResponse<Facture>
+  >({
+    queryKey: ["factures", currentPage],
+    queryFn: () => api.getFactures(currentPage, facturesPerPage),
+    placeholderData: (prev) => prev,
+  });
+
+  const factures = facturesResponse?.data ?? [];
+  const pagination = facturesResponse?.pagination;
+
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: pagination?.totalCount ?? 0,
+    pageSize: facturesPerPage,
+    siblingCount: 1,
   });
 
   const { mutate: createFacture } = useMutation({
@@ -36,7 +61,7 @@ export default function Facturation() {
       >
     ) => api.createFacture(data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
       toast.success("Document created successfully!");
       setIsModalOpen(false);
     },
@@ -46,7 +71,7 @@ export default function Facturation() {
   const { mutate: updateFacture } = useMutation({
     mutationFn: (data: Facture) => api.updateFacture(data.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
       toast.success("Document updated successfully!");
       setIsModalOpen(false);
     },
@@ -56,7 +81,7 @@ export default function Facturation() {
   const { mutate: deleteFacture } = useMutation({
     mutationFn: (id: number) => api.deleteFacture(id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["factures"] });
       toast.success("Document deleted successfully!");
       setFactureToDelete(null);
     },
@@ -248,6 +273,16 @@ export default function Facturation() {
             )}
           </tbody>
         </table>
+        {pagination && pagination.totalPages > 1 && (
+          <div className="p-4">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={setCurrentPage}
+              paginationRange={paginationRange}
+            />
+          </div>
+        )}
       </div>
 
       <Modal

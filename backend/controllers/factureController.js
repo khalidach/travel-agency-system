@@ -2,11 +2,36 @@
 const getFactures = async (req, res) => {
   try {
     const { adminId } = req.user;
-    const { rows } = await req.db.query(
-      'SELECT * FROM factures WHERE "userId" = $1 ORDER BY "createdAt" DESC',
+    const page = parseInt(req.query.page || "1", 10);
+    const limit = parseInt(req.query.limit || "10", 10);
+    const offset = (page - 1) * limit;
+
+    const facturesPromise = req.db.query(
+      'SELECT * FROM factures WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+      [adminId, limit, offset]
+    );
+
+    const totalCountPromise = req.db.query(
+      'SELECT COUNT(*) FROM factures WHERE "userId" = $1',
       [adminId]
     );
-    res.json(rows);
+
+    const [facturesResult, totalCountResult] = await Promise.all([
+      facturesPromise,
+      totalCountPromise,
+    ]);
+
+    const totalCount = parseInt(totalCountResult.rows[0].count, 10);
+
+    res.json({
+      data: facturesResult.rows,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
   } catch (error) {
     console.error("Get Factures Error:", error);
     res.status(500).json({ message: "Failed to retrieve factures." });

@@ -55,7 +55,13 @@ export const updateSettings = (settings: any) =>
   request("/settings", { method: "PUT", body: JSON.stringify(settings) });
 
 // --- Facturation API ---
-export const getFactures = () => request("/facturation");
+export const getFactures = (page = 1, limit = 10) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  return request(`/facturation?${params.toString()}`);
+};
 export const createFacture = (facture: any) =>
   request("/facturation", { method: "POST", body: JSON.stringify(facture) });
 export const updateFacture = (id: number, facture: any) =>
