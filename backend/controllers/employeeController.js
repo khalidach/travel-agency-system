@@ -79,14 +79,10 @@ exports.getEmployees = async (req, res) => {
   }
 };
 
-// Get all analysis data for a single employee
+// This now only fetches lifetime stats and basic info
 exports.getEmployeeAnalysis = async (req, res) => {
   const { username } = req.params;
   const { adminId } = req.user;
-  const { startDate, endDate } = req.query;
-
-  const isValidDate = (dateString) =>
-    dateString && !isNaN(new Date(dateString));
 
   try {
     const employeeRes = await req.db.query(
@@ -98,7 +94,6 @@ exports.getEmployeeAnalysis = async (req, res) => {
     }
     const employee = employeeRes.rows[0];
 
-    // 1. Lifetime Stats
     const programsCreatedPromise = req.db.query(
       'SELECT COUNT(*) FROM programs WHERE "employeeId" = $1',
       [employee.id]
@@ -107,82 +102,214 @@ exports.getEmployeeAnalysis = async (req, res) => {
       'SELECT COUNT(*) FROM bookings WHERE "employeeId" = $1',
       [employee.id]
     );
-
-    // 2. Program Performance
-    const programPerformanceQuery = `
-            SELECT
-                p.name as "programName",
-                p.type,
-                COUNT(b.id) as "bookingCount",
-                COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
-                COALESCE(SUM(b."basePrice"), 0) as "totalCost",
-                COALESCE(SUM(b.profit), 0) as "totalProfit"
-            FROM programs p
-            JOIN bookings b ON p.id::text = b."tripId"
-            WHERE b."employeeId" = $1
-            GROUP BY p.id, p.name, p.type
-            ORDER BY "totalProfit" DESC;
-        `;
-    const programPerformancePromise = req.db.query(programPerformanceQuery, [
-      employee.id,
-    ]);
-
-    // 3. Date-Filtered Stats
-    let dateFilterCondition = "";
-    const dateFilterParams = [employee.id];
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      dateFilterCondition = `AND "createdAt"::date BETWEEN $2 AND $3`;
-      dateFilterParams.push(startDate, endDate);
-    }
-
-    const dateFilteredQuery = `
-            SELECT
-                COUNT(*) as totalbookings,
-                COALESCE(SUM("sellingPrice"), 0) as totalrevenue,
-                COALESCE(SUM("basePrice"), 0) as totalcost,
-                COALESCE(SUM(profit), 0) as totalprofit
-            FROM bookings
-            WHERE "employeeId" = $1 ${dateFilterCondition}
-        `;
-    const dateFilteredPromise = req.db.query(
-      dateFilteredQuery,
-      dateFilterParams
+    const dailyServicesMadePromise = req.db.query(
+      'SELECT COUNT(*) FROM daily_services WHERE "employeeId" = $1',
+      [employee.id]
     );
 
-    const [
-      programsCreatedResult,
-      bookingsMadeResult,
-      programPerformanceResult,
-      dateFilteredResult,
-    ] = await Promise.all([
-      programsCreatedPromise,
-      bookingsMadePromise,
-      programPerformancePromise,
-      dateFilteredPromise,
-    ]);
-
-    const dateFilteredStats = dateFilteredResult.rows[0] || {};
+    const [programsCreatedResult, bookingsMadeResult, dailyServicesMadeResult] =
+      await Promise.all([
+        programsCreatedPromise,
+        bookingsMadePromise,
+        dailyServicesMadePromise,
+      ]);
 
     res.json({
       employee,
       programsCreatedCount: parseInt(programsCreatedResult.rows[0].count, 10),
       bookingsMadeCount: parseInt(bookingsMadeResult.rows[0].count, 10),
-      programPerformance: programPerformanceResult.rows.map((r) => ({
+      dailyServicesMadeCount: parseInt(
+        dailyServicesMadeResult.rows[0].count,
+        10
+      ),
+    });
+  } catch (error) {
+    console.error("Employee Analysis Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// New function for program performance
+exports.getEmployeeProgramPerformance = async (req, res) => {
+  const { username } = req.params;
+  const { adminId } = req.user;
+  const { startDate, endDate, programType } = req.query;
+
+  const isValidDate = (dateString) =>
+    dateString && !isNaN(new Date(dateString));
+
+  try {
+    const employeeRes = await req.db.query(
+      'SELECT id FROM employees WHERE username = $1 AND "adminId" = $2',
+      [username, adminId]
+    );
+    if (employeeRes.rows.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+    const employee = employeeRes.rows[0];
+
+    let queryConditions = [`b."employeeId" = $1`];
+    const queryParams = [employee.id];
+    let paramIndex = 2;
+
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      queryConditions.push(
+        `b."createdAt"::date BETWEEN $${paramIndex++} AND $${paramIndex++}`
+      );
+      queryParams.push(startDate, endDate);
+    }
+
+    if (programType && programType !== "all") {
+      queryConditions.push(`p.type = $${paramIndex++}`);
+      queryParams.push(programType);
+    }
+
+    const whereClause =
+      queryConditions.length > 0
+        ? `WHERE ${queryConditions.join(" AND ")}`
+        : "";
+
+    const performanceQuery = `
+        SELECT
+            p.name as "programName",
+            p.type,
+            COUNT(b.id) as "bookingCount",
+            COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
+            COALESCE(SUM(b."basePrice"), 0) as "totalCost",
+            COALESCE(SUM(b.profit), 0) as "totalProfit"
+        FROM programs p
+        JOIN bookings b ON p.id::text = b."tripId"
+        ${whereClause}
+        GROUP BY p.id, p.name, p.type
+        ORDER BY "totalProfit" DESC;
+    `;
+
+    const summaryQuery = `
+        SELECT
+            COUNT(*) as totalBookings,
+            COALESCE(SUM(b."sellingPrice"), 0) as totalRevenue,
+            COALESCE(SUM(b."basePrice"), 0) as totalCost,
+            COALESCE(SUM(b.profit), 0) as totalProfit
+        FROM bookings b
+        LEFT JOIN programs p ON b."tripId" = p.id::text
+        ${whereClause}
+    `;
+
+    const [performanceResult, summaryResult] = await Promise.all([
+      req.db.query(performanceQuery, queryParams),
+      req.db.query(summaryQuery, queryParams),
+    ]);
+
+    const summary = summaryResult.rows[0] || {};
+
+    res.json({
+      programPerformance: performanceResult.rows.map((r) => ({
         ...r,
         bookingCount: parseInt(r.bookingCount, 10),
         totalSales: parseFloat(r.totalSales),
         totalCost: parseFloat(r.totalCost),
         totalProfit: parseFloat(r.totalProfit),
       })),
-      dateFilteredStats: {
-        totalBookings: parseInt(dateFilteredStats.totalbookings || 0, 10),
-        totalRevenue: parseFloat(dateFilteredStats.totalrevenue || 0),
-        totalCost: parseFloat(dateFilteredStats.totalcost || 0),
-        totalProfit: parseFloat(dateFilteredStats.totalprofit || 0),
+      programSummary: {
+        totalBookings: parseInt(summary.totalbookings || 0, 10),
+        totalRevenue: parseFloat(summary.totalrevenue || 0),
+        totalCost: parseFloat(summary.totalcost || 0),
+        totalProfit: parseFloat(summary.totalprofit || 0),
       },
     });
   } catch (error) {
-    console.error("Employee Analysis Error:", error);
+    console.error("Employee Program Performance Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// New function for service performance
+exports.getEmployeeServicePerformance = async (req, res) => {
+  const { username } = req.params;
+  const { adminId } = req.user;
+  const { startDate, endDate, serviceType } = req.query;
+
+  const isValidDate = (dateString) =>
+    dateString && !isNaN(new Date(dateString));
+
+  try {
+    const employeeRes = await req.db.query(
+      'SELECT id FROM employees WHERE username = $1 AND "adminId" = $2',
+      [username, adminId]
+    );
+    if (employeeRes.rows.length === 0) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+    const employee = employeeRes.rows[0];
+
+    let queryConditions = [`"employeeId" = $1`];
+    const queryParams = [employee.id];
+    let paramIndex = 2;
+
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      queryConditions.push(
+        `date::date BETWEEN $${paramIndex++} AND $${paramIndex++}`
+      );
+      queryParams.push(startDate, endDate);
+    }
+
+    if (serviceType && serviceType !== "all") {
+      queryConditions.push(`type = $${paramIndex++}`);
+      queryParams.push(serviceType);
+    }
+
+    const whereClause =
+      queryConditions.length > 0
+        ? `WHERE ${queryConditions.join(" AND ")}`
+        : "";
+
+    const performanceQuery = `
+        SELECT
+            type,
+            COUNT(*) as "serviceCount",
+            COALESCE(SUM("totalPrice"), 0) as "totalSales",
+            COALESCE(SUM("originalPrice"), 0) as "totalCost",
+            COALESCE(SUM(profit), 0) as "totalProfit"
+        FROM daily_services
+        ${whereClause}
+        GROUP BY type
+        ORDER BY "totalProfit" DESC;
+    `;
+
+    const summaryQuery = `
+        SELECT
+            COUNT(*) as totalServices,
+            COALESCE(SUM("totalPrice"), 0) as totalRevenue,
+            COALESCE(SUM("originalPrice"), 0) as totalCost,
+            COALESCE(SUM(profit), 0) as totalProfit
+        FROM daily_services
+        ${whereClause}
+    `;
+
+    const [performanceResult, summaryResult] = await Promise.all([
+      req.db.query(performanceQuery, queryParams),
+      req.db.query(summaryQuery, queryParams),
+    ]);
+
+    const summary = summaryResult.rows[0] || {};
+
+    res.json({
+      dailyServicePerformance: performanceResult.rows.map((r) => ({
+        ...r,
+        serviceCount: parseInt(r.serviceCount, 10),
+        totalSales: parseFloat(r.totalSales),
+        totalCost: parseFloat(r.totalCost),
+        totalProfit: parseFloat(r.totalProfit),
+      })),
+      serviceSummary: {
+        totalServices: parseInt(summary.totalservices || 0, 10),
+        totalRevenue: parseFloat(summary.totalrevenue || 0),
+        totalCost: parseFloat(summary.totalcost || 0),
+        totalProfit: parseFloat(summary.totalprofit || 0),
+      },
+    });
+  } catch (error) {
+    console.error("Employee Service Performance Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

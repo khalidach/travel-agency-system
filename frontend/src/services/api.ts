@@ -250,15 +250,42 @@ export const updateEmployee = (id: number, employeeData: any) =>
 export const deleteEmployee = (id: number) =>
   request(`/employees/${id}`, { method: "DELETE" });
 
-export const getEmployeeAnalysis = (
+export const getEmployeeAnalysis = (username: string) => {
+  return request(`/employees/${username}/analysis`);
+};
+
+export const getEmployeeProgramPerformance = (
   username: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  programType?: string
 ) => {
-  let endpoint = `/employees/${username}/analysis`;
-  if (startDate && endDate) {
-    const params = new URLSearchParams({ startDate, endDate });
-    endpoint += `?${params.toString()}`;
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  if (programType) params.append("programType", programType);
+  const queryString = params.toString();
+  let endpoint = `/employees/${username}/program-performance`;
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  return request(endpoint);
+};
+
+export const getEmployeeServicePerformance = (
+  username: string,
+  startDate?: string,
+  endDate?: string,
+  serviceType?: string
+) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  if (serviceType) params.append("serviceType", serviceType);
+  const queryString = params.toString();
+  let endpoint = `/employees/${username}/service-performance`;
+  if (queryString) {
+    endpoint += `?${queryString}`;
   }
   return request(endpoint);
 };

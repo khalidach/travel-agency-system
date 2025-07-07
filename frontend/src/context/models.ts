@@ -269,3 +269,30 @@ export interface DashboardStats {
   };
   recentBookings: Booking[];
 }
+
+export interface EmployeeAnalysisData {
+  employee: Employee;
+  programsCreatedCount: number;
+  bookingsMadeCount: number;
+  dailyServicesMadeCount: number;
+}
+
+export interface ProgramPerformanceData {
+  programPerformance: any[];
+  programSummary: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+  };
+}
+
+export interface ServicePerformanceData {
+  dailyServicePerformance: any[];
+  serviceSummary: {
+    totalServices: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+  };
+}

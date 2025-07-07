@@ -11,6 +11,14 @@ router.use(protect);
 router.post("/", checkEmployeeLimit, employeeController.createEmployee);
 router.get("/", employeeController.getEmployees);
 router.get("/:username/analysis", employeeController.getEmployeeAnalysis);
+router.get(
+  "/:username/program-performance",
+  employeeController.getEmployeeProgramPerformance
+);
+router.get(
+  "/:username/service-performance",
+  employeeController.getEmployeeServicePerformance
+);
 router.put("/:id", employeeController.updateEmployee);
 router.delete("/:id", employeeController.deleteEmployee);
 

@@ -290,6 +290,11 @@ const resources = {
       overallProgramPerformance: "Overall Program Performance",
       backToEmployees: "Back to Employees",
       couldNotLoadAnalysis: "Could not load analysis data for this employee.",
+      totalServicesPerformed: "Total Services Performed",
+      overallServicePerformance: "Overall Service Performance",
+      serviceType: "Service Type",
+      serviceCount: "Services",
+      allServiceTypes: "All Service Types",
 
       // Facturation
       facturationTitle: "Invoicing",
@@ -351,7 +356,6 @@ const resources = {
       dailyServicesTitle: "Daily Services",
       dailyServicesSubtitle: "Manage your daily services and sales.",
       newService: "New Service",
-      serviceType: "Service Type",
       serviceName: "Service Name",
       originalPrice: "Original Price",
       commission: "Commission",
@@ -658,6 +662,11 @@ const resources = {
       overallProgramPerformance: "الأداء العام للبرنامج",
       backToEmployees: "العودة إلى الموظفين",
       couldNotLoadAnalysis: "تعذر تحميل بيانات التحليل لهذا الموظف.",
+      totalServicesPerformed: "إجمالي الخدمات المنجزة",
+      overallServicePerformance: "الأداء العام للخدمات",
+      serviceType: "نوع الخدمة",
+      serviceCount: "الخدمات",
+      allServiceTypes: "جميع أنواع الخدمات",
 
       // Facturation
       facturationTitle: "الفواتير",
@@ -719,7 +728,6 @@ const resources = {
       dailyServicesTitle: "الخدمات اليومية",
       dailyServicesSubtitle: "إدارة الخدمات والمبيعات اليومية.",
       newService: "خدمة جديدة",
-      serviceType: "نوع الخدمة",
       serviceName: "اسم الخدمة",
       originalPrice: "السعر الأصلي",
       commission: "العمولة",
@@ -1037,6 +1045,11 @@ const resources = {
       backToEmployees: "Retour aux employés",
       couldNotLoadAnalysis:
         "Impossible de charger les données d'analyse pour cet employé.",
+      totalServicesPerformed: "Total des services effectués",
+      overallServicePerformance: "Performance globale du service",
+      serviceType: "Type de service",
+      serviceCount: "Services",
+      allServiceTypes: "Tous les types de services",
 
       // Facturation
       facturationTitle: "Facturation",
@@ -1099,7 +1112,6 @@ const resources = {
       dailyServicesTitle: "Services Journaliers",
       dailyServicesSubtitle: "Gérez vos services et ventes journaliers.",
       newService: "Nouveau Service",
-      serviceType: "Type de Service",
       serviceName: "Nom du Service",
       originalPrice: "Prix Original",
       commission: "Commission",
