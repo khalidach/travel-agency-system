@@ -10,18 +10,24 @@ interface LimitsModalProps {
   onSave: (userId: number, limits: Partial<TierLimits>) => void;
 }
 
+// Define a more accurate type for the form's state, allowing for empty strings for number fields
+type LimitsFormState = {
+  [K in keyof TierLimits]?: TierLimits[K] | "";
+};
+
 const LimitsModal: React.FC<LimitsModalProps> = ({
   user,
   isOpen,
   onClose,
   onSave,
 }) => {
-  const [limits, setLimits] = useState<Partial<TierLimits>>({});
+  const [limits, setLimits] = useState<LimitsFormState>({});
 
   useEffect(() => {
     if (user) {
-      // Use custom limits if they exist, otherwise fall back to tier limits
-      setLimits(user.limits || user.tierLimits || {});
+      // Initialize the form state with ONLY the user's custom limits.
+      // If user.limits is null or undefined, start with an empty object.
+      setLimits(user.limits || {});
     }
   }, [user]);
 
@@ -30,19 +36,23 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
-    let processedValue: string | number | boolean = value;
+    const { name, value } = e.target;
+    const isBooleanField = name === "invoicing" || name === "dailyServices";
 
-    if (type === "number") {
-      // Store empty string for empty input, otherwise store a number
-      processedValue = value === "" ? "" : Number(value);
-    } else if (name === "invoicing" || name === "dailyServices") {
-      // Convert string from select to boolean, or keep as empty string for default
+    let processedValue: string | number | boolean | undefined;
+
+    if (isBooleanField) {
       if (value === "true") {
         processedValue = true;
       } else if (value === "false") {
         processedValue = false;
+      } else {
+        // An empty string from the select means "unset this override"
+        processedValue = undefined;
       }
+    } else {
+      // For number inputs, store an empty string or a number
+      processedValue = value === "" ? "" : Number(value);
     }
 
     setLimits((prev) => ({ ...prev, [name]: processedValue }));
@@ -50,10 +60,23 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Filter out empty string values, which represent an unset custom limit.
-    const finalLimits = Object.fromEntries(
-      Object.entries(limits).filter(([, value]) => String(value) !== "")
-    );
+
+    const finalLimits: Partial<TierLimits> = {};
+    // Iterate over the keys of the state object in a type-safe way
+    (Object.keys(limits) as Array<keyof TierLimits>).forEach((key) => {
+      const value = limits[key];
+
+      // Filter out any keys that have been unset (value is undefined or an empty string)
+      if (value !== undefined && value !== "") {
+        // Based on the key, we can safely assert the type of the value.
+        if (key === "invoicing" || key === "dailyServices") {
+          finalLimits[key] = value as boolean;
+        } else {
+          finalLimits[key] = value as number;
+        }
+      }
+    });
+
     onSave(user.id, finalLimits);
   };
 
@@ -88,7 +111,8 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <input
               type="number"
               name={field}
-              value={(limits[field] as number | "") ?? ""}
+              // Use `?? ''` to prevent React's uncontrolled/controlled component warning
+              value={limits[field] ?? ""}
               onChange={handleChange}
               placeholder={`Default: ${user.tierLimits?.[field] ?? "N/A"}`}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
@@ -102,7 +126,10 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
           </label>
           <select
             name="invoicing"
-            value={String(limits.invoicing ?? "")}
+            // Use `?? ''` to handle undefined (default) case
+            value={
+              limits.invoicing === undefined ? "" : String(limits.invoicing)
+            }
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
           >
@@ -121,7 +148,11 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
           </label>
           <select
             name="dailyServices"
-            value={String(limits.dailyServices ?? "")}
+            value={
+              limits.dailyServices === undefined
+                ? ""
+                : String(limits.dailyServices)
+            }
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
           >

@@ -1,33 +1,43 @@
 // backend/middleware/tierMiddleware.js
 const getLimits = async (req) => {
-  // 1. Check for user-specific limits first
-  if (req.user.limits && Object.keys(req.user.limits).length > 0) {
-    return req.user.limits;
-  }
-
-  // 2. Fallback to tier-based limits
+  // 1. Get the base limits from the user's tier.
+  let tierLimits = {};
   let { tierId } = req.user;
-  if (!tierId) tierId = 1;
+  if (!tierId) tierId = 1; // Default to Tier 1 if not set
 
-  const { rows } = await req.db.query(
-    "SELECT limits FROM tiers WHERE id = $1",
-    [tierId]
-  );
-  if (rows.length > 0) {
-    return rows[0].limits;
+  // The tierLimits might already be on req.user from the auth middleware, if not, fetch them.
+  if (req.user.tierLimits && Object.keys(req.user.tierLimits).length > 0) {
+    tierLimits = req.user.tierLimits;
+  } else {
+    const { rows } = await req.db.query(
+      "SELECT limits FROM tiers WHERE id = $1",
+      [tierId]
+    );
+    if (rows.length > 0) {
+      tierLimits = rows[0].limits;
+    } else {
+      // Fallback to a default restrictive limit if tier not found
+      tierLimits = {
+        bookingsPerMonth: 0,
+        programsPerMonth: 0,
+        programPricingsPerMonth: 0,
+        employees: 0,
+        invoicing: false,
+        facturesPerMonth: 0,
+        dailyServicesPerMonth: 0,
+        dailyServices: false,
+      };
+    }
   }
 
-  // 3. Fallback to a default restrictive limit if something goes wrong
-  return {
-    bookingsPerMonth: 0,
-    programsPerMonth: 0,
-    programPricingsPerMonth: 0,
-    employees: 0,
-    invoicing: false,
-    facturesPerMonth: 0,
-    dailyServicesPerMonth: 0,
-    dailyServices: false,
-  };
+  // 2. Get the user's custom override limits.
+  // req.user.limits is already parsed into an object by the auth middleware
+  const userSpecificLimits = req.user.limits || {};
+
+  // 3. Merge them. User-specific limits override tier limits.
+  const effectiveLimits = { ...tierLimits, ...userSpecificLimits };
+
+  return effectiveLimits;
 };
 
 const checkLimit = async (req, res, next, resource) => {
