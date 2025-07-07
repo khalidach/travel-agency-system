@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Package, Calendar, ConciergeBell } from "lucide-react";
 import * as api from "../services/api";
 import type {
-  Employee,
   EmployeeAnalysisData,
   ProgramPerformanceData,
   ServicePerformanceData,
@@ -27,12 +26,14 @@ const PerformanceCard = ({
   setTypeFilter,
   typeOptions,
   summaryData,
+  isLoading,
 }: any) => {
   const { t } = useTranslation();
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">{t(title)}</h3>
-      <div className="flex flex-col sm:flex-row gap-4 items-center">
+      <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
+        {/* Date Filter */}
         <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
           <button
             onClick={() => setDateFilter("today")}
@@ -75,48 +76,69 @@ const PerformanceCard = ({
             {t("customRange")}
           </button>
         </div>
-        {dateFilter === "custom" && (
-          <div className="flex items-center space-x-2">
-            <input
-              type="date"
-              value={customDateRange.start}
-              onChange={(e) =>
-                setCustomDateRange({
-                  ...customDateRange,
-                  start: e.target.value,
-                })
-              }
-              className="px-3 py-1 border border-gray-300 rounded-lg"
-            />
-            <span>to</span>
-            <input
-              type="date"
-              value={customDateRange.end}
-              onChange={(e) =>
-                setCustomDateRange({ ...customDateRange, end: e.target.value })
-              }
-              className="px-3 py-1 border border-gray-300 rounded-lg"
-            />
-          </div>
-        )}
-      </div>
-      <table className="w-full mt-4">
-        <tbody>
-          {summaryData.map((metric: any) => (
-            <tr
-              key={metric.title}
-              className="border-b last:border-b-0 border-gray-100"
-            >
-              <td className="py-3 text-base font-medium text-gray-600">
-                {metric.title}
-              </td>
-              <td className="py-3 text-2xl font-bold text-gray-900 text-right">
-                {metric.value.toLocaleString()} {metric.unit}
-              </td>
-            </tr>
+        {/* Type Filter */}
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          {typeOptions.map((option: any) => (
+            <option key={option.value} value={option.value}>
+              {t(option.label)}
+            </option>
           ))}
-        </tbody>
-      </table>
+        </select>
+      </div>
+      {dateFilter === "custom" && (
+        <div className="flex items-center space-x-2 mb-4">
+          <input
+            type="date"
+            value={customDateRange.start}
+            onChange={(e) =>
+              setCustomDateRange({
+                ...customDateRange,
+                start: e.target.value,
+              })
+            }
+            className="px-3 py-1 border border-gray-300 rounded-lg"
+          />
+          <span>to</span>
+          <input
+            type="date"
+            value={customDateRange.end}
+            onChange={(e) =>
+              setCustomDateRange({ ...customDateRange, end: e.target.value })
+            }
+            className="px-3 py-1 border border-gray-300 rounded-lg"
+          />
+        </div>
+      )}
+      {isLoading ? (
+        <div className="space-y-2">
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-full"></div>
+        </div>
+      ) : (
+        <table className="w-full mt-4">
+          <tbody>
+            {summaryData.map((metric: any) => (
+              <tr
+                key={metric.title}
+                className="border-b last:border-b-0 border-gray-100"
+              >
+                <td className="py-3 text-base font-medium text-gray-600">
+                  {metric.title}
+                </td>
+                <td className="py-3 text-2xl font-bold text-gray-900 text-right">
+                  {metric.value.toLocaleString()} {metric.unit}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };
@@ -157,10 +179,13 @@ export default function EmployeeAnalysisPage() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "custom":
-        return {
-          startDate: programCustomDate.start,
-          endDate: programCustomDate.end,
-        };
+        if (programCustomDate.start && programCustomDate.end) {
+          return {
+            startDate: programCustomDate.start,
+            endDate: programCustomDate.end,
+          };
+        }
+        return { startDate: undefined, endDate: undefined };
       default:
         startDate = startOfDay(subDays(now, 7));
     }
@@ -182,10 +207,13 @@ export default function EmployeeAnalysisPage() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "custom":
-        return {
-          startDate: serviceCustomDate.start,
-          endDate: serviceCustomDate.end,
-        };
+        if (serviceCustomDate.start && serviceCustomDate.end) {
+          return {
+            startDate: serviceCustomDate.start,
+            endDate: serviceCustomDate.end,
+          };
+        }
+        return { startDate: undefined, endDate: undefined };
       default:
         startDate = startOfDay(subDays(now, 7));
     }
@@ -328,6 +356,21 @@ export default function EmployeeAnalysisPage() {
     },
   ];
 
+  const programTypeOptions = [
+    { value: "all", label: "allProgramTypes" },
+    { value: "Hajj", label: "Hajj" },
+    { value: "Umrah", label: "Umrah" },
+    { value: "Tourism", label: "Tourism" },
+  ];
+
+  const serviceTypeOptions = [
+    { value: "all", label: "allServiceTypes" },
+    { value: "airline-ticket", label: "airline-ticket" },
+    { value: "hotel-reservation", label: "hotel-reservation" },
+    { value: "reservation-ticket", label: "reservation-ticket" },
+    { value: "visa", label: "visa" },
+  ];
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
@@ -406,7 +449,11 @@ export default function EmployeeAnalysisPage() {
           setDateFilter={setProgramDateFilter}
           customDateRange={programCustomDate}
           setCustomDateRange={setProgramCustomDate}
+          typeFilter={programTypeFilter}
+          setTypeFilter={setProgramTypeFilter}
+          typeOptions={programTypeOptions}
           summaryData={programSummaryMetrics}
+          isLoading={isLoadingProgramData}
         />
         <PerformanceCard
           title="overallServicePerformance"
@@ -414,7 +461,11 @@ export default function EmployeeAnalysisPage() {
           setDateFilter={setServiceDateFilter}
           customDateRange={serviceCustomDate}
           setCustomDateRange={setServiceCustomDate}
+          typeFilter={serviceTypeFilter}
+          setTypeFilter={setServiceTypeFilter}
+          typeOptions={serviceTypeOptions}
           summaryData={serviceSummaryMetrics}
+          isLoading={isLoadingServiceData}
         />
       </div>
 
@@ -480,36 +531,44 @@ export default function EmployeeAnalysisPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {programData?.programPerformance.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {item.programName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
-                        item.type
-                      )}`}
-                    >
-                      {item.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.bookingCount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.totalSales.toLocaleString()} MAD
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {item.totalCost.toLocaleString()} MAD
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
-                    {item.totalProfit.toLocaleString()} MAD
+              {isLoadingProgramData ? (
+                <tr>
+                  <td colSpan={6} className="text-center p-4">
+                    Loading...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                programData?.programPerformance.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {item.programName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(
+                          item.type
+                        )}`}
+                      >
+                        {item.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.bookingCount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.totalSales.toLocaleString()} MAD
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {item.totalCost.toLocaleString()} MAD
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
+                      {item.totalProfit.toLocaleString()} MAD
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -568,31 +627,39 @@ export default function EmployeeAnalysisPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {serviceData?.dailyServicePerformance.map((item, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getServiceTypeColor(
-                        item.type
-                      )}`}
-                    >
-                      {t(item.type)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.serviceCount}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {item.totalSales.toLocaleString()} MAD
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {item.totalCost.toLocaleString()} MAD
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
-                    {item.totalProfit.toLocaleString()} MAD
+              {isLoadingServiceData ? (
+                <tr>
+                  <td colSpan={5} className="text-center p-4">
+                    Loading...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                serviceData?.dailyServicePerformance.map((item, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getServiceTypeColor(
+                          item.type
+                        )}`}
+                      >
+                        {t(item.type)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.serviceCount}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {item.totalSales.toLocaleString()} MAD
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {item.totalCost.toLocaleString()} MAD
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
+                      {item.totalProfit.toLocaleString()} MAD
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
