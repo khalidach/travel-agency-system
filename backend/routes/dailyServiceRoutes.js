@@ -12,12 +12,18 @@ const {
   dailyServiceValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
+const {
+  checkDailyServiceLimit,
+  checkDailyServiceAccess,
+} = require("../middleware/tierMiddleware");
 
 // Note: The 'protect' middleware is applied in index.js for this route group
+router.use(checkDailyServiceAccess);
 
 router.get("/", getDailyServices);
 router.post(
   "/",
+  checkDailyServiceLimit,
   dailyServiceValidation,
   handleValidationErrors,
   createDailyService

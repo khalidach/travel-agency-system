@@ -14,7 +14,7 @@ const getAdminUsers = async (req, res) => {
     const { rows } = await req.db.query(
       `SELECT u.id, u.username, u."agencyName", u.role, u."activeUser", u."tierId", u.limits, t.limits as "tierLimits" 
        FROM users u 
-       JOIN tiers t ON u."tierId" = t.id 
+       LEFT JOIN tiers t ON u."tierId" = t.id 
        WHERE u.role = 'admin' ORDER BY u.id ASC`
     );
     res.json(rows);
@@ -127,11 +127,16 @@ const updateAdminTier = async (req, res) => {
   const { id } = req.params;
   const { tierId } = req.body;
 
-  if (!tierId || ![1, 2, 3].includes(tierId)) {
-    return res.status(400).json({ message: "Invalid Tier ID provided." });
-  }
-
   try {
+    // Check if the tierId exists in the database
+    const tierCheck = await req.db.query("SELECT id FROM tiers WHERE id = $1", [
+      tierId,
+    ]);
+
+    if (tierCheck.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid Tier ID provided." });
+    }
+
     const { rows } = await req.db.query(
       `UPDATE users SET "tierId" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
       [tierId, id]

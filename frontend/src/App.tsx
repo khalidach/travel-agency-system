@@ -56,6 +56,17 @@ function AppRoutes() {
     return false; // Default to no access if no information is available.
   }, [user]);
 
+  const hasDailyServiceAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.dailyServices === "boolean") {
+      return user.limits.dailyServices;
+    }
+    if (typeof user.tierLimits?.dailyServices === "boolean") {
+      return user.tierLimits.dailyServices;
+    }
+    return false;
+  }, [user]);
+
   useIdleTimeout();
 
   if (state.loading) {
@@ -91,11 +102,18 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
-                    <Route path="/daily-services" element={<DailyServices />} />
-                    <Route
-                      path="/daily-services-report"
-                      element={<DailyServiceReport />}
-                    />
+                    {hasDailyServiceAccess && (
+                      <>
+                        <Route
+                          path="/daily-services"
+                          element={<DailyServices />}
+                        />
+                        <Route
+                          path="/daily-services-report"
+                          element={<DailyServiceReport />}
+                        />
+                      </>
+                    )}
                     <Route
                       path="/facturation"
                       element={

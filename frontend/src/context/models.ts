@@ -6,6 +6,8 @@ export interface TierLimits {
   employees: number;
   invoicing: boolean;
   facturesPerMonth: number;
+  dailyServicesPerMonth: number;
+  dailyServices: boolean;
 }
 
 export interface Tier {

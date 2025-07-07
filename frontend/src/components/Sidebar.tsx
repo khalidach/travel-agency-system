@@ -140,6 +140,17 @@ export default function Sidebar() {
     return false;
   }, [user]);
 
+  const hasDailyServiceAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.dailyServices === "boolean") {
+      return user.limits.dailyServices;
+    }
+    if (typeof user.tierLimits?.dailyServices === "boolean") {
+      return user.tierLimits.dailyServices;
+    }
+    return false;
+  }, [user]);
+
   const filteredMenuItems = useMemo(() => {
     const filterItems = (items: MenuItem[]): MenuItem[] => {
       return items
@@ -148,6 +159,9 @@ export default function Sidebar() {
             return null;
           }
           if (item.key === "facturation" && !hasInvoicingAccess) {
+            return null;
+          }
+          if (item.key === "dailyServices" && !hasDailyServiceAccess) {
             return null;
           }
           if (item.children) {
@@ -162,7 +176,7 @@ export default function Sidebar() {
         .filter((item): item is MenuItem => item !== null);
     };
     return filterItems(allMenuItems);
-  }, [userRole, hasInvoicingAccess]);
+  }, [userRole, hasInvoicingAccess, hasDailyServiceAccess]);
 
   useEffect(() => {
     const activeParent = filteredMenuItems.find((item) =>

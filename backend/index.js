@@ -112,7 +112,9 @@ pool
         "programPricingsPerMonth": 5,
         "employees": 2,
         "invoicing": false,
-        "facturesPerMonth": 0
+        "facturesPerMonth": 0,
+        "dailyServicesPerMonth": 50,
+        "dailyServices": true
       }'),
       (2, 'Tier 2', '{
         "bookingsPerMonth": 500,
@@ -120,7 +122,9 @@ pool
         "programPricingsPerMonth": 10,
         "employees": 5,
         "invoicing": true,
-        "facturesPerMonth": 100
+        "facturesPerMonth": 100,
+        "dailyServicesPerMonth": 150,
+        "dailyServices": true
       }'),
       (3, 'Tier 3', '{
         "bookingsPerMonth": -1,
@@ -128,9 +132,11 @@ pool
         "programPricingsPerMonth": -1,
         "employees": 7,
         "invoicing": true,
-        "facturesPerMonth": -1
+        "facturesPerMonth": -1,
+        "dailyServicesPerMonth": -1,
+        "dailyServices": true
       }')
-      ON CONFLICT (id) DO NOTHING;
+      ON CONFLICT (id) DO UPDATE SET limits = EXCLUDED.limits;
     `);
     console.log("Tiers table seeded.");
 

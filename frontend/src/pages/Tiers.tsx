@@ -28,6 +28,8 @@ const TierForm = ({
       employees: 0,
       invoicing: false,
       facturesPerMonth: 0,
+      dailyServicesPerMonth: 0,
+      dailyServices: false,
     },
   });
 
@@ -41,6 +43,8 @@ const TierForm = ({
         employees: 0,
         invoicing: false,
         facturesPerMonth: 0,
+        dailyServicesPerMonth: 0,
+        dailyServices: false,
       },
     });
   }, [tier]);
@@ -53,7 +57,7 @@ const TierForm = ({
 
     if (type === "number") {
       processedValue = value === "" ? 0 : Number(value);
-    } else if (name === "invoicing") {
+    } else if (name === "invoicing" || name === "dailyServices") {
       processedValue = value === "true";
     }
 
@@ -86,13 +90,15 @@ const TierForm = ({
     onSave({ ...formData, name: trimmedName });
   };
 
-  const limitFields: (keyof Omit<TierLimits, "invoicing">)[] = [
-    "bookingsPerMonth",
-    "programsPerMonth",
-    "programPricingsPerMonth",
-    "employees",
-    "facturesPerMonth",
-  ];
+  const limitFields: (keyof Omit<TierLimits, "invoicing" | "dailyServices">)[] =
+    [
+      "bookingsPerMonth",
+      "programsPerMonth",
+      "programPricingsPerMonth",
+      "employees",
+      "facturesPerMonth",
+      "dailyServicesPerMonth",
+    ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -133,6 +139,22 @@ const TierForm = ({
           <select
             name="invoicing"
             value={String((formData.limits as TierLimits)?.invoicing ?? false)}
+            onChange={handleLimitChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Daily Services Access
+          </label>
+          <select
+            name="dailyServices"
+            value={String(
+              (formData.limits as TierLimits)?.dailyServices ?? false
+            )}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
           >
@@ -288,6 +310,13 @@ export default function TiersPage() {
                       <span>Employees: {tier.limits.employees}</span>
                       <span>
                         Invoicing: {tier.limits.invoicing ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Daily Services/mo: {tier.limits.dailyServicesPerMonth}
+                      </span>
+                      <span>
+                        Daily Services:{" "}
+                        {tier.limits.dailyServices ? "Yes" : "No"}
                       </span>
                     </div>
                   </td>

@@ -6,7 +6,7 @@ import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
-import type { User, TierLimits } from "../context/models";
+import type { User, Tier, TierLimits } from "../context/models";
 import LimitsModal from "../components/owner/LimitsModal";
 
 const AdminForm = ({
@@ -108,15 +108,22 @@ export default function OwnerPage() {
   const [isLimitsModalOpen, setIsLimitsModalOpen] = useState(false);
   const [userForLimits, setUserForLimits] = useState<User | null>(null);
 
-  const { data: adminUsers = [], isLoading } = useQuery<User[]>({
+  const { data: adminUsers = [], isLoading: isLoadingAdmins } = useQuery<
+    User[]
+  >({
     queryKey: ["adminUsers"],
     queryFn: api.getAdminUsers,
+  });
+
+  const { data: tiers = [], isLoading: isLoadingTiers } = useQuery<Tier[]>({
+    queryKey: ["tiers"],
+    queryFn: api.getTiers,
   });
 
   const { mutate: createUser } = useMutation({
     mutationFn: (data: Partial<User>) => api.createAdminUser(data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("Admin user created successfully!");
       setIsModalOpen(false);
     },
@@ -129,7 +136,7 @@ export default function OwnerPage() {
     mutationFn: (data: Partial<User>) =>
       api.updateAdminUser(editingUser!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("Admin user updated successfully!");
       setIsModalOpen(false);
     },
@@ -139,7 +146,7 @@ export default function OwnerPage() {
   const { mutate: deleteUser } = useMutation({
     mutationFn: (id: number) => api.deleteAdminUser(id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("Admin user deleted successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -149,7 +156,7 @@ export default function OwnerPage() {
     mutationFn: (data: { id: number; activeUser: boolean }) =>
       api.toggleAdminUserStatus(data.id, data.activeUser),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("User status updated successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -159,7 +166,7 @@ export default function OwnerPage() {
     mutationFn: (data: { id: number; tierId: number }) =>
       api.updateAdminUserTier(data.id, data.tierId),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("User tier updated successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
@@ -169,7 +176,7 @@ export default function OwnerPage() {
     mutationFn: (data: { id: number; limits: Partial<TierLimits> }) =>
       api.updateAdminUserLimits(data.id, data.limits),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("User limits updated successfully!");
       setIsLimitsModalOpen(false);
     },
@@ -206,6 +213,8 @@ export default function OwnerPage() {
   const confirmDelete = () => {
     if (userToDelete) {
       deleteUser(userToDelete);
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -294,7 +303,7 @@ export default function OwnerPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {isLoading ? (
+            {isLoadingAdmins ? (
               <tr>
                 <td colSpan={5} className="text-center p-4">
                   Loading...
@@ -319,10 +328,13 @@ export default function OwnerPage() {
                       }
                       className="px-3 py-1 border border-gray-300 rounded-lg bg-white"
                       onClick={(e) => e.stopPropagation()}
+                      disabled={isLoadingTiers}
                     >
-                      <option value={1}>Tier 1</option>
-                      <option value={2}>Tier 2</option>
-                      <option value={3}>Tier 3</option>
+                      {tiers.map((tier) => (
+                        <option key={tier.id} value={tier.id}>
+                          {tier.name}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

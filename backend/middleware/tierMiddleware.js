@@ -25,6 +25,8 @@ const getLimits = async (req) => {
     employees: 0,
     invoicing: false,
     facturesPerMonth: 0,
+    dailyServicesPerMonth: 0,
+    dailyServices: false,
   };
 };
 
@@ -88,6 +90,21 @@ const checkInvoicingAccess = async (req, res, next) => {
   }
 };
 
+const checkDailyServiceAccess = async (req, res, next) => {
+  try {
+    const limits = await getLimits(req);
+    if (!limits.dailyServices) {
+      return res.status(403).json({
+        message: "Daily Services are not available for your subscription.",
+      });
+    }
+    next();
+  } catch (error) {
+    console.error("Daily Service access check error:", error);
+    res.status(500).json({ message: "Server error during access check." });
+  }
+};
+
 module.exports = {
   checkBookingLimit: (req, res, next) =>
     checkLimit(req, res, next, {
@@ -119,5 +136,12 @@ module.exports = {
       name: "employees",
       limitKey: "employees",
     }),
+  checkDailyServiceLimit: (req, res, next) =>
+    checkLimit(req, res, next, {
+      table: "daily_services",
+      name: "daily services",
+      limitKey: "dailyServicesPerMonth",
+    }),
   checkInvoicingAccess,
+  checkDailyServiceAccess,
 };

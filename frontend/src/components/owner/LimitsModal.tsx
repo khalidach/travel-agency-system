@@ -36,7 +36,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     if (type === "number") {
       // Store empty string for empty input, otherwise store a number
       processedValue = value === "" ? "" : Number(value);
-    } else if (name === "invoicing") {
+    } else if (name === "invoicing" || name === "dailyServices") {
       // Convert string from select to boolean, or keep as empty string for default
       if (value === "true") {
         processedValue = true;
@@ -50,25 +50,22 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // FIX: Filter out empty string values.
-    // The previous fix still caused a type error because TypeScript rightfully
-    // points out that comparing a number or boolean to an empty string is
-    // always true and likely a logic error.
-    // By converting the value to a string for the comparison, we avoid this issue
-    // while correctly filtering out the `""` values which represent an unset custom limit.
+    // Filter out empty string values, which represent an unset custom limit.
     const finalLimits = Object.fromEntries(
       Object.entries(limits).filter(([, value]) => String(value) !== "")
     );
     onSave(user.id, finalLimits);
   };
 
-  const limitFields: (keyof Omit<TierLimits, "invoicing">)[] = [
-    "bookingsPerMonth",
-    "programsPerMonth",
-    "programPricingsPerMonth",
-    "employees",
-    "facturesPerMonth",
-  ];
+  const limitFields: (keyof Omit<TierLimits, "invoicing" | "dailyServices">)[] =
+    [
+      "bookingsPerMonth",
+      "programsPerMonth",
+      "programPricingsPerMonth",
+      "employees",
+      "facturesPerMonth",
+      "dailyServicesPerMonth",
+    ];
 
   return (
     <Modal
@@ -112,6 +109,25 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <option value="">
               Use Tier Default (
               {user.tierLimits?.invoicing ? "Enabled" : "Disabled"})
+            </option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Daily Services Access
+          </label>
+          <select
+            name="dailyServices"
+            value={String(limits.dailyServices ?? "")}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="">
+              Use Tier Default (
+              {user.tierLimits?.dailyServices ? "Enabled" : "Disabled"})
             </option>
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
