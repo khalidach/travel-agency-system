@@ -216,6 +216,9 @@ export default function DailyServices() {
     mutationFn: (data: any) => api.createDailyService(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
       toast.success("Service created successfully!");
       setIsModalOpen(false);
     },
@@ -226,6 +229,9 @@ export default function DailyServices() {
     mutationFn: (data: DailyService) => api.updateDailyService(data.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
       toast.success("Service updated successfully!");
       setIsModalOpen(false);
     },
@@ -236,6 +242,9 @@ export default function DailyServices() {
     mutationFn: (id: number) => api.deleteDailyService(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
       toast.success("Service deleted successfully!");
       setServiceToDelete(null);
     },
