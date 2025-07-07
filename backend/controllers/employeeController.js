@@ -133,7 +133,7 @@ exports.getEmployeeAnalysis = async (req, res) => {
 exports.getEmployeeProgramPerformance = async (req, res) => {
   const { username } = req.params;
   const { adminId } = req.user;
-  const { startDate, endDate, programType } = req.query;
+  const { startDate, endDate } = req.query;
 
   const isValidDate = (dateString) =>
     dateString && !isNaN(new Date(dateString));
@@ -157,11 +157,6 @@ exports.getEmployeeProgramPerformance = async (req, res) => {
         `b."createdAt"::date BETWEEN $${paramIndex++} AND $${paramIndex++}`
       );
       queryParams.push(startDate, endDate);
-    }
-
-    if (programType && programType !== "all") {
-      queryConditions.push(`p.type = $${paramIndex++}`);
-      queryParams.push(programType);
     }
 
     const whereClause =
@@ -227,7 +222,7 @@ exports.getEmployeeProgramPerformance = async (req, res) => {
 exports.getEmployeeServicePerformance = async (req, res) => {
   const { username } = req.params;
   const { adminId } = req.user;
-  const { startDate, endDate, serviceType } = req.query;
+  const { startDate, endDate } = req.query;
 
   const isValidDate = (dateString) =>
     dateString && !isNaN(new Date(dateString));
@@ -251,11 +246,6 @@ exports.getEmployeeServicePerformance = async (req, res) => {
         `date::date BETWEEN $${paramIndex++} AND $${paramIndex++}`
       );
       queryParams.push(startDate, endDate);
-    }
-
-    if (serviceType && serviceType !== "all") {
-      queryConditions.push(`type = $${paramIndex++}`);
-      queryParams.push(serviceType);
     }
 
     const whereClause =

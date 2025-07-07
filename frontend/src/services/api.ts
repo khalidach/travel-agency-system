@@ -257,13 +257,11 @@ export const getEmployeeAnalysis = (username: string) => {
 export const getEmployeeProgramPerformance = (
   username: string,
   startDate?: string,
-  endDate?: string,
-  programType?: string
+  endDate?: string
 ) => {
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
-  if (programType) params.append("programType", programType);
   const queryString = params.toString();
   let endpoint = `/employees/${username}/program-performance`;
   if (queryString) {
@@ -275,13 +273,11 @@ export const getEmployeeProgramPerformance = (
 export const getEmployeeServicePerformance = (
   username: string,
   startDate?: string,
-  endDate?: string,
-  serviceType?: string
+  endDate?: string
 ) => {
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
-  if (serviceType) params.append("serviceType", serviceType);
   const queryString = params.toString();
   let endpoint = `/employees/${username}/service-performance`;
   if (queryString) {

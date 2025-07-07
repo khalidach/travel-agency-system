@@ -22,9 +22,6 @@ const PerformanceCard = ({
   setDateFilter,
   customDateRange,
   setCustomDateRange,
-  typeFilter,
-  setTypeFilter,
-  typeOptions,
   summaryData,
   isLoading,
 }: any) => {
@@ -76,18 +73,6 @@ const PerformanceCard = ({
             {t("customRange")}
           </button>
         </div>
-        {/* Type Filter */}
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        >
-          {typeOptions.map((option: any) => (
-            <option key={option.value} value={option.value}>
-              {t(option.label)}
-            </option>
-          ))}
-        </select>
       </div>
       {dateFilter === "custom" && (
         <div className="flex items-center space-x-2 mb-4">
@@ -155,7 +140,6 @@ export default function EmployeeAnalysisPage() {
     start: "",
     end: "",
   });
-  const [programTypeFilter, setProgramTypeFilter] = useState<string>("all");
 
   // State for Service filters
   const [serviceDateFilter, setServiceDateFilter] =
@@ -164,7 +148,6 @@ export default function EmployeeAnalysisPage() {
     start: "",
     end: "",
   });
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>("all");
 
   // Memoized date params for each query
   const programDateParams = useMemo(() => {
@@ -233,36 +216,24 @@ export default function EmployeeAnalysisPage() {
 
   const { data: programData, isLoading: isLoadingProgramData } =
     useQuery<ProgramPerformanceData>({
-      queryKey: [
-        "employeeProgramPerformance",
-        username,
-        programDateParams,
-        programTypeFilter,
-      ],
+      queryKey: ["employeeProgramPerformance", username, programDateParams],
       queryFn: () =>
         api.getEmployeeProgramPerformance(
           username!,
           programDateParams.startDate,
-          programDateParams.endDate,
-          programTypeFilter
+          programDateParams.endDate
         ),
       enabled: !!username,
     });
 
   const { data: serviceData, isLoading: isLoadingServiceData } =
     useQuery<ServicePerformanceData>({
-      queryKey: [
-        "employeeServicePerformance",
-        username,
-        serviceDateParams,
-        serviceTypeFilter,
-      ],
+      queryKey: ["employeeServicePerformance", username, serviceDateParams],
       queryFn: () =>
         api.getEmployeeServicePerformance(
           username!,
           serviceDateParams.startDate,
-          serviceDateParams.endDate,
-          serviceTypeFilter
+          serviceDateParams.endDate
         ),
       enabled: !!username,
     });
@@ -356,21 +327,6 @@ export default function EmployeeAnalysisPage() {
     },
   ];
 
-  const programTypeOptions = [
-    { value: "all", label: "allProgramTypes" },
-    { value: "Hajj", label: "Hajj" },
-    { value: "Umrah", label: "Umrah" },
-    { value: "Tourism", label: "Tourism" },
-  ];
-
-  const serviceTypeOptions = [
-    { value: "all", label: "allServiceTypes" },
-    { value: "airline-ticket", label: "airline-ticket" },
-    { value: "hotel-reservation", label: "hotel-reservation" },
-    { value: "reservation-ticket", label: "reservation-ticket" },
-    { value: "visa", label: "visa" },
-  ];
-
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
@@ -449,9 +405,6 @@ export default function EmployeeAnalysisPage() {
           setDateFilter={setProgramDateFilter}
           customDateRange={programCustomDate}
           setCustomDateRange={setProgramCustomDate}
-          typeFilter={programTypeFilter}
-          setTypeFilter={setProgramTypeFilter}
-          typeOptions={programTypeOptions}
           summaryData={programSummaryMetrics}
           isLoading={isLoadingProgramData}
         />
@@ -461,9 +414,6 @@ export default function EmployeeAnalysisPage() {
           setDateFilter={setServiceDateFilter}
           customDateRange={serviceCustomDate}
           setCustomDateRange={setServiceCustomDate}
-          typeFilter={serviceTypeFilter}
-          setTypeFilter={setServiceTypeFilter}
-          typeOptions={serviceTypeOptions}
           summaryData={serviceSummaryMetrics}
           isLoading={isLoadingServiceData}
         />
