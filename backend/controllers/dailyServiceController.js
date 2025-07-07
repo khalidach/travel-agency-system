@@ -136,12 +136,13 @@ const getDailyServiceReport = async (req, res) => {
     dateString && !isNaN(new Date(dateString));
 
   try {
-    // 1. Lifetime Summary (no date filter)
+    // 1. Lifetime Summary (always runs)
     const lifetimeSummaryQuery = `
       SELECT
         COUNT(*) as "totalSalesCount",
         COALESCE(SUM("totalPrice"), 0) as "totalRevenue",
-        COALESCE(SUM(profit), 0) as "totalProfit"
+        COALESCE(SUM(profit), 0) as "totalProfit",
+        COALESCE(SUM("originalPrice"), 0) as "totalCost"
       FROM daily_services
       WHERE "userId" = $1
     `;
@@ -149,7 +150,7 @@ const getDailyServiceReport = async (req, res) => {
       adminId,
     ]);
 
-    // 2. Monthly Trend for last 6 months
+    // 2. Monthly Trend for the last 6 months (always runs)
     const monthlyTrendQuery = `
       SELECT
           TO_CHAR(date, 'YYYY-MM') as month,
@@ -161,7 +162,7 @@ const getDailyServiceReport = async (req, res) => {
     `;
     const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
 
-    // 3. Filtered Data (for table)
+    // 3. Date-Filtered Data (summary and byType)
     let dateFilterClause = "";
     const queryParams = [adminId];
     if (isValidDate(startDate) && isValidDate(endDate)) {
@@ -169,31 +170,53 @@ const getDailyServiceReport = async (req, res) => {
       dateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
 
-    const byTypeQuery = `
+    const filteredDataQuery = `
+      WITH FilteredServices AS (
+        SELECT *
+        FROM daily_services
+        WHERE "userId" = $1 ${dateFilterClause}
+      )
       SELECT
-        type,
-        COUNT(*) as "count",
-        COALESCE(SUM("originalPrice"), 0) as "totalOriginalPrice",
-        COALESCE(SUM("totalPrice"), 0) as "totalSalePrice",
-        COALESCE(SUM(commission), 0) as "totalCommission",
-        COALESCE(SUM(profit), 0) as "totalProfit"
-      FROM daily_services
-      WHERE "userId" = $1 ${dateFilterClause}
-      GROUP BY type
-      ORDER BY type
-    `;
-    const byTypePromise = req.db.query(byTypeQuery, queryParams);
+        (SELECT json_build_object(
+          'totalSalesCount', COUNT(*),
+          'totalRevenue', COALESCE(SUM("totalPrice"), 0),
+          'totalProfit', COALESCE(SUM(profit), 0),
+          'totalCost', COALESCE(SUM("originalPrice"), 0)
+        ) FROM FilteredServices) as "dateFilteredSummary",
 
-    const [lifetimeSummaryResult, byTypeResult, monthlyTrendResult] =
+        (SELECT json_agg(t) FROM (
+          SELECT
+            type,
+            COUNT(*) as "count",
+            COALESCE(SUM("originalPrice"), 0) as "totalOriginalPrice",
+            COALESCE(SUM("totalPrice"), 0) as "totalSalePrice",
+            COALESCE(SUM(commission), 0) as "totalCommission",
+            COALESCE(SUM(profit), 0) as "totalProfit"
+          FROM FilteredServices
+          GROUP BY type
+          ORDER BY type
+        ) t) as "byType"
+    `;
+    const filteredDataPromise = req.db.query(filteredDataQuery, queryParams);
+
+    const [lifetimeSummaryResult, monthlyTrendResult, filteredDataResult] =
       await Promise.all([
         lifetimeSummaryPromise,
-        byTypePromise,
         monthlyTrendPromise,
+        filteredDataPromise,
       ]);
 
+    const filteredData = filteredDataResult.rows[0];
+
     res.json({
-      summary: lifetimeSummaryResult.rows[0],
-      byType: byTypeResult.rows,
+      lifetimeSummary: lifetimeSummaryResult.rows[0],
+      dateFilteredSummary: filteredData.dateFilteredSummary || {
+        totalSalesCount: 0,
+        totalRevenue: 0,
+        totalProfit: 0,
+        totalCost: 0,
+      },
+      byType: filteredData.byType || [],
       monthlyTrend: monthlyTrendResult.rows.map((row) => ({
         ...row,
         profit: parseFloat(row.profit),

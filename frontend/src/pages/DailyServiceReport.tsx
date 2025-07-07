@@ -2,9 +2,8 @@
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
+import { subDays, startOfDay, endOfDay, format, subMonths } from "date-fns";
 import * as api from "../services/api";
-import { DailyService } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { DollarSign, TrendingUp, Hash, Percent } from "lucide-react";
 import {
@@ -17,13 +16,16 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+interface SummaryStats {
+  totalSalesCount: string;
+  totalRevenue: string;
+  totalCost: string;
+  totalProfit: string;
+}
+
 interface ReportData {
-  summary: {
-    totalSalesCount: string;
-    totalRevenue: string;
-    totalCost: string;
-    totalProfit: string;
-  };
+  lifetimeSummary: SummaryStats;
+  dateFilteredSummary: SummaryStats;
   byType: {
     type: string;
     count: string;
@@ -59,7 +61,7 @@ export default function DailyServiceReport() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "year":
-        startDate = startOfDay(subYears(now, 1));
+        startDate = startOfDay(subMonths(now, 12));
         break;
       case "custom":
         if (customDateRange.start && customDateRange.end) {
@@ -96,56 +98,67 @@ export default function DailyServiceReport() {
   if (isLoading) return <DashboardSkeleton />;
   if (isError || !reportData) return <div>{t("errorLoadingDashboard")}</div>;
 
-  const { summary, byType, monthlyTrend } = reportData;
+  const { lifetimeSummary, dateFilteredSummary, byType, monthlyTrend } =
+    reportData;
 
-  const totalRevenue = Number(summary.totalRevenue || 0);
-  const totalProfit = Number(summary.totalProfit || 0);
-  const profitMargin =
-    totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  const totalLifetimeRevenue = Number(lifetimeSummary.totalRevenue || 0);
+  const totalLifetimeProfit = Number(lifetimeSummary.totalProfit || 0);
+  const lifetimeProfitMargin =
+    totalLifetimeRevenue > 0
+      ? (totalLifetimeProfit / totalLifetimeRevenue) * 100
+      : 0;
 
   const statCards = [
     {
       title: t("totalSalesCount"),
-      value: Number(summary.totalSalesCount || 0).toLocaleString(),
+      value: Number(lifetimeSummary.totalSalesCount || 0).toLocaleString(),
       icon: Hash,
       color: "bg-blue-500",
     },
     {
       title: t("totalRevenue"),
-      value: `${totalRevenue.toLocaleString()} ${t("mad")}`,
+      value: `${totalLifetimeRevenue.toLocaleString()} ${t("mad")}`,
       icon: DollarSign,
       color: "bg-emerald-500",
     },
     {
       title: t("totalProfit"),
-      value: `${totalProfit.toLocaleString()} ${t("mad")}`,
+      value: `${totalLifetimeProfit.toLocaleString()} ${t("mad")}`,
       icon: TrendingUp,
       color: "bg-orange-500",
     },
     {
       title: t("profitMargin"),
-      value: `${profitMargin.toFixed(1)}%`,
+      value: `${lifetimeProfitMargin.toFixed(1)}%`,
       icon: Percent,
       color: "bg-purple-500",
     },
   ];
 
-  const financialMetrics = [
+  const dateFilteredMetrics = [
     {
       title: t("totalSalesCount"),
-      value: `${Number(summary.totalSalesCount || 0).toLocaleString()}`,
+      value: `${Number(
+        dateFilteredSummary.totalSalesCount || 0
+      ).toLocaleString()}`,
     },
     {
       title: t("totalRevenue"),
-      value: `${totalRevenue.toLocaleString()} ${t("mad")}`,
+      value: `${Number(dateFilteredSummary.totalRevenue).toLocaleString()} ${t(
+        "mad"
+      )}`,
     },
     {
       title: t("totalCost"),
-      value: `${Number(summary.totalCost || 0).toLocaleString()} ${t("mad")}`,
+      value: `${Number(dateFilteredSummary.totalCost).toLocaleString()} ${t(
+        "mad"
+      )}`,
     },
     {
       title: t("totalProfit"),
-      value: `${totalProfit.toLocaleString()} ${t("mad")}`,
+      value: `${Number(dateFilteredSummary.totalProfit).toLocaleString()} ${t(
+        "mad"
+      )}`,
     },
   ];
 
@@ -189,6 +202,9 @@ export default function DailyServiceReport() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border">
           <div className="pb-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {t("filterPerformance")}
+            </h3>
             <div className="flex items-center flex-wrap gap-2">
               <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
                 <button
@@ -242,38 +258,38 @@ export default function DailyServiceReport() {
                   {t("customRange")}
                 </button>
               </div>
+              {dateFilter === "custom" && (
+                <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+                  <input
+                    type="date"
+                    value={customDateRange.start}
+                    onChange={(e) =>
+                      setCustomDateRange({
+                        ...customDateRange,
+                        start: e.target.value,
+                      })
+                    }
+                    className="px-3 py-1 border rounded-lg"
+                  />
+                  <span>to</span>
+                  <input
+                    type="date"
+                    value={customDateRange.end}
+                    onChange={(e) =>
+                      setCustomDateRange({
+                        ...customDateRange,
+                        end: e.target.value,
+                      })
+                    }
+                    className="px-3 py-1 border rounded-lg"
+                  />
+                </div>
+              )}
             </div>
-            {dateFilter === "custom" && (
-              <div className="flex items-center space-x-2 mt-4">
-                <input
-                  type="date"
-                  value={customDateRange.start}
-                  onChange={(e) =>
-                    setCustomDateRange({
-                      ...customDateRange,
-                      start: e.target.value,
-                    })
-                  }
-                  className="px-3 py-1 border rounded-lg"
-                />
-                <span>to</span>
-                <input
-                  type="date"
-                  value={customDateRange.end}
-                  onChange={(e) =>
-                    setCustomDateRange({
-                      ...customDateRange,
-                      end: e.target.value,
-                    })
-                  }
-                  className="px-3 py-1 border rounded-lg"
-                />
-              </div>
-            )}
           </div>
           <table className="w-full mt-4">
             <tbody>
-              {financialMetrics.map((metric) => (
+              {dateFilteredMetrics.map((metric) => (
                 <tr
                   key={metric.title}
                   className="border-b last:border-b-0 border-gray-100"
@@ -316,6 +332,11 @@ export default function DailyServiceReport() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {t("detailedProgramPerformance")}
+          </h3>
+        </div>
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>

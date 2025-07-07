@@ -91,9 +91,12 @@ export const deleteDailyService = (id: number) =>
   request(`/daily-services/${id}`, { method: "DELETE" });
 export const getDailyServiceReport = (startDate?: string, endDate?: string) => {
   let endpoint = "/daily-services/report";
-  if (startDate && endDate) {
-    const params = new URLSearchParams({ startDate, endDate });
-    endpoint += `?${params.toString()}`;
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const queryString = params.toString();
+  if (queryString) {
+    endpoint += `?${queryString}`;
   }
   return request(endpoint);
 };
