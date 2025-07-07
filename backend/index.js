@@ -20,7 +20,8 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const roomManagementRoutes = require("./routes/roomManagementRoutes");
 const factureRoutes = require("./routes/factureRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
-const tierRoutes = require("./routes/tierRoutes"); // New
+const tierRoutes = require("./routes/tierRoutes");
+const dailyServiceRoutes = require("./routes/dailyServiceRoutes"); // New
 
 const app = express();
 const corsOptions = {
@@ -40,6 +41,36 @@ pool
   .connect()
   .then(async (client) => {
     console.log("Connected to PostgreSQL");
+
+    // Create daily_services table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS daily_services (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL,
+        "employeeId" INTEGER,
+        type VARCHAR(100) NOT NULL,
+        "serviceName" VARCHAR(255) NOT NULL,
+        "originalPrice" NUMERIC(10, 2) NOT NULL,
+        "totalPrice" NUMERIC(10, 2) NOT NULL,
+        commission NUMERIC(10, 2) NOT NULL,
+        profit NUMERIC(10, 2) NOT NULL,
+        date DATE NOT NULL,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // Migration: Drop vatPaid column if it exists
+    const vatPaidCheck = await client.query(`
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name='daily_services' AND column_name='vatPaid'
+    `);
+    if (vatPaidCheck.rows.length > 0) {
+      await client.query(`ALTER TABLE daily_services DROP COLUMN "vatPaid";`);
+      console.log("'vatPaid' column dropped from daily_services table.");
+    }
+
+    console.log("Daily services table checked/created.");
 
     // Create tiers table
     await client.query(`
@@ -224,7 +255,7 @@ app.use((req, res, next) => {
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/owner", ownerRoutes);
-app.use("/api/tiers", protect, tierRoutes); // New
+app.use("/api/tiers", protect, tierRoutes);
 app.use("/api/dashboard", protect, dashboardRoutes);
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
@@ -233,6 +264,7 @@ app.use("/api/employees", protect, employeeRoutes);
 app.use("/api/room-management", protect, roomManagementRoutes);
 app.use("/api/facturation", protect, factureRoutes);
 app.use("/api/settings", protect, settingsRoutes);
+app.use("/api/daily-services", protect, dailyServiceRoutes); // New
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

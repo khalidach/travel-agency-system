@@ -96,6 +96,29 @@ const paymentValidation = [
   body("date").isISO8601().toDate().withMessage("Invalid payment date."),
 ];
 
+const dailyServiceValidation = [
+  body("type")
+    .isIn(["airline-ticket", "hotel-reservation", "reservation-ticket", "visa"])
+    .withMessage("Invalid service type."),
+  body("serviceName")
+    .notEmpty()
+    .trim()
+    .withMessage("Service name is required."),
+  body("originalPrice")
+    .isFloat({ gte: 0 })
+    .withMessage("Original price must be a non-negative number."),
+  body("totalPrice")
+    .isFloat({ gte: 0 })
+    .withMessage("Total price must be a non-negative number.")
+    .custom((value, { req }) => {
+      if (value < req.body.originalPrice) {
+        throw new Error("Total price cannot be less than the original price.");
+      }
+      return true;
+    }),
+  body("date").isISO8601().toDate().withMessage("Invalid service date."),
+];
+
 module.exports = {
   handleValidationErrors,
   loginValidation,
@@ -103,4 +126,5 @@ module.exports = {
   programPricingValidation,
   bookingValidation,
   paymentValidation,
+  dailyServiceValidation,
 };

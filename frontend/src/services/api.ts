@@ -72,6 +72,32 @@ export const updateFacture = (id: number, facture: any) =>
 export const deleteFacture = (id: number) =>
   request(`/facturation/${id}`, { method: "DELETE" });
 
+// --- Daily Service API ---
+export const getDailyServices = (page = 1, limit = 10) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  return request(`/daily-services?${params.toString()}`);
+};
+export const createDailyService = (service: any) =>
+  request("/daily-services", { method: "POST", body: JSON.stringify(service) });
+export const updateDailyService = (id: number, service: any) =>
+  request(`/daily-services/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(service),
+  });
+export const deleteDailyService = (id: number) =>
+  request(`/daily-services/${id}`, { method: "DELETE" });
+export const getDailyServiceReport = (startDate?: string, endDate?: string) => {
+  let endpoint = "/daily-services/report";
+  if (startDate && endDate) {
+    const params = new URLSearchParams({ startDate, endDate });
+    endpoint += `?${params.toString()}`;
+  }
+  return request(endpoint);
+};
+
 // --- Dashboard API ---
 export const getDashboardStats = (startDate?: string, endDate?: string) => {
   let endpoint = "/dashboard/stats";

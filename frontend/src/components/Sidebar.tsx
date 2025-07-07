@@ -17,6 +17,7 @@ import {
   Settings,
   Layers,
   ChevronDown,
+  ConciergeBell,
 } from "lucide-react";
 
 type MenuItem = {
@@ -80,6 +81,25 @@ const allMenuItems: MenuItem[] = [
         path: "/profit-report",
         icon: TrendingUp,
         roles: ["admin"],
+      },
+    ],
+  },
+  {
+    key: "dailyServices",
+    icon: ConciergeBell,
+    roles: ["admin", "manager", "employee"],
+    children: [
+      {
+        key: "manageDailyServices",
+        path: "/daily-services",
+        icon: ConciergeBell,
+        roles: ["admin", "manager", "employee"],
+      },
+      {
+        key: "dailyServiceReport",
+        path: "/daily-services-report",
+        icon: TrendingUp,
+        roles: ["admin", "manager"],
       },
     ],
   },

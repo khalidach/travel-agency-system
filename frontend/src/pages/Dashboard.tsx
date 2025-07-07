@@ -14,36 +14,9 @@ import {
 import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
 import * as api from "../services/api";
 import { Link } from "react-router-dom";
-import type { Booking } from "../context/models";
+import type { Booking, DashboardStats } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { useAuthContext } from "../context/AuthContext";
-
-interface DashboardStats {
-  allTimeStats: {
-    totalBookings: number;
-    totalRevenue: number;
-    totalProfit: number;
-    activePrograms: number;
-  };
-  dateFilteredStats: {
-    totalBookings: number;
-    totalRevenue: number;
-    totalCost: number;
-    totalProfit: number;
-    totalPaid: number;
-    totalRemaining: number;
-  };
-  programTypeData: {
-    Hajj: number;
-    Umrah: number;
-    Tourism: number;
-  };
-  paymentStatus: {
-    fullyPaid: number;
-    pending: number;
-  };
-  recentBookings: Booking[];
-}
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -69,7 +42,6 @@ export default function Dashboard() {
         startDate = startOfDay(subDays(now, 30));
         break;
       case "year":
-        // Corrected logic: Use last 365 days
         startDate = startOfDay(subYears(now, 1));
         break;
       case "custom":
@@ -112,7 +84,7 @@ export default function Dashboard() {
   const {
     allTimeStats,
     dateFilteredStats,
-    programTypeData: programTypeCounts,
+    dailyServiceProfitData,
     paymentStatus,
     recentBookings,
   } = dashboardData;
@@ -180,23 +152,12 @@ export default function Dashboard() {
     },
   ];
 
-  const programTypeDataForChart = [
-    {
-      name: "Hajj",
-      value: Number(programTypeCounts.Hajj) || 0,
-      color: "#3b82f6",
-    },
-    {
-      name: "Umrah",
-      value: Number(programTypeCounts.Umrah) || 0,
-      color: "#059669",
-    },
-    {
-      name: "Tourism",
-      value: Number(programTypeCounts.Tourism) || 0,
-      color: "#ea580c",
-    },
-  ];
+  const serviceProfitChartData = (dailyServiceProfitData || []).map((item) => ({
+    name: t(item.type),
+    value: item.totalProfit,
+  }));
+
+  const COLORS = ["#3b82f6", "#059669", "#ea580c", "#8b5cf6"];
 
   const fullyPaidBookings = paymentStatus.fullyPaid;
   const pendingPayments = paymentStatus.pending;
@@ -351,34 +312,42 @@ export default function Dashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            {t("programTypeDistribution")}
+            {t("profitByServiceType")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={programTypeDataForChart}
+                data={serviceProfitChartData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
                 outerRadius={120}
                 paddingAngle={5}
                 dataKey="value"
+                nameKey="name"
               >
-                {programTypeDataForChart.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {serviceProfitChartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                formatter={(value: number) =>
+                  `${value.toLocaleString()} ${t("mad")}`
+                }
+              />
             </PieChart>
           </ResponsiveContainer>
-          <div className="flex justify-center space-x-6 mt-4">
-            {programTypeDataForChart.map((item, index) => (
+          <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 mt-4">
+            {serviceProfitChartData.map((item, index) => (
               <div key={index} className="flex items-center">
                 <div
                   className={`w-3 h-3 rounded-full ${
                     document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                   }`}
-                  style={{ backgroundColor: item.color }}
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 ></div>
                 <span className="text-sm text-gray-600">{item.name}</span>
               </div>

@@ -25,11 +25,13 @@ const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const OwnerPage = lazy(() => import("./pages/Owner"));
-const TiersPage = lazy(() => import("./pages/Tiers")); // New
+const TiersPage = lazy(() => import("./pages/Tiers"));
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
 const RoomManage = lazy(() => import("./pages/RoomManage"));
-const Facturation = lazy(() => import("./pages/Facturation")); // New
-const Settings = lazy(() => import("./pages/Settings")); // New
+const Facturation = lazy(() => import("./pages/Facturation"));
+const Settings = lazy(() => import("./pages/Settings"));
+const DailyServices = lazy(() => import("./pages/DailyServices")); // New
+const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport")); // New
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
@@ -80,8 +82,7 @@ function AppRoutes() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<OwnerPage />} />
-                    <Route path="/tiers" element={<TiersPage />} />{" "}
-                    {/* New Route */}
+                    <Route path="/tiers" element={<TiersPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </Layout>
@@ -90,6 +91,11 @@ function AppRoutes() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
+                    <Route path="/daily-services" element={<DailyServices />} />
+                    <Route
+                      path="/daily-services-report"
+                      element={<DailyServiceReport />}
+                    />
                     <Route
                       path="/facturation"
                       element={

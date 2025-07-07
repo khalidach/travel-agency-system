@@ -52,16 +52,31 @@ const getDashboardStats = async (req, res) => {
       [adminId]
     );
 
-    const [statsResult, programTypeResult, recentBookingsResult] =
-      await Promise.all([
-        statsPromise,
-        programTypePromise,
-        recentBookingsPromise,
-      ]);
+    // New query for daily service profit by type
+    const dailyServiceProfitPromise = req.db.query(
+      `SELECT type, COALESCE(SUM(profit), 0) as "totalProfit" 
+       FROM daily_services 
+       WHERE "userId" = $1 
+       GROUP BY type`,
+      [adminId]
+    );
+
+    const [
+      statsResult,
+      programTypeResult,
+      recentBookingsResult,
+      dailyServiceProfitResult,
+    ] = await Promise.all([
+      statsPromise,
+      programTypePromise,
+      recentBookingsPromise,
+      dailyServiceProfitPromise,
+    ]);
 
     const stats = statsResult.rows[0];
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows;
+    const dailyServiceProfits = dailyServiceProfitResult.rows;
 
     const filteredRevenue = parseFloat(stats.filteredRevenue);
     const filteredPaid = parseFloat(stats.filteredPaid);
@@ -91,6 +106,10 @@ const getDashboardStats = async (req, res) => {
           parseInt(programTypes.find((p) => p.type === "Tourism")?.count, 10) ||
           0,
       },
+      dailyServiceProfitData: dailyServiceProfits.map((item) => ({
+        type: item.type,
+        totalProfit: parseFloat(item.totalProfit),
+      })),
       paymentStatus: {
         fullyPaid: parseInt(stats.fullyPaid, 10) || 0,
         pending: parseInt(stats.pending, 10) || 0,

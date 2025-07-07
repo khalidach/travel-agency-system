@@ -223,3 +223,49 @@ export interface BookingSummaryStats {
   totalPaid: number;
   totalRemaining: number;
 }
+
+export interface DailyService {
+  id: number;
+  userId: number;
+  employeeId?: number;
+  type: "airline-ticket" | "hotel-reservation" | "reservation-ticket" | "visa";
+  serviceName: string;
+  originalPrice: number;
+  totalPrice: number;
+  commission: number;
+  profit: number;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardStats {
+  allTimeStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalProfit: number;
+    activePrograms: number;
+  };
+  dateFilteredStats: {
+    totalBookings: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
+    totalPaid: number;
+    totalRemaining: number;
+  };
+  programTypeData: {
+    Hajj: number;
+    Umrah: number;
+    Tourism: number;
+  };
+  dailyServiceProfitData: {
+    type: string;
+    totalProfit: number;
+  }[];
+  paymentStatus: {
+    fullyPaid: number;
+    pending: number;
+  };
+  recentBookings: Booking[];
+}
