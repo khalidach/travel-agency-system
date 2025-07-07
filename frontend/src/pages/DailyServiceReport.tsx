@@ -7,6 +7,15 @@ import * as api from "../services/api";
 import { DailyService } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { DollarSign, TrendingUp, Hash, Percent } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface ReportData {
   summary: {
@@ -22,6 +31,10 @@ interface ReportData {
     totalSalePrice: string;
     totalCommission: string;
     totalProfit: string;
+  }[];
+  monthlyTrend: {
+    month: string;
+    profit: number;
   }[];
 }
 
@@ -83,8 +96,7 @@ export default function DailyServiceReport() {
   if (isLoading) return <DashboardSkeleton />;
   if (isError || !reportData) return <div>{t("errorLoadingDashboard")}</div>;
 
-  const summary = reportData.summary;
-  const byType = reportData.byType;
+  const { summary, byType, monthlyTrend } = reportData;
 
   const totalRevenue = Number(summary.totalRevenue || 0);
   const totalProfit = Number(summary.totalProfit || 0);
@@ -96,21 +108,44 @@ export default function DailyServiceReport() {
       title: t("totalSalesCount"),
       value: Number(summary.totalSalesCount || 0).toLocaleString(),
       icon: Hash,
+      color: "bg-blue-500",
     },
     {
       title: t("totalRevenue"),
       value: `${totalRevenue.toLocaleString()} ${t("mad")}`,
       icon: DollarSign,
+      color: "bg-emerald-500",
     },
     {
       title: t("totalProfit"),
       value: `${totalProfit.toLocaleString()} ${t("mad")}`,
       icon: TrendingUp,
+      color: "bg-orange-500",
     },
     {
       title: t("profitMargin"),
       value: `${profitMargin.toFixed(1)}%`,
       icon: Percent,
+      color: "bg-purple-500",
+    },
+  ];
+
+  const financialMetrics = [
+    {
+      title: t("totalSalesCount"),
+      value: `${Number(summary.totalSalesCount || 0).toLocaleString()}`,
+    },
+    {
+      title: t("totalRevenue"),
+      value: `${totalRevenue.toLocaleString()} ${t("mad")}`,
+    },
+    {
+      title: t("totalCost"),
+      value: `${Number(summary.totalCost || 0).toLocaleString()} ${t("mad")}`,
+    },
+    {
+      title: t("totalProfit"),
+      value: `${totalProfit.toLocaleString()} ${t("mad")}`,
     },
   ];
 
@@ -140,7 +175,9 @@ export default function DailyServiceReport() {
                     {card.value}
                   </p>
                 </div>
-                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                <div
+                  className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center`}
+                >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -149,87 +186,132 @@ export default function DailyServiceReport() {
         })}
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setDateFilter("today")}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                dateFilter === "today"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600"
-              }`}
-            >
-              {t("today")}
-            </button>
-            <button
-              onClick={() => setDateFilter("7days")}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                dateFilter === "7days"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600"
-              }`}
-            >
-              {t("last7Days")}
-            </button>
-            <button
-              onClick={() => setDateFilter("month")}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                dateFilter === "month"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600"
-              }`}
-            >
-              {t("last30Days")}
-            </button>
-            <button
-              onClick={() => setDateFilter("year")}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                dateFilter === "year"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600"
-              }`}
-            >
-              {t("lastYear")}
-            </button>
-            <button
-              onClick={() => setDateFilter("custom")}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                dateFilter === "custom"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600"
-              }`}
-            >
-              {t("customRange")}
-            </button>
-          </div>
-          {dateFilter === "custom" && (
-            <div className="flex items-center space-x-2">
-              <input
-                type="date"
-                value={customDateRange.start}
-                onChange={(e) =>
-                  setCustomDateRange({
-                    ...customDateRange,
-                    start: e.target.value,
-                  })
-                }
-                className="px-3 py-1 border rounded-lg"
-              />
-              <span>to</span>
-              <input
-                type="date"
-                value={customDateRange.end}
-                onChange={(e) =>
-                  setCustomDateRange({
-                    ...customDateRange,
-                    end: e.target.value,
-                  })
-                }
-                className="px-3 py-1 border rounded-lg"
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border">
+          <div className="pb-4 border-b border-gray-200">
+            <div className="flex items-center flex-wrap gap-2">
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setDateFilter("today")}
+                  className={`px-3 py-1.5 text-sm rounded-md ${
+                    dateFilter === "today"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {t("today")}
+                </button>
+                <button
+                  onClick={() => setDateFilter("7days")}
+                  className={`px-3 py-1.5 text-sm rounded-md ${
+                    dateFilter === "7days"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {t("last7Days")}
+                </button>
+                <button
+                  onClick={() => setDateFilter("month")}
+                  className={`px-3 py-1.5 text-sm rounded-md ${
+                    dateFilter === "month"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {t("last30Days")}
+                </button>
+                <button
+                  onClick={() => setDateFilter("year")}
+                  className={`px-3 py-1.5 text-sm rounded-md ${
+                    dateFilter === "year"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {t("lastYear")}
+                </button>
+                <button
+                  onClick={() => setDateFilter("custom")}
+                  className={`px-3 py-1.5 text-sm rounded-md ${
+                    dateFilter === "custom"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-gray-600"
+                  }`}
+                >
+                  {t("customRange")}
+                </button>
+              </div>
             </div>
-          )}
+            {dateFilter === "custom" && (
+              <div className="flex items-center space-x-2 mt-4">
+                <input
+                  type="date"
+                  value={customDateRange.start}
+                  onChange={(e) =>
+                    setCustomDateRange({
+                      ...customDateRange,
+                      start: e.target.value,
+                    })
+                  }
+                  className="px-3 py-1 border rounded-lg"
+                />
+                <span>to</span>
+                <input
+                  type="date"
+                  value={customDateRange.end}
+                  onChange={(e) =>
+                    setCustomDateRange({
+                      ...customDateRange,
+                      end: e.target.value,
+                    })
+                  }
+                  className="px-3 py-1 border rounded-lg"
+                />
+              </div>
+            )}
+          </div>
+          <table className="w-full mt-4">
+            <tbody>
+              {financialMetrics.map((metric) => (
+                <tr
+                  key={metric.title}
+                  className="border-b last:border-b-0 border-gray-100"
+                >
+                  <td className="py-3 text-base font-medium text-gray-600">
+                    {metric.title}
+                  </td>
+                  <td className="py-3 text-2xl font-bold text-gray-900 text-right">
+                    {metric.value}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm border">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            {t("monthlyProfitTrend")}
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={monthlyTrend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
+              <Tooltip
+                formatter={(value: number) => [
+                  `${value.toLocaleString()} ${t("mad")}`,
+                  t("totalProfit"),
+                ]}
+              />
+              <Line
+                type="monotone"
+                dataKey="profit"
+                stroke="#8884d8"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

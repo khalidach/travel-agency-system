@@ -136,22 +136,38 @@ const getDailyServiceReport = async (req, res) => {
     dateString && !isNaN(new Date(dateString));
 
   try {
+    // 1. Lifetime Summary (no date filter)
+    const lifetimeSummaryQuery = `
+      SELECT
+        COUNT(*) as "totalSalesCount",
+        COALESCE(SUM("totalPrice"), 0) as "totalRevenue",
+        COALESCE(SUM(profit), 0) as "totalProfit"
+      FROM daily_services
+      WHERE "userId" = $1
+    `;
+    const lifetimeSummaryPromise = req.db.query(lifetimeSummaryQuery, [
+      adminId,
+    ]);
+
+    // 2. Monthly Trend for last 6 months
+    const monthlyTrendQuery = `
+      SELECT
+          TO_CHAR(date, 'YYYY-MM') as month,
+          SUM(profit) as profit
+      FROM daily_services
+      WHERE "userId" = $1 AND date >= date_trunc('month', NOW()) - interval '5 months'
+      GROUP BY month
+      ORDER BY month ASC
+    `;
+    const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
+
+    // 3. Filtered Data (for table)
     let dateFilterClause = "";
     const queryParams = [adminId];
     if (isValidDate(startDate) && isValidDate(endDate)) {
       queryParams.push(startDate, endDate);
       dateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
-
-    const summaryQuery = `
-      SELECT
-        COUNT(*) as "totalSalesCount",
-        COALESCE(SUM("totalPrice"), 0) as "totalRevenue",
-        COALESCE(SUM("originalPrice"), 0) as "totalCost",
-        COALESCE(SUM(profit), 0) as "totalProfit"
-      FROM daily_services
-      WHERE "userId" = $1 ${dateFilterClause}
-    `;
 
     const byTypeQuery = `
       SELECT
@@ -166,13 +182,22 @@ const getDailyServiceReport = async (req, res) => {
       GROUP BY type
       ORDER BY type
     `;
+    const byTypePromise = req.db.query(byTypeQuery, queryParams);
 
-    const summaryResult = await req.db.query(summaryQuery, queryParams);
-    const byTypeResult = await req.db.query(byTypeQuery, queryParams);
+    const [lifetimeSummaryResult, byTypeResult, monthlyTrendResult] =
+      await Promise.all([
+        lifetimeSummaryPromise,
+        byTypePromise,
+        monthlyTrendPromise,
+      ]);
 
     res.json({
-      summary: summaryResult.rows[0],
+      summary: lifetimeSummaryResult.rows[0],
       byType: byTypeResult.rows,
+      monthlyTrend: monthlyTrendResult.rows.map((row) => ({
+        ...row,
+        profit: parseFloat(row.profit),
+      })),
     });
   } catch (error) {
     console.error("Daily Service Report Error:", error);
