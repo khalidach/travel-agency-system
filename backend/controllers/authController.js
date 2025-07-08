@@ -24,6 +24,7 @@ const safeJsonParse = (data) => {
 
 const loginUser = async (req, res) => {
   const { username, password } = req.body;
+  const trimmedUsername = username.trim(); // Trim whitespace from username
   try {
     // Check users table (admins and owners)
     let userResult = await req.db.query(
@@ -31,7 +32,7 @@ const loginUser = async (req, res) => {
        FROM users u
        LEFT JOIN tiers t ON u."tierId" = t.id
        WHERE u.username = $1`,
-      [username]
+      [trimmedUsername]
     );
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
@@ -60,7 +61,7 @@ const loginUser = async (req, res) => {
     // If not an admin/owner, check employees table
     let employeeResult = await req.db.query(
       "SELECT * FROM employees WHERE username = $1",
-      [username]
+      [trimmedUsername]
     );
 
     if (employeeResult.rows.length > 0) {

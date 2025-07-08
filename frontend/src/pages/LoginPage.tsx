@@ -11,7 +11,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const { mutate: loginUser, isPending } = useMutation({
-    mutationFn: () => api.login(username, password),
+    mutationFn: (credentials: { username: string; password: string }) =>
+      api.login(credentials.username, credentials.password),
     onSuccess: (userData) => {
       dispatch({ type: "LOGIN", payload: userData });
       toast.success("Login successful!");
@@ -25,11 +26,12 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) {
+    const trimmedUsername = username.trim();
+    if (!trimmedUsername || !password) {
       toast.error("Please enter username and password.");
       return;
     }
-    loginUser();
+    loginUser({ username: trimmedUsername, password });
   };
 
   return (
