@@ -11,10 +11,12 @@ import LimitsModal from "../components/owner/LimitsModal";
 
 const AdminForm = ({
   user,
+  tiers,
   onSave,
   onCancel,
 }: {
   user?: User | null;
+  tiers: Tier[];
   onSave: (data: Partial<User>) => void;
   onCancel: () => void;
 }) => {
@@ -22,6 +24,7 @@ const AdminForm = ({
     username: user?.username || "",
     password: "",
     agencyName: user?.agencyName || "",
+    tierId: user?.tierId || (tiers.length > 0 ? tiers[0].id : 1),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -80,6 +83,26 @@ const AdminForm = ({
           required
         />
       </div>
+      {!user && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Tier
+          </label>
+          <select
+            value={formData.tierId}
+            onChange={(e) =>
+              setFormData({ ...formData, tierId: Number(e.target.value) })
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            {tiers.map((tier) => (
+              <option key={tier.id} value={tier.id}>
+                {tier.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
@@ -403,6 +426,7 @@ export default function OwnerPage() {
       >
         <AdminForm
           user={editingUser}
+          tiers={tiers}
           onSave={handleSave}
           onCancel={() => setIsModalOpen(false)}
         />

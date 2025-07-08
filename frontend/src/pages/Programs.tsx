@@ -73,8 +73,8 @@ export default function Programs() {
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
     },
-    onError: () => {
-      toast.error("Failed to create program.");
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to create program.");
     },
   });
 

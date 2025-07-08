@@ -25,7 +25,7 @@ const getAdminUsers = async (req, res) => {
 };
 
 const createAdminUser = async (req, res) => {
-  const { username, password, agencyName } = req.body;
+  const { username, password, agencyName, tierId } = req.body;
 
   if (!username || !password || !agencyName) {
     return res.status(400).json({ message: "Please provide all fields" });
@@ -35,13 +35,16 @@ const createAdminUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Use the provided tierId, or default to 1 if it's not provided.
+    const finalTierId = tierId || 1;
+
     const { rows } = await req.db.query(
-      'INSERT INTO users (username, password, "agencyName", role, "activeUser") VALUES ($1, $2, $3, $4, $5) RETURNING id, username, "agencyName", role, "activeUser", "tierId"',
-      [username, hashedPassword, agencyName, "admin", true]
+      'INSERT INTO users (username, password, "agencyName", role, "activeUser", "tierId") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, "agencyName", role, "activeUser", "tierId"',
+      [username, hashedPassword, agencyName, "admin", true, finalTierId]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error(error);
+    console.error("Create Admin User Error:", error);
     if (error.code === "23505") {
       // unique_violation
       return res.status(400).json({ message: "Username already exists." });
