@@ -1,6 +1,20 @@
 // backend/middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 
+// Helper function to safely parse JSON that might be a string or already an object
+const safeJsonParse = (data) => {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      // Return null or an empty object if parsing fails
+      return null;
+    }
+  }
+  // Return data as is if it's already an object (or null/undefined)
+  return data;
+};
+
 const protect = async (req, res, next) => {
   let token;
 
@@ -28,29 +42,44 @@ const protect = async (req, res, next) => {
            WHERE u.id = $1`,
           [decoded.id]
         );
-        if (rows.length > 0) req.user = { ...req.user, ...rows[0] };
+        if (rows.length > 0) {
+          const dbUser = rows[0];
+          // FIX: Ensure limits from the database are parsed into objects
+          dbUser.limits = safeJsonParse(dbUser.limits);
+          dbUser.tierLimits = safeJsonParse(dbUser.tierLimits);
+          req.user = { ...req.user, ...dbUser };
+        }
       } else {
         const { rows } = await req.db.query(
           'SELECT id, username, "adminId" FROM employees WHERE id = $1',
           [decoded.id]
         );
         if (rows.length > 0) {
+          const employeeData = rows[0];
           const adminRes = await req.db.query(
             `SELECT u."agencyName", u."facturationSettings", u."tierId", u.limits, t.limits as "tierLimits"
              FROM users u
              LEFT JOIN tiers t ON u."tierId" = t.id
              WHERE u.id = $1`,
-            [rows[0].adminId]
+            [employeeData.adminId]
           );
-          req.user = {
-            ...req.user,
-            ...rows[0],
-            agencyName: adminRes.rows[0]?.agencyName,
-            facturationSettings: adminRes.rows[0]?.facturationSettings,
-            tierId: adminRes.rows[0]?.tierId,
-            limits: adminRes.rows[0]?.limits,
-            tierLimits: adminRes.rows[0]?.tierLimits,
-          };
+
+          if (adminRes.rows.length > 0) {
+            const adminData = adminRes.rows[0];
+            // FIX: Ensure admin limits are also parsed for the employee
+            adminData.limits = safeJsonParse(adminData.limits);
+            adminData.tierLimits = safeJsonParse(adminData.tierLimits);
+
+            req.user = {
+              ...req.user,
+              ...employeeData,
+              agencyName: adminData.agencyName,
+              facturationSettings: adminData.facturationSettings,
+              tierId: adminData.tierId,
+              limits: adminData.limits,
+              tierLimits: adminData.tierLimits,
+            };
+          }
         }
       }
 
