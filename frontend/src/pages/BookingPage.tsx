@@ -147,23 +147,21 @@ export default function BookingPage() {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
   }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
-  const bookingQueryKey = [
-    "bookingsByProgram",
-    programId,
-    sortOrder === "family" ? "all" : currentPage,
-    debouncedSearchTerm,
-    sortOrder,
-    statusFilter,
-    employeeFilter,
-  ];
-
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
-      queryKey: bookingQueryKey,
+      queryKey: [
+        "bookingsByProgram",
+        programId,
+        currentPage,
+        debouncedSearchTerm,
+        sortOrder,
+        statusFilter,
+        employeeFilter,
+      ],
       queryFn: () =>
         api.getBookingsByProgram(programId!, {
-          page: sortOrder === "family" ? 1 : currentPage,
-          limit: sortOrder === "family" ? 9999 : bookingsPerPage,
+          page: currentPage,
+          limit: bookingsPerPage,
           searchTerm: debouncedSearchTerm,
           sortOrder,
           statusFilter,
@@ -175,27 +173,22 @@ export default function BookingPage() {
 
   const allBookings = bookingResponse?.data ?? [];
   const summaryStats = bookingResponse?.summary;
-  const totalBookingCount =
-    sortOrder === "family"
-      ? allBookings.length
-      : bookingResponse?.pagination?.totalCount ?? 0;
-  const totalPages = Math.ceil(totalBookingCount / bookingsPerPage);
+  const pagination = bookingResponse?.pagination;
 
   const processedBookings = useMemo(() => {
-    const bookingsToProcess = allBookings;
-    if (sortOrder !== "family" || bookingsToProcess.length === 0) {
-      return bookingsToProcess.map((b) => ({ ...b, isRelated: false }));
+    if (sortOrder !== "family" || allBookings.length === 0) {
+      return allBookings.map((b) => ({ ...b, isRelated: false }));
     }
-    const bookingsMap = new Map(bookingsToProcess.map((b) => [b.id, b]));
+    const bookingsMap = new Map(allBookings.map((b) => [b.id, b]));
     const memberIds = new Set<number>();
-    bookingsToProcess.forEach((booking) => {
+    allBookings.forEach((booking) => {
       if (booking.relatedPersons && booking.relatedPersons.length > 0) {
         booking.relatedPersons.forEach((person) => {
           memberIds.add(person.ID);
         });
       }
     });
-    const leadersAndIndividuals = bookingsToProcess.filter(
+    const leadersAndIndividuals = allBookings.filter(
       (booking) => !memberIds.has(booking.id)
     );
     const finalList: (Booking & { isRelated?: boolean })[] = [];
@@ -210,10 +203,8 @@ export default function BookingPage() {
         });
       }
     });
-    const start = (currentPage - 1) * bookingsPerPage;
-    const end = start + bookingsPerPage;
-    return finalList.slice(start, end);
-  }, [allBookings, sortOrder, currentPage, bookingsPerPage]);
+    return finalList;
+  }, [allBookings, sortOrder]);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -233,6 +224,10 @@ export default function BookingPage() {
   });
   const employees = employeesData?.employees ?? [];
 
+  const invalidateAllQueries = () => {
+    queryClient.invalidateQueries();
+  };
+
   const { mutate: createBooking } = useMutation({
     mutationFn: (data: {
       bookingData: BookingFormData;
@@ -243,7 +238,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       toast.success("Booking created!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -262,7 +257,7 @@ export default function BookingPage() {
         advancePayments: data.initialPayments,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       toast.success("Booking updated!");
       dispatch({ type: "CLOSE_BOOKING_MODAL" });
     },
@@ -273,7 +268,7 @@ export default function BookingPage() {
   const { mutate: deleteBooking } = useMutation({
     mutationFn: api.deleteBooking,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       toast.success("Booking deleted!");
     },
     onError: (error: Error) =>
@@ -286,7 +281,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       dispatch({
         type: "SET_SELECTED_FOR_PAYMENT",
         payload: updatedBooking,
@@ -304,7 +299,7 @@ export default function BookingPage() {
       payment: Omit<Payment, "_id" | "id">;
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       dispatch({
         type: "SET_SELECTED_FOR_PAYMENT",
         payload: updatedBooking,
@@ -319,7 +314,7 @@ export default function BookingPage() {
     mutationFn: (data: { bookingId: number; paymentId: string }) =>
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       dispatch({
         type: "SET_SELECTED_FOR_PAYMENT",
         payload: updatedBooking,
@@ -333,7 +328,7 @@ export default function BookingPage() {
   const { mutate: importBookings, isPending: isImporting } = useMutation({
     mutationFn: (file: File) => api.importBookings(file, programId!),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: bookingQueryKey });
+      invalidateAllQueries();
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),
@@ -342,7 +337,7 @@ export default function BookingPage() {
 
   const paginationRange = usePagination({
     currentPage,
-    totalCount: totalBookingCount,
+    totalCount: pagination?.totalCount ?? 0,
     pageSize: bookingsPerPage,
   });
 
@@ -505,14 +500,16 @@ export default function BookingPage() {
             }
           />
 
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(page) =>
-              dispatch({ type: "SET_CURRENT_PAGE", payload: page })
-            }
-            paginationRange={paginationRange}
-          />
+          {pagination && pagination.totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) =>
+                dispatch({ type: "SET_CURRENT_PAGE", payload: page })
+              }
+              paginationRange={paginationRange}
+            />
+          )}
 
           {allBookings.length === 0 && (
             <div className="text-center py-12 bg-white rounded-2xl">

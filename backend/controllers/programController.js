@@ -28,8 +28,10 @@ exports.getAllPrograms = async (req, res) => {
 
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
+    // MODIFICATION: Add a subquery to get the live booking count.
     const dataQueryFields = `
         p.*,
+        (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
         (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id) as pricing
     `;
 
