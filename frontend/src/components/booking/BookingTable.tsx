@@ -1,3 +1,4 @@
+// frontend/src/components/booking/BookingTable.tsx
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
@@ -18,7 +19,7 @@ interface BookingTableProps {
   selectedIds: number[];
   onSelectionChange: (id: number) => void;
   onSelectAllToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isSelectAllActive: boolean;
+  isSelectAllOnPage: boolean;
   onEditBooking: (booking: Booking) => void;
   onDeleteBooking: (bookingId: number) => void;
   onManagePayments: (booking: Booking) => void;
@@ -30,7 +31,7 @@ export default function BookingTable({
   selectedIds,
   onSelectionChange,
   onSelectAllToggle,
-  isSelectAllActive,
+  isSelectAllOnPage,
   onEditBooking,
   onDeleteBooking,
   onManagePayments,
@@ -57,7 +58,7 @@ export default function BookingTable({
                 <input
                   type="checkbox"
                   className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  checked={isSelectAllActive}
+                  checked={isSelectAllOnPage}
                   onChange={onSelectAllToggle}
                   aria-label="Select all bookings"
                 />
@@ -119,8 +120,14 @@ export default function BookingTable({
                 0
               );
 
-              // Determine if the current user can modify this booking
               const canModify =
+                currentUser?.role === "admin" ||
+                (currentUser?.role === "manager" &&
+                  booking.employeeId === currentUser?.id) ||
+                (currentUser?.role === "employee" &&
+                  booking.employeeId === currentUser?.id);
+
+              const canSelect =
                 currentUser?.role === "admin" ||
                 booking.employeeId === currentUser?.id;
 
@@ -129,20 +136,15 @@ export default function BookingTable({
                   key={booking.id}
                   className={`hover:bg-gray-50 transition-colors ${
                     booking.isRelated ? "bg-blue-50" : ""
-                  } ${
-                    isSelectAllActive || selectedIds.includes(booking.id)
-                      ? "bg-blue-100"
-                      : ""
-                  }`}
+                  } ${selectedIds.includes(booking.id) ? "bg-blue-100" : ""}`}
                 >
                   <td className="px-4 py-4">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      checked={
-                        isSelectAllActive || selectedIds.includes(booking.id)
-                      }
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                      checked={selectedIds.includes(booking.id)}
                       onChange={() => onSelectionChange(booking.id)}
+                      disabled={!canSelect}
                       aria-label={`Select booking for ${booking.clientNameFr}`}
                     />
                   </td>

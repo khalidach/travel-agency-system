@@ -42,7 +42,6 @@ interface BookingPageState {
   importFile: File | null;
   currentPage: number;
   selectedBookingIds: number[];
-  isSelectAllActive: boolean;
 }
 
 type BookingPageAction =
@@ -53,10 +52,9 @@ type BookingPageAction =
   | { type: "SET_IS_EXPORTING"; payload: boolean }
   | { type: "SET_IMPORT_FILE"; payload: File | null }
   | { type: "SET_CURRENT_PAGE"; payload: number }
-  | { type: "TOGGLE_SELECT_ALL"; payload: boolean }
+  | { type: "SET_SELECTED_IDS"; payload: number[] }
   | { type: "TOGGLE_ID_SELECTION"; payload: number }
-  | { type: "CLEAR_SELECTION" }
-  | { type: "RESET_SELECT_ALL" };
+  | { type: "CLEAR_SELECTION" };
 
 const initialState: BookingPageState = {
   isBookingModalOpen: false,
@@ -67,7 +65,6 @@ const initialState: BookingPageState = {
   importFile: null,
   currentPage: 1,
   selectedBookingIds: [],
-  isSelectAllActive: false,
 };
 
 function bookingPageReducer(
@@ -93,12 +90,8 @@ function bookingPageReducer(
       return { ...state, importFile: action.payload };
     case "SET_CURRENT_PAGE":
       return { ...state, currentPage: action.payload };
-    case "TOGGLE_SELECT_ALL":
-      return {
-        ...state,
-        isSelectAllActive: action.payload,
-        selectedBookingIds: [], // Clear individual selections when toggling all
-      };
+    case "SET_SELECTED_IDS":
+      return { ...state, selectedBookingIds: action.payload };
     case "TOGGLE_ID_SELECTION": {
       const newSelectedIds = state.selectedBookingIds.includes(action.payload)
         ? state.selectedBookingIds.filter((id) => id !== action.payload)
@@ -106,19 +99,12 @@ function bookingPageReducer(
       return {
         ...state,
         selectedBookingIds: newSelectedIds,
-        isSelectAllActive: false, // Deactivate select all when individual items are toggled
       };
     }
     case "CLEAR_SELECTION":
       return {
         ...state,
         selectedBookingIds: [],
-        isSelectAllActive: false,
-      };
-    case "RESET_SELECT_ALL":
-      return {
-        ...state,
-        isSelectAllActive: false,
       };
     default:
       return state;
@@ -149,6 +135,7 @@ export default function BookingPage() {
   const { programId } = useParams<{ programId: string }>();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
+  const userId = authState.user?.id;
 
   const [state, dispatch] = useReducer(bookingPageReducer, initialState);
   const {
@@ -160,7 +147,6 @@ export default function BookingPage() {
     importFile,
     currentPage,
     selectedBookingIds,
-    isSelectAllActive,
   } = state;
 
   const bookingsPerPage = 10;
@@ -182,7 +168,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
-    dispatch({ type: "RESET_SELECT_ALL" });
+    dispatch({ type: "CLEAR_SELECTION" });
   }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
   const { data: bookingResponse, isLoading: isLoadingBookings } =
@@ -495,31 +481,61 @@ export default function BookingPage() {
     }
   };
 
+  const selectableBookingIdsOnPage = useMemo(() => {
+    if (userRole === "admin") {
+      return allBookings.map((b) => b.id);
+    }
+    return allBookings.filter((b) => b.employeeId === userId).map((b) => b.id);
+  }, [allBookings, userRole, userId]);
+
+  const isAllSelectedOnPage = useMemo(() => {
+    if (selectableBookingIdsOnPage.length === 0) {
+      return false;
+    }
+    return selectableBookingIdsOnPage.every((id) =>
+      selectedBookingIds.includes(id)
+    );
+  }, [selectableBookingIdsOnPage, selectedBookingIds]);
+
   const handleSelectionChange = (id: number) => {
+    if (userRole === "manager" || userRole === "employee") {
+      const booking = allBookings.find((b) => b.id === id);
+      if (booking && booking.employeeId !== userId) {
+        toast.error("You have not made this booking.");
+        return;
+      }
+    }
     dispatch({ type: "TOGGLE_ID_SELECTION", payload: id });
   };
 
   const handleSelectAllToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    dispatch({ type: "TOGGLE_SELECT_ALL", payload: e.target.checked });
+    if (e.target.checked) {
+      if (selectableBookingIdsOnPage.length === 0) {
+        toast.error("There are no bookings you have made on this page.");
+        e.target.checked = false;
+        return;
+      }
+      const newSelectedIds = [
+        ...new Set([...selectedBookingIds, ...selectableBookingIdsOnPage]),
+      ];
+      dispatch({ type: "SET_SELECTED_IDS", payload: newSelectedIds });
+    } else {
+      const idsOnPageSet = new Set(selectableBookingIdsOnPage);
+      const newSelectedIds = selectedBookingIds.filter(
+        (id) => !idsOnPageSet.has(id)
+      );
+      dispatch({ type: "SET_SELECTED_IDS", payload: newSelectedIds });
+    }
   };
 
   const handleDeleteSelected = () => {
-    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: -999 }); // Dummy ID for bulk delete
+    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: -999 });
   };
 
   const confirmDeleteAction = () => {
-    if (isSelectAllActive) {
-      deleteMultipleBookings({
-        filters: {
-          programId: programId!,
-          searchTerm: debouncedSearchTerm,
-          statusFilter,
-          employeeFilter,
-        },
-      });
-    } else if (selectedBookingIds.length > 0) {
+    if (selectedBookingIds.length > 0) {
       deleteMultipleBookings({ bookingIds: selectedBookingIds });
-    } else if (bookingToDelete && bookingToDelete !== -999) {
+    } else if (bookingToDelete) {
       deleteBooking(bookingToDelete);
     }
     dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
@@ -529,9 +545,7 @@ export default function BookingPage() {
     return <BookingSkeleton />;
   }
 
-  const selectedCount = isSelectAllActive
-    ? pagination?.totalCount || 0
-    : selectedBookingIds.length;
+  const selectedCount = selectedBookingIds.length;
 
   return (
     <div className="space-y-6">
@@ -581,7 +595,7 @@ export default function BookingPage() {
             selectedIds={selectedBookingIds}
             onSelectionChange={handleSelectionChange}
             onSelectAllToggle={handleSelectAllToggle}
-            isSelectAllActive={isSelectAllActive}
+            isSelectAllOnPage={isAllSelectedOnPage}
             onEditBooking={(booking) =>
               dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
             }
@@ -662,12 +676,12 @@ export default function BookingPage() {
         }
         onConfirm={confirmDeleteAction}
         title={
-          bookingToDelete === -999
+          selectedCount > 1
             ? "Delete Selected Bookings"
             : t("deleteBookingTitle")
         }
         message={
-          bookingToDelete === -999
+          selectedCount > 1
             ? `Are you sure you want to delete ${selectedCount} booking(s)? This action cannot be undone.`
             : t("deleteBookingMessage")
         }

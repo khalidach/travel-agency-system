@@ -46,7 +46,7 @@ exports.getBookingsByProgram = async (req, res) => {
       statusFilter = "all",
       employeeFilter = "all",
     } = req.query;
-    const { adminId } = req.user;
+    const { adminId, role, id: userId } = req.user;
 
     // --- Building the WHERE clause ---
     let whereConditions = ['b."userId" = $1', 'b."tripId" = $2'];
@@ -61,7 +61,6 @@ exports.getBookingsByProgram = async (req, res) => {
       paramIndex++;
     }
 
-    // FIX: Updated status filter logic
     if (statusFilter === "paid") {
       whereConditions.push('b."isFullyPaid" = true');
     } else if (statusFilter === "pending") {
@@ -74,9 +73,16 @@ exports.getBookingsByProgram = async (req, res) => {
       );
     }
 
-    if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+    // Admins and Managers can filter by employee, but employees can only see their own.
+    if (role === "admin" || role === "manager") {
+      if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+        whereConditions.push(`b."employeeId" = $${paramIndex}`);
+        queryParams.push(employeeFilter);
+        paramIndex++;
+      }
+    } else if (role === "employee") {
       whereConditions.push(`b."employeeId" = $${paramIndex}`);
-      queryParams.push(employeeFilter);
+      queryParams.push(userId);
       paramIndex++;
     }
 
@@ -163,7 +169,7 @@ exports.getBookingIdsByProgram = async (req, res) => {
       statusFilter = "all",
       employeeFilter = "all",
     } = req.query;
-    const { adminId } = req.user;
+    const { adminId, role, id: userId } = req.user;
 
     let whereConditions = ['"userId" = $1', '"tripId" = $2'];
     const queryParams = [adminId, programId];
@@ -177,7 +183,6 @@ exports.getBookingIdsByProgram = async (req, res) => {
       paramIndex++;
     }
 
-    // FIX: Updated status filter logic
     if (statusFilter === "paid") {
       whereConditions.push('"isFullyPaid" = true');
     } else if (statusFilter === "pending") {
@@ -190,9 +195,17 @@ exports.getBookingIdsByProgram = async (req, res) => {
       );
     }
 
-    if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+    // MODIFICATION: Restrict "Select All" scope for managers and employees
+    if (role === "admin") {
+      if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+        whereConditions.push(`"employeeId" = $${paramIndex}`);
+        queryParams.push(employeeFilter);
+        paramIndex++;
+      }
+    } else if (role === "employee" || role === "manager") {
+      // For "Select All", employees and managers can only select their own bookings.
       whereConditions.push(`"employeeId" = $${paramIndex}`);
-      queryParams.push(employeeFilter);
+      queryParams.push(userId);
       paramIndex++;
     }
 

@@ -187,6 +187,11 @@ const createBooking = async (db, user, bookingData) => {
 };
 
 const updateBooking = async (db, user, bookingId, bookingData) => {
+  // MODIFICATION: Add authorization check for manager
+  if (user.role === "manager") {
+    throw new Error("Managers are not authorized to update bookings.");
+  }
+
   const {
     clientNameAr,
     clientNameFr,
@@ -211,7 +216,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   }
 
   const booking = bookingResult.rows[0];
-  if (user.role !== "admin" && booking.employeeId !== user.id) {
+  if (user.role === "employee" && booking.employeeId !== user.id) {
     throw new Error("You are not authorized to modify this booking.");
   }
 
@@ -315,6 +320,13 @@ const deleteBooking = async (db, user, bookingId) => {
     await client.query("BEGIN");
     const { role, id, adminId } = user;
 
+    // MODIFICATION: Add authorization check for manager
+    if (role === "manager") {
+      throw new Error(
+        "Managers are not authorized to delete individual bookings."
+      );
+    }
+
     const bookingRes = await client.query(
       'SELECT "tripId", "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
       [bookingId, adminId]
@@ -326,7 +338,7 @@ const deleteBooking = async (db, user, bookingId) => {
     const booking = bookingRes.rows[0];
 
     // Check ownership for delete
-    if (role !== "admin" && booking.employeeId !== id) {
+    if (role === "employee" && booking.employeeId !== id) {
       throw new Error("You are not authorized to delete this booking.");
     }
 
@@ -360,7 +372,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    const { adminId } = user;
+    const { adminId, role, id: userId } = user;
 
     let whereClause = "";
     const queryParams = [adminId];
@@ -387,14 +399,22 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
       } else if (filters.statusFilter === "pending") {
         whereConditions.push('"isFullyPaid" = false');
       }
-      if (
-        filters.employeeFilter !== "all" &&
-        /^\d+$/.test(filters.employeeFilter)
-      ) {
+
+      if (role === "admin") {
+        if (
+          filters.employeeFilter !== "all" &&
+          /^\d+$/.test(filters.employeeFilter)
+        ) {
+          whereConditions.push(`"employeeId" = $${paramIndex}`);
+          queryParams.push(filters.employeeFilter);
+          paramIndex++;
+        }
+      } else if (role === "employee" || role === "manager") {
         whereConditions.push(`"employeeId" = $${paramIndex}`);
-        queryParams.push(filters.employeeFilter);
+        queryParams.push(userId);
         paramIndex++;
       }
+
       whereClause = `WHERE ${whereConditions.join(" AND ")}`;
     } else {
       throw new Error("No booking IDs or filters provided for deletion.");
@@ -468,14 +488,15 @@ const findBookingForUser = async (
   if (rows.length === 0) throw new Error("Booking not found or not authorized");
 
   const booking = rows[0];
-  if (
-    checkOwnership &&
-    user.role !== "admin" &&
-    booking.employeeId !== user.id
-  ) {
-    throw new Error(
-      "You are not authorized to modify payments for this booking."
-    );
+  if (checkOwnership) {
+    if (user.role === "manager") {
+      throw new Error("Managers are not authorized to modify payments.");
+    }
+    if (user.role === "employee" && booking.employeeId !== user.id) {
+      throw new Error(
+        "You are not authorized to modify payments for this booking."
+      );
+    }
   }
   return booking;
 };
