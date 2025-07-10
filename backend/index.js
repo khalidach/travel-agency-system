@@ -104,6 +104,7 @@ pool
     }
 
     // Populate tiers table if they don't exist
+    // FIX: Changed ON CONFLICT to target the 'name' column and DO NOTHING to prevent errors on restart.
     await client.query(`
       INSERT INTO tiers (id, name, limits) VALUES
       (1, 'Tier 1', '{
@@ -136,7 +137,7 @@ pool
         "dailyServicesPerMonth": -1,
         "dailyServices": true
       }')
-      ON CONFLICT (id) DO UPDATE SET limits = EXCLUDED.limits;
+      ON CONFLICT (name) DO NOTHING;
     `);
     console.log("Tiers table seeded.");
 

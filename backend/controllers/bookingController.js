@@ -61,10 +61,17 @@ exports.getBookingsByProgram = async (req, res) => {
       paramIndex++;
     }
 
+    // FIX: Updated status filter logic
     if (statusFilter === "paid") {
       whereConditions.push('b."isFullyPaid" = true');
     } else if (statusFilter === "pending") {
-      whereConditions.push('b."isFullyPaid" = false');
+      whereConditions.push(
+        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) > 0'
+      );
+    } else if (statusFilter === "notPaid") {
+      whereConditions.push(
+        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0'
+      );
     }
 
     if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
@@ -170,10 +177,17 @@ exports.getBookingIdsByProgram = async (req, res) => {
       paramIndex++;
     }
 
+    // FIX: Updated status filter logic
     if (statusFilter === "paid") {
       whereConditions.push('"isFullyPaid" = true');
     } else if (statusFilter === "pending") {
-      whereConditions.push('"isFullyPaid" = false');
+      whereConditions.push(
+        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0'
+      );
+    } else if (statusFilter === "notPaid") {
+      whereConditions.push(
+        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0'
+      );
     }
 
     if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {

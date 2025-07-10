@@ -63,6 +63,7 @@ const resources = {
       paymentStatus: "Payment Status",
       fullyPaid: "Fully Paid",
       pending: "Pending",
+      notPaid: "Not Paid",
       recentBookings: "Recent Bookings",
       paid: "Paid",
 
@@ -438,6 +439,7 @@ const resources = {
       paymentStatus: "حالة الدفع",
       fullyPaid: "مدفوع بالكامل",
       pending: "قيد الانتظار",
+      notPaid: "غير مدفوع",
       recentBookings: "الحجوزات الأخيرة",
       paid: "مدفوع",
 
@@ -810,6 +812,7 @@ const resources = {
       paymentStatus: "État de Paiement",
       fullyPaid: "Payé en Totalité",
       pending: "En Attente",
+      notPaid: "Non Payé",
       recentBookings: "Réservations Récentes",
       paid: "Payé",
 

@@ -55,6 +55,7 @@ export default function BookingFilters({
           <option value="all">{t("allStatus")}</option>
           <option value="paid">{t("fullyPaid")}</option>
           <option value="pending">{t("pending")}</option>
+          <option value="notPaid">{t("notPaid")}</option>
         </select>
 
         {(userRole === "admin" || userRole === "manager") && (
