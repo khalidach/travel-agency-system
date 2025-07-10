@@ -41,6 +41,8 @@ interface BookingPageState {
   isExporting: boolean;
   importFile: File | null;
   currentPage: number;
+  selectedBookingIds: number[];
+  isSelectAllActive: boolean;
 }
 
 type BookingPageAction =
@@ -50,7 +52,11 @@ type BookingPageAction =
   | { type: "SET_BOOKING_TO_DELETE"; payload: number | null }
   | { type: "SET_IS_EXPORTING"; payload: boolean }
   | { type: "SET_IMPORT_FILE"; payload: File | null }
-  | { type: "SET_CURRENT_PAGE"; payload: number };
+  | { type: "SET_CURRENT_PAGE"; payload: number }
+  | { type: "TOGGLE_SELECT_ALL"; payload: boolean }
+  | { type: "TOGGLE_ID_SELECTION"; payload: number }
+  | { type: "CLEAR_SELECTION" }
+  | { type: "RESET_SELECT_ALL" };
 
 const initialState: BookingPageState = {
   isBookingModalOpen: false,
@@ -60,6 +66,8 @@ const initialState: BookingPageState = {
   isExporting: false,
   importFile: null,
   currentPage: 1,
+  selectedBookingIds: [],
+  isSelectAllActive: false,
 };
 
 function bookingPageReducer(
@@ -85,6 +93,33 @@ function bookingPageReducer(
       return { ...state, importFile: action.payload };
     case "SET_CURRENT_PAGE":
       return { ...state, currentPage: action.payload };
+    case "TOGGLE_SELECT_ALL":
+      return {
+        ...state,
+        isSelectAllActive: action.payload,
+        selectedBookingIds: [], // Clear individual selections when toggling all
+      };
+    case "TOGGLE_ID_SELECTION": {
+      const newSelectedIds = state.selectedBookingIds.includes(action.payload)
+        ? state.selectedBookingIds.filter((id) => id !== action.payload)
+        : [...state.selectedBookingIds, action.payload];
+      return {
+        ...state,
+        selectedBookingIds: newSelectedIds,
+        isSelectAllActive: false, // Deactivate select all when individual items are toggled
+      };
+    }
+    case "CLEAR_SELECTION":
+      return {
+        ...state,
+        selectedBookingIds: [],
+        isSelectAllActive: false,
+      };
+    case "RESET_SELECT_ALL":
+      return {
+        ...state,
+        isSelectAllActive: false,
+      };
     default:
       return state;
   }
@@ -124,6 +159,8 @@ export default function BookingPage() {
     isExporting,
     importFile,
     currentPage,
+    selectedBookingIds,
+    isSelectAllActive,
   } = state;
 
   const bookingsPerPage = 10;
@@ -145,6 +182,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
+    dispatch({ type: "RESET_SELECT_ALL" });
   }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
   const { data: bookingResponse, isLoading: isLoadingBookings } =
@@ -273,6 +311,21 @@ export default function BookingPage() {
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to delete booking."),
+  });
+
+  const { mutate: deleteMultipleBookings } = useMutation({
+    mutationFn: (data: {
+      bookingIds?: number[];
+      filters?: api.BookingFilters;
+    }) => api.deleteMultipleBookings(data),
+    onSuccess: (result) => {
+      invalidateAllQueries();
+      toast.success(result.message || "Bookings deleted successfully!");
+      dispatch({ type: "CLEAR_SELECTION" });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to delete bookings.");
+    },
   });
 
   const { mutate: addPayment } = useMutation({
@@ -442,9 +495,43 @@ export default function BookingPage() {
     }
   };
 
+  const handleSelectionChange = (id: number) => {
+    dispatch({ type: "TOGGLE_ID_SELECTION", payload: id });
+  };
+
+  const handleSelectAllToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    dispatch({ type: "TOGGLE_SELECT_ALL", payload: e.target.checked });
+  };
+
+  const handleDeleteSelected = () => {
+    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: -999 }); // Dummy ID for bulk delete
+  };
+
+  const confirmDeleteAction = () => {
+    if (isSelectAllActive) {
+      deleteMultipleBookings({
+        filters: {
+          programId: programId!,
+          searchTerm: debouncedSearchTerm,
+          statusFilter,
+          employeeFilter,
+        },
+      });
+    } else if (selectedBookingIds.length > 0) {
+      deleteMultipleBookings({ bookingIds: selectedBookingIds });
+    } else if (bookingToDelete && bookingToDelete !== -999) {
+      deleteBooking(bookingToDelete);
+    }
+    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
+  };
+
   if (isLoadingProgram || isLoadingEmployees) {
     return <BookingSkeleton />;
   }
+
+  const selectedCount = isSelectAllActive
+    ? pagination?.totalCount || 0
+    : selectedBookingIds.length;
 
   return (
     <div className="space-y-6">
@@ -480,6 +567,8 @@ export default function BookingPage() {
         isExporting={isExporting}
         employees={employees}
         onSearchKeyDown={() => {}}
+        selectedCount={selectedCount}
+        onDeleteSelected={handleDeleteSelected}
       />
 
       {isLoadingBookings && !bookingResponse ? (
@@ -489,6 +578,10 @@ export default function BookingPage() {
           <BookingTable
             bookings={processedBookings}
             programs={programs}
+            selectedIds={selectedBookingIds}
+            onSelectionChange={handleSelectionChange}
+            onSelectAllToggle={handleSelectAllToggle}
+            isSelectAllActive={isSelectAllActive}
             onEditBooking={(booking) =>
               dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
             }
@@ -562,22 +655,23 @@ export default function BookingPage() {
         onDeletePayment={handleDeletePayment}
       />
 
-      {bookingToDelete && (
-        <ConfirmationModal
-          isOpen={!!bookingToDelete}
-          onClose={() =>
-            dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null })
-          }
-          onConfirm={() => {
-            if (bookingToDelete) {
-              deleteBooking(bookingToDelete);
-            }
-            dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
-          }}
-          title={t("deleteBookingTitle")}
-          message={t("deleteBookingMessage")}
-        />
-      )}
+      <ConfirmationModal
+        isOpen={!!bookingToDelete}
+        onClose={() =>
+          dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null })
+        }
+        onConfirm={confirmDeleteAction}
+        title={
+          bookingToDelete === -999
+            ? "Delete Selected Bookings"
+            : t("deleteBookingTitle")
+        }
+        message={
+          bookingToDelete === -999
+            ? `Are you sure you want to delete ${selectedCount} booking(s)? This action cannot be undone.`
+            : t("deleteBookingMessage")
+        }
+      />
     </div>
   );
 }

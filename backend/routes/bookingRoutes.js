@@ -5,9 +5,11 @@ const multer = require("multer");
 const {
   getAllBookings,
   getBookingsByProgram,
+  getBookingIdsByProgram,
   createBooking,
   updateBooking,
   deleteBooking,
+  deleteMultipleBookings,
   addPayment,
   updatePayment,
   deletePayment,
@@ -27,6 +29,7 @@ const upload = multer({ dest: "/tmp" });
 // Booking routes
 router.get("/", getAllBookings);
 router.get("/program/:programId", getBookingsByProgram);
+router.get("/program/:programId/ids", getBookingIdsByProgram);
 router.post(
   "/",
   bookingValidation,
@@ -35,6 +38,7 @@ router.post(
   createBooking
 );
 router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
+router.delete("/", deleteMultipleBookings);
 router.delete("/:id", deleteBooking);
 
 // Excel and Template routes

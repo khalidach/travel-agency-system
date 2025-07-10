@@ -148,6 +148,57 @@ exports.getBookingsByProgram = async (req, res) => {
   }
 };
 
+exports.getBookingIdsByProgram = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    const {
+      searchTerm = "",
+      statusFilter = "all",
+      employeeFilter = "all",
+    } = req.query;
+    const { adminId } = req.user;
+
+    let whereConditions = ['"userId" = $1', '"tripId" = $2'];
+    const queryParams = [adminId, programId];
+    let paramIndex = 3;
+
+    if (searchTerm) {
+      whereConditions.push(
+        `("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+      );
+      queryParams.push(`%${searchTerm}%`);
+      paramIndex++;
+    }
+
+    if (statusFilter === "paid") {
+      whereConditions.push('"isFullyPaid" = true');
+    } else if (statusFilter === "pending") {
+      whereConditions.push('"isFullyPaid" = false');
+    }
+
+    if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
+      whereConditions.push(`"employeeId" = $${paramIndex}`);
+      queryParams.push(employeeFilter);
+      paramIndex++;
+    }
+
+    const whereClause =
+      whereConditions.length > 0
+        ? `WHERE ${whereConditions.join(" AND ")}`
+        : "";
+
+    const idsQuery = `SELECT id FROM bookings ${whereClause}`;
+
+    const { rows } = await req.db.query(idsQuery, queryParams);
+    const ids = rows.map((row) => row.id);
+
+    res.json({ ids });
+  } catch (error) {
+    console.error("Get Booking Ids By Program Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.createBooking = async (req, res) => {
   try {
     const newBooking = await BookingService.createBooking(
@@ -185,6 +236,22 @@ exports.deleteBooking = async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error("Delete Booking Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.deleteMultipleBookings = async (req, res) => {
+  const { bookingIds, filters } = req.body;
+  try {
+    const result = await BookingService.deleteMultipleBookings(
+      req.db,
+      req.user,
+      bookingIds,
+      filters
+    );
+    res.json(result);
+  } catch (error) {
+    console.error("Delete Multiple Bookings Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

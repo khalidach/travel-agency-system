@@ -1,6 +1,13 @@
 // frontend/src/services/api.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
+export interface BookingFilters {
+  programId: string;
+  searchTerm: string;
+  statusFilter: string;
+  employeeFilter: string;
+}
+
 // --- Auth API ---
 export const login = async (username: string, password: string) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -194,6 +201,22 @@ export const getBookingsByProgram = (
   return request(`/bookings/program/${programId}?${queryParams}`);
 };
 
+export const getBookingIdsByProgram = (
+  programId: string,
+  params: {
+    searchTerm: string;
+    statusFilter: string;
+    employeeFilter: string;
+  }
+) => {
+  const queryParams = new URLSearchParams({
+    searchTerm: params.searchTerm,
+    statusFilter: params.statusFilter,
+    employeeFilter: params.employeeFilter,
+  }).toString();
+  return request(`/bookings/program/${programId}/ids?${queryParams}`);
+};
+
 export const searchBookingsInProgram = async (
   programId: string,
   searchTerm: string
@@ -219,6 +242,14 @@ export const updateBooking = (id: number, booking: any) =>
   request(`/bookings/${id}`, { method: "PUT", body: JSON.stringify(booking) });
 export const deleteBooking = (id: number) =>
   request(`/bookings/${id}`, { method: "DELETE" });
+export const deleteMultipleBookings = (data: {
+  bookingIds?: number[];
+  filters?: BookingFilters;
+}) =>
+  request(`/bookings`, {
+    method: "DELETE",
+    body: JSON.stringify(data),
+  });
 
 // --- Payment API ---
 export const addPayment = (bookingId: number, payment: any) =>

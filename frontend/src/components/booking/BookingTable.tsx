@@ -15,6 +15,10 @@ import {
 interface BookingTableProps {
   bookings: (Booking & { isRelated?: boolean })[];
   programs: Program[];
+  selectedIds: number[];
+  onSelectionChange: (id: number) => void;
+  onSelectAllToggle: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isSelectAllActive: boolean;
   onEditBooking: (booking: Booking) => void;
   onDeleteBooking: (bookingId: number) => void;
   onManagePayments: (booking: Booking) => void;
@@ -23,6 +27,10 @@ interface BookingTableProps {
 export default function BookingTable({
   bookings,
   programs,
+  selectedIds,
+  onSelectionChange,
+  onSelectAllToggle,
+  isSelectAllActive,
   onEditBooking,
   onDeleteBooking,
   onManagePayments,
@@ -45,19 +53,58 @@ export default function BookingTable({
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th className="px-4 py-4">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  checked={isSelectAllActive}
+                  onChange={onSelectAllToggle}
+                  aria-label="Select all bookings"
+                />
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("client")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("programAndHotels")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("priceDetails")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("paymentStatus")}
               </th>
-              <th className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${document.documentElement.dir === "rtl" ? "text-right" : "text-left"}`}>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("actions")}
               </th>
             </tr>
@@ -82,10 +129,25 @@ export default function BookingTable({
                   key={booking.id}
                   className={`hover:bg-gray-50 transition-colors ${
                     booking.isRelated ? "bg-blue-50" : ""
+                  } ${
+                    isSelectAllActive || selectedIds.includes(booking.id)
+                      ? "bg-blue-100"
+                      : ""
                   }`}
                 >
+                  <td className="px-4 py-4">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      checked={
+                        isSelectAllActive || selectedIds.includes(booking.id)
+                      }
+                      onChange={() => onSelectionChange(booking.id)}
+                      aria-label={`Select booking for ${booking.clientNameFr}`}
+                    />
+                  </td>
                   <td
-                    className={`px-6 py-4 align-top ${
+                    className={`px-3 py-4 align-top ${
                       booking.isRelated ? "pl-12" : ""
                     }`}
                   >
@@ -130,7 +192,13 @@ export default function BookingTable({
                           currentUser?.role === "manager") &&
                           booking.employeeName && (
                             <div className="flex items-center text-xs text-gray-500 mt-1">
-                              <Briefcase className={`w-3 h-3 text-gray-400 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
+                              <Briefcase
+                                className={`w-3 h-3 text-gray-400 ${
+                                  document.documentElement.dir === "rtl"
+                                    ? "ml-1"
+                                    : "mr-1"
+                                }`}
+                              />
                               <span>
                                 {t("addedBy")} {booking.employeeName}
                               </span>
@@ -139,7 +207,7 @@ export default function BookingTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 align-top">
+                  <td className="px-2 py-4 align-top">
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-gray-900">
                         {program?.name || t("unknownProgram")}
@@ -160,7 +228,13 @@ export default function BookingTable({
                                 key={index}
                                 className="flex items-center text-xs text-gray-600"
                               >
-                                <MapPin className={`w-3 h-3 text-gray-400 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
+                                <MapPin
+                                  className={`w-3 h-3 text-gray-400 ${
+                                    document.documentElement.dir === "rtl"
+                                      ? "ml-1"
+                                      : "mr-1"
+                                  }`}
+                                />
                                 <span className="font-medium">{city}:</span>
                                 <Hotel
                                   className={`${
@@ -179,7 +253,7 @@ export default function BookingTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 align-top">
+                  <td className="px-2 py-4 align-top">
                     <div className="text-sm text-gray-900">
                       {t("selling")}:{" "}
                       {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
@@ -199,7 +273,7 @@ export default function BookingTable({
                       </>
                     )}
                   </td>
-                  <td className="px-6 py-4 align-top">
+                  <td className="px-3 py-4 align-top">
                     <div className="space-y-2">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
@@ -218,14 +292,20 @@ export default function BookingTable({
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 align-top">
+                  <td className="px-3 py-4 align-top">
                     <div className="flex flex-col space-y-2">
                       <button
                         onClick={() => onManagePayments(booking)}
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <CreditCard className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />{" "}
+                        <CreditCard
+                          className={`w-3 h-3 ${
+                            document.documentElement.dir === "rtl"
+                              ? "ml-1"
+                              : "mr-1"
+                          }`}
+                        />{" "}
                         {t("managePayments")}
                       </button>
                       <button
@@ -233,14 +313,28 @@ export default function BookingTable({
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Edit2 className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} /> {t("editBooking")}
+                        <Edit2
+                          className={`w-3 h-3 ${
+                            document.documentElement.dir === "rtl"
+                              ? "ml-1"
+                              : "mr-1"
+                          }`}
+                        />{" "}
+                        {t("editBooking")}
                       </button>
                       <button
                         onClick={() => onDeleteBooking(booking.id)}
                         disabled={!canModify}
                         className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Trash2 className={`w-3 h-3 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} /> {t("deleteBooking")}
+                        <Trash2
+                          className={`w-3 h-3 ${
+                            document.documentElement.dir === "rtl"
+                              ? "ml-1"
+                              : "mr-1"
+                          }`}
+                        />{" "}
+                        {t("deleteBooking")}
                       </button>
                     </div>
                   </td>

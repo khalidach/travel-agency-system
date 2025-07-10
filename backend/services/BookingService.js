@@ -356,6 +356,105 @@ const deleteBooking = async (db, user, bookingId) => {
   }
 };
 
+const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const { adminId } = user;
+
+    let whereClause = "";
+    const queryParams = [adminId];
+    let paramIndex = 2;
+
+    if (bookingIds && bookingIds.length > 0) {
+      whereClause = `WHERE id = ANY($${paramIndex}::int[]) AND "userId" = $1`;
+      queryParams.push(bookingIds);
+      paramIndex++;
+    } else if (filters) {
+      let whereConditions = ['"userId" = $1', '"tripId" = $2'];
+      queryParams.push(filters.programId);
+      paramIndex++;
+
+      if (filters.searchTerm) {
+        whereConditions.push(
+          `("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+        );
+        queryParams.push(`%${filters.searchTerm}%`);
+        paramIndex++;
+      }
+      if (filters.statusFilter === "paid") {
+        whereConditions.push('"isFullyPaid" = true');
+      } else if (filters.statusFilter === "pending") {
+        whereConditions.push('"isFullyPaid" = false');
+      }
+      if (
+        filters.employeeFilter !== "all" &&
+        /^\d+$/.test(filters.employeeFilter)
+      ) {
+        whereConditions.push(`"employeeId" = $${paramIndex}`);
+        queryParams.push(filters.employeeFilter);
+        paramIndex++;
+      }
+      whereClause = `WHERE ${whereConditions.join(" AND ")}`;
+    } else {
+      throw new Error("No booking IDs or filters provided for deletion.");
+    }
+
+    const bookingsToDeleteRes = await client.query(
+      `SELECT id, "tripId", "employeeId" FROM bookings ${whereClause}`,
+      queryParams
+    );
+
+    const bookingsToDelete = bookingsToDeleteRes.rows;
+    if (bookingsToDelete.length === 0) {
+      return { message: "No matching bookings found to delete." };
+    }
+
+    if (user.role !== "admin") {
+      const isAuthorized = bookingsToDelete.every(
+        (b) => b.employeeId === user.id
+      );
+      if (!isAuthorized) {
+        throw new Error(
+          "You are not authorized to delete one or more of the selected bookings."
+        );
+      }
+    }
+
+    const idsToDelete = bookingsToDelete.map((b) => b.id);
+    const deleteRes = await client.query(
+      "DELETE FROM bookings WHERE id = ANY($1::int[])",
+      [idsToDelete]
+    );
+
+    const tripIdCounts = bookingsToDelete.reduce((acc, booking) => {
+      if (booking.tripId) {
+        acc[booking.tripId] = (acc[booking.tripId] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    const updatePromises = Object.entries(tripIdCounts).map(
+      ([tripId, count]) => {
+        return client.query(
+          'UPDATE programs SET "totalBookings" = "totalBookings" - $1 WHERE id = $2 AND "totalBookings" >= $1',
+          [count, tripId]
+        );
+      }
+    );
+
+    await Promise.all(updatePromises);
+
+    await client.query("COMMIT");
+    return { message: `${deleteRes.rowCount} bookings deleted successfully` };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 const findBookingForUser = async (
   db,
   user,
@@ -437,6 +536,7 @@ module.exports = {
   createBooking,
   updateBooking,
   deleteBooking,
+  deleteMultipleBookings,
   addPayment,
   updatePayment,
   deletePayment,
