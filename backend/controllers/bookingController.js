@@ -35,7 +35,6 @@ exports.getAllBookings = async (req, res) => {
   }
 };
 
-// This function now gets paginated booking data AND summary stats in one call.
 exports.getBookingsByProgram = async (req, res) => {
   try {
     const { programId } = req.params;
@@ -74,7 +73,6 @@ exports.getBookingsByProgram = async (req, res) => {
       );
     }
 
-    // Admins and Managers can filter by employee, but employees can only see their own.
     if (role === "admin" || role === "manager") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
         whereConditions.push(`b."employeeId" = $${paramIndex}`);
@@ -92,70 +90,156 @@ exports.getBookingsByProgram = async (req, res) => {
         ? `WHERE ${whereConditions.join(" AND ")}`
         : "";
 
-    // --- Combined Query for Data, Count, and Stats ---
-    const offset = (page - 1) * limit;
-    let orderByClause;
-    switch (sortOrder) {
-      case "oldest":
-        orderByClause = 'ORDER BY b."createdAt" ASC, b.id ASC';
-        break;
-      case "family":
-        orderByClause =
-          'ORDER BY b."phoneNumber" ASC, b."createdAt" DESC, b.id DESC';
-        break;
-      case "newest":
-      default:
-        orderByClause = 'ORDER BY b."createdAt" DESC, b.id DESC';
-        break;
+    // --- Logic for Family Sort ---
+    if (sortOrder === "family") {
+      const allBookingsQuery = `
+            SELECT b.*, e.username as "employeeName"
+            FROM bookings b
+            LEFT JOIN employees e ON b."employeeId" = e.id
+            ${whereClause}
+        `;
+      const allBookingsResult = await req.db.query(
+        allBookingsQuery,
+        queryParams
+      );
+      const allBookings = allBookingsResult.rows;
+
+      const bookingsMap = new Map(allBookings.map((b) => [b.id, b]));
+      const memberIds = new Set();
+      allBookings.forEach((booking) => {
+        if (booking.relatedPersons && Array.isArray(booking.relatedPersons)) {
+          booking.relatedPersons.forEach((p) => {
+            if (p && p.ID) {
+              memberIds.add(p.ID);
+            }
+          });
+        }
+      });
+
+      const familyLeaders = allBookings
+        .filter((b) => !memberIds.has(b.id))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const sortedBookings = [];
+      const processedIds = new Set();
+
+      familyLeaders.forEach((leader) => {
+        if (!processedIds.has(leader.id)) {
+          sortedBookings.push({ ...leader, isRelated: false });
+          processedIds.add(leader.id);
+          if (leader.relatedPersons && Array.isArray(leader.relatedPersons)) {
+            leader.relatedPersons.forEach((person) => {
+              const member = bookingsMap.get(person.ID);
+              if (member && !processedIds.has(member.id)) {
+                sortedBookings.push({ ...member, isRelated: true });
+                processedIds.add(member.id);
+              }
+            });
+          }
+        }
+      });
+
+      const totalCount = sortedBookings.length;
+      const offset = (page - 1) * limit;
+      const paginatedBookings = sortedBookings.slice(
+        offset,
+        offset + parseInt(limit, 10)
+      );
+
+      const statsQuery = `
+            SELECT
+                COALESCE(SUM("sellingPrice"), 0) as "totalRevenue",
+                COALESCE(SUM("basePrice"), 0) as "totalCost",
+                COALESCE(SUM(profit), 0) as "totalProfit",
+                COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) as "totalPaid"
+            FROM bookings b
+            ${whereClause}
+        `;
+      const statsResult = await req.db.query(statsQuery, queryParams);
+      const summaryStats = statsResult.rows[0];
+      const totalRevenue = parseFloat(summaryStats.totalRevenue);
+      const totalPaid = parseFloat(summaryStats.totalPaid);
+
+      res.json({
+        data: paginatedBookings,
+        pagination: {
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+        summary: {
+          totalBookings: totalCount,
+          totalRevenue: totalRevenue,
+          totalCost: parseFloat(summaryStats.totalCost),
+          totalProfit: parseFloat(summaryStats.totalProfit),
+          totalPaid: totalPaid,
+          totalRemaining: totalRevenue - totalPaid,
+        },
+      });
+    } else {
+      let orderByClause;
+      switch (sortOrder) {
+        case "oldest":
+          orderByClause = 'ORDER BY b."createdAt" ASC, b.id ASC';
+          break;
+        case "newest":
+        default:
+          orderByClause = 'ORDER BY b."createdAt" DESC, b.id DESC';
+          break;
+      }
+
+      const combinedQuery = `
+          WITH FilteredBookings AS (
+            SELECT b.*
+            FROM bookings b
+            ${whereClause}
+          )
+          SELECT
+            (SELECT json_agg(t) FROM (
+              SELECT b.*, e.username as "employeeName"
+              FROM FilteredBookings b
+              LEFT JOIN employees e ON b."employeeId" = e.id
+              ${orderByClause}
+              LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+            ) t) as bookings,
+            (SELECT COUNT(*) FROM FilteredBookings) as "totalCount",
+            (SELECT COALESCE(SUM("sellingPrice"), 0) FROM FilteredBookings) as "totalRevenue",
+            (SELECT COALESCE(SUM("basePrice"), 0) FROM FilteredBookings) as "totalCost",
+            (SELECT COALESCE(SUM(profit), 0) FROM FilteredBookings) as "totalProfit",
+            (SELECT COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) FROM FilteredBookings) as "totalPaid"
+        `;
+
+      queryParams.push(limit, (page - 1) * limit);
+
+      const { rows } = await req.db.query(combinedQuery, queryParams);
+      const result = rows[0];
+      const bookings = (result.bookings || []).map((b) => ({
+        ...b,
+        isRelated: false,
+      }));
+      const totalCount = parseInt(result.totalCount, 10);
+      const totalRevenue = parseFloat(result.totalRevenue);
+      const totalPaid = parseFloat(result.totalPaid);
+
+      res.json({
+        data: bookings,
+        pagination: {
+          page: parseInt(page, 10),
+          limit: parseInt(limit, 10),
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+        summary: {
+          totalBookings: totalCount,
+          totalRevenue: totalRevenue,
+          totalCost: parseFloat(result.totalCost),
+          totalProfit: parseFloat(result.totalProfit),
+          totalPaid: totalPaid,
+          totalRemaining: totalRevenue - totalPaid,
+        },
+      });
     }
-
-    const combinedQuery = `
-      WITH FilteredBookings AS (
-        SELECT b.*
-        FROM bookings b
-        ${whereClause}
-      )
-      SELECT
-        (SELECT json_agg(t) FROM (
-          SELECT b.*, e.username as "employeeName"
-          FROM FilteredBookings b
-          LEFT JOIN employees e ON b."employeeId" = e.id
-          ${orderByClause}
-          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-        ) t) as bookings,
-        (SELECT COUNT(*) FROM FilteredBookings) as "totalCount",
-        (SELECT COALESCE(SUM("sellingPrice"), 0) FROM FilteredBookings) as "totalRevenue",
-        (SELECT COALESCE(SUM("basePrice"), 0) FROM FilteredBookings) as "totalCost",
-        (SELECT COALESCE(SUM(profit), 0) FROM FilteredBookings) as "totalProfit",
-        (SELECT COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) FROM FilteredBookings) as "totalPaid"
-    `;
-
-    queryParams.push(limit, offset);
-
-    const { rows } = await req.db.query(combinedQuery, queryParams);
-    const result = rows[0];
-    const bookings = result.bookings || [];
-    const totalCount = parseInt(result.totalCount, 10);
-    const totalRevenue = parseFloat(result.totalRevenue);
-    const totalPaid = parseFloat(result.totalPaid);
-
-    res.json({
-      data: bookings,
-      pagination: {
-        page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
-      summary: {
-        totalBookings: totalCount,
-        totalRevenue: totalRevenue,
-        totalCost: parseFloat(result.totalCost),
-        totalProfit: parseFloat(result.totalProfit),
-        totalPaid: totalPaid,
-        totalRemaining: totalRevenue - totalPaid,
-      },
-    });
   } catch (error) {
     console.error("Get Bookings By Program Error:", error);
     res.status(500).json({ message: error.message });
@@ -196,7 +280,6 @@ exports.getBookingIdsByProgram = async (req, res) => {
       );
     }
 
-    // MODIFICATION: Restrict "Select All" scope for managers and employees
     if (role === "admin") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
         whereConditions.push(`"employeeId" = $${paramIndex}`);
@@ -204,7 +287,6 @@ exports.getBookingIdsByProgram = async (req, res) => {
         paramIndex++;
       }
     } else if (role === "employee" || role === "manager") {
-      // For "Select All", employees and managers can only select their own bookings.
       whereConditions.push(`"employeeId" = $${paramIndex}`);
       queryParams.push(userId);
       paramIndex++;

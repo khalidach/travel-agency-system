@@ -199,37 +199,6 @@ export default function BookingPage() {
   const summaryStats = bookingResponse?.summary;
   const pagination = bookingResponse?.pagination;
 
-  const processedBookings = useMemo(() => {
-    if (sortOrder !== "family" || allBookings.length === 0) {
-      return allBookings.map((b) => ({ ...b, isRelated: false }));
-    }
-    const bookingsMap = new Map(allBookings.map((b) => [b.id, b]));
-    const memberIds = new Set<number>();
-    allBookings.forEach((booking) => {
-      if (booking.relatedPersons && booking.relatedPersons.length > 0) {
-        booking.relatedPersons.forEach((person) => {
-          memberIds.add(person.ID);
-        });
-      }
-    });
-    const leadersAndIndividuals = allBookings.filter(
-      (booking) => !memberIds.has(booking.id)
-    );
-    const finalList: (Booking & { isRelated?: boolean })[] = [];
-    leadersAndIndividuals.forEach((leader) => {
-      finalList.push({ ...leader, isRelated: false });
-      if (leader.relatedPersons && leader.relatedPersons.length > 0) {
-        leader.relatedPersons.forEach((person) => {
-          const memberBooking = bookingsMap.get(person.ID);
-          if (memberBooking) {
-            finalList.push({ ...memberBooking, isRelated: true });
-          }
-        });
-      }
-    });
-    return finalList;
-  }, [allBookings, sortOrder]);
-
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
     queryFn: () => api.getProgramById(programId!),
@@ -590,7 +559,7 @@ export default function BookingPage() {
       ) : (
         <>
           <BookingTable
-            bookings={processedBookings}
+            bookings={allBookings}
             programs={programs}
             selectedIds={selectedBookingIds}
             onSelectionChange={handleSelectionChange}
