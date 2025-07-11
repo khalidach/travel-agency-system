@@ -4,6 +4,13 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      // Common
+      dateOfBirth: "Date of Birth",
+      passportExpirationDate: "Passport Expiration Date",
+      gender: "Gender",
+      genderRequired: "Gender is required",
+      male: "Male",
+      female: "Female",
       // Navigation
       dashboard: "Dashboard",
       programs: "Programs",
@@ -381,6 +388,12 @@ const resources = {
   },
   ar: {
     translation: {
+      dateOfBirth: "تاريخ الميلاد",
+      passportExpirationDate: "تاريخ انتهاء صلاحية جواز السفر",
+      gender: "الجنس",
+      genderRequired: "الجنس مطلوب",
+      male: "ذكر",
+      female: "أنثى",
       // Navigation
       dashboard: "لوحة التحكم",
       programs: "البرامج",
@@ -753,6 +766,12 @@ const resources = {
   },
   fr: {
     translation: {
+      dateOfBirth: "Date de Naissance",
+      passportExpirationDate: "Date d'Expiration du Passeport",
+      gender: "Genre",
+      genderRequired: "Le genre est requis",
+      male: "Masculin",
+      female: "Féminin",
       // Navigation
       dashboard: "Tableau de Bord",
       programs: "Programmes",

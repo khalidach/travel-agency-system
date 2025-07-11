@@ -100,6 +100,9 @@ const createBooking = async (db, user, bookingData) => {
       personType,
       phoneNumber,
       passportNumber,
+      dateOfBirth,
+      passportExpirationDate,
+      gender,
       tripId,
       packageId,
       selectedHotel,
@@ -149,7 +152,7 @@ const createBooking = async (db, user, bookingData) => {
     const employeeId = role === "admin" ? null : id;
 
     const { rows } = await client.query(
-      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW()) RETURNING *',
+      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW()) RETURNING *',
       [
         adminId,
         employeeId,
@@ -158,6 +161,9 @@ const createBooking = async (db, user, bookingData) => {
         personType,
         phoneNumber,
         passportNumber,
+        dateOfBirth || null,
+        passportExpirationDate || null,
+        gender,
         tripId,
         packageId,
         JSON.stringify(selectedHotel),
@@ -198,6 +204,9 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     personType,
     phoneNumber,
     passportNumber,
+    dateOfBirth,
+    passportExpirationDate,
+    gender,
     tripId,
     packageId,
     selectedHotel,
@@ -262,13 +271,16 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const isFullyPaid = remainingBalance <= 0;
 
   const { rows } = await db.query(
-    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "tripId" = $6, "packageId" = $7, "selectedHotel" = $8, "sellingPrice" = $9, "basePrice" = $10, profit = $11, "advancePayments" = $12, "remainingBalance" = $13, "isFullyPaid" = $14, "relatedPersons" = $15 WHERE id = $16 RETURNING *',
+    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "packageId" = $10, "selectedHotel" = $11, "sellingPrice" = $12, "basePrice" = $13, profit = $14, "advancePayments" = $15, "remainingBalance" = $16, "isFullyPaid" = $17, "relatedPersons" = $18 WHERE id = $19 RETURNING *',
     [
       clientNameAr,
       clientNameFr,
       personType,
       phoneNumber,
       passportNumber,
+      dateOfBirth || null,
+      passportExpirationDate || null,
+      gender,
       tripId,
       packageId,
       JSON.stringify(selectedHotel),

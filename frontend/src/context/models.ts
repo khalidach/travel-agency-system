@@ -126,6 +126,7 @@ export interface RelatedPerson {
 }
 
 export type PersonType = "adult" | "child" | "infant";
+export type Gender = "male" | "female";
 
 export interface Booking {
   id: number;
@@ -134,6 +135,9 @@ export interface Booking {
   personType: PersonType;
   phoneNumber: string;
   passportNumber: string;
+  dateOfBirth?: string;
+  passportExpirationDate?: string;
+  gender?: Gender;
   tripId: string;
   packageId: string;
   selectedHotel: {

@@ -75,6 +75,20 @@ const bookingValidation = [
     .trim()
     .escape()
     .withMessage("Passport number is required."),
+  body("dateOfBirth")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .toDate()
+    .withMessage("Invalid date of birth."),
+  body("passportExpirationDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .toDate()
+    .withMessage("Invalid passport expiration date."),
+  body("gender")
+    .optional()
+    .isIn(["male", "female"])
+    .withMessage("Invalid gender."),
   body("phoneNumber")
     .optional() // This field is now optional
     .trim()

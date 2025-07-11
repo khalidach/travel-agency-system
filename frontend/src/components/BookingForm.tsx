@@ -62,6 +62,9 @@ export default function BookingForm({
       personType: "adult",
       phoneNumber: "",
       passportNumber: "",
+      dateOfBirth: "",
+      passportExpirationDate: "",
+      gender: "male",
       tripId: "",
       packageId: "",
       selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
@@ -164,6 +167,13 @@ export default function BookingForm({
         personType: booking.personType,
         phoneNumber: booking.phoneNumber,
         passportNumber: booking.passportNumber,
+        dateOfBirth: booking.dateOfBirth
+          ? new Date(booking.dateOfBirth).toISOString().split("T")[0]
+          : "",
+        passportExpirationDate: booking.passportExpirationDate
+          ? new Date(booking.passportExpirationDate).toISOString().split("T")[0]
+          : "",
+        gender: booking.gender || "male",
         tripId: booking.tripId,
         packageId: booking.packageId,
         selectedHotel: booking.selectedHotel,

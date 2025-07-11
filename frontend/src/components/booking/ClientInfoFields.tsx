@@ -10,6 +10,8 @@ const ClientInfoFields = () => {
     formState: { errors },
   } = useFormContext();
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -125,6 +127,65 @@ const ClientInfoFields = () => {
           {errors.phoneNumber && (
             <p className="text-red-500 text-sm mt-1">
               {(errors.phoneNumber as any).message}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("dateOfBirth")}
+          </label>
+          <Controller
+            name="dateOfBirth"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="date"
+                max={today}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("passportExpirationDate")}
+          </label>
+          <Controller
+            name="passportExpirationDate"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="date"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t("gender")}
+          </label>
+          <Controller
+            name="gender"
+            control={control}
+            rules={{ required: t("genderRequired") as string }}
+            render={({ field }) => (
+              <select
+                {...field}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              >
+                <option value="male">{t("male")}</option>
+                <option value="female">{t("female")}</option>
+              </select>
+            )}
+          />
+          {errors.gender && (
+            <p className="text-red-500 text-sm mt-1">
+              {(errors.gender as any).message}
             </p>
           )}
         </div>

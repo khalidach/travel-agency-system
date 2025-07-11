@@ -104,6 +104,17 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    // --- Add missing columns to existing bookings table ---
+    await client.query(
+      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "dateOfBirth" DATE;'
+    );
+    await client.query(
+      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "passportExpirationDate" DATE;'
+    );
+    await client.query(
+      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "gender" VARCHAR(10);'
+    );
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
         id SERIAL PRIMARY KEY,
