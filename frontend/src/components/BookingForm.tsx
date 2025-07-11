@@ -1,8 +1,14 @@
 // frontend/src/components/BookingForm.tsx
 import React, { useEffect, useMemo, useCallback, useState } from "react";
-import { useForm, Controller, FormProvider } from "react-hook-form";
+import {
+  useForm,
+  Controller,
+  FormProvider,
+  FieldErrors,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "react-hot-toast";
 import type {
   Booking,
   Program,
@@ -49,13 +55,19 @@ export default function BookingForm({
   programs,
   onSave,
   onCancel,
-  programId, // Receive programId prop
+  programId, // Receive programId to props
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
-  const methods = useForm<BookingFormData>({
+  const methods = useForm<
+    BookingFormData & {
+      dob_day?: number;
+      dob_month?: number;
+      dob_year?: number;
+    }
+  >({
     defaultValues: {
       clientNameAr: "",
       clientNameFr: "",
@@ -161,15 +173,32 @@ export default function BookingForm({
         }));
       }
 
+      let dob_day, dob_month, dob_year;
+      if (booking.dateOfBirth) {
+        if (booking.dateOfBirth.startsWith("XX/XX/")) {
+          dob_year = parseInt(booking.dateOfBirth.split("/")[2], 10);
+        } else {
+          try {
+            const date = new Date(booking.dateOfBirth);
+            dob_day = date.getDate();
+            dob_month = date.getMonth() + 1;
+            dob_year = date.getFullYear();
+          } catch (e) {
+            // Invalid date format
+          }
+        }
+      }
+
       reset({
         clientNameAr: booking.clientNameAr,
         clientNameFr: booking.clientNameFr,
         personType: booking.personType,
         phoneNumber: booking.phoneNumber,
         passportNumber: booking.passportNumber,
-        dateOfBirth: booking.dateOfBirth
-          ? new Date(booking.dateOfBirth).toISOString().split("T")[0]
-          : "",
+        dateOfBirth: booking.dateOfBirth,
+        dob_day,
+        dob_month,
+        dob_year,
         passportExpirationDate: booking.passportExpirationDate
           ? new Date(booking.passportExpirationDate).toISOString().split("T")[0]
           : "",
@@ -297,7 +326,30 @@ export default function BookingForm({
     setValue("profit", price - basePrice);
   };
 
-  const onSubmit = (data: BookingFormData) => {
+  const onInvalid = (errors: FieldErrors) => {
+    if (errors.dob_day || errors.dob_month || errors.dob_year) {
+      toast.error("Invalid date of birth.");
+    }
+  };
+
+  const onSubmit = (data: any) => {
+    const { dob_day, dob_month, dob_year } = data;
+
+    if (dob_day && dob_month && dob_year) {
+      const day = parseInt(dob_day, 10);
+      const month = parseInt(dob_month, 10);
+      const year = parseInt(dob_year, 10);
+      const date = new Date(year, month - 1, day);
+      if (
+        date.getFullYear() !== year ||
+        date.getMonth() + 1 !== month ||
+        date.getDate() !== day
+      ) {
+        toast.error("Invalid date of birth.");
+        return;
+      }
+    }
+
     const hasCitiesWithNights = (formState.selectedProgram?.cities || []).some(
       (c) => c.nights > 0
     );
@@ -331,16 +383,19 @@ export default function BookingForm({
       return;
     }
 
+    const processedData = { ...data };
+
     if (
       userRole === "employee" ||
       userRole === "manager" ||
       userRole === "admin"
     ) {
-      data.basePrice = calculateTotalBasePrice();
-      data.profit = data.sellingPrice - data.basePrice;
+      processedData.basePrice = calculateTotalBasePrice();
+      processedData.profit =
+        processedData.sellingPrice - processedData.basePrice;
     }
 
-    onSave(data, booking?.advancePayments || []);
+    onSave(processedData, booking?.advancePayments || []);
   };
 
   const handlePackageChange = (packageName: string) => {
@@ -429,7 +484,7 @@ export default function BookingForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         {formState.error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
             {formState.error}

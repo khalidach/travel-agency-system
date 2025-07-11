@@ -11,6 +11,9 @@ const resources = {
       genderRequired: "Gender is required",
       male: "Male",
       female: "Female",
+      day: "Day",
+      month: "Month",
+      year: "Year",
       // Navigation
       dashboard: "Dashboard",
       programs: "Programs",
@@ -394,6 +397,9 @@ const resources = {
       genderRequired: "الجنس مطلوب",
       male: "ذكر",
       female: "أنثى",
+      day: "يوم",
+      month: "شهر",
+      year: "سنة",
       // Navigation
       dashboard: "لوحة التحكم",
       programs: "البرامج",
@@ -772,6 +778,9 @@ const resources = {
       genderRequired: "Le genre est requis",
       male: "Masculin",
       female: "Féminin",
+      day: "Jour",
+      month: "Mois",
+      year: "Année",
       // Navigation
       dashboard: "Tableau de Bord",
       programs: "Programmes",

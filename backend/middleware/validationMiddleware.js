@@ -77,16 +77,27 @@ const bookingValidation = [
     .withMessage("Passport number is required."),
   body("dateOfBirth")
     .optional({ checkFalsy: true })
-    .isISO8601()
-    .toDate()
-    .withMessage("Invalid date of birth."),
+    .custom((value) => {
+      if (!value) return true; // Optional field
+      // Regex to match YYYY, YYYY-MM-DD, or XX/XX/YYYY
+      if (
+        /^\d{4}$/.test(value) ||
+        /^\d{4}-\d{2}-\d{2}$/.test(value) ||
+        /^XX\/XX\/\d{4}$/.test(value)
+      ) {
+        return true;
+      }
+      throw new Error(
+        "Invalid date of birth format. Use YYYY, YYYY-MM-DD, or XX/XX/YYYY."
+      );
+    }),
   body("passportExpirationDate")
     .optional({ checkFalsy: true })
     .isISO8601()
     .toDate()
     .withMessage("Invalid passport expiration date."),
   body("gender")
-    .optional()
+    .notEmpty()
     .isIn(["male", "female"])
     .withMessage("Invalid gender."),
   body("phoneNumber")

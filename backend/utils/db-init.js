@@ -89,6 +89,9 @@ const applyDatabaseMigrations = async (client) => {
         "personType" VARCHAR(50) NOT NULL,
         "phoneNumber" VARCHAR(50),
         "passportNumber" VARCHAR(255) NOT NULL,
+        "dateOfBirth" VARCHAR(20),
+        "passportExpirationDate" DATE,
+        "gender" VARCHAR(10),
         "tripId" VARCHAR(255) NOT NULL,
         "packageId" VARCHAR(255),
         "selectedHotel" JSONB,
@@ -104,16 +107,31 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- Add missing columns to existing bookings table ---
-    await client.query(
-      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "dateOfBirth" DATE;'
-    );
-    await client.query(
-      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "passportExpirationDate" DATE;'
-    );
-    await client.query(
-      'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "gender" VARCHAR(10);'
-    );
+    // --- Add missing columns and alter types if necessary ---
+    const alterTableQueries = `
+      DO $$
+      BEGIN
+        -- Add dateOfBirth if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='dateOfBirth') THEN
+          ALTER TABLE bookings ADD COLUMN "dateOfBirth" VARCHAR(20);
+        ELSE
+          -- If it exists, ensure it's VARCHAR
+          ALTER TABLE bookings ALTER COLUMN "dateOfBirth" TYPE VARCHAR(20) USING "dateOfBirth"::text;
+        END IF;
+
+        -- Add passportExpirationDate if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='passportExpirationDate') THEN
+          ALTER TABLE bookings ADD COLUMN "passportExpirationDate" DATE;
+        END IF;
+
+        -- Add gender if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='gender') THEN
+          ALTER TABLE bookings ADD COLUMN "gender" VARCHAR(10);
+        END IF;
+      END;
+      $$;
+    `;
+    await client.query(alterTableQueries);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
