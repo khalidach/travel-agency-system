@@ -6,11 +6,11 @@ import { toast } from "react-hot-toast";
 /**
  * A custom hook to manage user session timeout due to inactivity and to periodically refresh the authentication token.
  * @param idleTimeout The duration in milliseconds of inactivity before the user is logged out. Defaults to 1 hour.
- * @param refreshInterval The interval in milliseconds at which to refresh the authentication token to keep the session alive. Defaults to 55 minutes.
+ * @param refreshInterval The interval in milliseconds at which to refresh the authentication token to keep the session alive. Defaults to 15 minutes.
  */
 const useIdleTimeout = (
   idleTimeout: number = 60 * 60 * 1000, // 1 hour for idle logout
-  refreshInterval: number = 55 * 60 * 1000 // 55 minutes for token refresh
+  refreshInterval: number = 15 * 60 * 1000 // 15 minutes for token refresh
 ) => {
   const { state, dispatch } = useAuthContext();
   const idleTimer = useRef<ReturnType<typeof setTimeout>>();
