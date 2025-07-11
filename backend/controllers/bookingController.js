@@ -1,6 +1,7 @@
 // backend/controllers/bookingController.js
 const BookingService = require("../services/BookingService");
 const ExcelService = require("../services/ExcelService");
+const BookingExcelService = require("../services/BookingExcelService");
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -357,7 +358,7 @@ exports.exportBookingsToExcel = async (req, res) => {
         .json({ message: "No bookings found for this program." });
     }
 
-    const workbook = await ExcelService.generateBookingsExcel(
+    const workbook = await BookingExcelService.generateBookingsExcel(
       bookings,
       programs[0],
       role
