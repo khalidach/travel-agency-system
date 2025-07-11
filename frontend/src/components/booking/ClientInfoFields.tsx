@@ -218,7 +218,6 @@ const ClientInfoFields = () => {
               name="dob_year"
               control={control}
               rules={{
-                required: "Year is required",
                 min: { value: 1900, message: "Invalid year" },
                 max: {
                   value: new Date().getFullYear(),
