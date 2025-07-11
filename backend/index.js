@@ -1,13 +1,13 @@
 // backend/index.js
-// backend/server.js
 const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
 require("dotenv").config();
 
-// Import middleware
+// Import middleware and new DB initializer
 const { protect } = require("./middleware/authMiddleware");
+const { applyDatabaseMigrations } = require("./utils/db-init"); // <-- Import the new function
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
@@ -21,7 +21,7 @@ const roomManagementRoutes = require("./routes/roomManagementRoutes");
 const factureRoutes = require("./routes/factureRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const tierRoutes = require("./routes/tierRoutes");
-const dailyServiceRoutes = require("./routes/dailyServiceRoutes"); // New
+const dailyServiceRoutes = require("./routes/dailyServiceRoutes");
 
 const app = express();
 const corsOptions = {
@@ -42,212 +42,8 @@ pool
   .then(async (client) => {
     console.log("Connected to PostgreSQL");
 
-    // Create daily_services table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS daily_services (
-        id SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL,
-        "employeeId" INTEGER,
-        type VARCHAR(100) NOT NULL,
-        "serviceName" VARCHAR(255) NOT NULL,
-        "originalPrice" NUMERIC(10, 2) NOT NULL,
-        "totalPrice" NUMERIC(10, 2) NOT NULL,
-        commission NUMERIC(10, 2) NOT NULL,
-        profit NUMERIC(10, 2) NOT NULL,
-        date DATE NOT NULL,
-        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-
-    // Migration: Drop vatPaid column if it exists
-    const vatPaidCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='daily_services' AND column_name='vatPaid'
-    `);
-    if (vatPaidCheck.rows.length > 0) {
-      await client.query(`ALTER TABLE daily_services DROP COLUMN "vatPaid";`);
-      console.log("'vatPaid' column dropped from daily_services table.");
-    }
-
-    console.log("Daily services table checked/created.");
-
-    // Create tiers table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS tiers (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(50) NOT NULL UNIQUE,
-        limits JSONB NOT NULL
-      );
-    `);
-
-    // Add limits column to users table if it doesn't exist
-    const userLimitsCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='users' AND column_name='limits'
-    `);
-    if (userLimitsCheck.rows.length === 0) {
-      await client.query(`ALTER TABLE users ADD COLUMN "limits" JSONB;`);
-      console.log("'limits' column added to users table.");
-    }
-
-    // Add tierId to users table if it doesn't exist
-    const tierIdCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='users' AND column_name='tierId'
-    `);
-    if (tierIdCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE users ADD COLUMN "tierId" INTEGER REFERENCES tiers(id) DEFAULT 1;`
-      );
-      console.log("'tierId' column added to users table.");
-    }
-
-    // Populate tiers table if they don't exist
-    // FIX: Changed ON CONFLICT to target the 'name' column and DO NOTHING to prevent errors on restart.
-    await client.query(`
-      INSERT INTO tiers (id, name, limits) VALUES
-      (1, 'Tier 1', '{
-        "bookingsPerMonth": 300,
-        "programsPerMonth": 5,
-        "programPricingsPerMonth": 5,
-        "employees": 2,
-        "invoicing": false,
-        "facturesPerMonth": 0,
-        "dailyServicesPerMonth": 50,
-        "dailyServices": true
-      }'),
-      (2, 'Tier 2', '{
-        "bookingsPerMonth": 500,
-        "programsPerMonth": 10,
-        "programPricingsPerMonth": 10,
-        "employees": 5,
-        "invoicing": true,
-        "facturesPerMonth": 100,
-        "dailyServicesPerMonth": 150,
-        "dailyServices": true
-      }'),
-      (3, 'Tier 3', '{
-        "bookingsPerMonth": -1,
-        "programsPerMonth": -1,
-        "programPricingsPerMonth": -1,
-        "employees": 7,
-        "invoicing": true,
-        "facturesPerMonth": -1,
-        "dailyServicesPerMonth": -1,
-        "dailyServices": true
-      }')
-      ON CONFLICT (name) DO NOTHING;
-    `);
-    console.log("Tiers table seeded.");
-
-    // Create room_managements table
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS room_managements (
-        id SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL,
-        "programId" INTEGER NOT NULL,
-        "hotelName" VARCHAR(255) NOT NULL,
-        rooms JSONB,
-        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE("userId", "programId", "hotelName")
-      );
-    `);
-
-    // Create factures table if it doesn't exist
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS factures (
-        id SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL,
-        "employeeId" INTEGER,
-        "clientName" VARCHAR(255) NOT NULL,
-        "clientAddress" TEXT,
-        "date" DATE NOT NULL,
-        "items" JSONB NOT NULL,
-        "type" VARCHAR(50) NOT NULL, -- 'facture' or 'devis'
-        "total" NUMERIC(10, 2) NOT NULL,
-        "notes" TEXT,
-        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-
-    // Drop old 'fraisDeService' column if it exists
-    const fraisCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='factures' AND column_name='fraisDeService'
-    `);
-    if (fraisCheck.rows.length > 0) {
-      await client.query(`ALTER TABLE factures DROP COLUMN "fraisDeService";`);
-      console.log("'fraisDeService' column dropped from factures table.");
-    }
-
-    // Add 'prixTotalHorsFrais' column if it doesn't exist
-    const prixTotalHorsFraisCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='factures' AND column_name='prixTotalHorsFrais'
-    `);
-    if (prixTotalHorsFraisCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE factures ADD COLUMN "prixTotalHorsFrais" NUMERIC(10, 2) DEFAULT 0;`
-      );
-      console.log("'prixTotalHorsFrais' column added to factures table.");
-    }
-
-    // Add 'totalFraisServiceHT' column if it doesn't exist
-    const totalFraisServiceHTCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='factures' AND column_name='totalFraisServiceHT'
-    `);
-    if (totalFraisServiceHTCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE factures ADD COLUMN "totalFraisServiceHT" NUMERIC(10, 2) DEFAULT 0;`
-      );
-      console.log("'totalFraisServiceHT' column added to factures table.");
-    }
-
-    // Check and add 'tva' column to factures table if it doesn't exist
-    const tvaCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='factures' AND column_name='tva'
-    `);
-    if (tvaCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE factures ADD COLUMN "tva" NUMERIC(10, 2) DEFAULT 0;`
-      );
-      console.log("'tva' column added to factures table.");
-    }
-
-    // Check and add 'facture_number' column
-    const factureNumberCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name='factures' AND column_name='facture_number'
-    `);
-    if (factureNumberCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE factures ADD COLUMN "facture_number" TEXT;`
-      );
-      await client.query(
-        `ALTER TABLE factures ADD CONSTRAINT unique_facture_number_per_user UNIQUE ("userId", "facture_number");`
-      );
-      console.log(
-        "'facture_number' column and unique constraint added to factures table."
-      );
-    }
-
-    // Add facturationSettings column to users table if it doesn't exist
-    const columnCheck = await client.query(`
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name='users' AND column_name='facturationSettings'
-    `);
-
-    if (columnCheck.rows.length === 0) {
-      await client.query(
-        `ALTER TABLE users ADD COLUMN "facturationSettings" JSONB;`
-      );
-      console.log("'facturationSettings' column added to users table.");
-    }
+    // Apply all database migrations (tables, indexes, etc.)
+    await applyDatabaseMigrations(client);
 
     client.release();
   })
@@ -271,7 +67,7 @@ app.use("/api/employees", protect, employeeRoutes);
 app.use("/api/room-management", protect, roomManagementRoutes);
 app.use("/api/facturation", protect, factureRoutes);
 app.use("/api/settings", protect, settingsRoutes);
-app.use("/api/daily-services", protect, dailyServiceRoutes); // New
+app.use("/api/daily-services", protect, dailyServiceRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

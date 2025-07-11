@@ -343,18 +343,66 @@ exports.deleteEmployee = async (req, res) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "Not authorized" });
   }
-  const { id } = req.params;
+  const { id } = req.params; // This is the employee ID to delete
+  const client = await req.db.connect();
+
   try {
-    const { rowCount } = await req.db.query(
-      'DELETE FROM employees WHERE id = $1 AND "adminId" = $2',
+    await client.query("BEGIN");
+
+    // Check if the employee belongs to the admin trying to delete them
+    const employeeCheck = await client.query(
+      'SELECT id FROM employees WHERE id = $1 AND "adminId" = $2',
       [id, req.user.id]
     );
+
+    if (employeeCheck.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res
+        .status(404)
+        .json({ message: "Employee not found or not authorized." });
+    }
+
+    // Set employeeId to NULL in related tables to avoid foreign key violations
+    await client.query(
+      'UPDATE programs SET "employeeId" = NULL WHERE "employeeId" = $1',
+      [id]
+    );
+    await client.query(
+      'UPDATE program_pricing SET "employeeId" = NULL WHERE "employeeId" = $1',
+      [id]
+    );
+    await client.query(
+      'UPDATE bookings SET "employeeId" = NULL WHERE "employeeId" = $1',
+      [id]
+    );
+    await client.query(
+      'UPDATE daily_services SET "employeeId" = NULL WHERE "employeeId" = $1',
+      [id]
+    );
+    await client.query(
+      'UPDATE factures SET "employeeId" = NULL WHERE "employeeId" = $1',
+      [id]
+    );
+
+    // Now, it's safe to delete the employee
+    const { rowCount } = await client.query(
+      "DELETE FROM employees WHERE id = $1",
+      [id]
+    );
+
     if (rowCount === 0) {
+      // This case should ideally not be reached due to the check above, but it's good practice.
+      await client.query("ROLLBACK");
       return res.status(404).json({ message: "Employee not found" });
     }
+
+    await client.query("COMMIT");
     res.json({ message: "Employee deleted successfully" });
   } catch (error) {
-    console.error(error);
+    await client.query("ROLLBACK");
+    console.error("Delete Employee Error:", error);
     res.status(500).json({ message: "Server error" });
+  } finally {
+    client.release();
   }
 };
