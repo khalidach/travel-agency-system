@@ -4,6 +4,10 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      selectAllMatching: "Select all {{total}} bookings matching these filters",
+      pageSelectionNotification: "{{count}} bookings selected on this page.",
+      allSelectedNotification: "All {{count}} bookings are selected.",
+      clearSelection: "Clear selection",
       // Common
       dateOfBirth: "Date of Birth",
       passportExpirationDate: "Passport Expiration Date",
@@ -391,6 +395,11 @@ const resources = {
   },
   ar: {
     translation: {
+      selectAllMatching:
+        "تحديد كل الحجوزات الـ {{total}} المطابقة لهذه الفلاتر",
+      pageSelectionNotification: "تم تحديد {{count}} حجوزات في هذه الصفحة.",
+      allSelectedNotification: "تم تحديد كل الحجوزات الـ {{count}}.",
+      clearSelection: "إلغاء التحديد",
       dateOfBirth: "تاريخ الميلاد",
       passportExpirationDate: "تاريخ انتهاء صلاحية جواز السفر",
       gender: "الجنس",
@@ -772,6 +781,14 @@ const resources = {
   },
   fr: {
     translation: {
+      selectAllMatching:
+        "Sélectionner les {{total}} réservations correspondant à ces filtres",
+      pageSelectionNotification:
+        "{{count}} réservations sélectionnées sur cette page.",
+      allSelectedNotification:
+        "Toutes les {{count}} réservations sont sélectionnées.",
+      clearSelection: "Effacer la sélection",
+
       dateOfBirth: "Date de Naissance",
       passportExpirationDate: "Date d'Expiration du Passeport",
       gender: "Genre",

@@ -1,5 +1,5 @@
 // frontend/src/pages/BookingPage.tsx
-import React, { useMemo, useEffect, useReducer } from "react";
+import React, { useMemo, useEffect, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -149,6 +149,8 @@ export default function BookingPage() {
     selectedBookingIds,
   } = state;
 
+  const [isSelectAllAcrossPages, setIsSelectAllAcrossPages] = useState(false);
+
   const bookingsPerPage = 10;
 
   const { register, watch } = useForm<FilterFormData>({
@@ -169,6 +171,7 @@ export default function BookingPage() {
   useEffect(() => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
     dispatch({ type: "CLEAR_SELECTION" });
+    setIsSelectAllAcrossPages(false);
   }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
 
   const { data: bookingResponse, isLoading: isLoadingBookings } =
@@ -218,7 +221,8 @@ export default function BookingPage() {
   const employees = employeesData?.employees ?? [];
 
   const invalidateAllQueries = () => {
-    queryClient.invalidateQueries();
+    queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
   };
 
   const { mutate: createBooking } = useMutation({
@@ -457,7 +461,7 @@ export default function BookingPage() {
     return allBookings.filter((b) => b.employeeId === userId).map((b) => b.id);
   }, [allBookings, userRole, userId]);
 
-  const isAllSelectedOnPage = useMemo(() => {
+  const isPageSelected = useMemo(() => {
     if (selectableBookingIdsOnPage.length === 0) {
       return false;
     }
@@ -465,6 +469,42 @@ export default function BookingPage() {
       selectedBookingIds.includes(id)
     );
   }, [selectableBookingIdsOnPage, selectedBookingIds]);
+
+  const isHeaderCheckboxChecked = isPageSelected || isSelectAllAcrossPages;
+
+  const handleClearAllSelection = () => {
+    dispatch({ type: "CLEAR_SELECTION" });
+    setIsSelectAllAcrossPages(false);
+  };
+
+  const handleSelectAllMatching = async () => {
+    const queryKey = [
+      "allBookingIds",
+      programId,
+      debouncedSearchTerm,
+      statusFilter,
+      employeeFilter,
+    ];
+    try {
+      const data = await queryClient.fetchQuery<{ ids: number[] }>({
+        queryKey,
+        queryFn: () =>
+          api.getBookingIdsByProgram(programId!, {
+            searchTerm: debouncedSearchTerm,
+            statusFilter,
+            employeeFilter,
+          }),
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+      });
+
+      if (data && data.ids) {
+        dispatch({ type: "SET_SELECTED_IDS", payload: data.ids });
+        setIsSelectAllAcrossPages(true);
+      }
+    } catch (error) {
+      toast.error("Could not fetch all bookings.");
+    }
+  };
 
   const handleSelectionChange = (id: number) => {
     if (userRole === "manager" || userRole === "employee") {
@@ -475,6 +515,9 @@ export default function BookingPage() {
       }
     }
     dispatch({ type: "TOGGLE_ID_SELECTION", payload: id });
+    if (isSelectAllAcrossPages) {
+      setIsSelectAllAcrossPages(false);
+    }
   };
 
   const handleSelectAllToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -489,11 +532,7 @@ export default function BookingPage() {
       ];
       dispatch({ type: "SET_SELECTED_IDS", payload: newSelectedIds });
     } else {
-      const idsOnPageSet = new Set(selectableBookingIdsOnPage);
-      const newSelectedIds = selectedBookingIds.filter(
-        (id) => !idsOnPageSet.has(id)
-      );
-      dispatch({ type: "SET_SELECTED_IDS", payload: newSelectedIds });
+      handleClearAllSelection();
     }
   };
 
@@ -502,12 +541,22 @@ export default function BookingPage() {
   };
 
   const confirmDeleteAction = () => {
-    if (selectedBookingIds.length > 0) {
+    if (isSelectAllAcrossPages) {
+      deleteMultipleBookings({
+        filters: {
+          programId: programId!,
+          searchTerm: debouncedSearchTerm,
+          statusFilter,
+          employeeFilter,
+        },
+      });
+    } else if (selectedBookingIds.length > 0) {
       deleteMultipleBookings({ bookingIds: selectedBookingIds });
     } else if (bookingToDelete) {
       deleteBooking(bookingToDelete);
     }
     dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
+    setIsSelectAllAcrossPages(false);
   };
 
   if (isLoadingProgram || isLoadingEmployees) {
@@ -515,6 +564,11 @@ export default function BookingPage() {
   }
 
   const selectedCount = selectedBookingIds.length;
+  const showSelectAllBar =
+    isPageSelected &&
+    !isSelectAllAcrossPages &&
+    pagination &&
+    pagination.totalCount > allBookings.length;
 
   return (
     <div className="space-y-6">
@@ -554,6 +608,35 @@ export default function BookingPage() {
         onDeleteSelected={handleDeleteSelected}
       />
 
+      {(showSelectAllBar || isSelectAllAcrossPages) && pagination ? (
+        <div
+          className="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 my-4 rounded-r-lg"
+          role="alert"
+        >
+          {isSelectAllAcrossPages ? (
+            <p>
+              {t("allSelectedNotification", { count: selectedCount })}
+              <button
+                onClick={handleClearAllSelection}
+                className="font-bold underline ml-2 hover:text-blue-900"
+              >
+                {t("clearSelection")}
+              </button>
+            </p>
+          ) : (
+            <p>
+              {t("pageSelectionNotification", { count: selectedCount })}
+              <button
+                onClick={handleSelectAllMatching}
+                className="font-bold underline ml-2 hover:text-blue-900"
+              >
+                {t("selectAllMatching", { total: pagination.totalCount })}
+              </button>
+            </p>
+          )}
+        </div>
+      ) : null}
+
       {isLoadingBookings && !bookingResponse ? (
         <BookingSkeleton />
       ) : (
@@ -564,7 +647,7 @@ export default function BookingPage() {
             selectedIds={selectedBookingIds}
             onSelectionChange={handleSelectionChange}
             onSelectAllToggle={handleSelectAllToggle}
-            isSelectAllOnPage={isAllSelectedOnPage}
+            isSelectAllOnPage={isHeaderCheckboxChecked}
             onEditBooking={(booking) =>
               dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
             }
