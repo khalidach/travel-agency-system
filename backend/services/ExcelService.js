@@ -281,11 +281,23 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
   const templateSheet = workbook.addWorksheet("Booking Template");
   const hasPackages = program.packages && program.packages.length > 0;
 
+  // --- MODIFICATION: Add new headers for gender and dates ---
   let headers = [
     { header: "Client Name (French)", key: "clientNameFr", width: 25 },
     { header: "Client Name (Arabic)", key: "clientNameAr", width: 25 },
     { header: "Person Type", key: "personType", width: 15 },
+    { header: "Gender", key: "gender", width: 15 }, // New
     { header: "Passport Number", key: "passportNumber", width: 20 },
+    {
+      header: "Date of Birth (YYYY-MM-DD or YYYY)",
+      key: "dateOfBirth",
+      width: 25,
+    }, // New
+    {
+      header: "Passport Expiration Date (YYYY-MM-DD)",
+      key: "passportExpirationDate",
+      width: 25,
+    }, // New
     { header: "Phone Number", key: "phoneNumber", width: 20 },
   ];
 
@@ -325,6 +337,11 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
     "PersonTypes"
   );
 
+  // --- MODIFICATION: Add Gender Dropdown ---
+  const genders = ["male", "female"];
+  validationSheet.getColumn("B").values = ["Genders", ...genders];
+  workbook.definedNames.add("Lists!$B$2:$B$" + (genders.length + 1), "Genders");
+
   // Apply validation to the Person Type column
   const personTypeCol = templateSheet.getColumn("personType").letter;
   for (let i = 2; i <= 101; i++) {
@@ -335,13 +352,25 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
     };
   }
 
+  // --- MODIFICATION: Apply validation to the Gender column ---
+  const genderCol = templateSheet.getColumn("gender").letter;
+  for (let i = 2; i <= 101; i++) {
+    templateSheet.getCell(`${genderCol}${i}`).dataValidation = {
+      type: "list",
+      allowBlank: false, // Gender is required
+      formulae: ["=Genders"],
+      showErrorMessage: true,
+      error: 'Please select a valid gender ("male" or "female").',
+    };
+  }
+
   if (hasPackages) {
     // Package Dropdown
     const packageNames = (program.packages || []).map((p) => p.name);
-    validationSheet.getColumn("B").values = ["Packages", ...packageNames];
+    validationSheet.getColumn("C").values = ["Packages", ...packageNames];
     if (packageNames.length > 0) {
       workbook.definedNames.add(
-        "Lists!$B$2:$B$" + (packageNames.length + 1),
+        "Lists!$C$2:$C$" + (packageNames.length + 1),
         "Packages"
       );
     }
@@ -355,7 +384,7 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
       };
     }
 
-    let listColumnIndex = 2; // Start from column C
+    let listColumnIndex = 3; // Start from column D
     const hotelRoomTypesMap = new Map();
 
     (program.packages || []).forEach((pkg) => {
@@ -527,6 +556,43 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       if (!passportNumber || existingPassportNumbers.has(passportNumber))
         continue;
 
+      // --- MODIFICATION: Get and validate new fields ---
+      const gender = rowData["Gender"]?.toString().toLowerCase();
+      const dateOfBirthValue = rowData["Date of Birth (YYYY-MM-DD or YYYY)"];
+      const passportExpirationDateValue =
+        rowData["Passport Expiration Date (YYYY-MM-DD)"];
+
+      if (!gender || (gender !== "male" && gender !== "female")) {
+        // Skip row if gender is missing or invalid, as it's required
+        continue;
+      }
+
+      let dateOfBirth = null;
+      if (dateOfBirthValue) {
+        if (dateOfBirthValue instanceof Date) {
+          dateOfBirth = dateOfBirthValue.toISOString().split("T")[0];
+        } else if (
+          typeof dateOfBirthValue === "string" &&
+          /^\d{4}$/.test(dateOfBirthValue.trim())
+        ) {
+          dateOfBirth = `XX/XX/${dateOfBirthValue.trim()}`;
+        } else if (typeof dateOfBirthValue === "string") {
+          const parsedDate = new Date(dateOfBirthValue);
+          if (!isNaN(parsedDate.getTime())) {
+            dateOfBirth = parsedDate.toISOString().split("T")[0];
+          }
+        }
+      }
+
+      let passportExpirationDate = null;
+      if (passportExpirationDateValue) {
+        const parsedDate = new Date(passportExpirationDateValue);
+        if (!isNaN(parsedDate.getTime())) {
+          passportExpirationDate = parsedDate.toISOString().split("T")[0];
+        }
+      }
+      // --- END MODIFICATION ---
+
       const bookingPackage = (program.packages || []).find(
         (p) => p.name === rowData["Package"]
       );
@@ -615,6 +681,9 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
         personType: personType,
         phoneNumber: rowData["Phone Number"] || "",
         passportNumber,
+        gender, // New
+        dateOfBirth, // New
+        passportExpirationDate, // New
         tripId: program.id,
         packageId: rowData["Package"],
         selectedHotel,
@@ -630,8 +699,9 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
     }
 
     for (const booking of bookingsToCreate) {
+      // --- MODIFICATION: Update INSERT query ---
       await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "gender", "dateOfBirth", "passportExpirationDate", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)',
         [
           booking.userId,
           booking.employeeId,
@@ -640,6 +710,9 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
           booking.personType,
           booking.phoneNumber,
           booking.passportNumber,
+          booking.gender,
+          booking.dateOfBirth,
+          booking.passportExpirationDate,
           booking.tripId,
           booking.packageId,
           JSON.stringify(booking.selectedHotel),
