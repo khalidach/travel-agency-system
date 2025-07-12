@@ -26,6 +26,9 @@ const getLimits = async (req) => {
         facturesPerMonth: 0,
         dailyServicesPerMonth: 0,
         dailyServices: false,
+        bookingExcelExportsPerMonth: 0,
+        listExcelExportsPerMonth: 0,
+        flightListExport: false,
       };
     }
   }
@@ -85,6 +88,49 @@ const checkLimit = async (req, res, next, resource) => {
   }
 };
 
+const checkExportLimit = async (req, res, next, exportType) => {
+  try {
+    const { adminId } = req.user;
+    const { programId } = req.params;
+    const limits = await getLimits(req);
+    req.user.tierLimits = limits;
+
+    const limitKey =
+      exportType === "booking"
+        ? "bookingExcelExportsPerMonth"
+        : "listExcelExportsPerMonth";
+    const limit = limits[limitKey];
+
+    if (limit === -1) {
+      return next();
+    }
+    if (limit === 0) {
+      return res
+        .status(403)
+        .json({ message: `Export for ${exportType} is disabled.` });
+    }
+
+    const { rows: countRows } = await req.db.query(
+      `SELECT COUNT(*) FROM export_logs WHERE "userId" = $1 AND "programId" = $2 AND "exportType" = $3 AND "createdAt" >= date_trunc('month', current_date)`,
+      [adminId, programId, exportType]
+    );
+
+    const currentCount = parseInt(countRows[0].count, 10);
+    if (currentCount >= limit) {
+      return res.status(403).json({
+        message: `You have reached your monthly export limit of ${limit} for this program.`,
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error(`Export limit check error for ${exportType}:`, error);
+    res
+      .status(500)
+      .json({ message: "Server error during export limit check." });
+  }
+};
+
 const checkInvoicingAccess = async (req, res, next) => {
   try {
     const limits = await getLimits(req);
@@ -116,6 +162,7 @@ const checkDailyServiceAccess = async (req, res, next) => {
 };
 
 module.exports = {
+  getLimits,
   checkBookingLimit: (req, res, next) =>
     checkLimit(req, res, next, {
       table: "bookings",
@@ -152,6 +199,10 @@ module.exports = {
       name: "daily services",
       limitKey: "dailyServicesPerMonth",
     }),
+  checkBookingExportLimit: (req, res, next) =>
+    checkExportLimit(req, res, next, "booking"),
+  checkListExportLimit: (req, res, next) =>
+    checkExportLimit(req, res, next, "list"),
   checkInvoicingAccess,
   checkDailyServiceAccess,
 };

@@ -37,7 +37,10 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const isBooleanField = name === "invoicing" || name === "dailyServices";
+    const isBooleanField =
+      name === "invoicing" ||
+      name === "dailyServices" ||
+      name === "flightListExport";
 
     let processedValue: string | number | boolean | undefined;
 
@@ -69,7 +72,11 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
       // Filter out any keys that have been unset (value is undefined or an empty string)
       if (value !== undefined && value !== "") {
         // Based on the key, we can safely assert the type of the value.
-        if (key === "invoicing" || key === "dailyServices") {
+        if (
+          key === "invoicing" ||
+          key === "dailyServices" ||
+          key === "flightListExport"
+        ) {
           finalLimits[key] = value as boolean;
         } else {
           finalLimits[key] = value as number;
@@ -80,15 +87,19 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     onSave(user.id, finalLimits);
   };
 
-  const limitFields: (keyof Omit<TierLimits, "invoicing" | "dailyServices">)[] =
-    [
-      "bookingsPerMonth",
-      "programsPerMonth",
-      "programPricingsPerMonth",
-      "employees",
-      "facturesPerMonth",
-      "dailyServicesPerMonth",
-    ];
+  const limitFields: (keyof Omit<
+    TierLimits,
+    "invoicing" | "dailyServices" | "flightListExport"
+  >)[] = [
+    "bookingsPerMonth",
+    "programsPerMonth",
+    "programPricingsPerMonth",
+    "employees",
+    "facturesPerMonth",
+    "dailyServicesPerMonth",
+    "bookingExcelExportsPerMonth",
+    "listExcelExportsPerMonth",
+  ];
 
   return (
     <Modal
@@ -159,6 +170,29 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <option value="">
               Use Tier Default (
               {user.tierLimits?.dailyServices ? "Enabled" : "Disabled"})
+            </option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Flight List Export
+          </label>
+          <select
+            name="flightListExport"
+            value={
+              limits.flightListExport === undefined
+                ? ""
+                : String(limits.flightListExport)
+            }
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="">
+              Use Tier Default (
+              {user.tierLimits?.flightListExport ? "Enabled" : "Disabled"})
             </option>
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>

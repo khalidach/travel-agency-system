@@ -185,18 +185,18 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    console.log("All tables checked/created successfully.");
-
-    // --- Seed Data ---
-    // Populate tiers table if they don't exist, ON CONFLICT prevents errors on restart.
+    // New table for logging Excel exports
     await client.query(`
-      INSERT INTO tiers (id, name, limits) VALUES
-      (1, 'Tier 1', '{"bookingsPerMonth": 300, "programsPerMonth": 5, "programPricingsPerMonth": 5, "employees": 2, "invoicing": false, "facturesPerMonth": 0, "dailyServicesPerMonth": 50, "dailyServices": true}'),
-      (2, 'Tier 2', '{"bookingsPerMonth": 500, "programsPerMonth": 10, "programPricingsPerMonth": 10, "employees": 5, "invoicing": true, "facturesPerMonth": 100, "dailyServicesPerMonth": 150, "dailyServices": true}'),
-      (3, 'Tier 3', '{"bookingsPerMonth": -1, "programsPerMonth": -1, "programPricingsPerMonth": -1, "employees": 7, "invoicing": true, "facturesPerMonth": -1, "dailyServicesPerMonth": -1, "dailyServices": true}')
-      ON CONFLICT (name) DO NOTHING;
+      CREATE TABLE IF NOT EXISTS export_logs (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "programId" INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+        "exportType" VARCHAR(50) NOT NULL, -- 'booking' or 'list'
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
-    console.log("Tiers table seeded.");
+
+    console.log("All tables checked/created successfully.");
 
     // --- Index Creation ---
     // Using 'IF NOT EXISTS' to prevent errors on subsequent runs.
@@ -237,6 +237,11 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");'
+    );
+
+    // Index for the new export_logs table
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_export_logs_user_program ON export_logs("userId", "programId");'
     );
 
     console.log("Database indexes applied successfully.");

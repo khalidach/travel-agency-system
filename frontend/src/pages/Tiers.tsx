@@ -30,6 +30,9 @@ const TierForm = ({
       facturesPerMonth: 0,
       dailyServicesPerMonth: 0,
       dailyServices: false,
+      bookingExcelExportsPerMonth: 0,
+      listExcelExportsPerMonth: 0,
+      flightListExport: false,
     },
   });
 
@@ -45,6 +48,9 @@ const TierForm = ({
         facturesPerMonth: 0,
         dailyServicesPerMonth: 0,
         dailyServices: false,
+        bookingExcelExportsPerMonth: 0,
+        listExcelExportsPerMonth: 0,
+        flightListExport: false,
       },
     });
   }, [tier]);
@@ -57,7 +63,11 @@ const TierForm = ({
 
     if (type === "number") {
       processedValue = value === "" ? 0 : Number(value);
-    } else if (name === "invoicing" || name === "dailyServices") {
+    } else if (
+      name === "invoicing" ||
+      name === "dailyServices" ||
+      name === "flightListExport"
+    ) {
       processedValue = value === "true";
     }
 
@@ -90,15 +100,19 @@ const TierForm = ({
     onSave({ ...formData, name: trimmedName });
   };
 
-  const limitFields: (keyof Omit<TierLimits, "invoicing" | "dailyServices">)[] =
-    [
-      "bookingsPerMonth",
-      "programsPerMonth",
-      "programPricingsPerMonth",
-      "employees",
-      "facturesPerMonth",
-      "dailyServicesPerMonth",
-    ];
+  const limitFields: (keyof Omit<
+    TierLimits,
+    "invoicing" | "dailyServices" | "flightListExport"
+  >)[] = [
+    "bookingsPerMonth",
+    "programsPerMonth",
+    "programPricingsPerMonth",
+    "employees",
+    "facturesPerMonth",
+    "dailyServicesPerMonth",
+    "bookingExcelExportsPerMonth",
+    "listExcelExportsPerMonth",
+  ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,6 +168,22 @@ const TierForm = ({
             name="dailyServices"
             value={String(
               (formData.limits as TierLimits)?.dailyServices ?? false
+            )}
+            onChange={handleLimitChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Flight List Export
+          </label>
+          <select
+            name="flightListExport"
+            value={String(
+              (formData.limits as TierLimits)?.flightListExport ?? false
             )}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
@@ -317,6 +347,17 @@ export default function TiersPage() {
                       <span>
                         Daily Services:{" "}
                         {tier.limits.dailyServices ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Booking Excel/mo:{" "}
+                        {tier.limits.bookingExcelExportsPerMonth}
+                      </span>
+                      <span>
+                        List Excel/mo: {tier.limits.listExcelExportsPerMonth}
+                      </span>
+                      <span>
+                        Flight List Export:{" "}
+                        {tier.limits.flightListExport ? "Yes" : "No"}
                       </span>
                     </div>
                   </td>

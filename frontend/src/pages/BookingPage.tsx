@@ -136,6 +136,7 @@ export default function BookingPage() {
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
   const userId = authState.user?.id;
+  const user = authState.user;
 
   const [state, dispatch] = useReducer(bookingPageReducer, initialState);
   const {
@@ -168,6 +169,17 @@ export default function BookingPage() {
   const sortOrder = watch("sortOrder");
   const statusFilter = watch("statusFilter");
   const employeeFilter = watch("employeeFilter");
+
+  const hasFlightListExportAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.flightListExport === "boolean") {
+      return user.limits.flightListExport;
+    }
+    if (typeof user.tierLimits?.flightListExport === "boolean") {
+      return user.tierLimits.flightListExport;
+    }
+    return false;
+  }, [user]);
 
   useEffect(() => {
     dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
@@ -449,7 +461,11 @@ export default function BookingPage() {
   };
 
   const handleExport = () => {
-    setIsExportModalOpen(true);
+    if (hasFlightListExportAccess) {
+      setIsExportModalOpen(true);
+    } else {
+      handleNormalExport();
+    }
   };
 
   const handleExportTemplate = async () => {

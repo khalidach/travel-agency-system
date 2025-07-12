@@ -8,6 +8,9 @@ export interface TierLimits {
   facturesPerMonth: number;
   dailyServicesPerMonth: number;
   dailyServices: boolean;
+  bookingExcelExportsPerMonth: number; // New
+  listExcelExportsPerMonth: number; // New
+  flightListExport: boolean; // New
 }
 
 export interface Tier {
@@ -26,7 +29,7 @@ export interface User {
   activeUser?: boolean;
   facturationSettings?: FacturationSettings;
   tierId?: number;
-  limits?: TierLimits; // Custom limits
+  limits?: Partial<TierLimits>; // Custom limits can be partial
   tierLimits?: TierLimits; // Limits from their tier
 }
 

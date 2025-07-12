@@ -23,7 +23,11 @@ const {
   paymentValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
-const { checkBookingLimit } = require("../middleware/tierMiddleware");
+const {
+  checkBookingLimit,
+  checkBookingExportLimit,
+  checkListExportLimit,
+} = require("../middleware/tierMiddleware");
 
 const upload = multer({ dest: "/tmp" });
 
@@ -52,9 +56,17 @@ router.post(
   upload.single("file"),
   importBookingsFromExcel
 );
-router.get("/export-excel/program/:programId", exportBookingsToExcel);
+router.get(
+  "/export-excel/program/:programId",
+  checkBookingExportLimit,
+  exportBookingsToExcel
+);
 // Add the new route for the flight list
-router.get("/export-flight-list/program/:programId", exportFlightListToExcel);
+router.get(
+  "/export-flight-list/program/:programId",
+  checkListExportLimit,
+  exportFlightListToExcel
+);
 
 // Payment routes (nested under bookings)
 router.post(

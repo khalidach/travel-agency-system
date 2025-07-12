@@ -411,7 +411,9 @@ exports.deletePayment = async (req, res) => {
 };
 
 exports.exportBookingsToExcel = async (req, res) => {
+  const client = await req.db.connect();
   try {
+    await client.query("BEGIN");
     const { programId } = req.params;
     const { adminId, role } = req.user;
 
@@ -421,7 +423,7 @@ exports.exportBookingsToExcel = async (req, res) => {
         .json({ message: "A program must be selected for export." });
     }
 
-    const { rows: programs } = await req.db.query(
+    const { rows: programs } = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [programId, adminId]
     );
@@ -430,7 +432,7 @@ exports.exportBookingsToExcel = async (req, res) => {
       return res.status(404).json({ message: "Program not found." });
     }
 
-    const { rows: bookings } = await req.db.query(
+    const { rows: bookings } = await client.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "phoneNumber", "clientNameFr"',
       [programId, adminId]
     );
@@ -447,6 +449,13 @@ exports.exportBookingsToExcel = async (req, res) => {
       role
     );
 
+    // Log the export event
+    await client.query(
+      'INSERT INTO export_logs ("userId", "programId", "exportType") VALUES ($1, $2, $3)',
+      [adminId, programId, "booking"]
+    );
+    await client.query("COMMIT");
+
     const fileName = `${(programs[0].name || "Untitled_Program").replace(
       /[\s\W]/g,
       "_"
@@ -459,15 +468,20 @@ exports.exportBookingsToExcel = async (req, res) => {
 
     await workbook.xlsx.write(res);
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("Failed to export to Excel:", error);
     if (!res.headersSent) {
       res.status(500).json({ message: "Failed to export bookings to Excel." });
     }
+  } finally {
+    client.release();
   }
 };
 
 exports.exportFlightListToExcel = async (req, res) => {
+  const client = await req.db.connect();
   try {
+    await client.query("BEGIN");
     const { programId } = req.params;
     const { adminId, agencyName } = req.user;
 
@@ -477,7 +491,7 @@ exports.exportFlightListToExcel = async (req, res) => {
         .json({ message: "A program must be selected for export." });
     }
 
-    const { rows: programs } = await req.db.query(
+    const { rows: programs } = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [programId, adminId]
     );
@@ -488,7 +502,7 @@ exports.exportFlightListToExcel = async (req, res) => {
 
     const program = { ...programs[0], agencyName };
 
-    const { rows: bookings } = await req.db.query(
+    const { rows: bookings } = await client.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "clientNameFr"',
       [programId, adminId]
     );
@@ -504,6 +518,13 @@ exports.exportFlightListToExcel = async (req, res) => {
       program
     );
 
+    // Log the export event
+    await client.query(
+      'INSERT INTO export_logs ("userId", "programId", "exportType") VALUES ($1, $2, $3)',
+      [adminId, programId, "list"]
+    );
+    await client.query("COMMIT");
+
     const fileName = `${(program.name || "Untitled_Program").replace(
       /[\s\W]/g,
       "_"
@@ -517,12 +538,15 @@ exports.exportFlightListToExcel = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("Failed to export flight list to Excel:", error);
     if (!res.headersSent) {
       res
         .status(500)
         .json({ message: "Failed to export flight list to Excel." });
     }
+  } finally {
+    client.release();
   }
 };
 
