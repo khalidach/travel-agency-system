@@ -60,6 +60,19 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    // --- Add missing columns and alter types if necessary ---
+
+    // Add exportCounts column to programs table if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='exportCounts') THEN
+          ALTER TABLE programs ADD COLUMN "exportCounts" JSONB DEFAULT '{}'::jsonb;
+        END IF;
+      END;
+      $$;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS program_pricing (
           id SERIAL PRIMARY KEY,
@@ -107,7 +120,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- Add missing columns and alter types if necessary ---
     const alterTableQueries = `
       DO $$
       BEGIN
@@ -185,17 +197,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // New table for logging Excel exports
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS export_logs (
-        id SERIAL PRIMARY KEY,
-        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        "programId" INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
-        "exportType" VARCHAR(50) NOT NULL, -- 'booking' or 'list'
-        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      );
-    `);
-
     console.log("All tables checked/created successfully.");
 
     // --- Index Creation ---
@@ -237,11 +238,6 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");'
-    );
-
-    // Index for the new export_logs table
-    await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_export_logs_user_program ON export_logs("userId", "programId");'
     );
 
     console.log("Database indexes applied successfully.");

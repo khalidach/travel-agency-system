@@ -418,9 +418,7 @@ exports.exportBookingsToExcel = async (req, res) => {
     const { adminId, role } = req.user;
 
     if (!programId || programId === "undefined") {
-      return res
-        .status(400)
-        .json({ message: "A program must be selected for export." });
+      throw new Error("A program must be selected for export.");
     }
 
     const { rows: programs } = await client.query(
@@ -429,7 +427,7 @@ exports.exportBookingsToExcel = async (req, res) => {
     );
 
     if (programs.length === 0) {
-      return res.status(404).json({ message: "Program not found." });
+      throw new Error("Program not found.");
     }
 
     const { rows: bookings } = await client.query(
@@ -443,20 +441,30 @@ exports.exportBookingsToExcel = async (req, res) => {
         .json({ message: "No bookings found for this program." });
     }
 
+    const program = programs[0];
+    const exportCounts = program.exportCounts || {};
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const exportType = "booking";
+
+    const monthlyLog = exportCounts[exportType] || { month: "", count: 0 };
+    const newCount =
+      monthlyLog.month === currentMonth ? monthlyLog.count + 1 : 1;
+    exportCounts[exportType] = { month: currentMonth, count: newCount };
+
+    await client.query(
+      'UPDATE programs SET "exportCounts" = $1 WHERE id = $2',
+      [JSON.stringify(exportCounts), programId]
+    );
+
     const workbook = await BookingExcelService.generateBookingsExcel(
       bookings,
-      programs[0],
+      program,
       role
     );
 
-    // Log the export event
-    await client.query(
-      'INSERT INTO export_logs ("userId", "programId", "exportType") VALUES ($1, $2, $3)',
-      [adminId, programId, "booking"]
-    );
     await client.query("COMMIT");
 
-    const fileName = `${(programs[0].name || "Untitled_Program").replace(
+    const fileName = `${(program.name || "Untitled_Program").replace(
       /[\s\W]/g,
       "_"
     )}_bookings.xlsx`;
@@ -467,11 +475,14 @@ exports.exportBookingsToExcel = async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
     await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Failed to export to Excel:", error);
     if (!res.headersSent) {
-      res.status(500).json({ message: "Failed to export bookings to Excel." });
+      res.status(500).json({
+        message: error.message || "Failed to export bookings to Excel.",
+      });
     }
   } finally {
     client.release();
@@ -486,9 +497,7 @@ exports.exportFlightListToExcel = async (req, res) => {
     const { adminId, agencyName } = req.user;
 
     if (!programId || programId === "undefined") {
-      return res
-        .status(400)
-        .json({ message: "A program must be selected for export." });
+      throw new Error("A program must be selected for export.");
     }
 
     const { rows: programs } = await client.query(
@@ -497,10 +506,10 @@ exports.exportFlightListToExcel = async (req, res) => {
     );
 
     if (programs.length === 0) {
-      return res.status(404).json({ message: "Program not found." });
+      throw new Error("Program not found.");
     }
 
-    const program = { ...programs[0], agencyName };
+    const programData = { ...programs[0], agencyName };
 
     const { rows: bookings } = await client.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "clientNameFr"',
@@ -513,19 +522,28 @@ exports.exportFlightListToExcel = async (req, res) => {
         .json({ message: "No bookings found for this program." });
     }
 
+    const exportCounts = programData.exportCounts || {};
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const exportType = "list";
+
+    const monthlyLog = exportCounts[exportType] || { month: "", count: 0 };
+    const newCount =
+      monthlyLog.month === currentMonth ? monthlyLog.count + 1 : 1;
+    exportCounts[exportType] = { month: currentMonth, count: newCount };
+
+    await client.query(
+      'UPDATE programs SET "exportCounts" = $1 WHERE id = $2',
+      [JSON.stringify(exportCounts), programId]
+    );
+
     const workbook = await ExcelListService.generateFlightListExcel(
       bookings,
-      program
+      programData
     );
 
-    // Log the export event
-    await client.query(
-      'INSERT INTO export_logs ("userId", "programId", "exportType") VALUES ($1, $2, $3)',
-      [adminId, programId, "list"]
-    );
     await client.query("COMMIT");
 
-    const fileName = `${(program.name || "Untitled_Program").replace(
+    const fileName = `${(programData.name || "Untitled_Program").replace(
       /[\s\W]/g,
       "_"
     )}_flight_list.xlsx`;
@@ -541,9 +559,9 @@ exports.exportFlightListToExcel = async (req, res) => {
     await client.query("ROLLBACK");
     console.error("Failed to export flight list to Excel:", error);
     if (!res.headersSent) {
-      res
-        .status(500)
-        .json({ message: "Failed to export flight list to Excel." });
+      res.status(500).json({
+        message: error.message || "Failed to export flight list to Excel.",
+      });
     }
   } finally {
     client.release();

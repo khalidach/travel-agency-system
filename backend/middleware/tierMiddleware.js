@@ -93,7 +93,7 @@ const checkExportLimit = async (req, res, next, exportType) => {
     const { adminId } = req.user;
     const { programId } = req.params;
     const limits = await getLimits(req);
-    req.user.tierLimits = limits;
+    req.user.tierLimits = limits; // Attach effective limits for use in the controller
 
     const limitKey =
       exportType === "booking"
@@ -102,26 +102,44 @@ const checkExportLimit = async (req, res, next, exportType) => {
     const limit = limits[limitKey];
 
     if (limit === -1) {
+      // -1 means unlimited
       return next();
     }
     if (limit === 0) {
-      return res
-        .status(403)
-        .json({ message: `Export for ${exportType} is disabled.` });
-    }
-
-    const { rows: countRows } = await req.db.query(
-      `SELECT COUNT(*) FROM export_logs WHERE "userId" = $1 AND "programId" = $2 AND "exportType" = $3 AND "createdAt" >= date_trunc('month', current_date)`,
-      [adminId, programId, exportType]
-    );
-
-    const currentCount = parseInt(countRows[0].count, 10);
-    if (currentCount >= limit) {
       return res.status(403).json({
-        message: `You have reached your monthly export limit of ${limit} for this program.`,
+        message: `Export for ${exportType} list is disabled for your tier.`,
       });
     }
 
+    // Fetch the program to check its current export counts
+    const programResult = await req.db.query(
+      'SELECT "exportCounts" FROM programs WHERE id = $1 AND "userId" = $2',
+      [programId, adminId]
+    );
+
+    if (programResult.rows.length === 0) {
+      return res.status(404).json({ message: "Program not found." });
+    }
+
+    const exportCounts = programResult.rows[0].exportCounts || {};
+    const currentMonth = new Date().toISOString().slice(0, 7); // Format: YYYY-MM
+
+    const monthlyLog = exportCounts[exportType] || { month: "", count: 0 };
+
+    let currentCount = 0;
+    // If the log is for the current month, use its count. Otherwise, the count is 0.
+    if (monthlyLog.month === currentMonth) {
+      currentCount = monthlyLog.count;
+    }
+
+    if (currentCount >= limit) {
+      return res.status(403).json({
+        message: `You have reached your monthly export limit of ${limit} for this program's ${exportType} list.`,
+      });
+    }
+
+    // If limit is not reached, proceed to the controller.
+    // The controller will be responsible for incrementing the count.
     next();
   } catch (error) {
     console.error(`Export limit check error for ${exportType}:`, error);
