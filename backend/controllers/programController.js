@@ -32,7 +32,7 @@ exports.getAllPrograms = async (req, res) => {
     const dataQueryFields = `
         p.*,
         (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
-        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id) as pricing
+        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing
     `;
 
     // If noPaginate is true, return all matching results without pagination
