@@ -357,6 +357,9 @@ export const deleteTier = (id: number) =>
 export const exportBookingsToExcel = (programId: string) =>
   request(`/bookings/export-excel/program/${programId}`, {}, true);
 
+export const exportFlightListToExcel = (programId: string) =>
+  request(`/bookings/export-flight-list/program/${programId}`, {}, true);
+
 export const exportBookingTemplateForProgram = (programId: string) =>
   request(`/bookings/export-template/program/${programId}`, {}, true);
 

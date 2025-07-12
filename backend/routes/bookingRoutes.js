@@ -16,6 +16,7 @@ const {
   exportBookingsToExcel,
   exportBookingTemplateForProgram,
   importBookingsFromExcel,
+  exportFlightListToExcel, // Import the new controller function
 } = require("../controllers/bookingController");
 const {
   bookingValidation,
@@ -52,6 +53,8 @@ router.post(
   importBookingsFromExcel
 );
 router.get("/export-excel/program/:programId", exportBookingsToExcel);
+// Add the new route for the flight list
+router.get("/export-flight-list/program/:programId", exportFlightListToExcel);
 
 // Payment routes (nested under bookings)
 router.post(

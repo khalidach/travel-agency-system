@@ -2,6 +2,7 @@
 const BookingService = require("../services/BookingService");
 const ExcelService = require("../services/ExcelService");
 const BookingExcelService = require("../services/BookingExcelService");
+const ExcelListService = require("../services/ExcelListService"); // Import the new service
 
 exports.getAllBookings = async (req, res) => {
   try {
@@ -461,6 +462,66 @@ exports.exportBookingsToExcel = async (req, res) => {
     console.error("Failed to export to Excel:", error);
     if (!res.headersSent) {
       res.status(500).json({ message: "Failed to export bookings to Excel." });
+    }
+  }
+};
+
+exports.exportFlightListToExcel = async (req, res) => {
+  try {
+    const { programId } = req.params;
+    const { adminId, agencyName } = req.user;
+
+    if (!programId || programId === "undefined") {
+      return res
+        .status(400)
+        .json({ message: "A program must be selected for export." });
+    }
+
+    const { rows: programs } = await req.db.query(
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+      [programId, adminId]
+    );
+
+    if (programs.length === 0) {
+      return res.status(404).json({ message: "Program not found." });
+    }
+
+    const program = { ...programs[0], agencyName };
+
+    const { rows: bookings } = await req.db.query(
+      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "clientNameFr"',
+      [programId, adminId]
+    );
+
+    if (bookings.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No bookings found for this program." });
+    }
+
+    const workbook = await ExcelListService.generateFlightListExcel(
+      bookings,
+      program
+    );
+
+    const fileName = `${(program.name || "Untitled_Program").replace(
+      /[\s\W]/g,
+      "_"
+    )}_flight_list.xlsx`;
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Failed to export flight list to Excel:", error);
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ message: "Failed to export flight list to Excel." });
     }
   }
 };

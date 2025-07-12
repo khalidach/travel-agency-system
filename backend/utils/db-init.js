@@ -214,6 +214,12 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_passport ON bookings("passportNumber");'
     );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_dob ON bookings("dateOfBirth");'
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_passport_exp ON bookings("passportExpirationDate");'
+    );
 
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_programs_user_type ON programs("userId", "type");'

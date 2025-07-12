@@ -3,7 +3,7 @@ import React, { useMemo, useEffect, useReducer, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, File, List } from "lucide-react"; // Import File and List icons
 
 // Components and Hooks
 import Modal from "../components/Modal";
@@ -149,6 +149,7 @@ export default function BookingPage() {
     selectedBookingIds,
   } = state;
 
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSelectAllAcrossPages, setIsSelectAllAcrossPages] = useState(false);
 
   const bookingsPerPage = 10;
@@ -393,10 +394,11 @@ export default function BookingPage() {
     }
   };
 
-  const handleExport = async () => {
+  const handleNormalExport = async () => {
     if (!programId || isExporting) return;
     dispatch({ type: "SET_IS_EXPORTING", payload: true });
-    toast.loading("Exporting to Excel...");
+    setIsExportModalOpen(false);
+    toast.loading("Exporting Normal List...");
     try {
       const blob = await api.exportBookingsToExcel(programId);
       const url = window.URL.createObjectURL(blob);
@@ -410,13 +412,44 @@ export default function BookingPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       toast.dismiss();
-      toast.success("Export successful!");
+      toast.success("Normal List export successful!");
     } catch (error) {
       toast.dismiss();
       toast.error((error as Error).message || "Failed to export.");
     } finally {
       dispatch({ type: "SET_IS_EXPORTING", payload: false });
     }
+  };
+
+  const handleFlightListExport = async () => {
+    if (!programId || isExporting) return;
+    dispatch({ type: "SET_IS_EXPORTING", payload: true });
+    setIsExportModalOpen(false);
+    toast.loading("Exporting Flight List...");
+    try {
+      const blob = await api.exportFlightListToExcel(programId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = program
+        ? `${program.name.replace(/\s/g, "_")}_flight_list.xlsx`
+        : "flight_list.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success("Flight List export successful!");
+    } catch (error) {
+      toast.dismiss();
+      toast.error((error as Error).message || "Failed to export.");
+    } finally {
+      dispatch({ type: "SET_IS_EXPORTING", payload: false });
+    }
+  };
+
+  const handleExport = () => {
+    setIsExportModalOpen(true);
   };
 
   const handleExportTemplate = async () => {
@@ -738,6 +771,30 @@ export default function BookingPage() {
             : t("deleteBookingMessage")
         }
       />
+
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title="Choose Export Format"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <button
+            onClick={handleFlightListExport}
+            className="w-full inline-flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <File className="mr-2 h-5 w-5" />
+            Flight List
+          </button>
+          <button
+            onClick={handleNormalExport}
+            className="w-full inline-flex items-center justify-center px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            <List className="mr-2 h-5 w-5" />
+            Normal List
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
