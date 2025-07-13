@@ -88,9 +88,9 @@ exports.searchUnassignedOccupants = async (
     assignedResult.rows.map((r) => parseInt(r.id, 10))
   );
 
-  // 2. Search for bookings across ALL programs for the user that are NOT in the assigned list.
+  // 2. Search for bookings, now selecting the Arabic name and searching both name fields.
   let query = `
-    SELECT id, "clientNameFr" as "clientName"
+    SELECT id, "clientNameAr" as "clientName"
     FROM bookings
     WHERE "userId" = $1
   `;
@@ -107,7 +107,8 @@ exports.searchUnassignedOccupants = async (
 
   // Add search term filter
   if (searchTerm) {
-    query += ` AND "clientNameFr" ILIKE $${paramIndex}`;
+    // Search in both French and Arabic names
+    query += ` AND ("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex})`;
     params.push(`%${searchTerm}%`);
     paramIndex++;
   }
