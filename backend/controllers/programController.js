@@ -1,5 +1,7 @@
 // backend/controllers/programController.js
+const ProgramUpdateService = require("../services/ProgramUpdateService"); // Import the new service
 
+// The getAllPrograms, getProgramById, and createProgram functions remain unchanged...
 exports.getAllPrograms = async (req, res) => {
   try {
     const { adminId } = req.user;
@@ -28,14 +30,12 @@ exports.getAllPrograms = async (req, res) => {
 
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
-    // MODIFICATION: Add a subquery to get the live booking count.
     const dataQueryFields = `
         p.*,
         (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
         (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing
     `;
 
-    // If noPaginate is true, return all matching results without pagination
     if (noPaginate === "true") {
       const dataQuery = `
           SELECT ${dataQueryFields}
@@ -47,13 +47,10 @@ exports.getAllPrograms = async (req, res) => {
       return res.json({ data: programsResult.rows });
     }
 
-    // --- Pagination Logic ---
-    // Get total count for pagination
     const countQuery = `SELECT COUNT(*) ${baseQuery} ${whereClause}`;
     const totalCountResult = await req.db.query(countQuery, queryParams);
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
-    // Fetch paginated data
     const dataQuery = `
         SELECT ${dataQueryFields}
         ${baseQuery}
@@ -129,32 +126,42 @@ exports.createProgram = async (req, res) => {
   }
 };
 
+/**
+ * UPDATED: This function now wraps the update logic in a transaction
+ * and calls the ProgramUpdateService to handle cascading changes.
+ */
 exports.updateProgram = async (req, res) => {
   const { id } = req.params;
   const { name, type, duration, cities, packages } = req.body;
+  const client = await req.db.connect(); // Use a client for the transaction
 
   try {
-    const programResult = await req.db.query(
+    await client.query("BEGIN"); // Start transaction
+
+    // Get the state of the program BEFORE the update to compare for changes.
+    const oldProgramResult = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [id, req.user.adminId]
     );
 
-    if (programResult.rows.length === 0) {
+    if (oldProgramResult.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({
         message: "Program not found or you are not authorized to access it.",
       });
     }
+    const oldProgram = oldProgramResult.rows[0];
 
-    const program = programResult.rows[0];
-
-    // An admin can edit any program. An employee/manager can only edit their own.
-    if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
+    // Authorization check: Admin can edit any, others can only edit their own.
+    if (req.user.role !== "admin" && oldProgram.employeeId !== req.user.id) {
+      await client.query("ROLLBACK");
       return res
         .status(403)
         .json({ message: "You can only edit programs that you have created." });
     }
 
-    const { rows } = await req.db.query(
+    // Perform the main update on the programs table.
+    const { rows: updatedProgramRows } = await client.query(
       'UPDATE programs SET name = $1, type = $2, duration = $3, cities = $4, packages = $5, "updatedAt" = NOW() WHERE id = $6 RETURNING *',
       [
         name,
@@ -165,13 +172,27 @@ exports.updateProgram = async (req, res) => {
         id,
       ]
     );
-    res.json(rows[0]);
+    const updatedProgram = updatedProgramRows[0];
+
+    // Call the new service to handle cascading updates for renames.
+    await ProgramUpdateService.handleCascadingUpdates(
+      client,
+      oldProgram,
+      updatedProgram
+    );
+
+    await client.query("COMMIT"); // Commit the transaction if all updates succeed.
+    res.json(updatedProgram);
   } catch (error) {
+    await client.query("ROLLBACK"); // Rollback on any error.
     console.error("Update Program Error:", error);
     res.status(400).json({ message: error.message });
+  } finally {
+    client.release(); // Release the client back to the pool.
   }
 };
 
+// The deleteProgram function remains unchanged...
 exports.deleteProgram = async (req, res) => {
   const { id } = req.params;
   const client = await req.db.connect(); // Use a client for transaction
