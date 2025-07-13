@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, Hotel, Users } from "lucide-react";
+import type { Package } from "../../context/models";
 
 // Helper function to get number of guests based on room type
 function getGuestsForType(type: string): number {
@@ -20,7 +21,18 @@ function getGuestsForType(type: string): number {
 }
 
 // Sub-component for managing hotels within a package
-const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
+const PackageHotels = ({
+  packageIndex,
+  handleHotelNameChange,
+}: {
+  packageIndex: number;
+  handleHotelNameChange: (
+    city: string,
+    hotelIndex: number,
+    oldName: string,
+    newName: string
+  ) => void;
+}) => {
   const { t } = useTranslation();
   const { watch } = useFormContext();
   const cities = watch("cities");
@@ -38,6 +50,7 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
               key={city.name}
               packageIndex={packageIndex}
               city={city}
+              handleHotelNameChange={handleHotelNameChange}
             />
           ))}
       </div>
@@ -48,9 +61,16 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
 const HotelManager = ({
   packageIndex,
   city,
+  handleHotelNameChange,
 }: {
   packageIndex: number;
   city: any;
+  handleHotelNameChange: (
+    city: string,
+    hotelIndex: number,
+    oldName: string,
+    newName: string
+  ) => void;
 }) => {
   const { t } = useTranslation();
   const { control, register } = useFormContext();
@@ -79,24 +99,38 @@ const HotelManager = ({
         </button>
       </div>
       <div className="space-y-2">
-        {fields.map((field, hotelIndex) => (
-          <div key={field.id} className="flex items-center space-x-2">
-            <input
-              {...register(
-                `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`
-              )}
-              placeholder={t("hotelNamePlaceholder") as string}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
-            />
-            <button
-              type="button"
-              onClick={() => remove(hotelIndex)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-            >
-              <Trash2 className="w-[14px] h-[14px]" />
-            </button>
-          </div>
-        ))}
+        {fields.map((field, hotelIndex) => {
+          const prevNameRef = React.useRef<string>("");
+          return (
+            <div key={field.id} className="flex items-center space-x-2">
+              <input
+                {...register(
+                  `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`
+                )}
+                onFocus={(e) => {
+                  prevNameRef.current = e.target.value;
+                }}
+                onBlur={(e) => {
+                  handleHotelNameChange(
+                    city.name,
+                    hotelIndex,
+                    prevNameRef.current,
+                    e.target.value
+                  );
+                }}
+                placeholder={t("hotelNamePlaceholder") as string}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              />
+              <button
+                type="button"
+                onClick={() => remove(hotelIndex)}
+                className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+              >
+                <Trash2 className="w-[14px] h-[14px]" />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -105,7 +139,7 @@ const HotelManager = ({
 // Main PackageManager Component
 export default function PackageManager() {
   const { t } = useTranslation();
-  const { control, register, watch } = useFormContext();
+  const { control, register, watch, setValue, getValues } = useFormContext();
 
   const {
     fields: packageFields,
@@ -117,6 +151,35 @@ export default function PackageManager() {
   });
 
   const cities = watch("cities");
+
+  const handleHotelNameChange = (
+    packageIndex: number,
+    city: string,
+    hotelIndex: number,
+    oldName: string,
+    newName: string
+  ) => {
+    if (!oldName || oldName === newName) {
+      return;
+    }
+
+    const packages = getValues("packages");
+    const updatedPackages = JSON.parse(JSON.stringify(packages));
+    const prices = updatedPackages[packageIndex].prices || [];
+
+    updatedPackages[packageIndex].prices = prices.map((price: any) => {
+      if (price.hotelCombination.includes(oldName)) {
+        const updatedCombination = price.hotelCombination
+          .split("_")
+          .map((part: string) => (part === oldName ? newName : part))
+          .join("_");
+        return { ...price, hotelCombination: updatedCombination };
+      }
+      return price;
+    });
+
+    setValue("packages", updatedPackages, { shouldDirty: true });
+  };
 
   const generateAllHotelOptions = (packageIndex: number) => {
     const pkg = watch(`packages.${packageIndex}`);
@@ -184,7 +247,6 @@ export default function PackageManager() {
               key={pkg.id}
               className="border border-gray-200 rounded-xl p-6 bg-gray-50"
             >
-              {/* Package Header */}
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-semibold text-gray-900">
                   {t("packageLabel")} {packageIndex + 1}
@@ -197,7 +259,6 @@ export default function PackageManager() {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              {/* Package Name */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("packageName")}
@@ -210,10 +271,19 @@ export default function PackageManager() {
                 />
               </div>
 
-              {/* Hotels */}
-              <PackageHotels packageIndex={packageIndex} />
+              <PackageHotels
+                packageIndex={packageIndex}
+                handleHotelNameChange={(city, hotelIndex, oldName, newName) =>
+                  handleHotelNameChange(
+                    packageIndex,
+                    city,
+                    hotelIndex,
+                    oldName,
+                    newName
+                  )
+                }
+              />
 
-              {/* Pricing Structures */}
               <PriceStructureManager
                 packageIndex={packageIndex}
                 generateAllHotelOptions={generateAllHotelOptions}
@@ -254,6 +324,10 @@ const PriceStructureManager = ({
 
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
+  const existingCombinations = new Set(
+    priceFields.map((field: any) => field.hotelCombination)
+  );
+
   return (
     <div>
       <h5 className="text-sm font-medium text-gray-700 mb-3">
@@ -261,24 +335,32 @@ const PriceStructureManager = ({
       </h5>
       <div className="mb-4">
         <div className="flex flex-wrap gap-2">
-          {generateAllHotelOptions(packageIndex).map((hotelOption) => (
-            <button
-              key={hotelOption}
-              type="button"
-              onClick={() =>
-                append({
-                  hotelCombination: hotelOption,
-                  roomTypes: availableRoomTypes.map((type) => ({
-                    type,
-                    guests: getGuestsForType(type),
-                  })),
-                })
-              }
-              className="px-3 py-1 text-xs rounded-lg border bg-gray-100 text-gray-700 border-gray-200 hover:bg-blue-50 hover:text-blue-700"
-            >
-              + {hotelOption.replace(/_/g, " → ")}
-            </button>
-          ))}
+          {generateAllHotelOptions(packageIndex).map((hotelOption) => {
+            const isAlreadyAdded = existingCombinations.has(hotelOption);
+            return (
+              <button
+                key={hotelOption}
+                type="button"
+                onClick={() =>
+                  append({
+                    hotelCombination: hotelOption,
+                    roomTypes: availableRoomTypes.map((type) => ({
+                      type,
+                      guests: getGuestsForType(type),
+                    })),
+                  })
+                }
+                disabled={isAlreadyAdded}
+                className={`px-3 py-1 text-xs rounded-lg border  text-gray-700  transition-colors ${
+                  isAlreadyAdded
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300"
+                    : "bg-gray-100 border-gray-200 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+              >
+                + {hotelOption.replace(/_/g, " → ")}
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="space-y-4">
