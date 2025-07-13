@@ -152,7 +152,7 @@ const getProfitReport = async (req, res) => {
       queryParams.push(programType);
     }
 
-    programProfitsQuery += ` GROUP BY p.id ORDER BY "totalProfit" DESC`;
+    programProfitsQuery += ` GROUP BY p.id ORDER BY p."createdAt" DESC LIMIT 8`;
 
     const programProfitsPromise = req.db.query(
       programProfitsQuery,
@@ -166,7 +166,7 @@ const getProfitReport = async (req, res) => {
                 SUM(b.profit) as profit,
                 COUNT(b.id) as bookings
             FROM bookings b
-            WHERE b."userId" = $1
+            WHERE b."userId" = $1 AND b."createdAt" >= NOW() - INTERVAL '12 months'
             GROUP BY month
             ORDER BY month ASC
         `;

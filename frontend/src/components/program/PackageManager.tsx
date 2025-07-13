@@ -40,7 +40,7 @@ const DebouncedHotelInput = ({
     () => getValues(fieldName) || ""
   );
   // Debounce the local value to trigger updates only after the user stops typing
-  const debouncedValue = useDebounce(localValue, 400);
+  const debouncedValue = useDebounce(localValue, 0);
 
   // Ref to track the previously processed value to avoid redundant updates
   const lastUpdatedValueRef = useRef(getValues(fieldName));
@@ -55,34 +55,39 @@ const DebouncedHotelInput = ({
       setValue(fieldName, newValue, { shouldDirty: true });
 
       // 2. Perform cascading updates on hotelCombination strings
-      if (oldValue) {
-        // Only run combination logic if there was an old value to replace
-        const allPackages = getValues("packages");
-        const prices = allPackages[packageIndex]?.prices || [];
+      const allPackages = getValues("packages");
+      const prices = allPackages[packageIndex]?.prices || [];
 
-        prices.forEach((price: any, priceIndex: number) => {
+      prices.forEach((price: any, priceIndex: number) => {
+        if (
+          price.hotelCombination &&
+          (price.hotelCombination.includes(oldValue) || oldValue === "")
+        ) {
+          const combinationParts = price.hotelCombination.split("_");
+          const cities = getValues("cities").filter((c: any) => c.name.trim());
+          const cityIndexToUpdate = cities.findIndex(
+            (c: any) => c.name === city.name
+          );
+
           if (
-            price.hotelCombination &&
-            price.hotelCombination.includes(oldValue)
+            cityIndexToUpdate !== -1 &&
+            combinationParts[cityIndexToUpdate] === oldValue
           ) {
-            const combinationParts = price.hotelCombination.split("_");
-            const updatedCombination = combinationParts
-              .map((part: string) => (part === oldValue ? newValue : part))
-              .join("_");
+            combinationParts[cityIndexToUpdate] = newValue;
+            const updatedCombination = combinationParts.join("_");
 
-            // Directly update the specific hotelCombination field in the form
             const combinationFieldName = `packages.${packageIndex}.prices.${priceIndex}.hotelCombination`;
             setValue(combinationFieldName, updatedCombination, {
               shouldDirty: true,
             });
           }
-        });
-      }
+        }
+      });
 
       // 3. Update the ref to the new value for the next comparison
       lastUpdatedValueRef.current = newValue;
     }
-  }, [debouncedValue, fieldName, packageIndex, getValues, setValue]);
+  }, [debouncedValue, fieldName, packageIndex, getValues, setValue, city.name]);
 
   return (
     <input
@@ -323,13 +328,12 @@ const PriceStructureManager = ({
     name: `packages.${packageIndex}.prices`,
   });
 
-  const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
+  const currentPrices = watch(`packages.${packageIndex}.prices`, []);
   const hotelOptions = generateAllHotelOptions(packageIndex);
   const existingCombinations = new Set(
-    watch(`packages.${packageIndex}.prices`, []).map(
-      (field: any) => field.hotelCombination
-    )
+    currentPrices.map((field: any) => field.hotelCombination)
   );
+  const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
   return (
     <div>
@@ -367,34 +371,39 @@ const PriceStructureManager = ({
         </div>
       </div>
       <div className="space-y-4">
-        {priceFields.map((price, priceIndex) => (
-          <div
-            key={price.id}
-            className="bg-white p-4 rounded-lg border border-gray-200"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h6 className="text-sm font-medium text-gray-900 flex items-center">
-                <Users
-                  className={`w-4 h-4 ${
-                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                  }`}
-                />
-                {(price as any).hotelCombination.replace(/_/g, " → ")}
-              </h6>
-              <button
-                type="button"
-                onClick={() => remove(priceIndex)}
-                className="p-1 text-red-500 hover:bg-red-50 rounded"
-              >
-                <Trash2 className="w-[16px] h-[16px]" />
-              </button>
+        {priceFields.map((price, priceIndex) => {
+          const currentCombination =
+            currentPrices[priceIndex]?.hotelCombination ||
+            (price as any).hotelCombination;
+          return (
+            <div
+              key={price.id}
+              className="bg-white p-4 rounded-lg border border-gray-200"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h6 className="text-sm font-medium text-gray-900 flex items-center">
+                  <Users
+                    className={`w-4 h-4 ${
+                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                    }`}
+                  />
+                  {currentCombination?.replace(/_/g, " → ") || ""}
+                </h6>
+                <button
+                  type="button"
+                  onClick={() => remove(priceIndex)}
+                  className="p-1 text-red-500 hover:bg-red-50 rounded"
+                >
+                  <Trash2 className="w-[16px] h-[16px]" />
+                </button>
+              </div>
+              <RoomTypeManager
+                packageIndex={packageIndex}
+                priceIndex={priceIndex}
+              />
             </div>
-            <RoomTypeManager
-              packageIndex={packageIndex}
-              priceIndex={priceIndex}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
