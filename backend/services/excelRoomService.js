@@ -49,6 +49,12 @@ exports.generateRoomingListExcel = async (program, roomData) => {
         fgColor: { argb: "FF007BFF" },
       }; // Blue
       hotelHeaderCell.alignment = { vertical: "middle", horizontal: "center" };
+      hotelHeaderCell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
     }
 
     // Process each room type as a separate vertical block
@@ -66,15 +72,26 @@ exports.generateRoomingListExcel = async (program, roomData) => {
       }; // Yellow
       typeHeaderCell.alignment = { vertical: "middle", horizontal: "center" };
       worksheet.mergeCells(2, currentCol, 2, currentCol + 1);
+      worksheet.getCell(2, currentCol).border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+      worksheet.getCell(2, currentCol + 1).border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
 
       // Sub-headers
-      worksheet.getCell(3, currentCol).value = "الغرفة";
-      worksheet.getCell(3, currentCol + 1).value = "الساكن";
+      const roomHeaderCell = worksheet.getCell(3, currentCol);
+      roomHeaderCell.value = "الغرفة";
+      const occupantHeaderCell = worksheet.getCell(3, currentCol + 1);
+      occupantHeaderCell.value = "الساكن";
 
-      [
-        worksheet.getCell(3, currentCol),
-        worksheet.getCell(3, currentCol + 1),
-      ].forEach((cell) => {
+      [roomHeaderCell, occupantHeaderCell].forEach((cell) => {
         cell.font = { bold: true, size: 12 };
         cell.fill = {
           type: "pattern",
@@ -82,16 +99,22 @@ exports.generateRoomingListExcel = async (program, roomData) => {
           fgColor: { argb: "FFD3D3D3" },
         }; // Light Gray
         cell.alignment = { vertical: "middle", horizontal: "center" };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
       });
 
       let currentRow = 4;
       for (const room of roomsForType) {
         const startRow = currentRow;
-        const occupants = room.occupants.filter((o) => o); // Filter out null/empty occupants
-        const numOccupants = occupants.length;
-        const numRowsForRoom = Math.max(1, numOccupants);
+        const capacity = room.capacity || 0;
+        const occupants = room.occupants || [];
+        const numRowsForRoom = Math.max(1, capacity);
 
-        // Write room name and merge cells
+        // Write room name and merge cells based on capacity
         const roomNameCell = worksheet.getCell(startRow, currentCol);
         roomNameCell.value = room.name;
         if (numRowsForRoom > 1) {
@@ -104,30 +127,37 @@ exports.generateRoomingListExcel = async (program, roomData) => {
         }
         roomNameCell.alignment = { vertical: "middle", horizontal: "center" };
 
-        // Write occupants
-        occupants.forEach((occupant, index) => {
-          worksheet.getCell(startRow + index, currentCol + 1).value =
-            occupant.clientName;
-        });
+        // Write occupants and apply borders to all cells in the room block
+        for (let i = 0; i < numRowsForRoom; i++) {
+          // Apply border to the room name cell part
+          worksheet.getCell(startRow + i, currentCol).border = {
+            top: { style: "thin" },
+            left: { style: "thin" },
+            bottom: { style: "thin" },
+            right: { style: "thin" },
+          };
 
-        currentRow += numRowsForRoom;
-      }
-      currentCol += 2; // Move to the next block for the next type
-    }
-
-    // Apply borders to all cells with content
-    worksheet.eachRow({ includeEmpty: true }, (row) => {
-      row.eachCell({ includeEmpty: true }, (cell) => {
-        if (cell.value) {
-          cell.border = {
+          // Get or create the occupant cell
+          const occupantCell = worksheet.getCell(startRow + i, currentCol + 1);
+          const occupant = occupants[i];
+          if (occupant && occupant.clientName) {
+            occupantCell.value = occupant.clientName;
+          } else {
+            occupantCell.value = null; // Ensure it's empty
+          }
+          // Apply border to the occupant cell, even if empty
+          occupantCell.border = {
             top: { style: "thin" },
             left: { style: "thin" },
             bottom: { style: "thin" },
             right: { style: "thin" },
           };
         }
-      });
-    });
+
+        currentRow += numRowsForRoom;
+      }
+      currentCol += 2; // Move to the next block for the next type
+    }
 
     // Auto-fit columns based on content
     worksheet.columns.forEach((column) => {
