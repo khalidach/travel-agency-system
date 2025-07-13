@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, Hotel, Users } from "lucide-react";
 import type { Package } from "../../context/models";
+import { useDebounce } from "../../hooks/useDebounce";
 
 // Helper function to get number of guests based on room type
 function getGuestsForType(type: string): number {
@@ -20,19 +21,81 @@ function getGuestsForType(type: string): number {
   }
 }
 
-// Sub-component for managing hotels within a package
-const PackageHotels = ({
+// Component to handle debounced updates for hotel names without losing focus
+const DebouncedHotelInput = ({
   packageIndex,
-  handleHotelNameChange,
+  city,
+  hotelIndex,
 }: {
   packageIndex: number;
-  handleHotelNameChange: (
-    city: string,
-    hotelIndex: number,
-    oldName: string,
-    newName: string
-  ) => void;
+  city: any;
+  hotelIndex: number;
 }) => {
+  const { t } = useTranslation();
+  const { getValues, setValue } = useFormContext();
+  const fieldName = `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`;
+
+  // Initialize local state from the form's current value to populate the input
+  const [localValue, setLocalValue] = useState(
+    () => getValues(fieldName) || ""
+  );
+  // Debounce the local value to trigger updates only after the user stops typing
+  const debouncedValue = useDebounce(localValue, 400);
+
+  // Ref to track the previously processed value to avoid redundant updates
+  const lastUpdatedValueRef = useRef(getValues(fieldName));
+
+  useEffect(() => {
+    const oldValue = lastUpdatedValueRef.current;
+    const newValue = debouncedValue;
+
+    // Run the update logic only when the debounced value has actually changed
+    if (newValue !== undefined && newValue !== oldValue) {
+      // 1. Update the form's value for this specific hotel input
+      setValue(fieldName, newValue, { shouldDirty: true });
+
+      // 2. Perform cascading updates on hotelCombination strings
+      if (oldValue) {
+        // Only run combination logic if there was an old value to replace
+        const allPackages = getValues("packages");
+        const prices = allPackages[packageIndex]?.prices || [];
+
+        prices.forEach((price: any, priceIndex: number) => {
+          if (
+            price.hotelCombination &&
+            price.hotelCombination.includes(oldValue)
+          ) {
+            const combinationParts = price.hotelCombination.split("_");
+            const updatedCombination = combinationParts
+              .map((part: string) => (part === oldValue ? newValue : part))
+              .join("_");
+
+            // Directly update the specific hotelCombination field in the form
+            const combinationFieldName = `packages.${packageIndex}.prices.${priceIndex}.hotelCombination`;
+            setValue(combinationFieldName, updatedCombination, {
+              shouldDirty: true,
+            });
+          }
+        });
+      }
+
+      // 3. Update the ref to the new value for the next comparison
+      lastUpdatedValueRef.current = newValue;
+    }
+  }, [debouncedValue, fieldName, packageIndex, getValues, setValue]);
+
+  return (
+    <input
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      placeholder={t("hotelNamePlaceholder") as string}
+      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+    />
+  );
+};
+
+// Sub-component for managing hotels within a package
+const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
   const { t } = useTranslation();
   const { watch } = useFormContext();
   const cities = watch("cities");
@@ -50,7 +113,6 @@ const PackageHotels = ({
               key={city.name}
               packageIndex={packageIndex}
               city={city}
-              handleHotelNameChange={handleHotelNameChange}
             />
           ))}
       </div>
@@ -61,19 +123,12 @@ const PackageHotels = ({
 const HotelManager = ({
   packageIndex,
   city,
-  handleHotelNameChange,
 }: {
   packageIndex: number;
   city: any;
-  handleHotelNameChange: (
-    city: string,
-    hotelIndex: number,
-    oldName: string,
-    newName: string
-  ) => void;
 }) => {
   const { t } = useTranslation();
-  const { control, register } = useFormContext();
+  const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: `packages.${packageIndex}.hotels.${city.name}`,
@@ -100,26 +155,12 @@ const HotelManager = ({
       </div>
       <div className="space-y-2">
         {fields.map((field, hotelIndex) => {
-          const prevNameRef = React.useRef<string>("");
           return (
             <div key={field.id} className="flex items-center space-x-2">
-              <input
-                {...register(
-                  `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`
-                )}
-                onFocus={(e) => {
-                  prevNameRef.current = e.target.value;
-                }}
-                onBlur={(e) => {
-                  handleHotelNameChange(
-                    city.name,
-                    hotelIndex,
-                    prevNameRef.current,
-                    e.target.value
-                  );
-                }}
-                placeholder={t("hotelNamePlaceholder") as string}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+              <DebouncedHotelInput
+                packageIndex={packageIndex}
+                city={city}
+                hotelIndex={hotelIndex}
               />
               <button
                 type="button"
@@ -139,7 +180,7 @@ const HotelManager = ({
 // Main PackageManager Component
 export default function PackageManager() {
   const { t } = useTranslation();
-  const { control, register, watch, setValue, getValues } = useFormContext();
+  const { control, register, watch } = useFormContext();
 
   const {
     fields: packageFields,
@@ -151,35 +192,6 @@ export default function PackageManager() {
   });
 
   const cities = watch("cities");
-
-  const handleHotelNameChange = (
-    packageIndex: number,
-    city: string,
-    hotelIndex: number,
-    oldName: string,
-    newName: string
-  ) => {
-    if (!oldName || oldName === newName) {
-      return;
-    }
-
-    const packages = getValues("packages");
-    const updatedPackages = JSON.parse(JSON.stringify(packages));
-    const prices = updatedPackages[packageIndex].prices || [];
-
-    updatedPackages[packageIndex].prices = prices.map((price: any) => {
-      if (price.hotelCombination.includes(oldName)) {
-        const updatedCombination = price.hotelCombination
-          .split("_")
-          .map((part: string) => (part === oldName ? newName : part))
-          .join("_");
-        return { ...price, hotelCombination: updatedCombination };
-      }
-      return price;
-    });
-
-    setValue("packages", updatedPackages, { shouldDirty: true });
-  };
 
   const generateAllHotelOptions = (packageIndex: number) => {
     const pkg = watch(`packages.${packageIndex}`);
@@ -271,18 +283,7 @@ export default function PackageManager() {
                 />
               </div>
 
-              <PackageHotels
-                packageIndex={packageIndex}
-                handleHotelNameChange={(city, hotelIndex, oldName, newName) =>
-                  handleHotelNameChange(
-                    packageIndex,
-                    city,
-                    hotelIndex,
-                    oldName,
-                    newName
-                  )
-                }
-              />
+              <PackageHotels packageIndex={packageIndex} />
 
               <PriceStructureManager
                 packageIndex={packageIndex}
@@ -312,7 +313,7 @@ const PriceStructureManager = ({
   generateAllHotelOptions: (idx: number) => string[];
 }) => {
   const { t } = useTranslation();
-  const { control } = useFormContext();
+  const { control, watch } = useFormContext();
   const {
     fields: priceFields,
     append,
@@ -323,9 +324,11 @@ const PriceStructureManager = ({
   });
 
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
-
+  const hotelOptions = generateAllHotelOptions(packageIndex);
   const existingCombinations = new Set(
-    priceFields.map((field: any) => field.hotelCombination)
+    watch(`packages.${packageIndex}.prices`, []).map(
+      (field: any) => field.hotelCombination
+    )
   );
 
   return (
@@ -335,7 +338,7 @@ const PriceStructureManager = ({
       </h5>
       <div className="mb-4">
         <div className="flex flex-wrap gap-2">
-          {generateAllHotelOptions(packageIndex).map((hotelOption) => {
+          {hotelOptions.map((hotelOption) => {
             const isAlreadyAdded = existingCombinations.has(hotelOption);
             return (
               <button
