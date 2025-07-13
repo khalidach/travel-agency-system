@@ -6,13 +6,13 @@ import { Plus, Trash2, Hotel, Users } from "lucide-react";
 // Helper function to get number of guests based on room type
 function getGuestsForType(type: string): number {
   switch (type.toLowerCase()) {
-    case "double":
+    case "ثنائية":
       return 2;
-    case "triple":
+    case "ثلاثية":
       return 3;
-    case "quad":
+    case "رباعية":
       return 4;
-    case "quintuple":
+    case "خماسية":
       return 5;
     default:
       return 1;
@@ -63,7 +63,11 @@ const HotelManager = ({
     <div className="bg-white p-4 rounded-lg border border-gray-200">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-gray-700 flex items-center">
-          <Hotel className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+          <Hotel
+            className={`w-4 h-4 ${
+              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+            }`}
+          />
           {city.name}
         </span>
         <button
@@ -248,7 +252,7 @@ const PriceStructureManager = ({
     name: `packages.${packageIndex}.prices`,
   });
 
-  const availableRoomTypes = ["Double", "Triple", "Quad", "Quintuple"];
+  const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
   return (
     <div>
@@ -285,7 +289,11 @@ const PriceStructureManager = ({
           >
             <div className="flex items-center justify-between mb-3">
               <h6 className="text-sm font-medium text-gray-900 flex items-center">
-                <Users className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`} />
+                <Users
+                  className={`w-4 h-4 ${
+                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                  }`}
+                />
                 {(price as any).hotelCombination.replace(/_/g, " → ")}
               </h6>
               <button

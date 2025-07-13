@@ -100,6 +100,7 @@ async function handleCascadingUpdates(client, oldProgram, newProgram) {
 
   // --- Update Hotel Names ---
   if (hotelRenames.length > 0) {
+    // 1. Update hotel names in the `allHotels` list within program_pricing.
     const { rows: pricings } = await client.query(
       'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
       [programId, userId]
@@ -123,20 +124,28 @@ async function handleCascadingUpdates(client, oldProgram, newProgram) {
       }
     }
 
+    // 2. Update `hotelCombination` strings within the program's own `packages` JSONB.
     let programPackagesModified = false;
     const newProgramPackages = JSON.parse(JSON.stringify(newProgram.packages));
     newProgramPackages.forEach((pkg) => {
       if (pkg.prices) {
         pkg.prices.forEach((price) => {
-          let newCombination = price.hotelCombination;
-          hotelRenames.forEach((rename) => {
-            const regex = new RegExp(`\\b${rename.oldName}\\b`, "g");
-            if (regex.test(newCombination)) {
-              newCombination = newCombination.replace(regex, rename.newName);
-              programPackagesModified = true;
+          let combinationParts = price.hotelCombination.split("_");
+          let combinationModified = false;
+
+          const updatedCombinationParts = combinationParts.map((part) => {
+            const rename = hotelRenames.find((r) => r.oldName === part);
+            if (rename) {
+              combinationModified = true;
+              return rename.newName;
             }
+            return part;
           });
-          price.hotelCombination = newCombination;
+
+          if (combinationModified) {
+            price.hotelCombination = updatedCombinationParts.join("_");
+            programPackagesModified = true;
+          }
         });
       }
     });
@@ -148,6 +157,7 @@ async function handleCascadingUpdates(client, oldProgram, newProgram) {
       ]);
     }
 
+    // 3. Update hotel names in the `selectedHotel` object for each booking.
     const { rows: bookings } = await client.query(
       'SELECT id, "selectedHotel" FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
       [programId, userId]
@@ -174,6 +184,7 @@ async function handleCascadingUpdates(client, oldProgram, newProgram) {
       }
     }
 
+    // 4. Update hotel names in the room_managements table.
     for (const rename of hotelRenames) {
       await client.query(
         'UPDATE room_managements SET "hotelName" = $1 WHERE "hotelName" = $2 AND "programId" = $3 AND "userId" = $4',
