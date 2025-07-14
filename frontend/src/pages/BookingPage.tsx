@@ -234,8 +234,13 @@ export default function BookingPage() {
   const employees = employeesData?.employees ?? [];
 
   const invalidateAllQueries = () => {
+    // Invalidate all queries that depend on booking data
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
     queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+    queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
+    queryClient.invalidateQueries({ queryKey: ["programs"] }); // General programs query
   };
 
   const { mutate: createBooking } = useMutation({
