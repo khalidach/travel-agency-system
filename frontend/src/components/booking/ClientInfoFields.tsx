@@ -1,6 +1,6 @@
 // frontend/src/components/booking/ClientInfoFields.tsx
 import React, { useRef } from "react";
-import { useFormContext, Controller, useWatch } from "react-hook-form";
+import { useFormContext, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 const ClientInfoFields = () => {
@@ -14,24 +14,6 @@ const ClientInfoFields = () => {
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
 
-  const dob_day = useWatch({ control, name: "dob_day" });
-  const dob_month = useWatch({ control, name: "dob_month" });
-  const dob_year = useWatch({ control, name: "dob_year" });
-
-  React.useEffect(() => {
-    const day = dob_day ? String(dob_day).padStart(2, "0") : "";
-    const month = dob_month ? String(dob_month).padStart(2, "0") : "";
-    const year = dob_year || "";
-
-    if (year && (!day || !month)) {
-      setValue("dateOfBirth", `XX/XX/${year}`);
-    } else if (day && month && year) {
-      setValue("dateOfBirth", `${year}-${month}-${day}`);
-    } else {
-      setValue("dateOfBirth", "");
-    }
-  }, [dob_day, dob_month, dob_year, setValue]);
-
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     field: "dob_day" | "dob_month",
@@ -39,9 +21,10 @@ const ClientInfoFields = () => {
     nextFieldRef?: React.RefObject<HTMLInputElement>
   ) => {
     const { value } = e.target;
+    // Allow only numeric input
     const numericValue = value.replace(/[^0-9]/g, "");
     if (numericValue.length <= maxLength) {
-      setValue(field, numericValue);
+      setValue(field, numericValue, { shouldValidate: true });
       if (numericValue.length === maxLength && nextFieldRef?.current) {
         nextFieldRef.current.focus();
       }
@@ -63,7 +46,9 @@ const ClientInfoFields = () => {
               <input
                 {...field}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  errors.clientNameFr ? "border-red-500" : "border-gray-300"
+                }`}
               />
             )}
           />
@@ -85,7 +70,9 @@ const ClientInfoFields = () => {
               <input
                 {...field}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  errors.clientNameAr ? "border-red-500" : "border-gray-300"
+                }`}
                 dir="rtl"
               />
             )}
@@ -135,7 +122,9 @@ const ClientInfoFields = () => {
               <input
                 {...field}
                 type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className={`w-full px-3 py-2 border rounded-lg ${
+                  errors.passportNumber ? "border-red-500" : "border-gray-300"
+                }`}
               />
             )}
           />
@@ -185,7 +174,7 @@ const ClientInfoFields = () => {
                   {...field}
                   onChange={(e) => handleInputChange(e, "dob_day", 2, monthRef)}
                   type="text"
-                  placeholder="DD"
+                  placeholder={t("day") as string}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${
                     errors.dob_day ? "border-red-500" : "border-gray-300"
                   }`}
@@ -207,7 +196,7 @@ const ClientInfoFields = () => {
                     handleInputChange(e, "dob_month", 2, yearRef)
                   }
                   type="text"
-                  placeholder="MM"
+                  placeholder={t("month") as string}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${
                     errors.dob_month ? "border-red-500" : "border-gray-300"
                   }`}
@@ -218,6 +207,7 @@ const ClientInfoFields = () => {
               name="dob_year"
               control={control}
               rules={{
+                required: "Year is required",
                 min: { value: 1900, message: "Invalid year" },
                 max: {
                   value: new Date().getFullYear(),
@@ -230,11 +220,11 @@ const ClientInfoFields = () => {
                   ref={yearRef}
                   type="text"
                   maxLength={4}
-                  placeholder="YYYY"
+                  placeholder={t("year") as string}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, "");
                     if (value.length <= 4) {
-                      setValue("dob_year", value);
+                      setValue("dob_year", value, { shouldValidate: true });
                     }
                   }}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${

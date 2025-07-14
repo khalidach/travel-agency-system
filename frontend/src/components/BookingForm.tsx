@@ -1,11 +1,6 @@
 // frontend/src/components/BookingForm.tsx
 import React, { useEffect, useMemo, useCallback, useState } from "react";
-import {
-  useForm,
-  Controller,
-  FormProvider,
-  FieldErrors,
-} from "react-hook-form";
+import { useForm, FormProvider, FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -31,6 +26,10 @@ export type BookingFormData = Omit<
   "id" | "isFullyPaid" | "remainingBalance" | "advancePayments" | "createdAt"
 > & {
   createdAt: string;
+  // Add optional fields for the three-part date of birth
+  dob_day?: number;
+  dob_month?: number;
+  dob_year?: number;
 };
 
 interface BookingFormProps {
@@ -38,7 +37,7 @@ interface BookingFormProps {
   programs: Program[];
   onSave: (bookingData: BookingFormData, initialPayments: Payment[]) => void;
   onCancel: () => void;
-  programId?: string; // Add programId to props
+  programId?: string;
 }
 
 interface FormState {
@@ -55,19 +54,14 @@ export default function BookingForm({
   programs,
   onSave,
   onCancel,
-  programId, // Receive programId to props
+  programId,
 }: BookingFormProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
-  const methods = useForm<
-    BookingFormData & {
-      dob_day?: number;
-      dob_month?: number;
-      dob_year?: number;
-    }
-  >({
+  const methods = useForm<BookingFormData>({
+    mode: "onChange",
     defaultValues: {
       clientNameAr: "",
       clientNameFr: "",
@@ -88,7 +82,13 @@ export default function BookingForm({
     },
   });
 
-  const { handleSubmit, watch, setValue, reset } = methods;
+  const {
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { isValid },
+  } = methods;
 
   const [formState, setFormState] = React.useState<FormState>({
     search: "",
@@ -102,26 +102,47 @@ export default function BookingForm({
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   const watchedValues = watch();
-  const { selectedHotel, sellingPrice, basePrice, personType, tripId } =
-    watchedValues;
+  const {
+    selectedHotel,
+    sellingPrice,
+    basePrice,
+    personType,
+    tripId,
+    dob_day,
+    dob_month,
+    dob_year,
+  } = watchedValues;
+
+  // Re-introduce the logic to combine the three DOB inputs into one string
+  useEffect(() => {
+    const day = dob_day ? String(dob_day).padStart(2, "0") : "";
+    const month = dob_month ? String(dob_month).padStart(2, "0") : "";
+    const year = dob_year || "";
+
+    if (year && (!day || !month)) {
+      setValue("dateOfBirth", `XX/XX/${year}`);
+    } else if (day && month && year) {
+      setValue("dateOfBirth", `${year}-${month}-${day}`);
+    } else {
+      setValue("dateOfBirth", "");
+    }
+  }, [dob_day, dob_month, dob_year, setValue]);
 
   const hasPackages = !!(
     formState.selectedProgram?.packages &&
     formState.selectedProgram.packages.length > 0
   );
 
-  // Debounce the search term
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(formState.search);
-    }, 300); // 300ms delay before searching
+    }, 300);
 
     return () => {
       clearTimeout(handler);
     };
   }, [formState.search]);
 
-  // Fetch search results based on the debounced search term
   const { data: searchResults } = useQuery<Booking[]>({
     queryKey: ["bookingSearch", tripId, debouncedSearchTerm],
     queryFn: () => api.searchBookingsInProgram(tripId!, debouncedSearchTerm),
@@ -157,7 +178,6 @@ export default function BookingForm({
 
   useEffect(() => {
     if (booking) {
-      // Logic for editing an existing booking
       const program = programs.find(
         (p) => p.id.toString() === (booking.tripId || "").toString()
       );
@@ -173,16 +193,17 @@ export default function BookingForm({
         }));
       }
 
-      let dob_day, dob_month, dob_year;
+      // Logic to parse dateOfBirth back into day, month, year
+      let day, month, year;
       if (booking.dateOfBirth) {
-        if (booking.dateOfBirth.startsWith("XX/XX/")) {
-          dob_year = parseInt(booking.dateOfBirth.split("/")[2], 10);
+        if (booking.dateOfBirth.includes("XX/XX/")) {
+          year = parseInt(booking.dateOfBirth.split("/")[2], 10);
         } else {
           try {
             const date = new Date(booking.dateOfBirth);
-            dob_day = date.getDate();
-            dob_month = date.getMonth() + 1;
-            dob_year = date.getFullYear();
+            day = date.getDate();
+            month = date.getMonth() + 1;
+            year = date.getFullYear();
           } catch (e) {
             // Invalid date format
           }
@@ -190,22 +211,13 @@ export default function BookingForm({
       }
 
       reset({
-        clientNameAr: booking.clientNameAr,
-        clientNameFr: booking.clientNameFr,
-        personType: booking.personType,
-        phoneNumber: booking.phoneNumber,
-        passportNumber: booking.passportNumber,
-        dateOfBirth: booking.dateOfBirth,
-        dob_day,
-        dob_month,
-        dob_year,
+        ...booking,
+        dob_day: day,
+        dob_month: month,
+        dob_year: year,
         passportExpirationDate: booking.passportExpirationDate
           ? new Date(booking.passportExpirationDate).toISOString().split("T")[0]
           : "",
-        gender: booking.gender || "male",
-        tripId: booking.tripId,
-        packageId: booking.packageId,
-        selectedHotel: booking.selectedHotel,
         sellingPrice: Number(booking.sellingPrice),
         basePrice: Number(booking.basePrice),
         profit: Number(booking.sellingPrice) - Number(booking.basePrice),
@@ -213,7 +225,6 @@ export default function BookingForm({
         relatedPersons: booking.relatedPersons || [],
       });
     } else if (programId) {
-      // For a new booking on a specific program page, pre-select it
       handleProgramChange(programId);
     }
   }, [booking, programs, reset, programId, handleProgramChange]);
@@ -291,7 +302,7 @@ export default function BookingForm({
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
     setValue,
-    programPricing, // Add programPricing as a dependency
+    programPricing,
   ]);
 
   useEffect(() => {
@@ -330,26 +341,11 @@ export default function BookingForm({
     if (errors.dob_day || errors.dob_month || errors.dob_year) {
       toast.error("Invalid date of birth.");
     }
+    console.log("Form Errors:", errors);
+    toast.error("Please correct the errors before saving.");
   };
 
   const onSubmit = (data: any) => {
-    const { dob_day, dob_month, dob_year } = data;
-
-    if (dob_day && dob_month && dob_year) {
-      const day = parseInt(dob_day, 10);
-      const month = parseInt(dob_month, 10);
-      const year = parseInt(dob_year, 10);
-      const date = new Date(year, month - 1, day);
-      if (
-        date.getFullYear() !== year ||
-        date.getMonth() + 1 !== month ||
-        date.getDate() !== day
-      ) {
-        toast.error("Invalid date of birth.");
-        return;
-      }
-    }
-
     const hasCitiesWithNights = (formState.selectedProgram?.cities || []).some(
       (c) => c.nights > 0
     );
@@ -550,7 +546,8 @@ export default function BookingForm({
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            disabled={!isValid}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {booking ? t("update") : t("save")}
           </button>

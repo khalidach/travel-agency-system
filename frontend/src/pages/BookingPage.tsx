@@ -1,9 +1,9 @@
 // frontend/src/pages/BookingPage.tsx
-import React, { useMemo, useEffect, useReducer, useState } from "react";
+import React, { useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Calendar, Plus, File, List } from "lucide-react"; // Import File and List icons
+import { Calendar, Plus, File, List } from "lucide-react";
 
 // Components and Hooks
 import Modal from "../components/Modal";
@@ -19,6 +19,7 @@ import BookingPageHeader from "../components/booking/BookingPageHeader";
 import PaymentManagementModal from "../components/booking/PaymentManagementModal";
 import PaginationControls from "../components/booking/PaginationControls";
 import { useDebounce } from "../hooks/useDebounce";
+import { useBookingStore } from "../store/bookingStore"; // Import the new store
 
 // Types and API
 import type {
@@ -32,91 +33,12 @@ import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
 
-// State and Actions for useReducer
-interface BookingPageState {
-  isBookingModalOpen: boolean;
-  editingBooking: Booking | null;
-  selectedBookingForPayment: Booking | null;
-  bookingToDelete: number | null;
-  isExporting: boolean;
-  importFile: File | null;
-  currentPage: number;
-  selectedBookingIds: number[];
-}
-
-type BookingPageAction =
-  | { type: "OPEN_BOOKING_MODAL"; payload?: Booking | null }
-  | { type: "CLOSE_BOOKING_MODAL" }
-  | { type: "SET_SELECTED_FOR_PAYMENT"; payload: Booking | null }
-  | { type: "SET_BOOKING_TO_DELETE"; payload: number | null }
-  | { type: "SET_IS_EXPORTING"; payload: boolean }
-  | { type: "SET_IMPORT_FILE"; payload: File | null }
-  | { type: "SET_CURRENT_PAGE"; payload: number }
-  | { type: "SET_SELECTED_IDS"; payload: number[] }
-  | { type: "TOGGLE_ID_SELECTION"; payload: number }
-  | { type: "CLEAR_SELECTION" };
-
-const initialState: BookingPageState = {
-  isBookingModalOpen: false,
-  editingBooking: null,
-  selectedBookingForPayment: null,
-  bookingToDelete: null,
-  isExporting: false,
-  importFile: null,
-  currentPage: 1,
-  selectedBookingIds: [],
-};
-
-function bookingPageReducer(
-  state: BookingPageState,
-  action: BookingPageAction
-): BookingPageState {
-  switch (action.type) {
-    case "OPEN_BOOKING_MODAL":
-      return {
-        ...state,
-        isBookingModalOpen: true,
-        editingBooking: action.payload || null,
-      };
-    case "CLOSE_BOOKING_MODAL":
-      return { ...state, isBookingModalOpen: false, editingBooking: null };
-    case "SET_SELECTED_FOR_PAYMENT":
-      return { ...state, selectedBookingForPayment: action.payload };
-    case "SET_BOOKING_TO_DELETE":
-      return { ...state, bookingToDelete: action.payload };
-    case "SET_IS_EXPORTING":
-      return { ...state, isExporting: action.payload };
-    case "SET_IMPORT_FILE":
-      return { ...state, importFile: action.payload };
-    case "SET_CURRENT_PAGE":
-      return { ...state, currentPage: action.payload };
-    case "SET_SELECTED_IDS":
-      return { ...state, selectedBookingIds: action.payload };
-    case "TOGGLE_ID_SELECTION": {
-      const newSelectedIds = state.selectedBookingIds.includes(action.payload)
-        ? state.selectedBookingIds.filter((id) => id !== action.payload)
-        : [...state.selectedBookingIds, action.payload];
-      return {
-        ...state,
-        selectedBookingIds: newSelectedIds,
-      };
-    }
-    case "CLEAR_SELECTION":
-      return {
-        ...state,
-        selectedBookingIds: [],
-      };
-    default:
-      return state;
-  }
-}
-
-type FilterFormData = {
+interface FilterFormData {
   searchTerm: string;
   sortOrder: string;
   statusFilter: string;
   employeeFilter: string;
-};
+}
 
 interface BookingResponse {
   data: Booking[];
@@ -138,7 +60,7 @@ export default function BookingPage() {
   const userId = authState.user?.id;
   const user = authState.user;
 
-  const [state, dispatch] = useReducer(bookingPageReducer, initialState);
+  // Use the Zustand store for state management
   const {
     isBookingModalOpen,
     editingBooking,
@@ -148,10 +70,22 @@ export default function BookingPage() {
     importFile,
     currentPage,
     selectedBookingIds,
-  } = state;
-
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [isSelectAllAcrossPages, setIsSelectAllAcrossPages] = useState(false);
+    isSelectAllAcrossPages,
+    isExportModalOpen,
+    openBookingModal,
+    closeBookingModal,
+    setSelectedForPayment,
+    setBookingToDelete,
+    setIsExporting,
+    setImportFile,
+    setCurrentPage,
+    setSelectedBookingIds,
+    toggleIdSelection,
+    clearSelection,
+    setIsSelectAllAcrossPages,
+    openExportModal,
+    closeExportModal,
+  } = useBookingStore();
 
   const bookingsPerPage = 10;
 
@@ -182,10 +116,16 @@ export default function BookingPage() {
   }, [user]);
 
   useEffect(() => {
-    dispatch({ type: "SET_CURRENT_PAGE", payload: 1 });
-    dispatch({ type: "CLEAR_SELECTION" });
-    setIsSelectAllAcrossPages(false);
-  }, [debouncedSearchTerm, sortOrder, statusFilter, employeeFilter]);
+    setCurrentPage(1);
+    clearSelection();
+  }, [
+    debouncedSearchTerm,
+    sortOrder,
+    statusFilter,
+    employeeFilter,
+    setCurrentPage,
+    clearSelection,
+  ]);
 
   const { data: bookingResponse, isLoading: isLoadingBookings } =
     useQuery<BookingResponse>({
@@ -234,13 +174,12 @@ export default function BookingPage() {
   const employees = employeesData?.employees ?? [];
 
   const invalidateAllQueries = () => {
-    // Invalidate all queries that depend on booking data
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
     queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
     queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
     queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
-    queryClient.invalidateQueries({ queryKey: ["programs"] }); // General programs query
+    queryClient.invalidateQueries({ queryKey: ["programs"] });
   };
 
   const { mutate: createBooking } = useMutation({
@@ -255,7 +194,7 @@ export default function BookingPage() {
     onSuccess: () => {
       invalidateAllQueries();
       toast.success("Booking created!");
-      dispatch({ type: "CLOSE_BOOKING_MODAL" });
+      closeBookingModal();
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to create booking."),
@@ -274,7 +213,7 @@ export default function BookingPage() {
     onSuccess: () => {
       invalidateAllQueries();
       toast.success("Booking updated!");
-      dispatch({ type: "CLOSE_BOOKING_MODAL" });
+      closeBookingModal();
     },
     onError: (error: Error) =>
       toast.error(error.message || "Failed to update booking."),
@@ -298,7 +237,7 @@ export default function BookingPage() {
     onSuccess: (result) => {
       invalidateAllQueries();
       toast.success(result.message || "Bookings deleted successfully!");
-      dispatch({ type: "CLEAR_SELECTION" });
+      clearSelection();
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to delete bookings.");
@@ -312,10 +251,7 @@ export default function BookingPage() {
     }) => api.addPayment(data.bookingId, data.payment),
     onSuccess: (updatedBooking) => {
       invalidateAllQueries();
-      dispatch({
-        type: "SET_SELECTED_FOR_PAYMENT",
-        payload: updatedBooking,
-      });
+      setSelectedForPayment(updatedBooking);
       toast.success("Payment added!");
     },
     onError: (error: Error) =>
@@ -330,10 +266,7 @@ export default function BookingPage() {
     }) => api.updatePayment(data.bookingId, data.paymentId, data.payment),
     onSuccess: (updatedBooking) => {
       invalidateAllQueries();
-      dispatch({
-        type: "SET_SELECTED_FOR_PAYMENT",
-        payload: updatedBooking,
-      });
+      setSelectedForPayment(updatedBooking);
       toast.success("Payment updated!");
     },
     onError: (error: Error) =>
@@ -345,10 +278,7 @@ export default function BookingPage() {
       api.deletePayment(data.bookingId, data.paymentId),
     onSuccess: (updatedBooking) => {
       invalidateAllQueries();
-      dispatch({
-        type: "SET_SELECTED_FOR_PAYMENT",
-        payload: updatedBooking,
-      });
+      setSelectedForPayment(updatedBooking);
       toast.success("Payment deleted!");
     },
     onError: (error: Error) =>
@@ -362,7 +292,7 @@ export default function BookingPage() {
       toast.success(result.message);
     },
     onError: (error: Error) => toast.error(error.message || "Import failed."),
-    onSettled: () => dispatch({ type: "SET_IMPORT_FILE", payload: null }),
+    onSettled: () => setImportFile(null),
   });
 
   const paginationRange = usePagination({
@@ -413,8 +343,8 @@ export default function BookingPage() {
 
   const handleNormalExport = async () => {
     if (!programId || isExporting) return;
-    dispatch({ type: "SET_IS_EXPORTING", payload: true });
-    setIsExportModalOpen(false);
+    setIsExporting(true);
+    closeExportModal();
     toast.loading("Exporting Normal List...");
     try {
       const blob = await api.exportBookingsToExcel(programId);
@@ -434,14 +364,14 @@ export default function BookingPage() {
       toast.dismiss();
       toast.error((error as Error).message || "Failed to export.");
     } finally {
-      dispatch({ type: "SET_IS_EXPORTING", payload: false });
+      setIsExporting(false);
     }
   };
 
   const handleFlightListExport = async () => {
     if (!programId || isExporting) return;
-    dispatch({ type: "SET_IS_EXPORTING", payload: true });
-    setIsExportModalOpen(false);
+    setIsExporting(true);
+    closeExportModal();
     toast.loading("Exporting Flight List...");
     try {
       const blob = await api.exportFlightListToExcel(programId);
@@ -461,13 +391,13 @@ export default function BookingPage() {
       toast.dismiss();
       toast.error((error as Error).message || "Failed to export.");
     } finally {
-      dispatch({ type: "SET_IS_EXPORTING", payload: false });
+      setIsExporting(false);
     }
   };
 
   const handleExport = () => {
     if (hasFlightListExportAccess) {
-      setIsExportModalOpen(true);
+      openExportModal();
     } else {
       handleNormalExport();
     }
@@ -498,7 +428,7 @@ export default function BookingPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      dispatch({ type: "SET_IMPORT_FILE", payload: e.target.files[0] });
+      setImportFile(e.target.files[0]);
     }
   };
 
@@ -527,8 +457,7 @@ export default function BookingPage() {
   const isHeaderCheckboxChecked = isPageSelected || isSelectAllAcrossPages;
 
   const handleClearAllSelection = () => {
-    dispatch({ type: "CLEAR_SELECTION" });
-    setIsSelectAllAcrossPages(false);
+    clearSelection();
   };
 
   const handleSelectAllMatching = async () => {
@@ -552,7 +481,7 @@ export default function BookingPage() {
       });
 
       if (data && data.ids) {
-        dispatch({ type: "SET_SELECTED_IDS", payload: data.ids });
+        setSelectedBookingIds(data.ids);
         setIsSelectAllAcrossPages(true);
       }
     } catch (error) {
@@ -568,10 +497,7 @@ export default function BookingPage() {
         return;
       }
     }
-    dispatch({ type: "TOGGLE_ID_SELECTION", payload: id });
-    if (isSelectAllAcrossPages) {
-      setIsSelectAllAcrossPages(false);
-    }
+    toggleIdSelection(id);
   };
 
   const handleSelectAllToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -584,14 +510,14 @@ export default function BookingPage() {
       const newSelectedIds = [
         ...new Set([...selectedBookingIds, ...selectableBookingIdsOnPage]),
       ];
-      dispatch({ type: "SET_SELECTED_IDS", payload: newSelectedIds });
+      setSelectedBookingIds(newSelectedIds);
     } else {
       handleClearAllSelection();
     }
   };
 
   const handleDeleteSelected = () => {
-    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: -999 });
+    setBookingToDelete(-999);
   };
 
   const confirmDeleteAction = () => {
@@ -609,7 +535,7 @@ export default function BookingPage() {
     } else if (bookingToDelete) {
       deleteBooking(bookingToDelete);
     }
-    dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null });
+    setBookingToDelete(null);
     setIsSelectAllAcrossPages(false);
   };
 
@@ -628,7 +554,7 @@ export default function BookingPage() {
     <div className="space-y-6">
       <BookingPageHeader
         program={program}
-        onAddBooking={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
+        onAddBooking={() => openBookingModal()}
         onExportTemplate={handleExportTemplate}
         onFileSelect={handleFileSelect}
         onImport={handleImport}
@@ -702,24 +628,16 @@ export default function BookingPage() {
             onSelectionChange={handleSelectionChange}
             onSelectAllToggle={handleSelectAllToggle}
             isSelectAllOnPage={isHeaderCheckboxChecked}
-            onEditBooking={(booking) =>
-              dispatch({ type: "OPEN_BOOKING_MODAL", payload: booking })
-            }
-            onDeleteBooking={(id) =>
-              dispatch({ type: "SET_BOOKING_TO_DELETE", payload: id })
-            }
-            onManagePayments={(booking) =>
-              dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: booking })
-            }
+            onEditBooking={(booking) => openBookingModal(booking)}
+            onDeleteBooking={(id) => setBookingToDelete(id)}
+            onManagePayments={(booking) => setSelectedForPayment(booking)}
           />
 
           {pagination && pagination.totalPages > 1 && (
             <PaginationControls
               currentPage={currentPage}
               totalPages={pagination.totalPages}
-              onPageChange={(page) =>
-                dispatch({ type: "SET_CURRENT_PAGE", payload: page })
-              }
+              onPageChange={(page) => setCurrentPage(page)}
               paginationRange={paginationRange}
             />
           )}
@@ -734,7 +652,7 @@ export default function BookingPage() {
               </h3>
               <p className="text-gray-500 mb-6">{t("noBookingsLead")}</p>
               <button
-                onClick={() => dispatch({ type: "OPEN_BOOKING_MODAL" })}
+                onClick={() => openBookingModal()}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
               >
                 <Plus
@@ -751,7 +669,7 @@ export default function BookingPage() {
 
       <Modal
         isOpen={isBookingModalOpen}
-        onClose={() => dispatch({ type: "CLOSE_BOOKING_MODAL" })}
+        onClose={() => closeBookingModal()}
         title={editingBooking ? t("editBooking") : t("addBooking")}
         size="xl"
       >
@@ -759,7 +677,7 @@ export default function BookingPage() {
           booking={editingBooking}
           programs={programs}
           onSave={handleSaveBooking}
-          onCancel={() => dispatch({ type: "CLOSE_BOOKING_MODAL" })}
+          onCancel={() => closeBookingModal()}
           programId={programId}
         />
       </Modal>
@@ -767,9 +685,7 @@ export default function BookingPage() {
       <PaymentManagementModal
         booking={selectedBookingForPayment}
         isOpen={!!selectedBookingForPayment}
-        onClose={() =>
-          dispatch({ type: "SET_SELECTED_FOR_PAYMENT", payload: null })
-        }
+        onClose={() => setSelectedForPayment(null)}
         onSavePayment={handleSavePayment}
         onUpdatePayment={handleUpdatePayment}
         onDeletePayment={handleDeletePayment}
@@ -777,9 +693,7 @@ export default function BookingPage() {
 
       <ConfirmationModal
         isOpen={!!bookingToDelete}
-        onClose={() =>
-          dispatch({ type: "SET_BOOKING_TO_DELETE", payload: null })
-        }
+        onClose={() => setBookingToDelete(null)}
         onConfirm={confirmDeleteAction}
         title={
           selectedCount > 1
@@ -795,7 +709,7 @@ export default function BookingPage() {
 
       <Modal
         isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
+        onClose={() => closeExportModal()}
         title="Choose Export Format"
         size="sm"
       >
