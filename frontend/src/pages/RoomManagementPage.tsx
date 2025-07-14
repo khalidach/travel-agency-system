@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, BedDouble } from "lucide-react";
 
 // Components
-import ProgramCard from "../components/booking/ProgramCard";
+import RoomProgramCard from "../components/booking/RoomProgramCard";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
 
@@ -23,10 +23,12 @@ export default function RoomManagementPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const programsPerPage = 6;
 
+  // Reset page to 1 when a new search is submitted
   useEffect(() => {
     setCurrentPage(1);
   }, [submittedSearchTerm, filterType]);
 
+  // Data Fetching - Now paginated and includes room management stats
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
     PaginatedResponse<Program>
   >({
@@ -54,6 +56,7 @@ export default function RoomManagementPage() {
     pageSize: programsPerPage,
   });
 
+  // Event Handlers
   const handleProgramSelect = (pId: number) => {
     navigate(`/room-management/program/${pId}`);
   };
@@ -112,10 +115,9 @@ export default function RoomManagementPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {programs.map((program) => (
-          <ProgramCard
+          <RoomProgramCard
             key={program.id}
             program={program}
-            bookingCount={program.totalBookings || 0}
             onClick={() => handleProgramSelect(program.id)}
           />
         ))}
@@ -128,7 +130,11 @@ export default function RoomManagementPage() {
             disabled={currentPage === 1}
             className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ChevronLeft className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"}`} />
+            <ChevronLeft
+              className={`w-4 h-4 ${
+                document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
+              }`}
+            />
             {t("previous")}
           </button>
           <div className="flex items-center space-x-1">

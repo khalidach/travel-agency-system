@@ -4,10 +4,18 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      // Booking
       selectAllMatching: "Select all {{total}} bookings matching these filters",
       pageSelectionNotification: "{{count}} bookings selected on this page.",
       allSelectedNotification: "All {{count}} bookings are selected.",
       clearSelection: "Clear selection",
+      // Booking Details
+      hotels_other: "Hotels",
+      rooms: "Room",
+      rooms_other: "Rooms",
+      members: "Member",
+      members_other: "Members",
+      viewRooms: "View Rooms",
       // Common
       dateOfBirth: "Date of Birth",
       passportExpirationDate: "Passport Expiration Date",
@@ -395,11 +403,30 @@ const resources = {
   },
   ar: {
     translation: {
+      // Booking
       selectAllMatching:
         "تحديد كل الحجوزات الـ {{total}} المطابقة لهذه الفلاتر",
       pageSelectionNotification: "تم تحديد {{count}} حجوزات في هذه الصفحة.",
       allSelectedNotification: "تم تحديد كل الحجوزات الـ {{count}}.",
       clearSelection: "إلغاء التحديد",
+      // Booking Details
+      hotels_one: "فندق",
+      hotels_two: "فندقان",
+      hotels_few: "فنادق",
+      hotels_many: "فندق",
+      hotels_other: "فنادق",
+      rooms_one: "غرفة",
+      rooms_two: "غرفتان",
+      rooms_few: "غرف",
+      rooms_many: "غرفة",
+      rooms_other: "غرف",
+      members_one: "عضو",
+      members_two: "عضوان",
+      members_few: "أعضاء",
+      members_many: "عضو",
+      members_other: "أعضاء",
+      viewRooms: "عرض الغرف",
+      // Common
       dateOfBirth: "تاريخ الميلاد",
       passportExpirationDate: "تاريخ انتهاء صلاحية جواز السفر",
       gender: "الجنس",
@@ -788,7 +815,14 @@ const resources = {
       allSelectedNotification:
         "Toutes les {{count}} réservations sont sélectionnées.",
       clearSelection: "Effacer la sélection",
-
+      // Booking Details
+      hotels_other: "Hôtels",
+      rooms: "Chambre",
+      rooms_other: "Chambres",
+      members: "Membre",
+      members_other: "Membres",
+      viewRooms: "Voir les chambres",
+      // Common
       dateOfBirth: "Date de Naissance",
       passportExpirationDate: "Date d'Expiration du Passeport",
       gender: "Genre",

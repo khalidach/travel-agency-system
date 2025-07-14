@@ -42,7 +42,7 @@ exports.generateRoomingListExcel = async (program, roomData) => {
       hotelHeaderCell.value = hotelName;
       hotelHeaderCell.font = {
         bold: true,
-        size: 18,
+        size: 22,
         color: { argb: "FFFFFFFF" },
       };
       hotelHeaderCell.fill = {
@@ -69,7 +69,7 @@ exports.generateRoomingListExcel = async (program, roomData) => {
       // Type Header
       const typeHeaderCell = worksheet.getCell(2, currentCol);
       typeHeaderCell.value = type;
-      typeHeaderCell.font = { bold: true, size: 18 }; // Changed from 14 to 18
+      typeHeaderCell.font = { bold: true, size: 20 }; // Changed from 14 to 18
       typeHeaderCell.fill = {
         type: "pattern",
         pattern: "solid",

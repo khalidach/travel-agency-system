@@ -1,7 +1,6 @@
 // backend/controllers/programController.js
-const ProgramUpdateService = require("../services/ProgramUpdateService"); // Import the new service
+const ProgramUpdateService = require("../services/ProgramUpdateService");
 
-// The getAllPrograms, getProgramById, and createProgram functions remain unchanged...
 exports.getAllPrograms = async (req, res) => {
   try {
     const { adminId } = req.user;
@@ -30,10 +29,29 @@ exports.getAllPrograms = async (req, res) => {
 
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
+    // Updated data fields with more detailed room management stats
     const dataQueryFields = `
         p.*,
         (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
-        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing
+        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing,
+        (
+            SELECT jsonb_agg(stats)
+            FROM (
+                SELECT
+                    rm."hotelName",
+                    jsonb_array_length(rm.rooms) as "roomCount"
+                FROM room_managements rm
+                WHERE rm."programId" = p.id
+                GROUP BY rm."hotelName", rm.rooms
+            ) as stats
+        ) as "hotelRoomCounts",
+        (
+            SELECT COUNT(DISTINCT (occupant->>'id')::int)
+            FROM room_managements rm_inner,
+                 jsonb_array_elements(rm_inner.rooms) AS r,
+                 jsonb_array_elements(r->'occupants') AS occupant
+            WHERE rm_inner."programId" = p.id AND occupant::text != 'null'
+        ) as "totalOccupants"
     `;
 
     if (noPaginate === "true") {
@@ -78,6 +96,8 @@ exports.getAllPrograms = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// --- Other functions (getProgramById, createProgram, etc.) remain unchanged ---
 
 exports.getProgramById = async (req, res) => {
   const { id } = req.params;
@@ -126,10 +146,6 @@ exports.createProgram = async (req, res) => {
   }
 };
 
-/**
- * UPDATED: This function now wraps the update logic in a transaction
- * and calls the ProgramUpdateService to handle cascading changes.
- */
 exports.updateProgram = async (req, res) => {
   const { id } = req.params;
   const { name, type, duration, cities, packages } = req.body;
@@ -138,7 +154,6 @@ exports.updateProgram = async (req, res) => {
   try {
     await client.query("BEGIN"); // Start transaction
 
-    // Get the state of the program BEFORE the update to compare for changes.
     const oldProgramResult = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [id, req.user.adminId]
@@ -152,7 +167,6 @@ exports.updateProgram = async (req, res) => {
     }
     const oldProgram = oldProgramResult.rows[0];
 
-    // Authorization check: Admin can edit any, others can only edit their own.
     if (req.user.role !== "admin" && oldProgram.employeeId !== req.user.id) {
       await client.query("ROLLBACK");
       return res
@@ -160,7 +174,6 @@ exports.updateProgram = async (req, res) => {
         .json({ message: "You can only edit programs that you have created." });
     }
 
-    // Perform the main update on the programs table.
     const { rows: updatedProgramRows } = await client.query(
       'UPDATE programs SET name = $1, type = $2, duration = $3, cities = $4, packages = $5, "updatedAt" = NOW() WHERE id = $6 RETURNING *',
       [
@@ -174,31 +187,29 @@ exports.updateProgram = async (req, res) => {
     );
     const updatedProgram = updatedProgramRows[0];
 
-    // Call the new service to handle cascading updates for renames.
     await ProgramUpdateService.handleCascadingUpdates(
       client,
       oldProgram,
       updatedProgram
     );
 
-    await client.query("COMMIT"); // Commit the transaction if all updates succeed.
+    await client.query("COMMIT");
     res.json(updatedProgram);
   } catch (error) {
-    await client.query("ROLLBACK"); // Rollback on any error.
+    await client.query("ROLLBACK");
     console.error("Update Program Error:", error);
     res.status(400).json({ message: error.message });
   } finally {
-    client.release(); // Release the client back to the pool.
+    client.release();
   }
 };
 
-// The deleteProgram function remains unchanged...
 exports.deleteProgram = async (req, res) => {
   const { id } = req.params;
-  const client = await req.db.connect(); // Use a client for transaction
+  const client = await req.db.connect();
 
   try {
-    await client.query("BEGIN"); // Start transaction
+    await client.query("BEGIN");
 
     const programResult = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
@@ -214,7 +225,6 @@ exports.deleteProgram = async (req, res) => {
 
     const program = programResult.rows[0];
 
-    // Authorization check
     if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
       await client.query("ROLLBACK");
       return res.status(403).json({
@@ -222,28 +232,22 @@ exports.deleteProgram = async (req, res) => {
       });
     }
 
-    // --- CASCADING DELETE LOGIC ---
-    // 1. Delete associated program pricing
     await client.query('DELETE FROM program_pricing WHERE "programId" = $1', [
       id,
     ]);
-
-    // 2. Delete associated bookings
     await client.query('DELETE FROM bookings WHERE "tripId" = $1', [id]);
-
-    // 3. Delete the program itself
     await client.query("DELETE FROM programs WHERE id = $1", [id]);
 
-    await client.query("COMMIT"); // Commit the transaction
+    await client.query("COMMIT");
 
     res.json({
       message: "Program and all associated data deleted successfully",
     });
   } catch (error) {
-    await client.query("ROLLBACK"); // Rollback on error
+    await client.query("ROLLBACK");
     console.error("Delete Program Error:", error);
     res.status(500).json({ message: error.message });
   } finally {
-    client.release(); // Release the client back to the pool
+    client.release();
   }
 };

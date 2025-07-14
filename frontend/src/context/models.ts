@@ -8,9 +8,9 @@ export interface TierLimits {
   facturesPerMonth: number;
   dailyServicesPerMonth: number;
   dailyServices: boolean;
-  bookingExcelExportsPerMonth: number; // New
-  listExcelExportsPerMonth: number; // New
-  flightListExport: boolean; // New
+  bookingExcelExportsPerMonth: number;
+  listExcelExportsPerMonth: number;
+  flightListExport: boolean;
 }
 
 export interface Tier {
@@ -29,8 +29,8 @@ export interface User {
   activeUser?: boolean;
   facturationSettings?: FacturationSettings;
   tierId?: number;
-  limits?: Partial<TierLimits>; // Custom limits can be partial
-  tierLimits?: TierLimits; // Limits from their tier
+  limits?: Partial<TierLimits>;
+  tierLimits?: TierLimits;
 }
 
 export interface FacturationSettings {
@@ -91,6 +91,11 @@ export interface RoomTypeDefinition {
   isDefault: boolean;
 }
 
+export interface HotelRoomCount {
+  hotelName: string;
+  roomCount: number;
+}
+
 export interface Program {
   id: number;
   name: string;
@@ -102,7 +107,9 @@ export interface Program {
   userId: number;
   employeeId?: number;
   totalBookings?: number;
-  pricing?: ProgramPricing; // The associated pricing, if it exists
+  pricing?: ProgramPricing;
+  hotelRoomCounts?: HotelRoomCount[];
+  totalOccupants?: number;
 }
 
 export interface Package {
