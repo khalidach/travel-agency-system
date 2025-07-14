@@ -1,9 +1,11 @@
+// frontend/src/components/program/PackageManager.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray } from "react-hook-form";
-import { Plus, Trash2, Hotel, Users } from "lucide-react";
+import { Plus, Trash2, Hotel, Users, ChevronDown } from "lucide-react";
 import type { Package } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
+import Accordion from "../ui/Accordion"; // Import the Accordion component
 
 // Helper function to get number of guests based on room type
 function getGuestsForType(type: string): number {
@@ -35,26 +37,19 @@ const DebouncedHotelInput = ({
   const { getValues, setValue } = useFormContext();
   const fieldName = `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`;
 
-  // Initialize local state from the form's current value to populate the input
   const [localValue, setLocalValue] = useState(
     () => getValues(fieldName) || ""
   );
-  // Debounce the local value to trigger updates only after the user stops typing
   const debouncedValue = useDebounce(localValue, 0);
-
-  // Ref to track the previously processed value to avoid redundant updates
   const lastUpdatedValueRef = useRef(getValues(fieldName));
 
   useEffect(() => {
     const oldValue = lastUpdatedValueRef.current;
     const newValue = debouncedValue;
 
-    // Run the update logic only when the debounced value has actually changed
     if (newValue !== undefined && newValue !== oldValue) {
-      // 1. Update the form's value for this specific hotel input
       setValue(fieldName, newValue, { shouldDirty: true });
 
-      // 2. Perform cascading updates on hotelCombination strings
       const allPackages = getValues("packages");
       const prices = allPackages[packageIndex]?.prices || [];
 
@@ -84,7 +79,6 @@ const DebouncedHotelInput = ({
         }
       });
 
-      // 3. Update the ref to the new value for the next comparison
       lastUpdatedValueRef.current = newValue;
     }
   }, [debouncedValue, fieldName, packageIndex, getValues, setValue, city.name]);
@@ -257,25 +251,30 @@ export default function PackageManager() {
           <Plus className="w-4 h-4 mr-1" /> {t("addPackage")}
         </button>
       </div>
-      <div className="space-y-6">
+      <div className="space-y-4">
         {packageFields.length > 0 ? (
           packageFields.map((pkg, packageIndex) => (
-            <div
+            <Accordion
               key={pkg.id}
-              className="border border-gray-200 rounded-xl p-6 bg-gray-50"
-            >
-              <div className="flex items-center justify-between mb-4">
+              title={
                 <h4 className="text-lg font-semibold text-gray-900">
-                  {t("packageLabel")} {packageIndex + 1}
+                  {watch(`packages.${packageIndex}.name`) ||
+                    `${t("packageLabel")} ${packageIndex + 1}`}
                 </h4>
+              }
+              actions={
                 <button
                   type="button"
-                  onClick={() => removePackage(packageIndex)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removePackage(packageIndex);
+                  }}
                   className="p-2 text-red-500 hover:bg-red-100 rounded-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              </div>
+              }
+            >
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t("packageName")}
@@ -294,7 +293,7 @@ export default function PackageManager() {
                 packageIndex={packageIndex}
                 generateAllHotelOptions={generateAllHotelOptions}
               />
-            </div>
+            </Accordion>
           ))
         ) : (
           <div className="text-center py-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-300">

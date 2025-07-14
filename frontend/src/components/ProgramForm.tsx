@@ -1,3 +1,4 @@
+// frontend/src/components/ProgramForm.tsx
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
@@ -6,18 +7,21 @@ import type { Program, CityData, Package } from "../context/models";
 // Import the refactored child components
 import CityManager from "./program/CityManager";
 import PackageManager from "./program/PackageManager";
+import LoadingSpinner from "./ui/LoadingSpinner";
 
-// Form props remain the same
+// Form props with isSaving
 interface ProgramFormProps {
   program?: Program | null;
   onSave: (program: Program) => void;
   onCancel: () => void;
+  isSaving: boolean;
 }
 
 export default function ProgramForm({
   program,
   onSave,
   onCancel,
+  isSaving,
 }: ProgramFormProps) {
   const { t } = useTranslation();
 
@@ -44,19 +48,12 @@ export default function ProgramForm({
   } = methods;
 
   // Watch for changes in cities to auto-calculate duration.
-  // Using a subscription to watch() is the most reliable way to catch
-  // changes in field arrays and trigger side effects.
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      // We check if the changed field is part of the 'cities' array.
-      // This is more efficient than recalculating on every single form change.
       if (name && (name === "cities" || name.startsWith("cities."))) {
         const cities = value.cities || [];
-        // The type of 'city' is inferred by TypeScript from the form's state.
-        // Explicitly typing it as 'CityData' can cause a mismatch because the form
-        // state might be a partial representation of the full type.
         const totalDuration = cities
-          .filter((city): city is CityData => city != null) // Type guard
+          .filter((city): city is CityData => city != null)
           .reduce((sum: number, city) => sum + (Number(city.nights) || 0), 0);
         setValue("duration", totalDuration);
       }
@@ -72,32 +69,23 @@ export default function ProgramForm({
   }, [program, reset]);
 
   const onSubmit = (data: Program) => {
-    // Deep copy to avoid mutating the form state directly
     const cleanedData = JSON.parse(JSON.stringify(data));
-
-    // Get a set of the final, valid city names from the 'cities' array
     const validCityNames = new Set(
       data.cities.map((c) => c.name).filter(Boolean)
     );
 
-    // Iterate over each package and clean its 'hotels' object
     cleanedData.packages = cleanedData.packages.map((pkg: Package) => {
       const newHotels: { [key: string]: string[] } = {};
-
-      // Only copy hotel arrays whose key is a valid, final city name
       for (const cityName in pkg.hotels) {
         if (validCityNames.has(cityName)) {
           newHotels[cityName] = pkg.hotels[cityName];
         }
       }
-
-      // Also ensure that every valid city has an entry, even if it's empty
       validCityNames.forEach((cityName) => {
         if (!newHotels[cityName]) {
           newHotels[cityName] = [];
         }
       });
-
       return { ...pkg, hotels: newHotels };
     });
 
@@ -105,7 +93,6 @@ export default function ProgramForm({
   };
 
   return (
-    // FormProvider passes all methods down to nested components
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -160,15 +147,17 @@ export default function ProgramForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            disabled={isSaving}
+            className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
           >
             {t("cancel")}
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            disabled={isSaving}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:bg-blue-400 disabled:cursor-not-allowed min-w-[100px]"
           >
-            {t("save")}
+            {isSaving ? <LoadingSpinner /> : t("save")}
           </button>
         </div>
       </form>

@@ -42,7 +42,6 @@ export default function Programs() {
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
-  // Reset page to 1 when a new search is submitted
   useEffect(() => {
     setCurrentPage(1);
   }, [submittedSearchTerm, filterType]);
@@ -65,10 +64,9 @@ export default function Programs() {
   const programs = programResponse?.data ?? [];
   const pagination = programResponse?.pagination;
 
-  const { mutate: createProgram } = useMutation({
+  const { mutate: createProgram, isPending: isCreating } = useMutation({
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
-      // Invalidate all queries in the cache to ensure the entire application state is fresh.
       queryClient.invalidateQueries();
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
@@ -78,10 +76,9 @@ export default function Programs() {
     },
   });
 
-  const { mutate: updateProgram } = useMutation({
+  const { mutate: updateProgram, isPending: isUpdating } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
     onSuccess: () => {
-      // Invalidate all queries in the cache to ensure the entire application state is fresh.
       queryClient.invalidateQueries();
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
@@ -95,7 +92,6 @@ export default function Programs() {
   const { mutate: deleteProgram } = useMutation({
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
-      // Invalidate all queries in the cache to ensure the entire application state is fresh.
       queryClient.invalidateQueries();
       toast.success("Program deleted successfully!");
     },
@@ -398,6 +394,7 @@ export default function Programs() {
             setIsFormModalOpen(false);
             setEditingProgram(null);
           }}
+          isSaving={isCreating || isUpdating}
         />
       </Modal>
 
