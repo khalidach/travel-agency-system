@@ -69,6 +69,10 @@ export default function RoomManage() {
       queryClient.invalidateQueries({
         queryKey: ["unassignedOccupantsSearch"],
       });
+      // Invalidate the query for the listing page to force a refresh on navigation.
+      queryClient.invalidateQueries({
+        queryKey: ["programsForRoomManagement"],
+      });
       setInitialRoomsData(JSON.parse(JSON.stringify(data)));
     },
     onError: (error: Error) => {
