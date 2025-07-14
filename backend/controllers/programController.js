@@ -35,14 +35,22 @@ exports.getAllPrograms = async (req, res) => {
         (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
         (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing,
         (
-            SELECT jsonb_agg(stats)
+            SELECT COALESCE(jsonb_agg(stats), '[]'::jsonb)
             FROM (
                 SELECT
-                    rm."hotelName",
-                    jsonb_array_length(rm.rooms) as "roomCount"
-                FROM room_managements rm
-                WHERE rm."programId" = p.id
-                GROUP BY rm."hotelName", rm.rooms
+                    defined_hotels.hotel_name as "hotelName",
+                    COALESCE(jsonb_array_length(rm.rooms), 0) as "roomCount"
+                FROM (
+                    -- Extract all unique hotel names from the program's packages
+                    SELECT DISTINCT hotel_name
+                    FROM
+                        jsonb_array_elements(p.packages) AS package,
+                        jsonb_each(package->'hotels') AS city_hotels,
+                        jsonb_array_elements_text(city_hotels.value) AS hotel_name
+                    WHERE hotel_name IS NOT NULL AND hotel_name != ''
+                ) AS defined_hotels(hotel_name)
+                -- Left join with room managements to get the count of rooms if they exist
+                LEFT JOIN room_managements rm ON rm."programId" = p.id AND rm."hotelName" = defined_hotels.hotel_name
             ) as stats
         ) as "hotelRoomCounts",
         (

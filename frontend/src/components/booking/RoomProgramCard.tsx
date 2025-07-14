@@ -26,7 +26,13 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
 
   const hotelRoomCounts = program.hotelRoomCounts || [];
   const occupantCount = program.totalOccupants || 0;
+
+  // Filter to only include hotels that have rooms managed.
+  const hotelsWithRooms = hotelRoomCounts.filter(
+    (stat) => stat.roomCount && stat.roomCount > 0
+  );
   const hotelCount = hotelRoomCounts.length;
+
   function containsArabic(text: string) {
     const arabicRegex = /[\u0600-\u06FF]/;
     return arabicRegex.test(text);
@@ -71,8 +77,8 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
             />
 
             <div className="flex flex-col">
-              {hotelRoomCounts.length > 0 ? (
-                hotelRoomCounts.map((stat) => {
+              {hotelsWithRooms.length > 0 ? (
+                hotelsWithRooms.map((stat) => {
                   const isArabic = containsArabic(stat.hotelName);
                   return (
                     <span

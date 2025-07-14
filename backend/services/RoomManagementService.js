@@ -39,23 +39,35 @@ exports.getRooms = async (db, userId, programId, hotelName) => {
 
 /**
  * Saves the room assignments for a given program and hotel.
+ * If the provided rooms array is empty, the corresponding database record is deleted.
  * @param {object} db - The database connection pool.
  * @param {number} userId - The ID of the admin user.
  * @param {number} programId - The ID of the program.
  * @param {string} hotelName - The name of the hotel.
  * @param {Array} rooms - The array of room objects to save.
- * @returns {Promise<Array>} A promise that resolves to the saved list of rooms.
+ * @returns {Promise<Array>} A promise that resolves to the saved list of rooms, or an empty array if deleted.
  */
 exports.saveRooms = async (db, userId, programId, hotelName, rooms) => {
-  const { rows } = await db.query(
-    `INSERT INTO room_managements ("userId", "programId", "hotelName", rooms)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT ("userId", "programId", "hotelName")
-     DO UPDATE SET rooms = $4, "updatedAt" = NOW()
-     RETURNING rooms`,
-    [userId, programId, hotelName, JSON.stringify(rooms)]
-  );
-  return rows[0].rooms;
+  // If the rooms array is empty or null, delete the record for this hotel.
+  if (!rooms || rooms.length === 0) {
+    await db.query(
+      'DELETE FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
+      [userId, programId, hotelName]
+    );
+    // Return an empty array to signify no rooms are saved.
+    return [];
+  } else {
+    // If there are rooms, proceed with the upsert logic.
+    const { rows } = await db.query(
+      `INSERT INTO room_managements ("userId", "programId", "hotelName", rooms)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT ("userId", "programId", "hotelName")
+       DO UPDATE SET rooms = $4, "updatedAt" = NOW()
+       RETURNING rooms`,
+      [userId, programId, hotelName, JSON.stringify(rooms)]
+    );
+    return rows[0].rooms;
+  }
 };
 
 /**
