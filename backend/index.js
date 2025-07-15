@@ -3,6 +3,7 @@ const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
+const helmet = require("helmet"); // Add helmet for security headers
 require("dotenv").config();
 
 // Import middleware and new DB initializer
@@ -28,6 +29,38 @@ const app = express();
 const corsOptions = {
   origin: process.env.frontend_URL,
 };
+
+// Security Headers - Apply helmet middleware for security
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        fontSrc: ["'self'", "https:", "data:"],
+        connectSrc: ["'self'"],
+        mediaSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        childSrc: ["'self'"],
+        workerSrc: ["'self'"],
+        frameSrc: ["'self'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // May need to be disabled for some applications
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    noSniff: true, // X-Content-Type-Options: nosniff
+    frameguard: { action: "deny" }, // X-Frame-Options: DENY (prevents clickjacking)
+    xssFilter: true, // X-XSS-Protection: 1; mode=block
+    referrerPolicy: { policy: "same-origin" },
+  })
+);
 
 // Middleware
 app.use(cors(corsOptions));
