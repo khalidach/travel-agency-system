@@ -7,6 +7,7 @@ require("dotenv").config();
 
 // Import middleware and new DB initializer
 const { protect } = require("./middleware/authMiddleware");
+const { apiLimiter } = require("./middleware/rateLimitMiddleware"); // Import the apiLimiter
 const { applyDatabaseMigrations } = require("./utils/db-init"); // <-- Import the new function
 
 // Import routes
@@ -54,6 +55,9 @@ app.use((req, res, next) => {
   req.db = pool;
   next();
 });
+
+// Apply the general rate limiter to all API routes
+app.use("/api/", apiLimiter);
 
 // API routes
 app.use("/api/auth", authRoutes);

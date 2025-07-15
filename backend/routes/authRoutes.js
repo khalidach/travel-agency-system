@@ -7,8 +7,15 @@ const {
   loginValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
+const { loginLimiter } = require("../middleware/rateLimitMiddleware");
 
-router.post("/login", loginValidation, handleValidationErrors, loginUser);
+router.post(
+  "/login",
+  loginLimiter,
+  loginValidation,
+  handleValidationErrors,
+  loginUser
+);
 router.post("/refresh", protect, refreshToken);
 
 module.exports = router;
