@@ -203,6 +203,10 @@ const applyDatabaseMigrations = async (client) => {
     // Using 'IF NOT EXISTS' to prevent errors on subsequent runs.
     console.log("Applying database indexes for performance...");
 
+    // Enable pg_trgm extension for `ILIKE` performance
+    await client.query("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+
+    // Existing indexes
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");'
     );
@@ -238,6 +242,34 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");'
+    );
+
+    // --- New Indexes for Performance Enhancement ---
+
+    // Composite index for common booking filters
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "employeeId", "isFullyPaid");'
+    );
+
+    // GIN indexes for fast text search on names in bookings and programs
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN ("clientNameFr" gin_trgm_ops);'
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_ar_gin ON bookings USING GIN ("clientNameAr" gin_trgm_ops);'
+    );
+    await client.query(
+      "CREATE INDEX IF NOT EXISTS idx_programs_name_gin ON programs USING GIN (name gin_trgm_ops);"
+    );
+
+    // Index for daily services reports filtered by date
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_daily_services_user_date ON daily_services("userId", date DESC);'
+    );
+
+    // Index for factures ordered by creation date for a user
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_factures_user_created_at ON factures("userId", "createdAt" DESC);'
     );
 
     console.log("Database indexes applied successfully.");
