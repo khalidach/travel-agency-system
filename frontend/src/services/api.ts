@@ -132,7 +132,8 @@ export const getPrograms = (
   page = 1,
   limit = 6,
   searchTerm = "",
-  filterType = "all"
+  filterType = "all",
+  view?: "list" | "pricing" | "rooms" | "full"
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -140,6 +141,9 @@ export const getPrograms = (
     searchTerm,
     filterType,
   });
+  if (view) {
+    params.append("view", view);
+  }
   return request(`/programs?${params.toString()}`);
 };
 

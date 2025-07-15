@@ -9,6 +9,7 @@ exports.getAllPrograms = async (req, res) => {
       filterType,
       page = 1,
       noPaginate = "false",
+      view = "list", // Default to 'list' for a lightweight payload
     } = req.query;
     let { limit = 10 } = req.query;
 
@@ -29,38 +30,50 @@ exports.getAllPrograms = async (req, res) => {
 
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
-    // Updated data fields with more detailed room management stats
-    const dataQueryFields = `
+    // Start with base fields for all views
+    let dataQueryFields = `
         p.*,
-        (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings",
-        (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing,
-        (
-            SELECT COALESCE(jsonb_agg(stats), '[]'::jsonb)
-            FROM (
-                SELECT
-                    defined_hotels.hotel_name as "hotelName",
-                    COALESCE(jsonb_array_length(rm.rooms), 0) as "roomCount"
-                FROM (
-                    -- Extract all unique hotel names from the program's packages
-                    SELECT DISTINCT hotel_name
-                    FROM
-                        jsonb_array_elements(p.packages) AS package,
-                        jsonb_each(package->'hotels') AS city_hotels,
-                        jsonb_array_elements_text(city_hotels.value) AS hotel_name
-                    WHERE hotel_name IS NOT NULL AND hotel_name != ''
-                ) AS defined_hotels(hotel_name)
-                -- Left join with room managements to get the count of rooms if they exist
-                LEFT JOIN room_managements rm ON rm."programId" = p.id AND rm."hotelName" = defined_hotels.hotel_name
-            ) as stats
-        ) as "hotelRoomCounts",
-        (
-            SELECT COUNT(DISTINCT (occupant->>'id')::int)
-            FROM room_managements rm_inner,
-                 jsonb_array_elements(rm_inner.rooms) AS r,
-                 jsonb_array_elements(r->'occupants') AS occupant
-            WHERE rm_inner."programId" = p.id AND occupant::text != 'null'
-        ) as "totalOccupants"
+        (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings"
     `;
+
+    // Add pricing info if requested for 'pricing' or 'full' view
+    if (view === "pricing" || view === "full") {
+      dataQueryFields += `,
+            (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing
+        `;
+    }
+
+    // Add room management stats if requested for 'rooms' or 'full' view
+    if (view === "rooms" || view === "full") {
+      dataQueryFields += `,
+            (
+                SELECT COALESCE(jsonb_agg(stats), '[]'::jsonb)
+                FROM (
+                    SELECT
+                        defined_hotels.hotel_name as "hotelName",
+                        COALESCE(jsonb_array_length(rm.rooms), 0) as "roomCount"
+                    FROM (
+                        -- Extract all unique hotel names from the program's packages
+                        SELECT DISTINCT hotel_name
+                        FROM
+                            jsonb_array_elements(p.packages) AS package,
+                            jsonb_each(package->'hotels') AS city_hotels,
+                            jsonb_array_elements_text(city_hotels.value) AS hotel_name
+                        WHERE hotel_name IS NOT NULL AND hotel_name != ''
+                    ) AS defined_hotels(hotel_name)
+                    -- Left join with room managements to get the count of rooms if they exist
+                    LEFT JOIN room_managements rm ON rm."programId" = p.id AND rm."hotelName" = defined_hotels.hotel_name
+                ) as stats
+            ) as "hotelRoomCounts",
+            (
+                SELECT COUNT(DISTINCT (occupant->>'id')::int)
+                FROM room_managements rm_inner,
+                     jsonb_array_elements(rm_inner.rooms) AS r,
+                     jsonb_array_elements(r->'occupants') AS occupant
+                WHERE rm_inner."programId" = p.id AND occupant::text != 'null'
+            ) as "totalOccupants"
+        `;
+    }
 
     if (noPaginate === "true") {
       const dataQuery = `
@@ -104,8 +117,6 @@ exports.getAllPrograms = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// --- Other functions (getProgramById, createProgram, etc.) remain unchanged ---
 
 exports.getProgramById = async (req, res) => {
   const { id } = req.params;

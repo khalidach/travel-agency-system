@@ -63,7 +63,8 @@ export default function ProgramPricingPage() {
         currentPage,
         programsPerPage,
         submittedSearchTerm,
-        filterType
+        filterType,
+        "pricing"
       ),
   });
 

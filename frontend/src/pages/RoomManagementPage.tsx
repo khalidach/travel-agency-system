@@ -43,7 +43,8 @@ export default function RoomManagementPage() {
         currentPage,
         programsPerPage,
         submittedSearchTerm,
-        filterType
+        filterType,
+        "rooms"
       ),
   });
 
