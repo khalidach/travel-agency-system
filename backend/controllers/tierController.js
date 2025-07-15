@@ -1,4 +1,5 @@
 // backend/controllers/tierController.js
+const { tierLimitsCache } = require("../middleware/tierMiddleware");
 
 // Get all tiers
 exports.getTiers = async (req, res) => {
@@ -83,6 +84,10 @@ exports.updateTier = async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ message: "Tier not found." });
     }
+
+    // Invalidate the cache for the updated tier
+    tierLimitsCache.delete(parseInt(id, 10));
+
     res.json(rows[0]);
   } catch (error) {
     console.error("Update Tier Error:", error);
@@ -124,6 +129,10 @@ exports.deleteTier = async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({ message: "Tier not found." });
     }
+
+    // Invalidate the cache for the deleted tier
+    tierLimitsCache.delete(parseInt(id, 10));
+
     res.status(204).send();
   } catch (error) {
     console.error("Delete Tier Error:", error);

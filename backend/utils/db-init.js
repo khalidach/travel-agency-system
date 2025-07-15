@@ -248,7 +248,7 @@ const applyDatabaseMigrations = async (client) => {
 
     // Composite index for common booking filters
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "employeeId", "isFullyPaid");'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "isFullyPaid");'
     );
 
     // GIN indexes for fast text search on names in bookings and programs

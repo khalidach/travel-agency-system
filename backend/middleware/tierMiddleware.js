@@ -1,14 +1,19 @@
 // backend/middleware/tierMiddleware.js
+
+// In-memory cache for tier limits. A Map is used for efficient lookups.
+const tierLimitsCache = new Map();
+
 const getLimits = async (req) => {
   // 1. Get the base limits from the user's tier.
   let tierLimits = {};
   let { tierId } = req.user;
   if (!tierId) tierId = 1; // Default to Tier 1 if not set
 
-  // The tierLimits might already be on req.user from the auth middleware, if not, fetch them.
-  if (req.user.tierLimits && Object.keys(req.user.tierLimits).length > 0) {
-    tierLimits = req.user.tierLimits;
+  // Check the cache first
+  if (tierLimitsCache.has(tierId)) {
+    tierLimits = tierLimitsCache.get(tierId);
   } else {
+    // If not in cache, fetch from the database
     const { rows } = await req.db.query(
       "SELECT limits FROM tiers WHERE id = $1",
       [tierId]
@@ -31,10 +36,11 @@ const getLimits = async (req) => {
         flightListExport: false,
       };
     }
+    // Store the fetched limits in the cache for subsequent requests
+    tierLimitsCache.set(tierId, tierLimits);
   }
 
   // 2. Get the user's custom override limits.
-  // req.user.limits is already parsed into an object by the auth middleware
   const userSpecificLimits = req.user.limits || {};
 
   // 3. Merge them. User-specific limits override tier limits.
@@ -223,4 +229,5 @@ module.exports = {
     checkExportLimit(req, res, next, "list"),
   checkInvoicingAccess,
   checkDailyServiceAccess,
+  tierLimitsCache, // Export the cache to be used in other modules
 };
