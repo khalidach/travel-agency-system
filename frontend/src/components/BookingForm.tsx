@@ -128,9 +128,13 @@ export default function BookingForm({
     }
   }, [dob_day, dob_month, dob_year, setValue]);
 
-  const hasPackages = !!(
-    formState.selectedProgram?.packages &&
-    formState.selectedProgram.packages.length > 0
+  const hasPackages = useMemo(
+    () =>
+      !!(
+        formState.selectedProgram?.packages &&
+        formState.selectedProgram.packages.length > 0
+      ),
+    [formState.selectedProgram]
   );
 
   useEffect(() => {
@@ -229,7 +233,7 @@ export default function BookingForm({
     }
   }, [booking, programs, reset, programId, handleProgramChange]);
 
-  const calculateTotalBasePrice = React.useCallback((): number => {
+  const calculateTotalBasePrice = useCallback((): number => {
     if (!formState.selectedProgram || !programPricing) return 0;
 
     let hotelCosts = 0;
@@ -332,113 +336,136 @@ export default function BookingForm({
     formState.selectedProgram,
   ]);
 
-  const handleSellingPriceChange = (price: number) => {
-    setValue("sellingPrice", price);
-    setValue("profit", price - basePrice);
-  };
+  const handleSellingPriceChange = useCallback(
+    (price: number) => {
+      setValue("sellingPrice", price);
+      setValue("profit", price - basePrice);
+    },
+    [setValue, basePrice]
+  );
 
-  const onInvalid = (errors: FieldErrors) => {
+  const onInvalid = useCallback((errors: FieldErrors) => {
     if (errors.dob_day || errors.dob_month || errors.dob_year) {
       toast.error("Invalid date of birth.");
     }
     console.log("Form Errors:", errors);
     toast.error("Please correct the errors before saving.");
-  };
+  }, []);
 
-  const onSubmit = (data: any) => {
-    const hasCitiesWithNights = (formState.selectedProgram?.cities || []).some(
-      (c) => c.nights > 0
-    );
+  const onSubmit = useCallback(
+    (data: any) => {
+      const hasCitiesWithNights = (
+        formState.selectedProgram?.cities || []
+      ).some((c) => c.nights > 0);
 
-    if (!formState.selectedProgram) {
-      setFormState((prev) => ({
-        ...prev,
-        error: "A valid program must be selected.",
-      }));
-      return;
-    }
+      if (!formState.selectedProgram) {
+        setFormState((prev) => ({
+          ...prev,
+          error: "A valid program must be selected.",
+        }));
+        return;
+      }
 
-    if (hasPackages && !formState.selectedPackage) {
-      setFormState((prev) => ({
-        ...prev,
-        error: "A package must be selected for this program.",
-      }));
-      return;
-    }
+      if (hasPackages && !formState.selectedPackage) {
+        setFormState((prev) => ({
+          ...prev,
+          error: "A package must be selected for this program.",
+        }));
+        return;
+      }
 
-    if (
-      hasCitiesWithNights &&
-      !formState.selectedPriceStructure &&
-      watchedValues.selectedHotel.hotelNames.some((h) => h)
-    ) {
-      setFormState((prev) => ({
-        ...prev,
-        error:
-          "A valid hotel and room combination is required for programs with overnight stays.",
-      }));
-      return;
-    }
+      if (
+        hasCitiesWithNights &&
+        !formState.selectedPriceStructure &&
+        watchedValues.selectedHotel.hotelNames.some((h) => h)
+      ) {
+        setFormState((prev) => ({
+          ...prev,
+          error:
+            "A valid hotel and room combination is required for programs with overnight stays.",
+        }));
+        return;
+      }
 
-    const processedData = { ...data };
+      const processedData = { ...data };
 
-    if (
-      userRole === "employee" ||
-      userRole === "manager" ||
-      userRole === "admin"
-    ) {
-      processedData.basePrice = calculateTotalBasePrice();
-      processedData.profit =
-        processedData.sellingPrice - processedData.basePrice;
-    }
+      if (
+        userRole === "employee" ||
+        userRole === "manager" ||
+        userRole === "admin"
+      ) {
+        processedData.basePrice = calculateTotalBasePrice();
+        processedData.profit =
+          processedData.sellingPrice - processedData.basePrice;
+      }
 
-    onSave(processedData, booking?.advancePayments || []);
-  };
+      onSave(processedData, booking?.advancePayments || []);
+    },
+    [
+      formState,
+      hasPackages,
+      watchedValues,
+      userRole,
+      calculateTotalBasePrice,
+      onSave,
+      booking,
+    ]
+  );
 
-  const handlePackageChange = (packageName: string) => {
-    if (!formState.selectedProgram) return;
+  const handlePackageChange = useCallback(
+    (packageName: string) => {
+      if (!formState.selectedProgram) return;
 
-    const pkg = (formState.selectedProgram.packages || []).find(
-      (p) => p.name === packageName
-    );
-
-    setFormState((prev) => ({
-      ...prev,
-      selectedPackage: pkg || null,
-      selectedPriceStructure: null,
-    }));
-
-    if (pkg) {
-      const cities = (formState.selectedProgram.cities || []).map(
-        (c) => c.name
+      const pkg = (formState.selectedProgram.packages || []).find(
+        (p) => p.name === packageName
       );
-      setValue("packageId", packageName);
+
+      setFormState((prev) => ({
+        ...prev,
+        selectedPackage: pkg || null,
+        selectedPriceStructure: null,
+      }));
+
+      if (pkg) {
+        const cities = (formState.selectedProgram.cities || []).map(
+          (c) => c.name
+        );
+        setValue("packageId", packageName);
+        setValue("selectedHotel", {
+          cities,
+          hotelNames: Array(cities.length).fill(""),
+          roomTypes: Array(cities.length).fill(""),
+        });
+      }
+    },
+    [formState.selectedProgram, setValue]
+  );
+
+  const updateHotelSelection = useCallback(
+    (cityIndex: number, hotelName: string) => {
+      const newHotelNames = [...selectedHotel.hotelNames];
+      newHotelNames[cityIndex] = hotelName;
+
       setValue("selectedHotel", {
-        cities,
-        hotelNames: Array(cities.length).fill(""),
-        roomTypes: Array(cities.length).fill(""),
+        ...selectedHotel,
+        hotelNames: newHotelNames,
+        roomTypes: Array(selectedHotel.cities.length).fill(""),
       });
-    }
-  };
+    },
+    [selectedHotel, setValue]
+  );
 
-  const updateHotelSelection = (cityIndex: number, hotelName: string) => {
-    const newHotelNames = [...selectedHotel.hotelNames];
-    newHotelNames[cityIndex] = hotelName;
-
-    setValue("selectedHotel", {
-      ...selectedHotel,
-      hotelNames: newHotelNames,
-      roomTypes: Array(selectedHotel.cities.length).fill(""),
-    });
-  };
-
-  const updateRoomTypeSelection = (cityIndex: number, roomType: string) => {
-    const newRoomTypes = [...selectedHotel.roomTypes];
-    newRoomTypes[cityIndex] = roomType;
-    setValue("selectedHotel", {
-      ...selectedHotel,
-      roomTypes: newRoomTypes,
-    });
-  };
+  const updateRoomTypeSelection = useCallback(
+    (cityIndex: number, roomType: string) => {
+      const newRoomTypes = [...selectedHotel.roomTypes];
+      newRoomTypes[cityIndex] = roomType;
+      setValue("selectedHotel", {
+        ...selectedHotel,
+        roomTypes: newRoomTypes,
+      });
+    },
+    [selectedHotel, setValue]
+  );
 
   const availablePeople = useMemo(() => {
     if (!searchResults) {
@@ -455,28 +482,34 @@ export default function BookingForm({
     return searchResults.filter((b) => !selectedIDs.has(b.id));
   }, [searchResults, watchedValues.relatedPersons, booking]);
 
-  const addRelatedPerson = (person: Booking) => {
-    const newPerson: RelatedPerson = {
-      ID: person.id,
-      clientName: person.clientNameFr,
-    };
-    setValue("relatedPersons", [
-      ...(watchedValues.relatedPersons || []),
-      newPerson,
-    ]);
-    setFormState((prev) => ({
-      ...prev,
-      search: "",
-      showDropdown: false,
-    }));
-  };
+  const addRelatedPerson = useCallback(
+    (person: Booking) => {
+      const newPerson: RelatedPerson = {
+        ID: person.id,
+        clientName: person.clientNameFr,
+      };
+      setValue("relatedPersons", [
+        ...(watchedValues.relatedPersons || []),
+        newPerson,
+      ]);
+      setFormState((prev) => ({
+        ...prev,
+        search: "",
+        showDropdown: false,
+      }));
+    },
+    [setValue, watchedValues.relatedPersons]
+  );
 
-  const removeRelatedPerson = (personId: number) => {
-    setValue(
-      "relatedPersons",
-      (watchedValues.relatedPersons || []).filter((p) => p.ID !== personId)
-    );
-  };
+  const removeRelatedPerson = useCallback(
+    (personId: number) => {
+      setValue(
+        "relatedPersons",
+        (watchedValues.relatedPersons || []).filter((p) => p.ID !== personId)
+      );
+    },
+    [setValue, watchedValues.relatedPersons]
+  );
 
   return (
     <FormProvider {...methods}>

@@ -73,6 +73,143 @@ export default function Dashboard() {
       api.getDashboardStats(dateRangeParams.startDate, dateRangeParams.endDate),
   });
 
+  const {
+    allTimeStats,
+    dateFilteredStats,
+    dailyServiceProfitData,
+    paymentStatus,
+    recentBookings,
+  } = useMemo(
+    () =>
+      dashboardData || {
+        allTimeStats: {
+          totalBookings: 0,
+          totalRevenue: 0,
+          totalProfit: 0,
+          activePrograms: 0,
+        },
+        dateFilteredStats: {
+          totalBookings: 0,
+          totalRevenue: 0,
+          totalCost: 0,
+          totalProfit: 0,
+          totalPaid: 0,
+          totalRemaining: 0,
+        },
+        dailyServiceProfitData: [],
+        paymentStatus: { fullyPaid: 0, pending: 0 },
+        recentBookings: [],
+      },
+    [dashboardData]
+  );
+
+  const topStats = useMemo(
+    () => [
+      {
+        title: t("totalBookings"),
+        value: allTimeStats.totalBookings,
+        icon: Users,
+        color: "bg-blue-500",
+        roles: ["admin", "manager", "employee"],
+      },
+      {
+        title: t("totalRevenue"),
+        value: `${(allTimeStats.totalRevenue || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+        icon: DollarSign,
+        color: "bg-emerald-500",
+        roles: ["admin"],
+      },
+      {
+        title: t("totalProfit"),
+        value: `${(allTimeStats.totalProfit || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+        icon: TrendingUp,
+        color: "bg-orange-500",
+        roles: ["admin"],
+      },
+      {
+        title: t("activePrograms"),
+        value: allTimeStats.activePrograms,
+        icon: Package,
+        color: "bg-purple-500",
+        roles: ["admin", "manager", "employee"],
+      },
+    ],
+    [allTimeStats, t]
+  );
+
+  const visibleTopStats = useMemo(
+    () => topStats.filter((stat) => stat.roles.includes(userRole || "")),
+    [topStats, userRole]
+  );
+
+  const adminManagerMetrics = useMemo(
+    () => [
+      { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+      {
+        title: t("totalRevenue"),
+        value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+      },
+      {
+        title: t("totalCosts"),
+        value: `${(dateFilteredStats.totalCost || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+      },
+      {
+        title: t("totalProfit"),
+        value: `${(dateFilteredStats.totalProfit || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+      },
+    ],
+    [dateFilteredStats, t]
+  );
+
+  const employeeMetrics = useMemo(
+    () => [
+      { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+      {
+        title: t("totalPaid"),
+        value: `${(dateFilteredStats.totalPaid || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+      },
+      {
+        title: t("totalRemaining"),
+        value: `${(dateFilteredStats.totalRemaining || 0).toLocaleString()} ${t(
+          "mad"
+        )}`,
+      },
+    ],
+    [dateFilteredStats, t]
+  );
+
+  const serviceProfitChartData = useMemo(
+    () =>
+      (dailyServiceProfitData || []).map((item) => ({
+        name: t(item.type),
+        value: item.totalProfit,
+      })),
+    [dailyServiceProfitData, t]
+  );
+
+  const COLORS = useMemo(
+    () => ["#3b82f6", "#059669", "#ea580c", "#8b5cf6"],
+    []
+  );
+
+  const fullyPaidBookings = useMemo(
+    () => paymentStatus.fullyPaid,
+    [paymentStatus]
+  );
+  const pendingPayments = useMemo(() => paymentStatus.pending, [paymentStatus]);
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -80,87 +217,6 @@ export default function Dashboard() {
   if (isError || !dashboardData) {
     return <div>{t("errorLoadingDashboard")}</div>;
   }
-
-  const {
-    allTimeStats,
-    dateFilteredStats,
-    dailyServiceProfitData,
-    paymentStatus,
-    recentBookings,
-  } = dashboardData;
-
-  const topStats = [
-    {
-      title: t("totalBookings"),
-      value: allTimeStats.totalBookings,
-      icon: Users,
-      color: "bg-blue-500",
-      roles: ["admin", "manager", "employee"],
-    },
-    {
-      title: t("totalRevenue"),
-      value: `${allTimeStats.totalRevenue.toLocaleString()} ${t("mad")}`,
-      icon: DollarSign,
-      color: "bg-emerald-500",
-      roles: ["admin"],
-    },
-    {
-      title: t("totalProfit"),
-      value: `${allTimeStats.totalProfit.toLocaleString()} ${t("mad")}`,
-      icon: TrendingUp,
-      color: "bg-orange-500",
-      roles: ["admin"],
-    },
-    {
-      title: t("activePrograms"),
-      value: allTimeStats.activePrograms,
-      icon: Package,
-      color: "bg-purple-500",
-      roles: ["admin", "manager", "employee"],
-    },
-  ];
-
-  const visibleTopStats = topStats.filter((stat) =>
-    stat.roles.includes(userRole || "")
-  );
-
-  const adminManagerMetrics = [
-    { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
-    {
-      title: t("totalRevenue"),
-      value: `${dateFilteredStats.totalRevenue.toLocaleString()} ${t("mad")}`,
-    },
-    {
-      title: t("totalCosts"),
-      value: `${dateFilteredStats.totalCost.toLocaleString()} ${t("mad")}`,
-    },
-    {
-      title: t("totalProfit"),
-      value: `${dateFilteredStats.totalProfit.toLocaleString()} ${t("mad")}`,
-    },
-  ];
-
-  const employeeMetrics = [
-    { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
-    {
-      title: t("totalPaid"),
-      value: `${dateFilteredStats.totalPaid.toLocaleString()} ${t("mad")}`,
-    },
-    {
-      title: t("totalRemaining"),
-      value: `${dateFilteredStats.totalRemaining.toLocaleString()} ${t("mad")}`,
-    },
-  ];
-
-  const serviceProfitChartData = (dailyServiceProfitData || []).map((item) => ({
-    name: t(item.type),
-    value: item.totalProfit,
-  }));
-
-  const COLORS = ["#3b82f6", "#059669", "#ea580c", "#8b5cf6"];
-
-  const fullyPaidBookings = paymentStatus.fullyPaid;
-  const pendingPayments = paymentStatus.pending;
 
   return (
     <div className="space-y-8">
@@ -445,7 +501,7 @@ export default function Dashboard() {
             {t("recentBookings")}
           </h3>
           <div className="space-y-3">
-            {recentBookings.map((booking) => (
+            {recentBookings.map((booking: Booking) => (
               <div
                 key={booking.id}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
