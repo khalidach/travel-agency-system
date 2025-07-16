@@ -10,6 +10,8 @@ require("dotenv").config();
 const { protect } = require("./middleware/authMiddleware");
 const { apiLimiter } = require("./middleware/rateLimitMiddleware"); // Import the apiLimiter
 const { applyDatabaseMigrations } = require("./utils/db-init"); // <-- Import the new function
+const errorHandler = require("./middleware/errorHandler"); // <-- Import the new error handler
+const logger = require("./utils/logger"); // <-- Import the logger
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
@@ -74,14 +76,14 @@ const pool = new Pool({
 pool
   .connect()
   .then(async (client) => {
-    console.log("Connected to PostgreSQL");
+    logger.info("Connected to PostgreSQL");
 
     // Apply all database migrations (tables, indexes, etc.)
     await applyDatabaseMigrations(client);
 
     client.release();
   })
-  .catch((err) => console.error("Database initialization error:", err));
+  .catch((err) => logger.error("Database initialization error:", err));
 
 // Make the database pool available to all routes
 app.use((req, res, next) => {
@@ -114,13 +116,10 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: "Something went wrong!" });
-});
+// Use the global error handling middleware
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });

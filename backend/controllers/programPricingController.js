@@ -1,13 +1,14 @@
 // backend/controllers/programPricingController.js
 const ProgramPricingService = require("../services/ProgramPricingService");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-exports.getAllProgramPricing = async (req, res) => {
+exports.getAllProgramPricing = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || "1", 10);
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
-    // Join with employees table to get employeeName
     const pricingPromise = req.db.query(
       `SELECT pp.*, e.username as "employeeName"
        FROM program_pricing pp
@@ -30,7 +31,7 @@ exports.getAllProgramPricing = async (req, res) => {
 
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
-    res.json({
+    res.status(200).json({
       data: pricingResult.rows,
       pagination: {
         page,
@@ -40,99 +41,107 @@ exports.getAllProgramPricing = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get All Pricing Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get All Pricing Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve program pricing.", 500));
   }
 };
 
-exports.getProgramPricingByProgramId = async (req, res) => {
-  const { programId } = req.params;
-  const { adminId } = req.user;
+exports.getProgramPricingByProgramId = async (req, res, next) => {
   try {
+    const { programId } = req.params;
+    const { adminId } = req.user;
     const { rows } = await req.db.query(
       'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
       [programId, adminId]
     );
 
-    // It's not an error if pricing isn't set up yet, return null.
     if (rows.length === 0) {
-      return res.json(null);
+      return res.status(200).json(null);
     }
 
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Get Program Pricing by Program ID Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get Program Pricing by Program ID Error:", {
+      message: error.message,
+      stack: error.stack,
+      programId: req.params.programId,
+    });
+    next(new AppError("Failed to retrieve program pricing.", 500));
   }
 };
 
-exports.createProgramPricing = async (req, res) => {
+exports.createProgramPricing = async (req, res, next) => {
   try {
     const newPricing = await ProgramPricingService.createPricingAndBookings(
       req.db,
-      req.user, // Pass the whole user object
+      req.user,
       req.body
     );
     res.status(201).json(newPricing);
   } catch (error) {
-    console.error("Create Pricing Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Create Pricing Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    next(new AppError("Failed to create program pricing.", 400));
   }
 };
 
-exports.updateProgramPricing = async (req, res) => {
-  const { id } = req.params;
+exports.updateProgramPricing = async (req, res, next) => {
   try {
+    const { id } = req.params;
     const updatedProgramPricing =
       await ProgramPricingService.updatePricingAndBookings(
         req.db,
-        req.user, // Pass user object
+        req.user,
         id,
         req.body
       );
-    res.json(updatedProgramPricing);
+    res.status(200).json(updatedProgramPricing);
   } catch (error) {
-    console.error("Update Pricing Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Update Pricing Error:", {
+      message: error.message,
+      stack: error.stack,
+      pricingId: req.params.id,
+    });
+    next(new AppError("Failed to update program pricing.", 400));
   }
 };
 
-exports.deleteProgramPricing = async (req, res) => {
-  const { id } = req.params;
+exports.deleteProgramPricing = async (req, res, next) => {
   try {
-    // Authorization Check
+    const { id } = req.params;
     const pricingRes = await req.db.query(
       'SELECT "employeeId" FROM program_pricing WHERE id = $1 AND "userId" = $2',
       [id, req.user.adminId]
     );
 
     if (pricingRes.rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Program pricing not found or not authorized." });
+      return next(
+        new AppError("Program pricing not found or not authorized.", 404)
+      );
     }
 
     const pricing = pricingRes.rows[0];
     if (req.user.role !== "admin" && pricing.employeeId !== req.user.id) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to delete this pricing." });
+      return next(
+        new AppError("You are not authorized to delete this pricing.", 403)
+      );
     }
 
-    // Deletion
-    const { rowCount } = await req.db.query(
-      "DELETE FROM program_pricing WHERE id = $1",
-      [id]
-    );
+    await req.db.query("DELETE FROM program_pricing WHERE id = $1", [id]);
 
-    if (rowCount === 0) {
-      // This case should be rare due to the check above, but it is good practice
-      return res.status(404).json({ message: "Program pricing not found." });
-    }
-
-    res.json({ message: "Program pricing deleted successfully" });
+    res.status(200).json({ message: "Program pricing deleted successfully" });
   } catch (error) {
-    console.error("Delete Pricing Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Delete Pricing Error:", {
+      message: error.message,
+      stack: error.stack,
+      pricingId: req.params.id,
+    });
+    next(new AppError("Failed to delete program pricing.", 500));
   }
 };

@@ -1,5 +1,8 @@
 // backend/controllers/dailyServiceController.js
-const getDailyServices = async (req, res) => {
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
+
+const getDailyServices = async (req, res, next) => {
   try {
     const { adminId } = req.user;
     const page = parseInt(req.query.page || "1", 10);
@@ -23,7 +26,7 @@ const getDailyServices = async (req, res) => {
 
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
-    res.json({
+    res.status(200).json({
       data: servicesResult.rows,
       pagination: {
         page,
@@ -33,19 +36,22 @@ const getDailyServices = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get Daily Services Error:", error);
-    res.status(500).json({ message: "Failed to retrieve daily services." });
+    logger.error("Get Daily Services Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve daily services.", 500));
   }
 };
 
-const createDailyService = async (req, res) => {
-  const { adminId, id: employeeId, role } = req.user;
-  const { type, serviceName, originalPrice, totalPrice, date } = req.body;
-
-  const commission = totalPrice - originalPrice;
-  const profit = commission; // Since VAT is removed, profit is the commission
-
+const createDailyService = async (req, res, next) => {
   try {
+    const { adminId, id: employeeId, role } = req.user;
+    const { type, serviceName, originalPrice, totalPrice, date } = req.body;
+
+    const commission = totalPrice - originalPrice;
+    const profit = commission;
+
     const { rows } = await req.db.query(
       `INSERT INTO daily_services ("userId", "employeeId", type, "serviceName", "originalPrice", "totalPrice", commission, profit, date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
@@ -63,19 +69,23 @@ const createDailyService = async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error("Create Daily Service Error:", error);
-    res.status(400).json({ message: "Failed to create daily service." });
+    logger.error("Create Daily Service Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    next(new AppError("Failed to create daily service.", 400));
   }
 };
 
-const updateDailyService = async (req, res) => {
+const updateDailyService = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { adminId } = req.user;
     const { type, serviceName, originalPrice, totalPrice, date } = req.body;
 
     const commission = totalPrice - originalPrice;
-    const profit = commission; // Since VAT is removed
+    const profit = commission;
 
     const { rows } = await req.db.query(
       `UPDATE daily_services 
@@ -95,18 +105,20 @@ const updateDailyService = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Service not found or not authorized." });
+      return next(new AppError("Service not found or not authorized.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Update Daily Service Error:", error);
-    res.status(400).json({ message: "Failed to update daily service." });
+    logger.error("Update Daily Service Error:", {
+      message: error.message,
+      stack: error.stack,
+      serviceId: req.params.id,
+    });
+    next(new AppError("Failed to update daily service.", 400));
   }
 };
 
-const deleteDailyService = async (req, res) => {
+const deleteDailyService = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { adminId } = req.user;
@@ -117,26 +129,27 @@ const deleteDailyService = async (req, res) => {
     );
 
     if (rowCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "Service not found or not authorized." });
+      return next(new AppError("Service not found or not authorized.", 404));
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Delete Daily Service Error:", error);
-    res.status(500).json({ message: "Failed to delete daily service." });
+    logger.error("Delete Daily Service Error:", {
+      message: error.message,
+      stack: error.stack,
+      serviceId: req.params.id,
+    });
+    next(new AppError("Failed to delete daily service.", 500));
   }
 };
 
-const getDailyServiceReport = async (req, res) => {
-  const { adminId } = req.user;
-  const { startDate, endDate } = req.query;
-
-  const isValidDate = (dateString) =>
-    dateString && !isNaN(new Date(dateString));
-
+const getDailyServiceReport = async (req, res, next) => {
   try {
-    // 1. Lifetime Summary (always runs)
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
     const lifetimeSummaryQuery = `
       SELECT
         COUNT(*) as "totalSalesCount",
@@ -150,7 +163,6 @@ const getDailyServiceReport = async (req, res) => {
       adminId,
     ]);
 
-    // 2. Monthly Trend for the last 6 months (always runs)
     const monthlyTrendQuery = `
       SELECT
           TO_CHAR(date, 'YYYY-MM') as month,
@@ -162,7 +174,6 @@ const getDailyServiceReport = async (req, res) => {
     `;
     const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
 
-    // 3. Date-Filtered Data (summary and byType)
     let dateFilterClause = "";
     const queryParams = [adminId];
     if (isValidDate(startDate) && isValidDate(endDate)) {
@@ -208,7 +219,7 @@ const getDailyServiceReport = async (req, res) => {
 
     const filteredData = filteredDataResult.rows[0];
 
-    res.json({
+    res.status(200).json({
       lifetimeSummary: lifetimeSummaryResult.rows[0],
       dateFilteredSummary: filteredData.dateFilteredSummary || {
         totalSalesCount: 0,
@@ -223,8 +234,11 @@ const getDailyServiceReport = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error("Daily Service Report Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Daily Service Report Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve daily service report.", 500));
   }
 };
 

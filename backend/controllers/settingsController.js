@@ -1,11 +1,12 @@
 // backend/controllers/settingsController.js
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
 const getSettings = async (req, res) => {
-  // The settings are already attached to req.user via authMiddleware
-  res.json(req.user.facturationSettings || {});
+  res.status(200).json(req.user.facturationSettings || {});
 };
 
-const updateSettings = async (req, res) => {
+const updateSettings = async (req, res, next) => {
   try {
     const { id } = req.user;
     const settings = req.body;
@@ -16,12 +17,16 @@ const updateSettings = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "User not found." });
+      return next(new AppError("User not found.", 404));
     }
-    res.json(rows[0].facturationSettings);
+    res.status(200).json(rows[0].facturationSettings);
   } catch (error) {
-    console.error("Update Settings Error:", error);
-    res.status(500).json({ message: "Failed to update settings." });
+    logger.error("Update Settings Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.user.id,
+    });
+    next(new AppError("Failed to update settings.", 500));
   }
 };
 

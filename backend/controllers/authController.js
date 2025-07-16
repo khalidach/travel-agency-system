@@ -1,6 +1,8 @@
 // backend/controllers/authController.js
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
 const generateToken = (id, role, adminId, tierId) => {
   return jwt.sign({ id, role, adminId, tierId }, process.env.JWT_SECRET, {
@@ -14,18 +16,21 @@ const safeJsonParse = (data) => {
     try {
       return JSON.parse(data);
     } catch (e) {
-      // Return null or an empty object if parsing fails
+      logger.warn("Failed to parse JSON data in auth controller", { data });
       return null;
     }
   }
-  // Return data as is if it's already an object (or null/undefined)
   return data;
 };
 
-const loginUser = async (req, res) => {
-  const { username, password } = req.body;
-  const trimmedUsername = username.trim(); // Trim whitespace from username
+const loginUser = async (req, res, next) => {
   try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return next(new AppError("Please provide username and password.", 400));
+    }
+    const trimmedUsername = username.trim();
+
     // Check users table (admins and owners)
     let userResult = await req.db.query(
       `SELECT u.*, t.limits as "tierLimits"
@@ -34,23 +39,21 @@ const loginUser = async (req, res) => {
        WHERE u.username = $1`,
       [trimmedUsername]
     );
+
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
-
-      // Check if user is active
       if (user.activeUser === false) {
-        return res.status(401).json({ message: "Account is deactivated." });
+        return next(new AppError("This account has been deactivated.", 401));
       }
-
       if (await bcrypt.compare(password, user.password)) {
-        return res.json({
+        logger.info(`User login successful: ${user.username}`);
+        return res.status(200).json({
           id: user.id,
           username: user.username,
           agencyName: user.agencyName,
           role: user.role,
           activeUser: user.activeUser,
           tierId: user.tierId,
-          // FIX: Ensure limits are always parsed to objects
           limits: safeJsonParse(user.limits),
           tierLimits: safeJsonParse(user.tierLimits),
           token: generateToken(user.id, user.role, user.id, user.tierId),
@@ -75,24 +78,22 @@ const loginUser = async (req, res) => {
       );
 
       const adminData = adminResult.rows[0] || {};
-
-      // Check if the admin of the employee is active
       if (adminData.activeUser === false) {
-        return res
-          .status(401)
-          .json({ message: "Agency account is deactivated." });
+        return next(
+          new AppError("The agency for this account has been deactivated.", 401)
+        );
       }
 
       if (await bcrypt.compare(password, employee.password)) {
-        return res.json({
+        logger.info(`Employee login successful: ${employee.username}`);
+        return res.status(200).json({
           id: employee.id,
           username: employee.username,
           agencyName: adminData.agencyName || "Agency",
           role: employee.role,
           adminId: employee.adminId,
-          activeUser: true, // Employees inherit active status from their admin
+          activeUser: true,
           tierId: adminData.tierId,
-          // FIX: Ensure limits are always parsed to objects
           limits: safeJsonParse(adminData.limits),
           tierLimits: safeJsonParse(adminData.tierLimits),
           token: generateToken(
@@ -105,30 +106,52 @@ const loginUser = async (req, res) => {
       }
     }
 
-    // If no user found in either table
-    res.status(401).json({ message: "Invalid username or password" });
+    // If no user found or password incorrect
+    return next(new AppError("Invalid username or password.", 401));
   } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Login Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    return next(
+      new AppError("An error occurred during login. Please try again.", 500)
+    );
   }
 };
 
-const refreshToken = async (req, res) => {
-  // The user object is already fully populated by the 'protect' middleware
-  const { id, role, adminId, agencyName, tierId, limits, tierLimits } =
-    req.user;
-  res.json({
-    id,
-    username: req.user.username,
-    agencyName,
-    role,
-    adminId,
-    tierId,
-    // FIX: Ensure limits are always parsed to objects, even on refresh
-    limits: safeJsonParse(limits),
-    tierLimits: safeJsonParse(tierLimits),
-    token: generateToken(id, role, adminId, tierId),
-  });
+const refreshToken = async (req, res, next) => {
+  try {
+    const {
+      id,
+      role,
+      adminId,
+      agencyName,
+      tierId,
+      limits,
+      tierLimits,
+      username,
+    } = req.user;
+    logger.info(`Token refreshed for user: ${username}`);
+    res.status(200).json({
+      id,
+      username: username,
+      agencyName,
+      role,
+      adminId,
+      tierId,
+      limits: safeJsonParse(limits),
+      tierLimits: safeJsonParse(tierLimits),
+      token: generateToken(id, role, adminId, tierId),
+    });
+  } catch (error) {
+    logger.error("Token Refresh Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    return next(
+      new AppError("Could not refresh token. Please log in again.", 500)
+    );
+  }
 };
 
 module.exports = { loginUser, refreshToken };

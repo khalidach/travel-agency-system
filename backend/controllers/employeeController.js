@@ -1,20 +1,22 @@
 // backend/controllers/employeeController.js
 const bcrypt = require("bcryptjs");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-// Only admins can create employees
-exports.createEmployee = async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Not authorized" });
-  }
-  const { username, password, role } = req.body;
-  const adminId = req.user.id;
-
-  if (!username || !password || !role) {
-    return res.status(400).json({ message: "Please provide all fields" });
-  }
-
+exports.createEmployee = async (req, res, next) => {
   try {
-    // The check for employee limit is now handled by the tierMiddleware
+    if (req.user.role !== "admin") {
+      return next(
+        new AppError("You are not authorized to perform this action.", 403)
+      );
+    }
+    const { username, password, role } = req.body;
+    const adminId = req.user.id;
+
+    if (!username || !password || !role) {
+      return next(new AppError("Please provide all required fields.", 400));
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -24,20 +26,25 @@ exports.createEmployee = async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error(error);
+    logger.error("Create Employee Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
     if (error.code === "23505") {
-      return res.status(400).json({ message: "Username already exists." });
+      return next(new AppError("Username already exists.", 409));
     }
-    res.status(500).json({ message: "Server error" });
+    next(new AppError("Failed to create employee.", 500));
   }
 };
 
-// Get all employees for the logged-in admin or manager, now including booking counts
-exports.getEmployees = async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "manager") {
-    return res.status(403).json({ message: "Not authorized" });
-  }
+exports.getEmployees = async (req, res, next) => {
   try {
+    if (req.user.role !== "admin" && req.user.role !== "manager") {
+      return next(
+        new AppError("You are not authorized to view employees.", 403)
+      );
+    }
     const employeesQuery = `
       SELECT e.id, e.username, e.role, COUNT(b.id) as "bookingCount"
       FROM employees e
@@ -50,7 +57,6 @@ exports.getEmployees = async (req, res) => {
       req.user.adminId,
     ]);
 
-    // Get the effective limits (custom or tier-based)
     const getLimits = async (req) => {
       if (req.user.limits && Object.keys(req.user.limits).length > 0) {
         return req.user.limits;
@@ -66,7 +72,7 @@ exports.getEmployees = async (req, res) => {
     const limits = await getLimits(req);
     const employeeLimit = limits.employees ?? 2;
 
-    res.json({
+    res.status(200).json({
       employees: employeesResult.rows.map((emp) => ({
         ...emp,
         bookingCount: parseInt(emp.bookingCount, 10),
@@ -74,23 +80,25 @@ exports.getEmployees = async (req, res) => {
       limit: employeeLimit,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Get Employees Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve employees.", 500));
   }
 };
 
-// This now only fetches lifetime stats and basic info
-exports.getEmployeeAnalysis = async (req, res) => {
-  const { username } = req.params;
-  const { adminId } = req.user;
-
+exports.getEmployeeAnalysis = async (req, res, next) => {
   try {
+    const { username } = req.params;
+    const { adminId } = req.user;
+
     const employeeRes = await req.db.query(
       'SELECT * FROM employees WHERE username = $1 AND "adminId" = $2',
       [username, adminId]
     );
     if (employeeRes.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return next(new AppError("Employee not found.", 404));
     }
     const employee = employeeRes.rows[0];
 
@@ -114,7 +122,7 @@ exports.getEmployeeAnalysis = async (req, res) => {
         dailyServicesMadePromise,
       ]);
 
-    res.json({
+    res.status(200).json({
       employee,
       programsCreatedCount: parseInt(programsCreatedResult.rows[0].count, 10),
       bookingsMadeCount: parseInt(bookingsMadeResult.rows[0].count, 10),
@@ -124,27 +132,30 @@ exports.getEmployeeAnalysis = async (req, res) => {
       ),
     });
   } catch (error) {
-    console.error("Employee Analysis Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Employee Analysis Error:", {
+      message: error.message,
+      stack: error.stack,
+      username: req.params.username,
+    });
+    next(new AppError("Failed to retrieve employee analysis.", 500));
   }
 };
 
-// New function for program performance
-exports.getEmployeeProgramPerformance = async (req, res) => {
-  const { username } = req.params;
-  const { adminId } = req.user;
-  const { startDate, endDate } = req.query;
-
-  const isValidDate = (dateString) =>
-    dateString && !isNaN(new Date(dateString));
-
+exports.getEmployeeProgramPerformance = async (req, res, next) => {
   try {
+    const { username } = req.params;
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
     const employeeRes = await req.db.query(
       'SELECT id FROM employees WHERE username = $1 AND "adminId" = $2',
       [username, adminId]
     );
     if (employeeRes.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return next(new AppError("Employee not found.", 404));
     }
     const employee = employeeRes.rows[0];
 
@@ -197,7 +208,7 @@ exports.getEmployeeProgramPerformance = async (req, res) => {
 
     const summary = summaryResult.rows[0] || {};
 
-    res.json({
+    res.status(200).json({
       programPerformance: performanceResult.rows.map((r) => ({
         ...r,
         bookingCount: parseInt(r.bookingCount, 10),
@@ -213,27 +224,30 @@ exports.getEmployeeProgramPerformance = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Employee Program Performance Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Employee Program Performance Error:", {
+      message: error.message,
+      stack: error.stack,
+      username: req.params.username,
+    });
+    next(new AppError("Failed to retrieve employee program performance.", 500));
   }
 };
 
-// New function for service performance
-exports.getEmployeeServicePerformance = async (req, res) => {
-  const { username } = req.params;
-  const { adminId } = req.user;
-  const { startDate, endDate } = req.query;
-
-  const isValidDate = (dateString) =>
-    dateString && !isNaN(new Date(dateString));
-
+exports.getEmployeeServicePerformance = async (req, res, next) => {
   try {
+    const { username } = req.params;
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
     const employeeRes = await req.db.query(
       'SELECT id FROM employees WHERE username = $1 AND "adminId" = $2',
       [username, adminId]
     );
     if (employeeRes.rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return next(new AppError("Employee not found.", 404));
     }
     const employee = employeeRes.rows[0];
 
@@ -283,7 +297,7 @@ exports.getEmployeeServicePerformance = async (req, res) => {
 
     const summary = summaryResult.rows[0] || {};
 
-    res.json({
+    res.status(200).json({
       dailyServicePerformance: performanceResult.rows.map((r) => ({
         ...r,
         serviceCount: parseInt(r.serviceCount, 10),
@@ -299,20 +313,25 @@ exports.getEmployeeServicePerformance = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Employee Service Performance Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Employee Service Performance Error:", {
+      message: error.message,
+      stack: error.stack,
+      username: req.params.username,
+    });
+    next(new AppError("Failed to retrieve employee service performance.", 500));
   }
 };
 
-// Update an employee
-exports.updateEmployee = async (req, res) => {
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Not authorized" });
-  }
-  const { id } = req.params;
-  const { username, password, role } = req.body;
-
+exports.updateEmployee = async (req, res, next) => {
   try {
+    if (req.user.role !== "admin") {
+      return next(
+        new AppError("You are not authorized to update employees.", 403)
+      );
+    }
+    const { id } = req.params;
+    const { username, password, role } = req.body;
+
     let hashedPassword;
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -329,27 +348,31 @@ exports.updateEmployee = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Employee not found" });
+      return next(new AppError("Employee not found.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Update Employee Error:", {
+      message: error.message,
+      stack: error.stack,
+      employeeId: req.params.id,
+    });
+    next(new AppError("Failed to update employee.", 500));
   }
 };
 
-// Delete an employee
-exports.deleteEmployee = async (req, res) => {
+exports.deleteEmployee = async (req, res, next) => {
   if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Not authorized" });
+    return next(
+      new AppError("You are not authorized to delete employees.", 403)
+    );
   }
-  const { id } = req.params; // This is the employee ID to delete
+  const { id } = req.params;
   const client = await req.db.connect();
 
   try {
     await client.query("BEGIN");
 
-    // Check if the employee belongs to the admin trying to delete them
     const employeeCheck = await client.query(
       'SELECT id FROM employees WHERE id = $1 AND "adminId" = $2',
       [id, req.user.id]
@@ -357,12 +380,9 @@ exports.deleteEmployee = async (req, res) => {
 
     if (employeeCheck.rows.length === 0) {
       await client.query("ROLLBACK");
-      return res
-        .status(404)
-        .json({ message: "Employee not found or not authorized." });
+      return next(new AppError("Employee not found or not authorized.", 404));
     }
 
-    // Set employeeId to NULL in related tables to avoid foreign key violations
     await client.query(
       'UPDATE programs SET "employeeId" = NULL WHERE "employeeId" = $1',
       [id]
@@ -384,24 +404,18 @@ exports.deleteEmployee = async (req, res) => {
       [id]
     );
 
-    // Now, it's safe to delete the employee
-    const { rowCount } = await client.query(
-      "DELETE FROM employees WHERE id = $1",
-      [id]
-    );
-
-    if (rowCount === 0) {
-      // This case should ideally not be reached due to the check above, but it's good practice.
-      await client.query("ROLLBACK");
-      return res.status(404).json({ message: "Employee not found" });
-    }
+    await client.query("DELETE FROM employees WHERE id = $1", [id]);
 
     await client.query("COMMIT");
-    res.json({ message: "Employee deleted successfully" });
+    res.status(200).json({ message: "Employee deleted successfully" });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Delete Employee Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Delete Employee Error:", {
+      message: error.message,
+      stack: error.stack,
+      employeeId: id,
+    });
+    next(new AppError("Failed to delete employee.", 500));
   } finally {
     client.release();
   }

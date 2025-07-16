@@ -1,22 +1,22 @@
 // backend/controllers/dashboardController.js
-const getDashboardStats = async (req, res) => {
-  const { adminId } = req.user;
-  const { startDate, endDate } = req.query;
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-  const isValidDate = (dateString) =>
-    dateString && !isNaN(new Date(dateString));
-
+const getDashboardStats = async (req, res, next) => {
   try {
-    // FIX: Construct the date filter clause safely.
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
     let dateFilterClause = "";
     const queryParams = [adminId];
     if (isValidDate(startDate) && isValidDate(endDate)) {
       queryParams.push(startDate, endDate);
-      // The clause now correctly includes the table alias 'b.'
       dateFilterClause = `AND b."createdAt"::date BETWEEN $2 AND $3`;
     }
 
-    // This consolidated query is now corrected to handle the optional date filter.
     const statsQuery = `
       SELECT
         (SELECT COUNT(*) FROM programs WHERE "userId" = $1) as "activePrograms",
@@ -39,7 +39,6 @@ const getDashboardStats = async (req, res) => {
 
     const statsPromise = req.db.query(statsQuery, queryParams);
 
-    // Other independent queries remain the same
     const programTypePromise = req.db.query(
       `SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type`,
       [adminId]
@@ -51,8 +50,6 @@ const getDashboardStats = async (req, res) => {
        LIMIT 3`,
       [adminId]
     );
-
-    // New query for daily service profit by type
     const dailyServiceProfitPromise = req.db.query(
       `SELECT type, COALESCE(SUM(profit), 0) as "totalProfit" 
        FROM daily_services 
@@ -117,20 +114,21 @@ const getDashboardStats = async (req, res) => {
       recentBookings: recentBookings,
     };
 
-    res.json(formattedResponse);
+    res.status(200).json(formattedResponse);
   } catch (error) {
-    console.error("Dashboard Stats Error:", error);
-    res.status(500).json({
-      message: "Server error",
+    logger.error("Dashboard Stats Error:", {
+      message: error.message,
+      stack: error.stack,
     });
+    next(new AppError("Failed to retrieve dashboard statistics.", 500));
   }
 };
 
-const getProfitReport = async (req, res) => {
-  const { adminId } = req.user;
-  const { programType } = req.query;
-
+const getProfitReport = async (req, res, next) => {
   try {
+    const { adminId } = req.user;
+    const { programType } = req.query;
+
     let programProfitsQuery = `
             SELECT
                 p.id,
@@ -189,7 +187,7 @@ const getProfitReport = async (req, res) => {
       bookings: parseInt(row.bookings, 10),
     }));
 
-    res.json({
+    res.status(200).json({
       profitData,
       monthlyTrend: monthlyTrendResult.rows.map((row) => ({
         ...row,
@@ -199,10 +197,11 @@ const getProfitReport = async (req, res) => {
       })),
     });
   } catch (error) {
-    console.error("Profit Report Error:", error);
-    res.status(500).json({
-      message: "Server error",
+    logger.error("Profit Report Error:", {
+      message: error.message,
+      stack: error.stack,
     });
+    next(new AppError("Failed to retrieve profit report.", 500));
   }
 };
 

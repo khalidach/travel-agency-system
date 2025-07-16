@@ -1,15 +1,18 @@
 // backend/controllers/ownerController.js
 const bcrypt = require("bcryptjs");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-// Only owner can perform these actions
 const authorizeOwner = (req, res, next) => {
   if (req.user.role !== "owner") {
-    return res.status(403).json({ message: "Not authorized" });
+    return next(
+      new AppError("You are not authorized to perform this action.", 403)
+    );
   }
   next();
 };
 
-const getAdminUsers = async (req, res) => {
+const getAdminUsers = async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
       `SELECT u.id, u.username, u."agencyName", u.role, u."activeUser", u."tierId", u.limits, t.limits as "tierLimits" 
@@ -17,25 +20,26 @@ const getAdminUsers = async (req, res) => {
        LEFT JOIN tiers t ON u."tierId" = t.id 
        WHERE u.role = 'admin' ORDER BY u.id ASC`
     );
-    res.json(rows);
+    res.status(200).json(rows);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Get Admin Users Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve admin users.", 500));
   }
 };
 
-const createAdminUser = async (req, res) => {
-  const { username, password, agencyName, tierId } = req.body;
-
-  if (!username || !password || !agencyName) {
-    return res.status(400).json({ message: "Please provide all fields" });
-  }
-
+const createAdminUser = async (req, res, next) => {
   try {
+    const { username, password, agencyName, tierId } = req.body;
+
+    if (!username || !password || !agencyName) {
+      return next(new AppError("Please provide all required fields.", 400));
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Use the provided tierId, or default to 1 if it's not provided.
     const finalTierId = tierId || 1;
 
     const { rows } = await req.db.query(
@@ -44,20 +48,23 @@ const createAdminUser = async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error("Create Admin User Error:", error);
+    logger.error("Create Admin User Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
     if (error.code === "23505") {
-      // unique_violation
-      return res.status(400).json({ message: "Username already exists." });
+      return next(new AppError("Username already exists.", 409));
     }
-    res.status(500).json({ message: "Server error" });
+    next(new AppError("Failed to create admin user.", 500));
   }
 };
 
-const updateAdminUser = async (req, res) => {
-  const { id } = req.params;
-  const { username, password, agencyName } = req.body;
-
+const updateAdminUser = async (req, res, next) => {
   try {
+    const { id } = req.params;
+    const { username, password, agencyName } = req.body;
+
     let hashedPassword;
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -74,70 +81,81 @@ const updateAdminUser = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Admin user not found" });
+      return next(new AppError("Admin user not found.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Update Admin User Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to update admin user.", 500));
   }
 };
 
-const toggleUserStatus = async (req, res) => {
-  const { id } = req.params;
-  const { activeUser } = req.body;
-
-  if (typeof activeUser !== "boolean") {
-    return res
-      .status(400)
-      .json({ message: "Invalid 'activeUser' value. Must be a boolean." });
-  }
-
+const toggleUserStatus = async (req, res, next) => {
   try {
+    const { id } = req.params;
+    const { activeUser } = req.body;
+
+    if (typeof activeUser !== "boolean") {
+      return next(
+        new AppError("Invalid 'activeUser' value. Must be a boolean.", 400)
+      );
+    }
+
     const { rows } = await req.db.query(
       `UPDATE users SET "activeUser" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
       [activeUser, id]
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Admin user not found" });
+      return next(new AppError("Admin user not found.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Toggle User Status Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to update user status.", 500));
   }
 };
 
-const deleteAdminUser = async (req, res) => {
-  const { id } = req.params;
+const deleteAdminUser = async (req, res, next) => {
   try {
+    const { id } = req.params;
     const { rowCount } = await req.db.query(
       "DELETE FROM users WHERE id = $1 AND role = 'admin'",
       [id]
     );
     if (rowCount === 0) {
-      return res.status(404).json({ message: "Admin user not found" });
+      return next(new AppError("Admin user not found.", 404));
     }
-    res.json({ message: "Admin user deleted successfully" });
+    res.status(200).json({ message: "Admin user deleted successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Delete Admin User Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to delete admin user.", 500));
   }
 };
 
-const updateAdminTier = async (req, res) => {
-  const { id } = req.params;
-  const { tierId } = req.body;
-
+const updateAdminTier = async (req, res, next) => {
   try {
-    // Check if the tierId exists in the database
+    const { id } = req.params;
+    const { tierId } = req.body;
+
     const tierCheck = await req.db.query("SELECT id FROM tiers WHERE id = $1", [
       tierId,
     ]);
 
     if (tierCheck.rows.length === 0) {
-      return res.status(400).json({ message: "Invalid Tier ID provided." });
+      return next(new AppError("Invalid Tier ID provided.", 400));
     }
 
     const { rows } = await req.db.query(
@@ -146,36 +164,44 @@ const updateAdminTier = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Admin user not found" });
+      return next(new AppError("Admin user not found.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Update Admin Tier Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to update user tier.", 500));
   }
 };
 
-const updateAdminUserLimits = async (req, res) => {
-  const { id } = req.params;
-  const { limits } = req.body;
-
-  if (!limits || typeof limits !== "object") {
-    return res.status(400).json({ message: "Invalid limits data provided." });
-  }
-
+const updateAdminUserLimits = async (req, res, next) => {
   try {
+    const { id } = req.params;
+    const { limits } = req.body;
+
+    if (!limits || typeof limits !== "object") {
+      return next(new AppError("Invalid limits data provided.", 400));
+    }
+
     const { rows } = await req.db.query(
       `UPDATE users SET "limits" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", limits`,
       [JSON.stringify(limits), id]
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Admin user not found" });
+      return next(new AppError("Admin user not found.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Update Admin User Limits Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to update user limits.", 500));
   }
 };
 

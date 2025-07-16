@@ -2,9 +2,11 @@
 const BookingService = require("../services/BookingService");
 const ExcelService = require("../services/ExcelService");
 const BookingExcelService = require("../services/BookingExcelService");
-const ExcelListService = require("../services/ExcelListService"); // Import the new service
+const ExcelListService = require("../services/ExcelListService");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-exports.getAllBookings = async (req, res) => {
+exports.getAllBookings = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || "1", 10);
     const limit = parseInt(req.query.limit || "10", 10);
@@ -21,7 +23,7 @@ exports.getAllBookings = async (req, res) => {
       idColumn
     );
 
-    res.json({
+    res.status(200).json({
       data: bookings,
       pagination: {
         page,
@@ -31,12 +33,15 @@ exports.getAllBookings = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get All Bookings Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get All Bookings Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve bookings.", 500));
   }
 };
 
-exports.getBookingsByProgram = async (req, res) => {
+exports.getBookingsByProgram = async (req, res, next) => {
   try {
     const { programId } = req.params;
     const {
@@ -161,7 +166,7 @@ exports.getBookingsByProgram = async (req, res) => {
       const totalRevenue = parseFloat(summaryStats.totalRevenue);
       const totalPaid = parseFloat(summaryStats.totalPaid);
 
-      res.json({
+      res.status(200).json({
         data: paginatedBookings,
         pagination: {
           page: parseInt(page, 10),
@@ -223,7 +228,7 @@ exports.getBookingsByProgram = async (req, res) => {
       const totalRevenue = parseFloat(result.totalRevenue);
       const totalPaid = parseFloat(result.totalPaid);
 
-      res.json({
+      res.status(200).json({
         data: bookings,
         pagination: {
           page: parseInt(page, 10),
@@ -242,12 +247,15 @@ exports.getBookingsByProgram = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Get Bookings By Program Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get Bookings By Program Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve bookings for the program.", 500));
   }
 };
 
-exports.getBookingIdsByProgram = async (req, res) => {
+exports.getBookingIdsByProgram = async (req, res, next) => {
   try {
     const { programId } = req.params;
     const {
@@ -303,14 +311,17 @@ exports.getBookingIdsByProgram = async (req, res) => {
     const { rows } = await req.db.query(idsQuery, queryParams);
     const ids = rows.map((row) => row.id);
 
-    res.json({ ids });
+    res.status(200).json({ ids });
   } catch (error) {
-    console.error("Get Booking Ids By Program Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get Booking Ids By Program Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve booking IDs.", 500));
   }
 };
 
-exports.createBooking = async (req, res) => {
+exports.createBooking = async (req, res, next) => {
   try {
     const newBooking = await BookingService.createBooking(
       req.db,
@@ -319,12 +330,19 @@ exports.createBooking = async (req, res) => {
     );
     res.status(201).json(newBooking);
   } catch (error) {
-    console.error("Create Booking Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Create Booking Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    if (error.message.includes("already booked")) {
+      return next(new AppError(error.message, 409)); // 409 Conflict
+    }
+    next(new AppError("Failed to create booking.", 400));
   }
 };
 
-exports.updateBooking = async (req, res) => {
+exports.updateBooking = async (req, res, next) => {
   const { id } = req.params;
   try {
     const updatedBooking = await BookingService.updateBooking(
@@ -333,25 +351,43 @@ exports.updateBooking = async (req, res) => {
       id,
       req.body
     );
-    res.json(updatedBooking);
+    res.status(200).json(updatedBooking);
   } catch (error) {
-    console.error("Update Booking Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Update Booking Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: id,
+      body: req.body,
+    });
+    if (error.message.includes("not authorized")) {
+      return next(new AppError(error.message, 403));
+    }
+    if (error.message.includes("not found")) {
+      return next(new AppError(error.message, 404));
+    }
+    next(new AppError("Failed to update booking.", 400));
   }
 };
 
-exports.deleteBooking = async (req, res) => {
+exports.deleteBooking = async (req, res, next) => {
   const { id } = req.params;
   try {
     const result = await BookingService.deleteBooking(req.db, req.user, id);
-    res.json(result);
+    res.status(200).json(result);
   } catch (error) {
-    console.error("Delete Booking Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Delete Booking Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: id,
+    });
+    if (error.message.includes("not authorized")) {
+      return next(new AppError(error.message, 403));
+    }
+    next(new AppError("Failed to delete booking.", 500));
   }
 };
 
-exports.deleteMultipleBookings = async (req, res) => {
+exports.deleteMultipleBookings = async (req, res, next) => {
   const { bookingIds, filters } = req.body;
   try {
     const result = await BookingService.deleteMultipleBookings(
@@ -360,14 +396,18 @@ exports.deleteMultipleBookings = async (req, res) => {
       bookingIds,
       filters
     );
-    res.json(result);
+    res.status(200).json(result);
   } catch (error) {
-    console.error("Delete Multiple Bookings Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Delete Multiple Bookings Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    next(new AppError("Failed to delete bookings.", 500));
   }
 };
 
-exports.addPayment = async (req, res) => {
+exports.addPayment = async (req, res, next) => {
   try {
     const updatedBooking = await BookingService.addPayment(
       req.db,
@@ -375,13 +415,18 @@ exports.addPayment = async (req, res) => {
       req.params.bookingId,
       req.body
     );
-    res.json(updatedBooking);
+    res.status(200).json(updatedBooking);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    logger.error("Add Payment Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: req.params.bookingId,
+    });
+    next(new AppError("Failed to add payment.", 400));
   }
 };
 
-exports.updatePayment = async (req, res) => {
+exports.updatePayment = async (req, res, next) => {
   try {
     const updatedBooking = await BookingService.updatePayment(
       req.db,
@@ -390,13 +435,19 @@ exports.updatePayment = async (req, res) => {
       req.params.paymentId,
       req.body
     );
-    res.json(updatedBooking);
+    res.status(200).json(updatedBooking);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    logger.error("Update Payment Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: req.params.bookingId,
+      paymentId: req.params.paymentId,
+    });
+    next(new AppError("Failed to update payment.", 400));
   }
 };
 
-exports.deletePayment = async (req, res) => {
+exports.deletePayment = async (req, res, next) => {
   try {
     const updatedBooking = await BookingService.deletePayment(
       req.db,
@@ -404,13 +455,19 @@ exports.deletePayment = async (req, res) => {
       req.params.bookingId,
       req.params.paymentId
     );
-    res.json(updatedBooking);
+    res.status(200).json(updatedBooking);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    logger.error("Delete Payment Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: req.params.bookingId,
+      paymentId: req.params.paymentId,
+    });
+    next(new AppError("Failed to delete payment.", 500));
   }
 };
 
-exports.exportBookingsToExcel = async (req, res) => {
+exports.exportBookingsToExcel = async (req, res, next) => {
   const client = await req.db.connect();
   try {
     await client.query("BEGIN");
@@ -418,7 +475,7 @@ exports.exportBookingsToExcel = async (req, res) => {
     const { adminId, role } = req.user;
 
     if (!programId || programId === "undefined") {
-      throw new Error("A program must be selected for export.");
+      throw new AppError("A program must be selected for export.", 400);
     }
 
     const { rows: programs } = await client.query(
@@ -427,7 +484,7 @@ exports.exportBookingsToExcel = async (req, res) => {
     );
 
     if (programs.length === 0) {
-      throw new Error("Program not found.");
+      throw new AppError("Program not found.", 404);
     }
 
     const { rows: bookings } = await client.query(
@@ -478,18 +535,19 @@ exports.exportBookingsToExcel = async (req, res) => {
     res.end();
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Failed to export to Excel:", error);
+    logger.error("Failed to export bookings to Excel:", {
+      message: error.message,
+      stack: error.stack,
+    });
     if (!res.headersSent) {
-      res.status(500).json({
-        message: error.message || "Failed to export bookings to Excel.",
-      });
+      next(new AppError("Failed to export bookings to Excel.", 500));
     }
   } finally {
     client.release();
   }
 };
 
-exports.exportFlightListToExcel = async (req, res) => {
+exports.exportFlightListToExcel = async (req, res, next) => {
   const client = await req.db.connect();
   try {
     await client.query("BEGIN");
@@ -497,7 +555,7 @@ exports.exportFlightListToExcel = async (req, res) => {
     const { adminId, agencyName } = req.user;
 
     if (!programId || programId === "undefined") {
-      throw new Error("A program must be selected for export.");
+      throw new AppError("A program must be selected for export.", 400);
     }
 
     const { rows: programs } = await client.query(
@@ -506,7 +564,7 @@ exports.exportFlightListToExcel = async (req, res) => {
     );
 
     if (programs.length === 0) {
-      throw new Error("Program not found.");
+      throw new AppError("Program not found.", 404);
     }
 
     const programData = { ...programs[0], agencyName };
@@ -557,23 +615,24 @@ exports.exportFlightListToExcel = async (req, res) => {
     res.end();
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Failed to export flight list to Excel:", error);
+    logger.error("Failed to export flight list to Excel:", {
+      message: error.message,
+      stack: error.stack,
+    });
     if (!res.headersSent) {
-      res.status(500).json({
-        message: error.message || "Failed to export flight list to Excel.",
-      });
+      next(new AppError("Failed to export flight list to Excel.", 500));
     }
   } finally {
     client.release();
   }
 };
 
-exports.exportBookingTemplateForProgram = async (req, res) => {
+exports.exportBookingTemplateForProgram = async (req, res, next) => {
   try {
     const { programId } = req.params;
 
     if (!programId || programId === "undefined") {
-      return res.status(400).json({ message: "Invalid Program ID provided." });
+      return next(new AppError("Invalid Program ID provided.", 400));
     }
 
     const { rows: programs } = await req.db.query(
@@ -582,7 +641,7 @@ exports.exportBookingTemplateForProgram = async (req, res) => {
     );
 
     if (programs.length === 0) {
-      return res.status(404).json({ message: "Program not found." });
+      return next(new AppError("Program not found.", 404));
     }
 
     const program = programs[0];
@@ -602,19 +661,22 @@ exports.exportBookingTemplateForProgram = async (req, res) => {
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
     await workbook.xlsx.write(res);
+    res.end();
   } catch (error) {
-    console.error("Failed to export template:", error);
+    logger.error("Failed to export template:", {
+      message: error.message,
+      stack: error.stack,
+    });
     if (!res.headersSent) {
-      res.status(500).json({ message: "Failed to export booking template." });
+      next(new AppError("Failed to export booking template.", 500));
     }
   }
 };
 
-exports.importBookingsFromExcel = async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded." });
+exports.importBookingsFromExcel = async (req, res, next) => {
+  if (!req.file) return next(new AppError("No file uploaded.", 400));
   const { programId } = req.params;
-  if (!programId)
-    return res.status(400).json({ message: "Program ID is required." });
+  if (!programId) return next(new AppError("Program ID is required.", 400));
 
   try {
     const result = await ExcelService.parseBookingsFromExcel(
@@ -625,7 +687,10 @@ exports.importBookingsFromExcel = async (req, res) => {
     );
     res.status(201).json(result);
   } catch (error) {
-    console.error("Excel import error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Excel import error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError(error.message || "Error importing Excel file.", 500));
   }
 };

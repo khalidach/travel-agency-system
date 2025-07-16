@@ -1,8 +1,10 @@
 // backend/controllers/roomManagementController.js
 const RoomManagementService = require("../services/RoomManagementService");
 const ExcelRoomService = require("../services/excelRoomService.js");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-exports.getRoomsByProgramAndHotel = async (req, res) => {
+exports.getRoomsByProgramAndHotel = async (req, res, next) => {
   try {
     const { programId, hotelName } = req.params;
     const { adminId } = req.user;
@@ -12,14 +14,18 @@ exports.getRoomsByProgramAndHotel = async (req, res) => {
       programId,
       hotelName
     );
-    res.json(rooms);
+    res.status(200).json(rooms);
   } catch (error) {
-    console.error("Get Rooms Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get Rooms Error:", {
+      message: error.message,
+      stack: error.stack,
+      params: req.params,
+    });
+    next(new AppError("Failed to retrieve rooms.", 500));
   }
 };
 
-exports.saveRooms = async (req, res) => {
+exports.saveRooms = async (req, res, next) => {
   try {
     const { programId, hotelName } = req.params;
     const rooms = req.body.rooms;
@@ -34,12 +40,16 @@ exports.saveRooms = async (req, res) => {
     );
     res.status(200).json(savedRooms);
   } catch (error) {
-    console.error("Save Rooms Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Save Rooms Error:", {
+      message: error.message,
+      stack: error.stack,
+      params: req.params,
+    });
+    next(new AppError("Failed to save rooms.", 400));
   }
 };
 
-exports.searchUnassignedOccupants = async (req, res) => {
+exports.searchUnassignedOccupants = async (req, res, next) => {
   try {
     const { programId, hotelName } = req.params;
     const { searchTerm = "" } = req.query;
@@ -51,30 +61,31 @@ exports.searchUnassignedOccupants = async (req, res) => {
       hotelName,
       searchTerm
     );
-    res.json(occupants);
+    res.status(200).json(occupants);
   } catch (error) {
-    console.error("Search Unassigned Occupants Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Search Unassigned Occupants Error:", {
+      message: error.message,
+      stack: error.stack,
+      params: req.params,
+    });
+    next(new AppError("Failed to search for occupants.", 500));
   }
 };
 
-// New function for exporting to Excel
-exports.exportRoomsToExcel = async (req, res) => {
+exports.exportRoomsToExcel = async (req, res, next) => {
   try {
     const { programId } = req.params;
     const { adminId } = req.user;
 
-    // 1. Fetch the program details
     const programResult = await req.db.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [programId, adminId]
     );
     if (programResult.rows.length === 0) {
-      return res.status(404).json({ message: "Program not found." });
+      return next(new AppError("Program not found.", 404));
     }
     const program = programResult.rows[0];
 
-    // 2. Fetch all room management data for this program
     const roomDataResult = await req.db.query(
       'SELECT * FROM room_managements WHERE "programId" = $1 AND "userId" = $2',
       [programId, adminId]
@@ -82,18 +93,16 @@ exports.exportRoomsToExcel = async (req, res) => {
     const roomData = roomDataResult.rows;
 
     if (roomData.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No room data found for this program to export." });
+      return next(
+        new AppError("No room data found for this program to export.", 404)
+      );
     }
 
-    // 3. Generate the workbook
     const workbook = await ExcelRoomService.generateRoomingListExcel(
       program,
       roomData
     );
 
-    // 4. Send the file to the client
     const fileName = `${(program.name || "Rooming_List").replace(
       /[\s\W]/g,
       "_"
@@ -107,9 +116,12 @@ exports.exportRoomsToExcel = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
-    console.error("Failed to export rooming list to Excel:", error);
+    logger.error("Failed to export rooming list to Excel:", {
+      message: error.message,
+      stack: error.stack,
+    });
     if (!res.headersSent) {
-      res.status(500).json({ message: "Failed to export rooming list." });
+      next(new AppError("Failed to export rooming list.", 500));
     }
   }
 };

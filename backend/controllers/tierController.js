@@ -1,38 +1,38 @@
 // backend/controllers/tierController.js
 const { tierLimitsCache } = require("../middleware/tierMiddleware");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-// Get all tiers
-exports.getTiers = async (req, res) => {
+exports.getTiers = async (req, res, next) => {
   try {
     const { rows } = await req.db.query("SELECT * FROM tiers ORDER BY id ASC");
-    res.json(rows);
+    res.status(200).json(rows);
   } catch (error) {
-    console.error("Get Tiers Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Get Tiers Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve tiers.", 500));
   }
 };
 
-// Create a new tier
-exports.createTier = async (req, res) => {
-  const { name, limits } = req.body;
-
-  if (!name || !limits) {
-    return res
-      .status(400)
-      .json({ message: "Tier name and limits are required." });
-  }
-
+exports.createTier = async (req, res, next) => {
   try {
-    // Explicitly check for an existing tier with the same name (case-insensitive)
+    const { name, limits } = req.body;
+
+    if (!name || !limits) {
+      return next(new AppError("Tier name and limits are required.", 400));
+    }
+
     const existingTier = await req.db.query(
       "SELECT id FROM tiers WHERE LOWER(name) = LOWER($1)",
       [name.trim()]
     );
 
     if (existingTier.rows.length > 0) {
-      return res
-        .status(409) // Use 409 Conflict for duplicate resource
-        .json({ message: `A tier with the name "${name}" already exists.` });
+      return next(
+        new AppError(`A tier with the name "${name}" already exists.`, 409)
+      );
     }
 
     const { rows } = await req.db.query(
@@ -41,39 +41,41 @@ exports.createTier = async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error("Create Tier Error:", error);
-    // Fallback catch for other potential errors, including the unique constraint
+    logger.error("Create Tier Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
     if (error.code === "23505") {
-      return res
-        .status(409)
-        .json({ message: `A tier with the name "${name}" already exists.` });
+      return next(
+        new AppError(
+          `A tier with the name "${req.body.name}" already exists.`,
+          409
+        )
+      );
     }
-    res.status(500).json({ message: "Server error" });
+    next(new AppError("Failed to create tier.", 500));
   }
 };
 
-// Update an existing tier
-exports.updateTier = async (req, res) => {
-  const { id } = req.params;
-  const { name, limits } = req.body;
-
-  if (!name || !limits) {
-    return res
-      .status(400)
-      .json({ message: "Tier name and limits are required." });
-  }
-
+exports.updateTier = async (req, res, next) => {
   try {
-    // Explicitly check if the new name conflicts with another existing tier
+    const { id } = req.params;
+    const { name, limits } = req.body;
+
+    if (!name || !limits) {
+      return next(new AppError("Tier name and limits are required.", 400));
+    }
+
     const existingTier = await req.db.query(
       "SELECT id FROM tiers WHERE LOWER(name) = LOWER($1) AND id != $2",
       [name.trim(), id]
     );
 
     if (existingTier.rows.length > 0) {
-      return res
-        .status(409)
-        .json({ message: `A tier with the name "${name}" already exists.` });
+      return next(
+        new AppError(`A tier with the name "${name}" already exists.`, 409)
+      );
     }
 
     const { rows } = await req.db.query(
@@ -82,44 +84,46 @@ exports.updateTier = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Tier not found." });
+      return next(new AppError("Tier not found.", 404));
     }
 
-    // Invalidate the cache for the updated tier
     tierLimitsCache.delete(parseInt(id, 10));
 
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Update Tier Error:", error);
-    // Fallback catch
+    logger.error("Update Tier Error:", {
+      message: error.message,
+      stack: error.stack,
+      tierId: req.params.id,
+    });
     if (error.code === "23505") {
-      return res
-        .status(409)
-        .json({ message: `A tier with the name "${name}" already exists.` });
+      return next(
+        new AppError(
+          `A tier with the name "${req.body.name}" already exists.`,
+          409
+        )
+      );
     }
-    res.status(500).json({ message: "Server error" });
+    next(new AppError("Failed to update tier.", 500));
   }
 };
 
-// Delete a tier
-exports.deleteTier = async (req, res) => {
-  const { id } = req.params;
-
-  // Do not allow deletion of the first 3 default tiers
-  if (id <= 3) {
-    return res.status(400).json({ message: "Cannot delete default tiers." });
-  }
-
+exports.deleteTier = async (req, res, next) => {
   try {
-    // Check if any user is assigned to this tier
+    const { id } = req.params;
+
+    if (id <= 3) {
+      return next(new AppError("Cannot delete default tiers.", 400));
+    }
+
     const userCheck = await req.db.query(
       'SELECT COUNT(*) FROM users WHERE "tierId" = $1',
       [id]
     );
     if (parseInt(userCheck.rows[0].count, 10) > 0) {
-      return res
-        .status(400)
-        .json({ message: "Cannot delete tier as it is assigned to users." });
+      return next(
+        new AppError("Cannot delete tier as it is assigned to users.", 400)
+      );
     }
 
     const { rowCount } = await req.db.query("DELETE FROM tiers WHERE id = $1", [
@@ -127,15 +131,18 @@ exports.deleteTier = async (req, res) => {
     ]);
 
     if (rowCount === 0) {
-      return res.status(404).json({ message: "Tier not found." });
+      return next(new AppError("Tier not found.", 404));
     }
 
-    // Invalidate the cache for the deleted tier
     tierLimitsCache.delete(parseInt(id, 10));
 
     res.status(204).send();
   } catch (error) {
-    console.error("Delete Tier Error:", error);
-    res.status(500).json({ message: "Server error" });
+    logger.error("Delete Tier Error:", {
+      message: error.message,
+      stack: error.stack,
+      tierId: req.params.id,
+    });
+    next(new AppError("Failed to delete tier.", 500));
   }
 };

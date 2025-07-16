@@ -1,7 +1,9 @@
 // backend/controllers/programController.js
 const ProgramUpdateService = require("../services/ProgramUpdateService");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
 
-exports.getAllPrograms = async (req, res) => {
+exports.getAllPrograms = async (req, res, next) => {
   try {
     const { adminId } = req.user;
     const {
@@ -9,7 +11,7 @@ exports.getAllPrograms = async (req, res) => {
       filterType,
       page = 1,
       noPaginate = "false",
-      view = "list", // Default to 'list' for a lightweight payload
+      view = "list",
     } = req.query;
     let { limit = 10 } = req.query;
 
@@ -30,20 +32,17 @@ exports.getAllPrograms = async (req, res) => {
 
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
-    // Start with base fields for all views
     let dataQueryFields = `
         p.*,
         (SELECT COUNT(*) FROM bookings b WHERE b."tripId"::int = p.id) as "totalBookings"
     `;
 
-    // Add pricing info if requested for 'pricing' or 'full' view
     if (view === "pricing" || view === "full") {
       dataQueryFields += `,
             (SELECT row_to_json(pp) FROM program_pricing pp WHERE pp."programId" = p.id LIMIT 1) as pricing
         `;
     }
 
-    // Add room management stats if requested for 'rooms' or 'full' view
     if (view === "rooms" || view === "full") {
       dataQueryFields += `,
             (
@@ -53,7 +52,6 @@ exports.getAllPrograms = async (req, res) => {
                         defined_hotels.hotel_name as "hotelName",
                         COALESCE(jsonb_array_length(rm.rooms), 0) as "roomCount"
                     FROM (
-                        -- Extract all unique hotel names from the program's packages
                         SELECT DISTINCT hotel_name
                         FROM
                             jsonb_array_elements(p.packages) AS package,
@@ -61,7 +59,6 @@ exports.getAllPrograms = async (req, res) => {
                             jsonb_array_elements_text(city_hotels.value) AS hotel_name
                         WHERE hotel_name IS NOT NULL AND hotel_name != ''
                     ) AS defined_hotels(hotel_name)
-                    -- Left join with room managements to get the count of rooms if they exist
                     LEFT JOIN room_managements rm ON rm."programId" = p.id AND rm."hotelName" = defined_hotels.hotel_name
                 ) as stats
             ) as "hotelRoomCounts",
@@ -83,7 +80,7 @@ exports.getAllPrograms = async (req, res) => {
           ORDER BY p."createdAt" DESC
         `;
       const programsResult = await req.db.query(dataQuery, queryParams);
-      return res.json({ data: programsResult.rows });
+      return res.status(200).json({ data: programsResult.rows });
     }
 
     const countQuery = `SELECT COUNT(*) ${baseQuery} ${whereClause}`;
@@ -103,7 +100,7 @@ exports.getAllPrograms = async (req, res) => {
 
     const programsResult = await req.db.query(dataQuery, queryParams);
 
-    res.json({
+    res.status(200).json({
       data: programsResult.rows,
       pagination: {
         page: parseInt(page, 10),
@@ -113,39 +110,46 @@ exports.getAllPrograms = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get All Programs Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get All Programs Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve programs.", 500));
   }
 };
 
-exports.getProgramById = async (req, res) => {
-  const { id } = req.params;
-  const { adminId } = req.user;
+exports.getProgramById = async (req, res, next) => {
   try {
+    const { id } = req.params;
+    const { adminId } = req.user;
     const { rows } = await req.db.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [id, adminId]
     );
 
     if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Program not found or you are not authorized" });
+      return next(
+        new AppError("Program not found or you are not authorized.", 404)
+      );
     }
 
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Get Program by ID Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Get Program by ID Error:", {
+      message: error.message,
+      stack: error.stack,
+      programId: req.params.id,
+    });
+    next(new AppError("Failed to retrieve program.", 500));
   }
 };
 
-exports.createProgram = async (req, res) => {
-  const { name, type, duration, cities, packages } = req.body;
-  const userId = req.user.adminId;
-  const employeeId = req.user.role !== "admin" ? req.user.id : null;
-
+exports.createProgram = async (req, res, next) => {
   try {
+    const { name, type, duration, cities, packages } = req.body;
+    const userId = req.user.adminId;
+    const employeeId = req.user.role !== "admin" ? req.user.id : null;
+
     const { rows } = await req.db.query(
       'INSERT INTO programs ("userId", "employeeId", name, type, duration, cities, packages) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [
@@ -160,18 +164,22 @@ exports.createProgram = async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (error) {
-    console.error("Create Program Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Create Program Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    next(new AppError("Failed to create program.", 400));
   }
 };
 
-exports.updateProgram = async (req, res) => {
+exports.updateProgram = async (req, res, next) => {
   const { id } = req.params;
   const { name, type, duration, cities, packages } = req.body;
-  const client = await req.db.connect(); // Use a client for the transaction
+  const client = await req.db.connect();
 
   try {
-    await client.query("BEGIN"); // Start transaction
+    await client.query("BEGIN");
 
     const oldProgramResult = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
@@ -179,18 +187,15 @@ exports.updateProgram = async (req, res) => {
     );
 
     if (oldProgramResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({
-        message: "Program not found or you are not authorized to access it.",
-      });
+      throw new AppError("Program not found or you are not authorized.", 404);
     }
     const oldProgram = oldProgramResult.rows[0];
 
     if (req.user.role !== "admin" && oldProgram.employeeId !== req.user.id) {
-      await client.query("ROLLBACK");
-      return res
-        .status(403)
-        .json({ message: "You can only edit programs that you have created." });
+      throw new AppError(
+        "You can only edit programs that you have created.",
+        403
+      );
     }
 
     const { rows: updatedProgramRows } = await client.query(
@@ -213,17 +218,21 @@ exports.updateProgram = async (req, res) => {
     );
 
     await client.query("COMMIT");
-    res.json(updatedProgram);
+    res.status(200).json(updatedProgram);
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Update Program Error:", error);
-    res.status(400).json({ message: error.message });
+    logger.error("Update Program Error:", {
+      message: error.message,
+      stack: error.stack,
+      programId: id,
+    });
+    next(new AppError("Failed to update program.", 400));
   } finally {
     client.release();
   }
 };
 
-exports.deleteProgram = async (req, res) => {
+exports.deleteProgram = async (req, res, next) => {
   const { id } = req.params;
   const client = await req.db.connect();
 
@@ -236,19 +245,16 @@ exports.deleteProgram = async (req, res) => {
     );
 
     if (programResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({
-        message: "Program not found or you are not authorized to access it.",
-      });
+      throw new AppError("Program not found or you are not authorized.", 404);
     }
 
     const program = programResult.rows[0];
 
     if (req.user.role !== "admin" && program.employeeId !== req.user.id) {
-      await client.query("ROLLBACK");
-      return res.status(403).json({
-        message: "You can only delete programs that you have created.",
-      });
+      throw new AppError(
+        "You can only delete programs that you have created.",
+        403
+      );
     }
 
     await client.query('DELETE FROM program_pricing WHERE "programId" = $1', [
@@ -259,13 +265,17 @@ exports.deleteProgram = async (req, res) => {
 
     await client.query("COMMIT");
 
-    res.json({
+    res.status(200).json({
       message: "Program and all associated data deleted successfully",
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Delete Program Error:", error);
-    res.status(500).json({ message: error.message });
+    logger.error("Delete Program Error:", {
+      message: error.message,
+      stack: error.stack,
+      programId: id,
+    });
+    next(new AppError("Failed to delete program.", 500));
   } finally {
     client.release();
   }

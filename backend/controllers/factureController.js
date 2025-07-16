@@ -1,5 +1,8 @@
 // backend/controllers/factureController.js
-const getFactures = async (req, res) => {
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
+
+const getFactures = async (req, res, next) => {
   try {
     const { adminId } = req.user;
     const page = parseInt(req.query.page || "1", 10);
@@ -23,7 +26,7 @@ const getFactures = async (req, res) => {
 
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
-    res.json({
+    res.status(200).json({
       data: facturesResult.rows,
       pagination: {
         page,
@@ -33,12 +36,15 @@ const getFactures = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Get Factures Error:", error);
-    res.status(500).json({ message: "Failed to retrieve factures." });
+    logger.error("Get Factures Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to retrieve factures.", 500));
   }
 };
 
-const createFacture = async (req, res) => {
+const createFacture = async (req, res, next) => {
   const client = await req.db.connect();
   try {
     await client.query("BEGIN");
@@ -95,22 +101,26 @@ const createFacture = async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error("Create Facture Error:", error);
-    if (
-      error.code === "23505" &&
-      error.constraint === "unique_facture_number_per_user"
-    ) {
-      return res.status(409).json({
-        message: "A facture with this number already exists. Please try again.",
-      });
+    logger.error("Create Facture Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    if (error.code === "23505") {
+      return next(
+        new AppError(
+          "A facture with this number already exists. Please try again.",
+          409
+        )
+      );
     }
-    res.status(400).json({ message: "Failed to create facture." });
+    next(new AppError("Failed to create facture.", 400));
   } finally {
     client.release();
   }
 };
 
-const updateFacture = async (req, res) => {
+const updateFacture = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { adminId } = req.user;
@@ -147,18 +157,20 @@ const updateFacture = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "Facture not found or not authorized." });
+      return next(new AppError("Facture not found or not authorized.", 404));
     }
-    res.json(rows[0]);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    console.error("Update Facture Error:", error);
-    res.status(400).json({ message: "Failed to update facture." });
+    logger.error("Update Facture Error:", {
+      message: error.message,
+      stack: error.stack,
+      factureId: req.params.id,
+    });
+    next(new AppError("Failed to update facture.", 400));
   }
 };
 
-const deleteFacture = async (req, res) => {
+const deleteFacture = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { adminId } = req.user;
@@ -169,14 +181,16 @@ const deleteFacture = async (req, res) => {
     );
 
     if (rowCount === 0) {
-      return res
-        .status(404)
-        .json({ message: "Facture not found or not authorized." });
+      return next(new AppError("Facture not found or not authorized.", 404));
     }
     res.status(204).send();
   } catch (error) {
-    console.error("Delete Facture Error:", error);
-    res.status(500).json({ message: "Failed to delete facture." });
+    logger.error("Delete Facture Error:", {
+      message: error.message,
+      stack: error.stack,
+      factureId: req.params.id,
+    });
+    next(new AppError("Failed to delete facture.", 500));
   }
 };
 
