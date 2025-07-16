@@ -11,11 +11,13 @@ const {
 const {
   programValidation,
   handleValidationErrors,
+  idValidation,
+  paginationValidation,
 } = require("../middleware/validationMiddleware");
 const { checkProgramLimit } = require("../middleware/tierMiddleware");
 
-router.get("/", getAllPrograms);
-router.get("/:id", getProgramById);
+router.get("/", paginationValidation, handleValidationErrors, getAllPrograms);
+router.get("/:id", idValidation, handleValidationErrors, getProgramById);
 router.post(
   "/",
   programValidation,
@@ -23,7 +25,13 @@ router.post(
   checkProgramLimit,
   createProgram
 );
-router.put("/:id", programValidation, handleValidationErrors, updateProgram);
-router.delete("/:id", deleteProgram);
+router.put(
+  "/:id",
+  idValidation,
+  programValidation,
+  handleValidationErrors,
+  updateProgram
+);
+router.delete("/:id", idValidation, handleValidationErrors, deleteProgram);
 
 module.exports = router;

@@ -11,11 +11,24 @@ const {
 const {
   programPricingValidation,
   handleValidationErrors,
+  idValidation,
+  paginationValidation,
 } = require("../middleware/validationMiddleware");
 const { checkProgramPricingLimit } = require("../middleware/tierMiddleware");
+const { param } = require("express-validator");
 
-router.get("/", getAllProgramPricing);
-router.get("/program/:programId", getProgramPricingByProgramId);
+router.get(
+  "/",
+  paginationValidation,
+  handleValidationErrors,
+  getAllProgramPricing
+);
+router.get(
+  "/program/:programId",
+  param("programId").isInt().withMessage("Program ID must be an integer."),
+  handleValidationErrors,
+  getProgramPricingByProgramId
+);
 router.post(
   "/",
   programPricingValidation,
@@ -25,10 +38,16 @@ router.post(
 );
 router.put(
   "/:id",
+  idValidation,
   programPricingValidation,
   handleValidationErrors,
   updateProgramPricing
 );
-router.delete("/:id", deleteProgramPricing);
+router.delete(
+  "/:id",
+  idValidation,
+  handleValidationErrors,
+  deleteProgramPricing
+);
 
 module.exports = router;

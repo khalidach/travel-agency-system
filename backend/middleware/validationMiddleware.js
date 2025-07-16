@@ -1,5 +1,5 @@
 // backend/middleware/validationMiddleware.js
-const { body, validationResult } = require("express-validator");
+const { body, param, query, validationResult } = require("express-validator");
 
 /**
  * Middleware to handle the result of express-validator validations.
@@ -144,6 +144,43 @@ const dailyServiceValidation = [
   body("date").isISO8601().toDate().withMessage("Invalid service date."),
 ];
 
+const idValidation = [
+  param("id").isInt().withMessage("ID must be an integer."),
+];
+
+const usernameValidation = [
+  param("username")
+    .notEmpty()
+    .withMessage("Username is required.")
+    .isAlphanumeric()
+    .withMessage("Username must be alphanumeric."),
+];
+
+const paginationValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be a positive integer."),
+  query("limit")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Limit must be a positive integer."),
+];
+
+const bookingFilterValidation = [
+  ...paginationValidation,
+  query("searchTerm").optional().trim().escape(),
+  query("sortOrder")
+    .optional()
+    .isIn(["newest", "oldest", "family"])
+    .withMessage("Invalid sort order."),
+  query("statusFilter")
+    .optional()
+    .isIn(["all", "paid", "pending", "notPaid"])
+    .withMessage("Invalid status filter."),
+  query("employeeFilter").optional().trim().escape(),
+];
+
 module.exports = {
   handleValidationErrors,
   loginValidation,
@@ -152,4 +189,8 @@ module.exports = {
   bookingValidation,
   paymentValidation,
   dailyServiceValidation,
+  idValidation,
+  usernameValidation,
+  paginationValidation,
+  bookingFilterValidation,
 };

@@ -22,6 +22,8 @@ const {
   bookingValidation,
   paymentValidation,
   handleValidationErrors,
+  idValidation,
+  bookingFilterValidation,
 } = require("../middleware/validationMiddleware");
 const {
   checkBookingLimit,
@@ -32,9 +34,24 @@ const {
 const upload = multer({ dest: "/tmp" });
 
 // Booking routes
-router.get("/", getAllBookings);
-router.get("/program/:programId", getBookingsByProgram);
-router.get("/program/:programId/ids", getBookingIdsByProgram);
+router.get(
+  "/",
+  bookingFilterValidation,
+  handleValidationErrors,
+  getAllBookings
+);
+router.get(
+  "/program/:programId",
+  bookingFilterValidation,
+  handleValidationErrors,
+  getBookingsByProgram
+);
+router.get(
+  "/program/:programId/ids",
+  bookingFilterValidation,
+  handleValidationErrors,
+  getBookingIdsByProgram
+);
 router.post(
   "/",
   bookingValidation,
@@ -42,9 +59,15 @@ router.post(
   checkBookingLimit,
   createBooking
 );
-router.put("/:id", bookingValidation, handleValidationErrors, updateBooking);
+router.put(
+  "/:id",
+  idValidation,
+  bookingValidation,
+  handleValidationErrors,
+  updateBooking
+);
 router.delete("/", deleteMultipleBookings);
-router.delete("/:id", deleteBooking);
+router.delete("/:id", idValidation, handleValidationErrors, deleteBooking);
 
 // Excel and Template routes
 router.get(

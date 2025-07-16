@@ -11,6 +11,8 @@ const {
 const {
   dailyServiceValidation,
   handleValidationErrors,
+  idValidation,
+  paginationValidation,
 } = require("../middleware/validationMiddleware");
 const {
   checkDailyServiceLimit,
@@ -20,7 +22,7 @@ const {
 // Note: The 'protect' middleware is applied in index.js for this route group
 router.use(checkDailyServiceAccess);
 
-router.get("/", getDailyServices);
+router.get("/", paginationValidation, handleValidationErrors, getDailyServices);
 router.post(
   "/",
   checkDailyServiceLimit,
@@ -30,11 +32,12 @@ router.post(
 );
 router.put(
   "/:id",
+  idValidation,
   dailyServiceValidation,
   handleValidationErrors,
   updateDailyService
 );
-router.delete("/:id", deleteDailyService);
+router.delete("/:id", idValidation, handleValidationErrors, deleteDailyService);
 router.get("/report", getDailyServiceReport);
 
 module.exports = router;
