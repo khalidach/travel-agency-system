@@ -18,6 +18,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
   const { state: authState } = useAuthContext();
 
   const totalInWords = numberToWordsFr(facture.total);
+  const showMargin = facture.showMargin ?? true; // Default to true for older invoices
 
   return (
     <div
@@ -49,6 +50,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
         <h3 className="font-semibold">Client:</h3>
         <p>{facture.clientName}</p>
         <p>{facture.clientAddress}</p>
+        {facture.clientICE && <p>ICE: {facture.clientICE}</p>}
       </div>
 
       <table className="w-full mt-8 text-xs border-collapse">
@@ -59,9 +61,11 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
             <th className="p-2 text-right font-semibold border">
               PRIX UNITAIRE
             </th>
-            <th className="p-2 text-right font-semibold border">
-              FRAIS. SCE UNITAIRE
-            </th>
+            {showMargin && (
+              <th className="p-2 text-right font-semibold border">
+                FRAIS. SCE UNITAIRE
+              </th>
+            )}
             <th className="p-2 text-right font-semibold border">
               MONTANT TOTAL
             </th>
@@ -78,12 +82,14 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                   maximumFractionDigits: 2,
                 })}
               </td>
-              <td className="p-2 text-right border">
-                {(Number(item.fraisServiceUnitaire) || 0).toLocaleString(
-                  undefined,
-                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                )}
-              </td>
+              {showMargin && (
+                <td className="p-2 text-right border">
+                  {(Number(item.fraisServiceUnitaire) || 0).toLocaleString(
+                    undefined,
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                  )}
+                </td>
+              )}
               <td className="p-2 text-right border font-semibold">
                 {(Number(item.total) || 0).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
@@ -97,36 +103,46 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
 
       <div className="flex justify-end mt-5">
         <div className="w-1/2 space-y-1 text-xs">
-          <div className="flex justify-between p-2">
-            <span className="font-medium">Prix Total H. Frais de SCE</span>
-            <span>
-              {Number(facture.prixTotalHorsFrais).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              MAD
-            </span>
-          </div>
-          <div className="flex justify-between p-2">
-            <span className="font-medium">Frais de Service Hors TVA</span>
-            <span>
-              {Number(facture.totalFraisServiceHT).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              MAD
-            </span>
-          </div>
-          <div className="flex justify-between p-2">
-            <span className="font-medium">TVA 20%</span>
-            <span>
-              {Number(facture.tva).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              MAD
-            </span>
-          </div>
+          {showMargin && (
+            <>
+              <div className="flex justify-between p-2">
+                <span className="font-medium">Prix Total H. Frais de SCE</span>
+                <span>
+                  {Number(facture.prixTotalHorsFrais).toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}{" "}
+                  MAD
+                </span>
+              </div>
+              <div className="flex justify-between p-2">
+                <span className="font-medium">Frais de Service Hors TVA</span>
+                <span>
+                  {Number(facture.totalFraisServiceHT).toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}{" "}
+                  MAD
+                </span>
+              </div>
+              <div className="flex justify-between p-2">
+                <span className="font-medium">TVA 20%</span>
+                <span>
+                  {Number(facture.tva).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  MAD
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between font-bold text-sm bg-gray-100 p-2 rounded mt-1">
             <span>Total Facture</span>
             <span>
@@ -143,6 +159,11 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
       <div className="mt-8 text-xs">
         <p>Arrêté la présente facture à la somme de :</p>
         <p className="font-bold capitalize">{totalInWords}</p>
+        {!showMargin && (
+          <p className="font-bold mt-4">
+            Régime particulier – agences de voyages
+          </p>
+        )}
       </div>
 
       <div className="mt-16 border-t pt-5">

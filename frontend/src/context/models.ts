@@ -61,9 +61,11 @@ export interface Facture {
   employeeId?: number;
   clientName: string;
   clientAddress: string;
+  clientICE?: string;
   date: string;
   items: FactureItem[];
   type: "facture" | "devis";
+  showMargin?: boolean;
   prixTotalHorsFrais: number;
   totalFraisServiceHT: number;
   tva: number;

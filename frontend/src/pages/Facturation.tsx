@@ -2,15 +2,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Plus,
-  Download,
-  Edit2,
-  Trash2,
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Plus, Download, Edit2, Trash2, FileText } from "lucide-react";
 import * as api from "../services/api";
 import { Facture, PaginatedResponse } from "../context/models";
 import Modal from "../components/Modal";
@@ -121,6 +113,11 @@ export default function Facturation() {
     }
   };
 
+  const handleNewDocumentClick = () => {
+    setEditingFacture(null);
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -131,10 +128,7 @@ export default function Facturation() {
           <p className="text-gray-600 mt-2">{t("facturationSubtitle")}</p>
         </div>
         <button
-          onClick={() => {
-            setEditingFacture(null);
-            setIsModalOpen(true);
-          }}
+          onClick={handleNewDocumentClick}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
         >
           <Plus
@@ -298,6 +292,7 @@ export default function Facturation() {
           onSave={handleSave}
           onCancel={() => setIsModalOpen(false)}
           existingFacture={editingFacture}
+          showMarginOnNew={!editingFacture}
         />
       </Modal>
 

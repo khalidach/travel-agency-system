@@ -53,9 +53,11 @@ const createFacture = async (req, res, next) => {
     const {
       clientName,
       clientAddress,
+      clientICE,
       date,
       items,
       type,
+      showMargin,
       prixTotalHorsFrais,
       totalFraisServiceHT,
       tva,
@@ -79,16 +81,18 @@ const createFacture = async (req, res, next) => {
       .padStart(5, "0");
 
     const { rows } = await client.query(
-      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", date, items, type, "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
         clientName,
         clientAddress,
+        clientICE,
         date,
         JSON.stringify(items),
         type,
+        showMargin,
         prixTotalHorsFrais,
         totalFraisServiceHT,
         tva,
@@ -127,9 +131,11 @@ const updateFacture = async (req, res, next) => {
     const {
       clientName,
       clientAddress,
+      clientICE,
       date,
       items,
       type,
+      showMargin,
       prixTotalHorsFrais,
       totalFraisServiceHT,
       tva,
@@ -138,14 +144,16 @@ const updateFacture = async (req, res, next) => {
     } = req.body;
 
     const { rows } = await req.db.query(
-      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, date = $3, items = $4, type = $5, "prixTotalHorsFrais" = $6, "totalFraisServiceHT" = $7, tva = $8, total = $9, notes = $10, "updatedAt" = NOW()
-       WHERE id = $11 AND "userId" = $12 RETURNING *`,
+      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, "updatedAt" = NOW()
+       WHERE id = $13 AND "userId" = $14 RETURNING *`,
       [
         clientName,
         clientAddress,
+        clientICE,
         date,
         JSON.stringify(items),
         type,
+        showMargin,
         prixTotalHorsFrais,
         totalFraisServiceHT,
         tva,

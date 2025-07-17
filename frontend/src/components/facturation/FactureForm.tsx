@@ -13,9 +13,9 @@ interface FactureFormProps {
   ) => void;
   onCancel: () => void;
   existingFacture?: Facture | null;
+  showMarginOnNew?: boolean;
 }
 
-// Updated FactureItem to match the new structure
 interface FactureItemForm extends Omit<FactureItem, "total"> {
   prixUnitaire: number;
   fraisServiceUnitaire: number;
@@ -32,21 +32,26 @@ export default function FactureForm({
   onSave,
   onCancel,
   existingFacture,
+  showMarginOnNew = true,
 }: FactureFormProps) {
   const { t } = useTranslation();
   const [type, setType] = useState<"facture" | "devis">("facture");
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
+  const [clientICE, setClientICE] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [items, setItems] = useState<FactureItemForm[]>([emptyItem]);
   const [notes, setNotes] = useState("");
+  const [showMargin, setShowMargin] = useState(showMarginOnNew);
 
   useEffect(() => {
     if (existingFacture) {
       setType(existingFacture.type);
       setClientName(existingFacture.clientName);
       setClientAddress(existingFacture.clientAddress || "");
+      setClientICE(existingFacture.clientICE || "");
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
+      setShowMargin(existingFacture.showMargin ?? true);
 
       let parsedItems: FactureItemForm[] = [emptyItem];
       if (existingFacture.items) {
@@ -56,7 +61,6 @@ export default function FactureForm({
               ? JSON.parse(existingFacture.items)
               : existingFacture.items;
           if (Array.isArray(itemsData) && itemsData.length > 0) {
-            // Map existing data to the new form structure
             parsedItems = itemsData.map((item) => ({
               description: item.description || "",
               quantity: Number(item.quantity) || 1,
@@ -71,15 +75,16 @@ export default function FactureForm({
       setItems(parsedItems);
       setNotes(existingFacture.notes || "");
     } else {
-      // Reset form for a new document
       setType("facture");
       setClientName("");
       setClientAddress("");
+      setClientICE("");
       setDate(new Date().toISOString().split("T")[0]);
       setItems([emptyItem]);
       setNotes("");
+      setShowMargin(showMarginOnNew);
     }
-  }, [existingFacture]);
+  }, [existingFacture, showMarginOnNew]);
 
   const handleItemChange = (
     index: number,
@@ -88,6 +93,9 @@ export default function FactureForm({
   ) => {
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
+    if (!showMargin) {
+      item.fraisServiceUnitaire = 0;
+    }
     newItems[index] = item;
     setItems(newItems);
   };
@@ -96,8 +104,6 @@ export default function FactureForm({
   const removeItem = (index: number) =>
     setItems(items.filter((_, i) => i !== index));
 
-  // --- Automatic Calculations ---
-
   const calculatedTotals = useMemo(() => {
     let prixTotalHorsFrais = 0;
     let totalFraisServiceTTC = 0;
@@ -105,7 +111,9 @@ export default function FactureForm({
     const itemsWithTotals = items.map((item) => {
       const quantite = Number(item.quantity) || 0;
       const prixUnitaire = Number(item.prixUnitaire) || 0;
-      const fraisServiceUnitaireTTC = Number(item.fraisServiceUnitaire) || 0;
+      const fraisServiceUnitaireTTC = showMargin
+        ? Number(item.fraisServiceUnitaire) || 0
+        : 0;
 
       const montantTotal =
         quantite * prixUnitaire + quantite * fraisServiceUnitaireTTC;
@@ -127,7 +135,7 @@ export default function FactureForm({
       tva,
       totalFacture,
     };
-  }, [items]);
+  }, [items, showMargin]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,9 +150,11 @@ export default function FactureForm({
     onSave({
       clientName,
       clientAddress,
+      clientICE,
       date,
       items: finalItems,
       type,
+      showMargin,
       prixTotalHorsFrais: calculatedTotals.prixTotalHorsFrais,
       totalFraisServiceHT: calculatedTotals.totalFraisServiceHT,
       tva: calculatedTotals.tva,
@@ -153,8 +163,48 @@ export default function FactureForm({
     });
   };
 
+  const gridColsClass = showMargin ? "grid-cols-12" : "grid-cols-10";
+  const descColSpan = showMargin ? "md:col-span-4" : "md:col-span-4";
+  const priceColSpan = showMargin ? "md:col-span-2" : "md:col-span-2";
+  const totalColSpan = showMargin ? "md:col-span-2" : "md:col-span-2";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <style>{`
+        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+      `}</style>
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <label
+          htmlFor="show-margin-toggle"
+          className="font-medium text-gray-700"
+        >
+          Display Service Fees & TVA
+        </label>
+        <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+          <input
+            type="checkbox"
+            name="show-margin-toggle"
+            id="show-margin-toggle"
+            checked={showMargin}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setShowMargin(checked);
+              if (!checked) {
+                setItems(
+                  items.map((item) => ({ ...item, fraisServiceUnitaire: 0 }))
+                );
+              }
+            }}
+            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+          />
+          <label
+            htmlFor="show-margin-toggle"
+            className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+          ></label>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
@@ -173,7 +223,7 @@ export default function FactureForm({
       <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
         {t("clientInfo")}
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
             {t("clientName")}
@@ -183,7 +233,6 @@ export default function FactureForm({
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-            required
           />
         </div>
         <div>
@@ -194,6 +243,17 @@ export default function FactureForm({
             type="text"
             value={clientAddress}
             onChange={(e) => setClientAddress(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            {t("ice")}
+          </label>
+          <input
+            type="text"
+            value={clientICE}
+            onChange={(e) => setClientICE(e.target.value)}
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>
@@ -215,22 +275,24 @@ export default function FactureForm({
         {t("items")}
       </h3>
       <div className="space-y-4">
-        {/* Table Headers */}
-        <div className="hidden md:grid grid-cols-12 gap-2 text-sm font-medium text-gray-500">
-          <div className="col-span-4">DESIGNATION</div>
+        <div
+          className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-medium text-gray-500`}
+        >
+          <div className={descColSpan}>DESIGNATION</div>
           <div className="col-span-1 text-center">QU</div>
-          <div className="col-span-2 text-right">PRIX UNITAIRE</div>
-          <div className="col-span-2 text-right">FRAIS. SCE UNITAIRE</div>
-          <div className="col-span-2 text-right">MONTANT TOTAL</div>
+          <div className={`${priceColSpan} text-left`}>PRIX UNITAIRE</div>
+          {showMargin && (
+            <div className="col-span-2 text-left">FRAIS. SCE UNITAIRE</div>
+          )}
+          <div className={`${totalColSpan} text-left`}>MONTANT TOTAL</div>
           <div className="col-span-1"></div>
         </div>
         {calculatedTotals.itemsWithTotals.map((item, index) => (
-          <div key={index} className="grid grid-cols-12 gap-2 items-center">
-            {/* Description */}
-            <div className="col-span-12 md:col-span-4">
-              <label className="md:hidden text-xs font-medium text-gray-500">
-                DESIGNATION
-              </label>
+          <div
+            key={index}
+            className={`grid ${gridColsClass} gap-2 items-center`}
+          >
+            <div className={`col-span-12 ${descColSpan}`}>
               <input
                 type="text"
                 placeholder={t("description") as string}
@@ -242,11 +304,7 @@ export default function FactureForm({
                 required
               />
             </div>
-            {/* Quantity */}
             <div className="col-span-4 md:col-span-1">
-              <label className="md:hidden text-xs font-medium text-gray-500">
-                QU
-              </label>
               <input
                 type="number"
                 value={item.quantity}
@@ -257,11 +315,7 @@ export default function FactureForm({
                 required
               />
             </div>
-            {/* Prix Unitaire */}
-            <div className="col-span-4 md:col-span-2">
-              <label className="md:hidden text-xs font-medium text-gray-500">
-                PRIX UNITAIRE
-              </label>
+            <div className={`col-span-8 ${priceColSpan}`}>
               <input
                 type="number"
                 value={item.prixUnitaire}
@@ -276,30 +330,24 @@ export default function FactureForm({
                 required
               />
             </div>
-            {/* Frais Service Unitaire */}
-            <div className="col-span-4 md:col-span-2">
-              <label className="md:hidden text-xs font-medium text-gray-500">
-                FRAIS. SCE UNITAIRE
-              </label>
-              <input
-                type="number"
-                value={item.fraisServiceUnitaire}
-                onChange={(e) =>
-                  handleItemChange(
-                    index,
-                    "fraisServiceUnitaire",
-                    Number(e.target.value)
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
-                required
-              />
-            </div>
-            {/* Montant Total */}
-            <div className="col-span-10 md:col-span-2">
-              <label className="md:hidden text-xs font-medium text-gray-500">
-                MONTANT TOTAL
-              </label>
+            {showMargin && (
+              <div className="col-span-8 md:col-span-2">
+                <input
+                  type="number"
+                  value={item.fraisServiceUnitaire}
+                  onChange={(e) =>
+                    handleItemChange(
+                      index,
+                      "fraisServiceUnitaire",
+                      Number(e.target.value)
+                    )
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
+                  required
+                />
+              </div>
+            )}
+            <div className={`col-span-10 ${totalColSpan}`}>
               <div className="w-full px-3 py-2 text-right font-medium bg-gray-100 rounded-md">
                 {item.total.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
@@ -307,7 +355,6 @@ export default function FactureForm({
                 })}
               </div>
             </div>
-            {/* Remove Button */}
             <div className="col-span-2 md:col-span-1 flex items-end justify-end">
               <button
                 type="button"
@@ -330,40 +377,50 @@ export default function FactureForm({
 
       <div className="flex justify-end mt-6">
         <div className="w-full max-w-sm space-y-2 text-sm">
-          <div className="flex justify-between p-2 bg-gray-50 rounded-md">
-            <span className="font-medium text-gray-600">
-              Prix Total H. Frais de SCE
-            </span>
-            <span className="font-semibold text-gray-800">
-              {calculatedTotals.prixTotalHorsFrais.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              {t("mad")}
-            </span>
-          </div>
-          <div className="flex justify-between p-2">
-            <span className="font-medium text-gray-600">
-              Frais de Service Hors TVA
-            </span>
-            <span className="font-semibold text-gray-800">
-              {calculatedTotals.totalFraisServiceHT.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              {t("mad")}
-            </span>
-          </div>
-          <div className="flex justify-between p-2">
-            <span className="font-medium text-gray-600">TVA 20%</span>
-            <span className="font-semibold text-gray-800">
-              {calculatedTotals.tva.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              {t("mad")}
-            </span>
-          </div>
+          {showMargin && (
+            <>
+              <div className="flex justify-between p-2 bg-gray-50 rounded-md">
+                <span className="font-medium text-gray-600">
+                  Prix Total H. Frais de SCE
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {calculatedTotals.prixTotalHorsFrais.toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}{" "}
+                  {t("mad")}
+                </span>
+              </div>
+              <div className="flex justify-between p-2">
+                <span className="font-medium text-gray-600">
+                  Frais de Service Hors TVA
+                </span>
+                <span className="font-semibold text-gray-800">
+                  {calculatedTotals.totalFraisServiceHT.toLocaleString(
+                    undefined,
+                    {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }
+                  )}{" "}
+                  {t("mad")}
+                </span>
+              </div>
+              <div className="flex justify-between p-2">
+                <span className="font-medium text-gray-600">TVA 20%</span>
+                <span className="font-semibold text-gray-800">
+                  {calculatedTotals.tva.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  {t("mad")}
+                </span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2 p-2 bg-gray-100 rounded-md">
             <span>Total Facture</span>
             <span>

@@ -10,8 +10,6 @@ const applyDatabaseMigrations = async (client) => {
     console.log("Starting database migrations...");
 
     // --- Table Creation ---
-    // Moved from index.js to centralize schema management.
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS tiers (
         id SERIAL PRIMARY KEY,
@@ -60,9 +58,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- Add missing columns and alter types if necessary ---
-
-    // Add exportCounts column to programs table if it doesn't exist
     await client.query(`
       DO $$
       BEGIN
@@ -120,31 +115,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    const alterTableQueries = `
-      DO $$
-      BEGIN
-        -- Add dateOfBirth if it doesn't exist
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='dateOfBirth') THEN
-          ALTER TABLE bookings ADD COLUMN "dateOfBirth" VARCHAR(20);
-        ELSE
-          -- If it exists, ensure it's VARCHAR
-          ALTER TABLE bookings ALTER COLUMN "dateOfBirth" TYPE VARCHAR(20) USING "dateOfBirth"::text;
-        END IF;
-
-        -- Add passportExpirationDate if it doesn't exist
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='passportExpirationDate') THEN
-          ALTER TABLE bookings ADD COLUMN "passportExpirationDate" DATE;
-        END IF;
-
-        -- Add gender if it doesn't exist
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='gender') THEN
-          ALTER TABLE bookings ADD COLUMN "gender" VARCHAR(10);
-        END IF;
-      END;
-      $$;
-    `;
-    await client.query(alterTableQueries);
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
         id SERIAL PRIMARY KEY,
@@ -180,8 +150,9 @@ const applyDatabaseMigrations = async (client) => {
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL,
         "employeeId" INTEGER,
-        "clientName" VARCHAR(255) NOT NULL,
+        "clientName" VARCHAR(255),
         "clientAddress" TEXT,
+        "clientICE" TEXT,
         "date" DATE NOT NULL,
         "items" JSONB NOT NULL,
         "type" VARCHAR(50) NOT NULL,
@@ -190,6 +161,7 @@ const applyDatabaseMigrations = async (client) => {
         "totalFraisServiceHT" NUMERIC(10, 2) DEFAULT 0,
         "tva" NUMERIC(10, 2) DEFAULT 0,
         "total" NUMERIC(10, 2) NOT NULL,
+        "showMargin" BOOLEAN DEFAULT TRUE,
         "notes" TEXT,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -197,16 +169,27 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    // --- Add/Alter columns for existing installations ---
+    const alterFacturesTable = `
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='factures' AND column_name='showMargin') THEN
+          ALTER TABLE factures ADD COLUMN "showMargin" BOOLEAN DEFAULT TRUE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='factures' AND column_name='clientICE') THEN
+          ALTER TABLE factures ADD COLUMN "clientICE" TEXT;
+        END IF;
+        ALTER TABLE factures ALTER COLUMN "clientName" DROP NOT NULL;
+      END;
+      $$;
+    `;
+    await client.query(alterFacturesTable);
+
     console.log("All tables checked/created successfully.");
 
     // --- Index Creation ---
-    // Using 'IF NOT EXISTS' to prevent errors on subsequent runs.
     console.log("Applying database indexes for performance...");
-
-    // Enable pg_trgm extension for `ILIKE` performance
     await client.query("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
-
-    // Existing indexes
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");'
     );
@@ -220,20 +203,11 @@ const applyDatabaseMigrations = async (client) => {
       'CREATE INDEX IF NOT EXISTS idx_bookings_passport ON bookings("passportNumber");'
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_dob ON bookings("dateOfBirth");'
-    );
-    await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_passport_exp ON bookings("passportExpirationDate");'
-    );
-
-    await client.query(
       'CREATE INDEX IF NOT EXISTS idx_programs_user_type ON programs("userId", "type");'
     );
-
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_program_pricing_program ON program_pricing("programId");'
     );
-
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_factures_user ON factures("userId");'
     );
@@ -243,15 +217,9 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");'
     );
-
-    // --- New Indexes for Performance Enhancement ---
-
-    // Composite index for common booking filters
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "isFullyPaid");'
     );
-
-    // GIN indexes for fast text search on names in bookings and programs
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN ("clientNameFr" gin_trgm_ops);'
     );
@@ -261,13 +229,9 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       "CREATE INDEX IF NOT EXISTS idx_programs_name_gin ON programs USING GIN (name gin_trgm_ops);"
     );
-
-    // Index for daily services reports filtered by date
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_daily_services_user_date ON daily_services("userId", date DESC);'
     );
-
-    // Index for factures ordered by creation date for a user
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_factures_user_created_at ON factures("userId", "createdAt" DESC);'
     );
@@ -276,7 +240,6 @@ const applyDatabaseMigrations = async (client) => {
     console.log("Database initialization complete.");
   } catch (error) {
     console.error("Database initialization error:", error);
-    // Exit process if critical setup fails
     process.exit(1);
   }
 };
