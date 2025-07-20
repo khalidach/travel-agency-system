@@ -1,10 +1,16 @@
 // frontend/src/components/booking/HotelRoomSelection.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
-import type { Program, Package, PriceStructure } from "../../context/models";
+import type {
+  Program,
+  Package,
+  PriceStructure,
+  ProgramVariation,
+} from "../../context/models";
 
 interface HotelRoomSelectionProps {
   selectedProgram: Program | null;
+  selectedVariation: ProgramVariation | null;
   selectedPackage: Package | null;
   selectedPriceStructure: PriceStructure | null;
   selectedHotel: {
@@ -18,6 +24,7 @@ interface HotelRoomSelectionProps {
 
 export default function HotelRoomSelection({
   selectedProgram,
+  selectedVariation,
   selectedPackage,
   selectedPriceStructure,
   selectedHotel,
@@ -28,7 +35,7 @@ export default function HotelRoomSelection({
 
   if (
     !selectedPackage ||
-    !(selectedProgram?.cities || []).some((c) => c.nights > 0)
+    !(selectedVariation?.cities || []).some((c) => c.nights > 0)
   ) {
     return null;
   }
@@ -39,7 +46,7 @@ export default function HotelRoomSelection({
         {t("hotelAndRoomSelection")}
       </h3>
       <div className="space-y-4">
-        {(selectedProgram?.cities || []).map((city, cityIndex) => (
+        {(selectedVariation?.cities || []).map((city, cityIndex) => (
           <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
             <h4 className="font-medium text-gray-900 mb-3">
               {city.name} ({t("nights_other", { count: city.nights })})

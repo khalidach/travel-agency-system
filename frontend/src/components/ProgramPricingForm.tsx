@@ -1,7 +1,12 @@
 // frontend/src/components/ProgramPricingForm.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { Program, ProgramPricing, HotelPrice } from "../context/models";
+import type {
+  Program,
+  ProgramPricing,
+  HotelPrice,
+  ProgramVariation,
+} from "../context/models";
 
 interface ProgramPricingFormProps {
   program: Program;
@@ -41,13 +46,15 @@ export default function ProgramPricingForm({
   useEffect(() => {
     // Generate the fresh hotel list from the latest program data
     const uniqueHotels = new Map<string, { city: string; nights: number }>();
-    program.packages.forEach((pkg) => {
-      (program.cities || []).forEach((city) => {
-        (pkg.hotels[city.name] || []).forEach((hotelName) => {
-          const key = `${city.name}-${hotelName}`;
-          if (!uniqueHotels.has(key)) {
-            uniqueHotels.set(key, { city: city.name, nights: city.nights });
-          }
+    (program.variations || []).forEach((variation: ProgramVariation) => {
+      (program.packages || []).forEach((pkg) => {
+        (variation.cities || []).forEach((city) => {
+          (pkg.hotels[city.name] || []).forEach((hotelName) => {
+            const key = `${city.name}-${hotelName}`;
+            if (!uniqueHotels.has(key)) {
+              uniqueHotels.set(key, { city: city.name, nights: city.nights });
+            }
+          });
         });
       });
     });

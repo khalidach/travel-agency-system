@@ -9,6 +9,7 @@ interface ProgramPackageSelectionProps {
   hasPackages: boolean;
   selectedProgram: Program | null;
   handleProgramChange: (programId: string) => void;
+  handleVariationChange: (variationName: string) => void;
   handlePackageChange: (packageName: string) => void;
   programId?: string;
   booking?: any;
@@ -19,6 +20,7 @@ const ProgramPackageSelection = ({
   hasPackages,
   selectedProgram,
   handleProgramChange,
+  handleVariationChange,
   handlePackageChange,
   programId,
   booking,
@@ -30,7 +32,7 @@ const ProgramPackageSelection = ({
   } = useFormContext();
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           {t("travelProgram")}
@@ -61,6 +63,39 @@ const ProgramPackageSelection = ({
         {errors.tripId && (
           <p className="text-red-500 text-sm mt-1">
             {(errors.tripId as any).message}
+          </p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Variation
+        </label>
+        <Controller
+          name="variationName"
+          control={control}
+          rules={{ required: "Variation is required" }}
+          render={({ field }) => (
+            <select
+              {...field}
+              onChange={(e) => {
+                field.onChange(e);
+                handleVariationChange(e.target.value);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              disabled={!selectedProgram}
+            >
+              <option value="">Select a variation</option>
+              {(selectedProgram?.variations || []).map((variation) => (
+                <option key={variation.name} value={variation.name}>
+                  {variation.name} ({variation.duration} {t("days")})
+                </option>
+              ))}
+            </select>
+          )}
+        />
+        {errors.variationName && (
+          <p className="text-red-500 text-sm mt-1">
+            {(errors.variationName as any).message}
           </p>
         )}
       </div>

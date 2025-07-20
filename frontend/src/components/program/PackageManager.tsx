@@ -2,8 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray } from "react-hook-form";
-import { Plus, Trash2, Hotel, Users, ChevronDown } from "lucide-react";
-import type { Package } from "../../context/models";
+import { Plus, Trash2, Hotel, Users } from "lucide-react";
+import type { Package, ProgramVariation } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
 import Accordion from "../ui/Accordion"; // Import the Accordion component
 
@@ -52,6 +52,10 @@ const DebouncedHotelInput = ({
 
       const allPackages = getValues("packages");
       const prices = allPackages[packageIndex]?.prices || [];
+      const variations: ProgramVariation[] = getValues("variations") || [];
+      const allCities = variations
+        .flatMap((v) => v.cities)
+        .filter((c: any) => c.name.trim());
 
       prices.forEach((price: any, priceIndex: number) => {
         if (
@@ -59,8 +63,8 @@ const DebouncedHotelInput = ({
           (price.hotelCombination.includes(oldValue) || oldValue === "")
         ) {
           const combinationParts = price.hotelCombination.split("_");
-          const cities = getValues("cities").filter((c: any) => c.name.trim());
-          const cityIndexToUpdate = cities.findIndex(
+
+          const cityIndexToUpdate = allCities.findIndex(
             (c: any) => c.name === city.name
           );
 
@@ -97,7 +101,16 @@ const DebouncedHotelInput = ({
 const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
   const { t } = useTranslation();
   const { watch } = useFormContext();
-  const cities = watch("cities");
+  const variations: ProgramVariation[] = watch("variations");
+
+  const allCities = (variations || [])
+    .flatMap((v) => v.cities)
+    .filter(
+      (city, index, self) =>
+        city &&
+        city.name &&
+        self.findIndex((c) => c.name === city.name) === index
+    );
 
   return (
     <div className="mb-6">
@@ -105,7 +118,7 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
         {t("hotelsByCity")}
       </h5>
       <div className="space-y-4">
-        {cities
+        {allCities
           .filter((c: any) => c.name.trim())
           .map((city: any) => (
             <HotelManager
@@ -190,44 +203,55 @@ export default function PackageManager() {
     name: "packages",
   });
 
-  const cities = watch("cities");
+  const variations: ProgramVariation[] = watch("variations");
 
   const generateAllHotelOptions = (packageIndex: number) => {
     const pkg = watch(`packages.${packageIndex}`);
-    const validCities = cities.filter((city: any) => city.name.trim());
     const options: string[] = [];
 
-    const generateCombinations = (
-      cityIndex: number,
-      currentCombination: string[]
-    ) => {
-      if (cityIndex === validCities.length) {
-        if (currentCombination.length > 0) {
-          options.push(currentCombination.join("_"));
+    if (!variations || variations.length === 0) return options;
+
+    variations.forEach((variation) => {
+      const validCities = (variation.cities || []).filter((city: any) =>
+        city.name.trim()
+      );
+
+      const generateCombinations = (
+        cityIndex: number,
+        currentCombination: string[]
+      ) => {
+        if (cityIndex === validCities.length) {
+          if (currentCombination.length > 0) {
+            const combinationString = currentCombination.join("_");
+            if (!options.includes(combinationString)) {
+              options.push(combinationString);
+            }
+          }
+          return;
         }
-        return;
-      }
 
-      const cityHotels =
-        (pkg.hotels && pkg.hotels[validCities[cityIndex].name]) || [];
-      if (
-        cityHotels.length === 0 ||
-        cityHotels.every((h: string) => !h.trim())
-      ) {
-        generateCombinations(cityIndex + 1, currentCombination);
-        return;
-      }
-
-      cityHotels.forEach((hotel: string) => {
-        if (hotel.trim()) {
-          generateCombinations(cityIndex + 1, [...currentCombination, hotel]);
+        const cityHotels =
+          (pkg.hotels && pkg.hotels[validCities[cityIndex].name]) || [];
+        if (
+          cityHotels.length === 0 ||
+          cityHotels.every((h: string) => !h.trim())
+        ) {
+          generateCombinations(cityIndex + 1, currentCombination);
+          return;
         }
-      });
-    };
 
-    if (validCities.length > 0) {
-      generateCombinations(0, []);
-    }
+        cityHotels.forEach((hotel: string) => {
+          if (hotel.trim()) {
+            generateCombinations(cityIndex + 1, [...currentCombination, hotel]);
+          }
+        });
+      };
+
+      if (validCities.length > 0) {
+        generateCombinations(0, []);
+      }
+    });
+
     return options;
   };
 

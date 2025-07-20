@@ -12,6 +12,7 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import ProgramForm from "../components/ProgramForm";
@@ -67,7 +68,7 @@ export default function Programs() {
   const { mutate: createProgram, isPending: isCreating } = useMutation({
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
     },
@@ -79,7 +80,7 @@ export default function Programs() {
   const { mutate: updateProgram, isPending: isUpdating } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);
@@ -92,7 +93,7 @@ export default function Programs() {
   const { mutate: deleteProgram } = useMutation({
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
       toast.success("Program deleted successfully!");
     },
     onError: (error: Error) => {
@@ -260,27 +261,20 @@ export default function Programs() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-gray-600">
-                  <Calendar
+                  <Clock
                     className={`w-4 h-4 ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                     }`}
                   />
                   <span>
-                    {program.duration} {t("days")}
+                    Durations:{" "}
+                    {(program.variations || [])
+                      .map((v) => `${v.duration} ${t("days")}`)
+                      .join(", ")}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
-                  <MapPin
-                    className={`w-4 h-4 ${
-                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                    }`}
-                  />
-                  <span>
-                    {program.cities.map((city) => city.name).join(", ")}
-                  </span>
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Users
+                  <Package
                     className={`w-4 h-4 ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                     }`}
@@ -289,19 +283,7 @@ export default function Programs() {
                     {packageCount} {t("package", { count: packageCount })}
                   </span>
                 </div>
-              </div>
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <div className="flex flex-wrap gap-2">
-                  {(program.packages ?? []).map((pkg, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
-                    >
-                      {pkg.name}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center text-sm text-gray-600 pt-3 mt-3 border-t border-gray-100">
+                <div className="flex items-center text-sm text-gray-600">
                   <Users
                     className={`w-4 h-4 ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"

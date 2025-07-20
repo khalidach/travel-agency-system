@@ -12,6 +12,7 @@ import type {
   RelatedPerson,
   PriceStructure,
   ProgramPricing,
+  ProgramVariation,
 } from "../context/models";
 import * as api from "../services/api";
 import { useAuthContext } from "../context/AuthContext";
@@ -44,6 +45,7 @@ interface FormState {
   search: string;
   showDropdown: boolean;
   selectedProgram: Program | null;
+  selectedVariation: ProgramVariation | null;
   selectedPackage: Package | null;
   selectedPriceStructure: PriceStructure | null;
   error: string | null;
@@ -72,6 +74,7 @@ export default function BookingForm({
       passportExpirationDate: "",
       gender: "male",
       tripId: "",
+      variationName: "",
       packageId: "",
       selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
       sellingPrice: 0,
@@ -95,6 +98,7 @@ export default function BookingForm({
     search: "",
     showDropdown: false,
     selectedProgram: null,
+    selectedVariation: null,
     selectedPackage: null,
     selectedPriceStructure: null,
     error: null,
@@ -168,17 +172,41 @@ export default function BookingForm({
       setFormState((prev) => ({
         ...prev,
         selectedProgram: program || null,
+        selectedVariation: null,
         selectedPackage: null,
         selectedPriceStructure: null,
         error: null,
       }));
 
       setValue("tripId", programIdStr);
+      setValue("variationName", "");
       setValue("packageId", "");
       setValue("selectedHotel", { cities: [], hotelNames: [], roomTypes: [] });
       setValue("relatedPersons", []);
     },
     [programs, setValue]
+  );
+
+  const handleVariationChange = useCallback(
+    (variationName: string) => {
+      if (!formState.selectedProgram) return;
+
+      const variation = (formState.selectedProgram.variations || []).find(
+        (v) => v.name === variationName
+      );
+
+      setFormState((prev) => ({
+        ...prev,
+        selectedVariation: variation || null,
+        selectedPackage: null,
+        selectedPriceStructure: null,
+      }));
+
+      setValue("variationName", variationName);
+      setValue("packageId", "");
+      setValue("selectedHotel", { cities: [], hotelNames: [], roomTypes: [] });
+    },
+    [formState.selectedProgram, setValue]
   );
 
   useEffect(() => {
@@ -189,12 +217,16 @@ export default function BookingForm({
         );
 
         if (program) {
+          const variation = (program.variations || []).find(
+            (v) => v.name === booking.variationName
+          );
           const pkg = (program.packages || []).find(
             (p) => p.name === booking.packageId
           );
           setFormState((prev) => ({
             ...prev,
             selectedProgram: program,
+            selectedVariation: variation || null,
             selectedPackage: pkg || null,
           }));
         }
@@ -246,7 +278,12 @@ export default function BookingForm({
   }, [booking, programs, reset, programId, handleProgramChange, trigger]);
 
   const calculateTotalBasePrice = useCallback((): number => {
-    if (!formState.selectedProgram || !programPricing) return 0;
+    if (
+      !formState.selectedProgram ||
+      !programPricing ||
+      !formState.selectedVariation
+    )
+      return 0;
 
     let hotelCosts = 0;
     if (formState.selectedPriceStructure && programPricing.allHotels) {
@@ -267,7 +304,7 @@ export default function BookingForm({
           const pricePerNight = Number(
             hotelPricingInfo.PricePerNights[roomTypeName] || 0
           );
-          const cityInfo = formState.selectedProgram?.cities.find(
+          const cityInfo = formState.selectedVariation?.cities.find(
             (c) => c.name === city
           );
           const nights = cityInfo ? cityInfo.nights : 0;
@@ -298,6 +335,7 @@ export default function BookingForm({
     );
   }, [
     formState.selectedProgram,
+    formState.selectedVariation,
     formState.selectedPriceStructure,
     selectedHotel,
     programPricing,
@@ -315,6 +353,7 @@ export default function BookingForm({
     sellingPrice,
     personType,
     formState.selectedProgram,
+    formState.selectedVariation,
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
     setValue,
@@ -324,7 +363,8 @@ export default function BookingForm({
   useEffect(() => {
     if (
       formState.selectedPackage &&
-      formState.selectedProgram?.cities.length ===
+      formState.selectedVariation &&
+      formState.selectedVariation.cities.length ===
         selectedHotel.hotelNames.length &&
       selectedHotel.hotelNames.every((h) => h)
     ) {
@@ -345,7 +385,7 @@ export default function BookingForm({
   }, [
     selectedHotel.hotelNames,
     formState.selectedPackage,
-    formState.selectedProgram,
+    formState.selectedVariation,
   ]);
 
   const handleSellingPriceChange = useCallback(
@@ -363,10 +403,6 @@ export default function BookingForm({
 
   const onSubmit = useCallback(
     (data: any) => {
-      const hasCitiesWithNights = (
-        formState.selectedProgram?.cities || []
-      ).some((c) => c.nights > 0);
-
       if (!formState.selectedProgram) {
         setFormState((prev) => ({
           ...prev,
@@ -374,6 +410,18 @@ export default function BookingForm({
         }));
         return;
       }
+
+      if (!formState.selectedVariation) {
+        setFormState((prev) => ({
+          ...prev,
+          error: "A program variation must be selected.",
+        }));
+        return;
+      }
+
+      const hasCitiesWithNights = (
+        formState.selectedVariation?.cities || []
+      ).some((c) => c.nights > 0);
 
       if (hasPackages && !formState.selectedPackage) {
         setFormState((prev) => ({
@@ -435,8 +483,8 @@ export default function BookingForm({
         selectedPriceStructure: null,
       }));
 
-      if (pkg) {
-        const cities = (formState.selectedProgram.cities || []).map(
+      if (pkg && formState.selectedVariation) {
+        const cities = (formState.selectedVariation.cities || []).map(
           (c) => c.name
         );
         setValue("packageId", packageName);
@@ -447,7 +495,7 @@ export default function BookingForm({
         });
       }
     },
-    [formState.selectedProgram, setValue]
+    [formState.selectedProgram, formState.selectedVariation, setValue]
   );
 
   const updateHotelSelection = useCallback(
@@ -537,6 +585,7 @@ export default function BookingForm({
           selectedProgram={formState.selectedProgram}
           handleProgramChange={handleProgramChange}
           handlePackageChange={handlePackageChange}
+          handleVariationChange={handleVariationChange}
           programId={programId}
           booking={booking}
         />
@@ -569,6 +618,7 @@ export default function BookingForm({
 
         <HotelRoomSelection
           selectedProgram={formState.selectedProgram}
+          selectedVariation={formState.selectedVariation}
           selectedPackage={formState.selectedPackage}
           selectedPriceStructure={formState.selectedPriceStructure}
           selectedHotel={selectedHotel}

@@ -87,6 +87,12 @@ export interface CityData {
   nights: number;
 }
 
+export interface ProgramVariation {
+  name: string;
+  duration: number;
+  cities: CityData[];
+}
+
 export interface RoomTypeDefinition {
   name: string;
   guests: number;
@@ -102,8 +108,7 @@ export interface Program {
   id: number;
   name: string;
   type: "Hajj" | "Umrah" | "Tourism";
-  duration: number;
-  cities: CityData[];
+  variations: ProgramVariation[];
   packages: Package[];
   roomTypes: RoomTypeDefinition[];
   userId: number;
@@ -151,6 +156,7 @@ export interface Booking {
   passportExpirationDate?: string;
   gender?: Gender;
   tripId: string;
+  variationName?: string; // New field
   packageId: string;
   selectedHotel: {
     cities: string[];

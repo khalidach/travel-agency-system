@@ -2,12 +2,12 @@
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-import type { Program, CityData, Package } from "../context/models";
+import type { Program, Package, ProgramVariation } from "../context/models";
 
 // Import the refactored child components
-import CityManager from "./program/CityManager";
 import PackageManager from "./program/PackageManager";
 import LoadingSpinner from "./ui/LoadingSpinner";
+import VariationManager from "./program/VariationManager";
 
 // Form props with isSaving
 interface ProgramFormProps {
@@ -32,8 +32,13 @@ export default function ProgramForm({
       : {
           name: "",
           type: "Umrah",
-          duration: 0,
-          cities: [{ name: "", nights: 0 }],
+          variations: [
+            {
+              name: "Default Variation",
+              duration: 0,
+              cities: [{ name: "", nights: 0 }],
+            },
+          ],
           packages: [],
         },
   });
@@ -44,22 +49,34 @@ export default function ProgramForm({
     watch,
     reset,
     setValue,
+    getValues,
     formState: { errors },
   } = methods;
 
-  // Watch for changes in cities to auto-calculate duration.
+  // Watch for changes in cities to auto-calculate duration for each variation.
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name && (name === "cities" || name.startsWith("cities."))) {
-        const cities = value.cities || [];
-        const totalDuration = cities
-          .filter((city): city is CityData => city != null)
-          .reduce((sum: number, city) => sum + (Number(city.nights) || 0), 0);
-        setValue("duration", totalDuration);
+      // Only run the calculation if a city's name or nights changed to prevent infinite loops.
+      if (name && name.includes(".cities.")) {
+        const variations = getValues("variations") || [];
+        variations.forEach((variation: ProgramVariation, index: number) => {
+          const cities = variation.cities || [];
+          const totalDuration = cities.reduce(
+            (sum: number, city: any) => sum + (Number(city.nights) || 0),
+            0
+          );
+
+          // Only update the value if it has actually changed.
+          if (getValues(`variations.${index}.duration`) !== totalDuration) {
+            setValue(`variations.${index}.duration`, totalDuration, {
+              shouldDirty: true,
+            });
+          }
+        });
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, setValue]);
+  }, [watch, setValue, getValues]);
 
   // Reset form when the program prop changes
   useEffect(() => {
@@ -70,25 +87,6 @@ export default function ProgramForm({
 
   const onSubmit = (data: Program) => {
     const cleanedData = JSON.parse(JSON.stringify(data));
-    const validCityNames = new Set(
-      data.cities.map((c) => c.name).filter(Boolean)
-    );
-
-    cleanedData.packages = cleanedData.packages.map((pkg: Package) => {
-      const newHotels: { [key: string]: string[] } = {};
-      for (const cityName in pkg.hotels) {
-        if (validCityNames.has(cityName)) {
-          newHotels[cityName] = pkg.hotels[cityName];
-        }
-      }
-      validCityNames.forEach((cityName) => {
-        if (!newHotels[cityName]) {
-          newHotels[cityName] = [];
-        }
-      });
-      return { ...pkg, hotels: newHotels };
-    });
-
     onSave(cleanedData);
   };
 
@@ -127,19 +125,8 @@ export default function ProgramForm({
             </select>
           </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t("duration")} {t("daysParentheses")}
-          </label>
-          <input
-            type="number"
-            {...methods.register("duration")}
-            readOnly
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-          />
-        </div>
 
-        <CityManager />
+        <VariationManager />
 
         <PackageManager />
 

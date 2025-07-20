@@ -42,6 +42,7 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    // Modified programs table
     await client.query(`
       CREATE TABLE IF NOT EXISTS programs (
           id SERIAL PRIMARY KEY,
@@ -49,13 +50,38 @@ const applyDatabaseMigrations = async (client) => {
           "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
           name VARCHAR(255) NOT NULL,
           type VARCHAR(50) NOT NULL,
-          duration INTEGER NOT NULL,
-          cities JSONB,
+          variations JSONB, -- Renamed from cities and duration is now inside
           packages JSONB,
           "totalBookings" INTEGER DEFAULT 0,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add 'variations' column, migrate old data, and then drop old columns safely.
+    await client.query(`
+      DO $$
+      BEGIN
+        -- Add the new 'variations' column if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='variations') THEN
+          ALTER TABLE programs ADD COLUMN "variations" JSONB;
+        END IF;
+
+        -- Check if migration is needed (i.e., the old 'cities' column still exists)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='cities') THEN
+            -- Migrate data from 'cities' and 'duration' into a default variation for existing programs
+            UPDATE programs
+            SET variations = jsonb_build_array(jsonb_build_object(
+                'name', 'Default Variation',
+                'duration', duration,
+                'cities', cities
+            ))
+            WHERE cities IS NOT NULL AND variations IS NULL;
+
+            
+        END IF;
+      END;
+      $$;
     `);
 
     await client.query(`
@@ -101,6 +127,7 @@ const applyDatabaseMigrations = async (client) => {
         "passportExpirationDate" DATE,
         "gender" VARCHAR(10),
         "tripId" VARCHAR(255) NOT NULL,
+        "variationName" VARCHAR(255), -- New field for variation
         "packageId" VARCHAR(255),
         "selectedHotel" JSONB,
         "sellingPrice" NUMERIC(10, 2) NOT NULL,
@@ -113,6 +140,17 @@ const applyDatabaseMigrations = async (client) => {
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add 'variationName' column to bookings if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='variationName') THEN
+          ALTER TABLE bookings ADD COLUMN "variationName" VARCHAR(255);
+        END IF;
+      END;
+      $$;
     `);
 
     await client.query(`
