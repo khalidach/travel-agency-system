@@ -182,58 +182,67 @@ export default function BookingForm({
   );
 
   useEffect(() => {
-    if (booking) {
-      const program = programs.find(
-        (p) => p.id.toString() === (booking.tripId || "").toString()
-      );
-
-      if (program) {
-        const pkg = (program.packages || []).find(
-          (p) => p.name === booking.packageId
+    const initializeForm = async () => {
+      if (booking) {
+        const program = programs.find(
+          (p) => p.id.toString() === (booking.tripId || "").toString()
         );
-        setFormState((prev) => ({
-          ...prev,
-          selectedProgram: program,
-          selectedPackage: pkg || null,
-        }));
-      }
 
-      // Logic to parse dateOfBirth back into day, month, year
-      let day, month, year;
-      if (booking.dateOfBirth) {
-        if (booking.dateOfBirth.includes("XX/XX/")) {
-          year = parseInt(booking.dateOfBirth.split("/")[2], 10);
-        } else {
-          try {
-            const date = new Date(booking.dateOfBirth);
-            day = date.getDate();
-            month = date.getMonth() + 1;
-            year = date.getFullYear();
-          } catch (e) {
-            // Invalid date format
+        if (program) {
+          const pkg = (program.packages || []).find(
+            (p) => p.name === booking.packageId
+          );
+          setFormState((prev) => ({
+            ...prev,
+            selectedProgram: program,
+            selectedPackage: pkg || null,
+          }));
+        }
+
+        let day, month, year;
+        if (booking.dateOfBirth) {
+          if (booking.dateOfBirth.includes("XX/XX/")) {
+            year = parseInt(booking.dateOfBirth.split("/")[2], 10);
+          } else {
+            try {
+              const date = new Date(booking.dateOfBirth);
+              if (!isNaN(date.getTime())) {
+                day = date.getUTCDate();
+                month = date.getUTCMonth() + 1;
+                year = date.getUTCFullYear();
+              }
+            } catch (e) {
+              // Invalid date format
+            }
           }
         }
-      }
 
-      reset({
-        ...booking,
-        dob_day: day,
-        dob_month: month,
-        dob_year: year,
-        passportExpirationDate: booking.passportExpirationDate
-          ? new Date(booking.passportExpirationDate).toISOString().split("T")[0]
-          : "",
-        sellingPrice: Number(booking.sellingPrice),
-        basePrice: Number(booking.basePrice),
-        profit: Number(booking.sellingPrice) - Number(booking.basePrice),
-        createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
-        relatedPersons: booking.relatedPersons || [],
-      });
-      // Trigger validation after resetting the form
-      trigger();
-    } else if (programId) {
-      handleProgramChange(programId);
-    }
+        reset({
+          ...booking,
+          gender: booking.gender || "male", // FIX: Ensure gender has a default value
+          dob_day: day,
+          dob_month: month,
+          dob_year: year,
+          passportExpirationDate: booking.passportExpirationDate
+            ? new Date(booking.passportExpirationDate)
+                .toISOString()
+                .split("T")[0]
+            : "",
+          sellingPrice: Number(booking.sellingPrice),
+          basePrice: Number(booking.basePrice),
+          profit: Number(booking.sellingPrice) - Number(booking.basePrice),
+          createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
+          relatedPersons: booking.relatedPersons || [],
+        });
+
+        // FIX: Await trigger to ensure validation state is updated
+        await trigger();
+      } else if (programId) {
+        handleProgramChange(programId);
+      }
+    };
+
+    initializeForm();
   }, [booking, programs, reset, programId, handleProgramChange, trigger]);
 
   const calculateTotalBasePrice = useCallback((): number => {
