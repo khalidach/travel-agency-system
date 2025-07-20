@@ -1,8 +1,9 @@
 // frontend/src/components/ProgramForm.tsx
-import React, { useEffect } from "react";
+
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-import type { Program, Package, ProgramVariation } from "../context/models";
+import type { Program, ProgramVariation } from "../context/models";
 
 // Import the refactored child components
 import PackageManager from "./program/PackageManager";
@@ -55,7 +56,32 @@ export default function ProgramForm({
 
   // Watch for changes in cities to auto-calculate duration for each variation.
   useEffect(() => {
-    const subscription = watch((value, { name }) => {
+    const subscription = watch((_, { name }) => {
+      if (name && name.startsWith("variations.0.cities")) {
+        const variations = getValues("variations") || [];
+        const firstVariationCities = getValues("variations.0.cities") || [];
+        const cityIndexMatch = name.match(/variations\.0\.cities\.(\d+)\.name/);
+
+        if (cityIndexMatch) {
+          const changedCityIndex = parseInt(cityIndexMatch[1], 10);
+          const newCityName = firstVariationCities[changedCityIndex]?.name;
+
+          variations.forEach((_: ProgramVariation, varIndex: number) => {
+            if (varIndex > 0) {
+              const currentCityName = getValues(
+                `variations.${varIndex}.cities.${changedCityIndex}.name`
+              );
+              if (currentCityName !== newCityName) {
+                setValue(
+                  `variations.${varIndex}.cities.${changedCityIndex}.name`,
+                  newCityName
+                );
+              }
+            }
+          });
+        }
+      }
+
       // Only run the calculation if a city's name or nights changed to prevent infinite loops.
       if (name && name.includes(".cities.")) {
         const variations = getValues("variations") || [];
