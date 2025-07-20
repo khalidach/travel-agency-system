@@ -94,6 +94,7 @@ const ClientInfoFields = () => {
             render={({ field }) => (
               <select
                 {...field}
+                value={field.value || ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="adult">{t("adult")}</option>
@@ -207,7 +208,6 @@ const ClientInfoFields = () => {
               name="dob_year"
               control={control}
               rules={{
-                required: "Year is required",
                 min: { value: 1900, message: "Invalid year" },
                 max: {
                   value: new Date().getFullYear(),
@@ -277,6 +277,7 @@ const ClientInfoFields = () => {
             render={({ field }) => (
               <select
                 {...field}
+                value={field.value || "male"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="male">{t("male")}</option>

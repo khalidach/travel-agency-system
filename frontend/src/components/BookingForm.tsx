@@ -87,6 +87,7 @@ export default function BookingForm({
     watch,
     setValue,
     reset,
+    trigger,
     formState: { isValid },
   } = methods;
 
@@ -228,10 +229,12 @@ export default function BookingForm({
         createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
         relatedPersons: booking.relatedPersons || [],
       });
+      // Trigger validation after resetting the form
+      trigger();
     } else if (programId) {
       handleProgramChange(programId);
     }
-  }, [booking, programs, reset, programId, handleProgramChange]);
+  }, [booking, programs, reset, programId, handleProgramChange, trigger]);
 
   const calculateTotalBasePrice = useCallback((): number => {
     if (!formState.selectedProgram || !programPricing) return 0;
@@ -345,9 +348,6 @@ export default function BookingForm({
   );
 
   const onInvalid = useCallback((errors: FieldErrors) => {
-    if (errors.dob_day || errors.dob_month || errors.dob_year) {
-      toast.error("Invalid date of birth.");
-    }
     console.log("Form Errors:", errors);
     toast.error("Please correct the errors before saving.");
   }, []);
