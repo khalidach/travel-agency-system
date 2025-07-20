@@ -203,12 +203,11 @@ exports.updateProgram = async (req, res, next) => {
     );
     const updatedProgram = updatedProgramRows[0];
 
-    // This service needs to be updated to handle variations
-    // await ProgramUpdateService.handleCascadingUpdates(
-    //   client,
-    //   oldProgram,
-    //   updatedProgram
-    // );
+    await ProgramUpdateService.handleCascadingUpdates(
+      client,
+      oldProgram,
+      updatedProgram
+    );
 
     await client.query("COMMIT");
     res.status(200).json(updatedProgram);
