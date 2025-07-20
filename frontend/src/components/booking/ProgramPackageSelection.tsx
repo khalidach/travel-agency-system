@@ -49,7 +49,7 @@ const ProgramPackageSelection = ({
                 handleProgramChange(e.target.value);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
-              disabled={!!programId && !booking}
+              disabled={!!programId || !booking}
             >
               <option value="">{t("selectAProgram")}</option>
               {programs.map((program) => (

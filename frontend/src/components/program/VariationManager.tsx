@@ -1,10 +1,10 @@
 // frontend/src/components/program/VariationManager.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin, Clock, Copy } from "lucide-react";
 import Accordion from "../ui/Accordion";
-import { Program } from "../../context/models";
+import { Program, ProgramVariation } from "../../context/models";
 
 const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   const { t } = useTranslation();
@@ -19,6 +19,8 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
     name: `variations.${variationIndex}.cities`,
   });
 
+  const areCitiesLocked = variationIndex > 0;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -28,7 +30,8 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
         <button
           type="button"
           onClick={() => append({ name: "", nights: 0 })}
-          className="inline-flex items-center px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          className="inline-flex items-center px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+          disabled={areCitiesLocked}
         >
           <Plus
             className={`w-3 h-3 ${
@@ -39,7 +42,6 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
         </button>
       </div>
       {fields.map((item, cityIndex) => {
-        // Correctly and safely access nested field array errors
         const nameError = errors.variations?.[variationIndex]?.cities?.[
           cityIndex
         ]?.name as FieldError | undefined;
@@ -58,7 +60,8 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                 placeholder={t("enterCityName") as string}
                 className={`flex-1 px-3 py-2 border rounded-lg text-sm ${
                   nameError ? "border-red-500" : "border-gray-300"
-                }`}
+                } disabled:bg-gray-100 disabled:text-gray-500`}
+                disabled={areCitiesLocked}
               />
               <input
                 type="number"
@@ -77,7 +80,8 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                 <button
                   type="button"
                   onClick={() => remove(cityIndex)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:text-gray-400 disabled:hover:bg-transparent"
+                  disabled={areCitiesLocked}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -97,20 +101,70 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
 
 export default function VariationManager() {
   const { t } = useTranslation();
-  const { control, register, watch, getValues } = useFormContext<Program>();
+  const { control, register, watch, getValues, setValue } =
+    useFormContext<Program>();
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "variations",
   });
 
+  const firstVariationCities = watch("variations.0.cities");
+
+  useEffect(() => {
+    const allVariations = getValues("variations");
+    if (!allVariations || allVariations.length <= 1) {
+      return;
+    }
+
+    const firstCities = firstVariationCities || [];
+
+    for (let i = 1; i < allVariations.length; i++) {
+      const currentCities = getValues(`variations.${i}.cities`) || [];
+      const updatedCities = firstCities.map((firstCity, index) => ({
+        name: firstCity.name,
+        nights:
+          currentCities[index] &&
+          typeof currentCities[index].nights === "number"
+            ? currentCities[index].nights
+            : 0,
+      }));
+
+      if (JSON.stringify(currentCities) !== JSON.stringify(updatedCities)) {
+        setValue(`variations.${i}.cities`, updatedCities);
+      }
+    }
+  }, [firstVariationCities, fields.length, getValues, setValue]);
+
+  const handleAddVariation = () => {
+    const currentVariations = getValues("variations");
+    const firstVariation =
+      currentVariations && currentVariations.length > 0
+        ? currentVariations[0]
+        : null;
+
+    if (firstVariation) {
+      const newVariation = {
+        name: `Variation ${fields.length + 1}`,
+        duration: 0,
+        cities: JSON.parse(JSON.stringify(firstVariation.cities)),
+      };
+      newVariation.cities.forEach((city: any) => (city.nights = 0));
+      append(newVariation);
+    } else {
+      append({
+        name: `Variation ${fields.length + 1}`,
+        duration: 0,
+        cities: [{ name: "", nights: 0 }],
+      });
+    }
+  };
+
   const handleDuplicateVariation = (index: number) => {
     const variations = getValues("variations");
     const variationToDuplicate = variations[index];
     if (variationToDuplicate) {
-      // Create a deep copy to avoid reference issues
       const newVariation = JSON.parse(JSON.stringify(variationToDuplicate));
-      // Update the name to indicate it's a copy
       newVariation.name = `${newVariation.name} (Copy)`;
       append(newVariation);
     }
@@ -124,13 +178,7 @@ export default function VariationManager() {
         </label>
         <button
           type="button"
-          onClick={() =>
-            append({
-              name: `Variation ${fields.length + 1}`,
-              duration: 0,
-              cities: [{ name: "", nights: 0 }],
-            })
-          }
+          onClick={handleAddVariation}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-1" /> Add Variation
