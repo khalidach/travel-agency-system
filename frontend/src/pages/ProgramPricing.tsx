@@ -71,13 +71,26 @@ export default function ProgramPricingPage() {
   const programs = programsResponse?.data ?? [];
   const pagination = programsResponse?.pagination;
 
+  const invalidateRelatedQueries = (programId?: number) => {
+    // **FIX:** Specifically invalidate the query that fetches programs with their pricing.
+    // This ensures the list view is updated with the new data immediately.
+    queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
+    queryClient.invalidateQueries({ queryKey: ["programs"] });
+    if (programId) {
+      queryClient.invalidateQueries({
+        queryKey: ["bookingsByProgram", String(programId)],
+      });
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    }
+    queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+  };
+
   const { mutate: createPricing, isPending: isCreating } = useMutation({
     mutationFn: (data: any) => api.createProgramPricing(data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({
-        queryKey: ["bookingsByProgram", String(variables.programId)],
-      });
+      invalidateRelatedQueries(variables.programId);
       toast.success("Pricing saved successfully.");
       setIsModalOpen(false);
     },
@@ -90,10 +103,7 @@ export default function ProgramPricingPage() {
     mutationFn: (data: ProgramPricing) =>
       api.updateProgramPricing(data.id, data),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({
-        queryKey: ["bookingsByProgram", String(variables.programId)],
-      });
+      invalidateRelatedQueries(variables.programId);
       toast.success("Pricing updated successfully.");
       setIsModalOpen(false);
     },
@@ -105,8 +115,7 @@ export default function ProgramPricingPage() {
   const { mutate: deletePricing } = useMutation({
     mutationFn: (id: number) => api.deleteProgramPricing(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
-      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      invalidateRelatedQueries();
       toast.success("Pricing deleted successfully.");
     },
     onError: (error: any) => {

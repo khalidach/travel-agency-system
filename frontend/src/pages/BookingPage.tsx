@@ -178,8 +178,9 @@ export default function BookingPage() {
     queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
     queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-    queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
     queryClient.invalidateQueries({ queryKey: ["programs"] });
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["unassignedOccupantsSearch"] });
   };
 
   const { mutate: createBooking } = useMutation({

@@ -6,8 +6,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  MapPin,
-  Calendar,
   Users,
   Package,
   ChevronLeft,
@@ -65,10 +63,22 @@ export default function Programs() {
   const programs = programResponse?.data ?? [];
   const pagination = programResponse?.pagination;
 
+  const invalidateRelatedQueries = () => {
+    // Invalidate all queries starting with 'programs' to refresh all program lists
+    queryClient.invalidateQueries({ queryKey: ["programs"] });
+    // Invalidate all booking queries as program changes can affect them
+    queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    // Invalidate dashboard and reports as they depend on program data
+    queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+    // Invalidate room management as it's program-dependent
+    queryClient.invalidateQueries({ queryKey: ["rooms"] });
+  };
+
   const { mutate: createProgram, isPending: isCreating } = useMutation({
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      invalidateRelatedQueries();
       toast.success("Program created successfully!");
       setIsFormModalOpen(false);
     },
@@ -80,7 +90,7 @@ export default function Programs() {
   const { mutate: updateProgram, isPending: isUpdating } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      invalidateRelatedQueries();
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);
@@ -93,7 +103,7 @@ export default function Programs() {
   const { mutate: deleteProgram } = useMutation({
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["programs"] });
+      invalidateRelatedQueries();
       toast.success("Program deleted successfully!");
     },
     onError: (error: Error) => {
