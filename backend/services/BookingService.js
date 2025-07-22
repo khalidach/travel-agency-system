@@ -17,6 +17,24 @@ const calculateBasePrice = async (
     throw new Error("Program not found for base price calculation.");
   const program = programs[0];
 
+  // --- Start of fix ---
+  // Find the correct variation from the program's variations array based on the name.
+  let variation = (program.variations || []).find(
+    (v) => v.name === variationName
+  );
+
+  if (!variation) {
+    // Fallback to the first variation if the provided name is not found.
+    // This maintains backward compatibility for older data that might not have a variationName.
+    if (program.variations && program.variations.length > 0) {
+      variation = program.variations[0];
+    } else {
+      // If no variations exist at all, throw an error.
+      throw new Error(`Variation "${variationName}" not found in program.`);
+    }
+  }
+  // --- End of fix ---
+
   const { rows: pricings } = await db.query(
     'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
     [tripId, userId]
@@ -81,7 +99,8 @@ const calculateBasePrice = async (
         const hotelPricingInfo = (pricing.allHotels || []).find(
           (h) => h.name === hotelName && h.city === city
         );
-        const cityInfo = (program.cities || []).find((c) => c.name === city);
+        // --- Fix applied here: Use the correct variation's cities array to get the number of nights ---
+        const cityInfo = (variation.cities || []).find((c) => c.name === city);
 
         if (hotelPricingInfo && cityInfo && roomTypeName) {
           const pricePerNight = Number(
