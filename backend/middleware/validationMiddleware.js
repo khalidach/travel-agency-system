@@ -43,6 +43,13 @@ const programPricingValidation = [
     .optional()
     .isFloat({ gte: 0 })
     .withMessage("Ticket price must be a non-negative number."),
+  body("ticketPricesByVariation")
+    .optional()
+    .isObject()
+    .withMessage("Ticket prices by variation must be an object."),
+  body("ticketPricesByVariation.*")
+    .isFloat({ gte: 0 })
+    .withMessage("Variation ticket price must be a non-negative number."),
   body("transportFees")
     .optional()
     .isFloat({ gte: 0 })

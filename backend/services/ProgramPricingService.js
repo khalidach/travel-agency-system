@@ -21,7 +21,8 @@ async function updateRelatedBookings(client, userId, programId) {
         booking.tripId,
         booking.packageId,
         booking.selectedHotel,
-        booking.personType
+        booking.personType,
+        booking.variationName // Pass variationName for accurate pricing
       );
 
       const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
@@ -64,6 +65,7 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       programId,
       selectProgram,
       ticketAirline,
+      ticketPricesByVariation,
       visaFees,
       guideFees,
       transportFees,
@@ -75,13 +77,14 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
     const employeeId = user.role !== "admin" ? user.id : null;
 
     const { rows: createdPricingRows } = await client.query(
-      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "visaFees", "guideFees", "transportFees", "allHotels", "personTypes") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO program_pricing ("userId", "employeeId", "programId", "selectProgram", "ticketAirline", "ticketPricesByVariation", "visaFees", "guideFees", "transportFees", "allHotels", "personTypes") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
       [
         userId,
         employeeId,
         programId,
         selectProgram,
         ticketAirline,
+        JSON.stringify(ticketPricesByVariation || {}),
         visaFees,
         guideFees,
         transportFees,
@@ -131,11 +134,12 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
     }
 
     const { rows: updatedPricingRows } = await client.query(
-      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "visaFees" = $4, "guideFees" = $5, "allHotels" = $6, "transportFees" = $7, "personTypes" = $8, "updatedAt" = NOW() WHERE id = $9 AND "userId" = $10 RETURNING *',
+      'UPDATE program_pricing SET "programId" = $1, "selectProgram" = $2, "ticketAirline" = $3, "ticketPricesByVariation" = $4, "visaFees" = $5, "guideFees" = $6, "allHotels" = $7, "transportFees" = $8, "personTypes" = $9, "updatedAt" = NOW() WHERE id = $10 AND "userId" = $11 RETURNING *',
       [
         pricingData.programId,
         pricingData.selectProgram,
         pricingData.ticketAirline,
+        JSON.stringify(pricingData.ticketPricesByVariation || {}),
         pricingData.visaFees,
         pricingData.guideFees,
         JSON.stringify(pricingData.allHotels || []),

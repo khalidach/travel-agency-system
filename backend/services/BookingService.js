@@ -6,7 +6,8 @@ const calculateBasePrice = async (
   tripId,
   packageId,
   selectedHotel,
-  personType
+  personType,
+  variationName
 ) => {
   const { rows: programs } = await db.query(
     'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
@@ -24,6 +25,17 @@ const calculateBasePrice = async (
   if (pricings.length === 0) return 0;
   const pricing = pricings[0];
 
+  // --- Determine ticket price ---
+  let ticketPriceForVariation = Number(pricing.ticketAirline || 0); // Default
+  if (
+    pricing.ticketPricesByVariation &&
+    pricing.ticketPricesByVariation[variationName]
+  ) {
+    ticketPriceForVariation = Number(
+      pricing.ticketPricesByVariation[variationName]
+    );
+  }
+
   // --- Calculate non-hotel costs first ---
   const personTypeInfo = (pricing.personTypes || []).find(
     (p) => p.type === personType
@@ -32,7 +44,7 @@ const calculateBasePrice = async (
     ? personTypeInfo.ticketPercentage / 100
     : 1;
 
-  const ticketPrice = Number(pricing.ticketAirline || 0) * ticketPercentage;
+  const ticketPrice = ticketPriceForVariation * ticketPercentage;
   const visaPrice = Number(pricing.visaFees || 0);
   const guidePrice = Number(pricing.guideFees || 0);
   const transportPrice = Number(pricing.transportFees || 0);
@@ -104,6 +116,7 @@ const createBooking = async (db, user, bookingData) => {
       passportExpirationDate,
       gender,
       tripId,
+      variationName,
       packageId,
       selectedHotel,
       sellingPrice,
@@ -139,7 +152,8 @@ const createBooking = async (db, user, bookingData) => {
       tripId,
       packageId,
       selectedHotel,
-      personType
+      personType,
+      variationName
     );
     const profit = sellingPrice - basePrice;
 
@@ -152,7 +166,7 @@ const createBooking = async (db, user, bookingData) => {
     const employeeId = role === "admin" ? null : id;
 
     const { rows } = await client.query(
-      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW()) RETURNING *',
+      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW()) RETURNING *',
       [
         adminId,
         employeeId,
@@ -165,6 +179,7 @@ const createBooking = async (db, user, bookingData) => {
         passportExpirationDate || null,
         gender,
         tripId,
+        variationName,
         packageId,
         JSON.stringify(selectedHotel),
         sellingPrice,
@@ -208,6 +223,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     passportExpirationDate,
     gender,
     tripId,
+    variationName,
     packageId,
     selectedHotel,
     sellingPrice,
@@ -260,7 +276,8 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     tripId,
     packageId,
     selectedHotel,
-    personType
+    personType,
+    variationName
   );
   const profit = sellingPrice - basePrice;
   const totalPaid = (advancePayments || []).reduce(
@@ -271,7 +288,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   const isFullyPaid = remainingBalance <= 0;
 
   const { rows } = await db.query(
-    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "packageId" = $10, "selectedHotel" = $11, "sellingPrice" = $12, "basePrice" = $13, profit = $14, "advancePayments" = $15, "remainingBalance" = $16, "isFullyPaid" = $17, "relatedPersons" = $18 WHERE id = $19 RETURNING *',
+    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
     [
       clientNameAr,
       clientNameFr,
@@ -282,6 +299,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       passportExpirationDate || null,
       gender,
       tripId,
+      variationName,
       packageId,
       JSON.stringify(selectedHotel),
       sellingPrice,

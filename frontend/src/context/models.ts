@@ -206,6 +206,7 @@ export interface ProgramPricing {
   selectProgram: string;
   programId: number;
   ticketAirline: number;
+  ticketPricesByVariation?: { [key: string]: number };
   visaFees: number;
   guideFees: number;
   transportFees: number;

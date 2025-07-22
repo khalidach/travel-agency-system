@@ -20,6 +20,7 @@ const emptyPricing: Omit<ProgramPricing, "id"> = {
   selectProgram: "",
   programId: 0,
   ticketAirline: 0,
+  ticketPricesByVariation: {},
   visaFees: 0,
   guideFees: 0,
   transportFees: 0,
@@ -85,6 +86,7 @@ export default function ProgramPricingForm({
       setCurrentPricing({
         ...existingPricing,
         allHotels: mergedHotelsList,
+        ticketPricesByVariation: existingPricing.ticketPricesByVariation || {},
       });
     } else {
       setCurrentPricing({
@@ -92,6 +94,7 @@ export default function ProgramPricingForm({
         programId: program.id,
         selectProgram: program.name,
         allHotels: freshHotelsList,
+        ticketPricesByVariation: {},
       });
     }
   }, [program, existingPricing]);
@@ -131,9 +134,36 @@ export default function ProgramPricingForm({
     });
   };
 
+  const handleTicketPriceChange = (value: string, variationName?: string) => {
+    const price = value === "" ? 0 : Number(value);
+    setCurrentPricing((prev) => {
+      const newPricing = { ...prev };
+      if (variationName) {
+        const newVariationPrices = {
+          ...(newPricing.ticketPricesByVariation || {}),
+        };
+        newVariationPrices[variationName] = price;
+        newPricing.ticketPricesByVariation = newVariationPrices;
+      } else {
+        newPricing.ticketAirline = price;
+        const newVariationPrices = {
+          ...(newPricing.ticketPricesByVariation || {}),
+        };
+        (program.variations || []).forEach((v) => {
+          newVariationPrices[v.name] = price;
+        });
+        newPricing.ticketPricesByVariation = newVariationPrices;
+      }
+      return newPricing;
+    });
+  };
+
   const handleSave = () => {
     onSave(currentPricing);
   };
+
+  const hasMultipleVariations =
+    program.variations && program.variations.length > 1;
 
   return (
     <div className="space-y-8">
@@ -141,17 +171,13 @@ export default function ProgramPricingForm({
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t("flightTicketPrice")}
+              {t("flightTicketPrice")}{" "}
+              {hasMultipleVariations && `(${t("default")})`}
             </label>
             <input
               type="number"
               value={currentPricing.ticketAirline || ""}
-              onChange={(e) =>
-                setCurrentPricing((prev) => ({
-                  ...prev,
-                  ticketAirline: Number(e.target.value),
-                }))
-              }
+              onChange={(e) => handleTicketPriceChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
@@ -204,6 +230,36 @@ export default function ProgramPricingForm({
             />
           </div>
         </div>
+
+        {hasMultipleVariations && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">
+              {t("ticketPricesByVariation")}
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {program.variations.map((variation) => (
+                <div key={variation.name}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {variation.name}
+                  </label>
+                  <input
+                    type="number"
+                    value={
+                      currentPricing.ticketPricesByVariation?.[
+                        variation.name
+                      ] || ""
+                    }
+                    placeholder={currentPricing.ticketAirline?.toString() || ""}
+                    onChange={(e) =>
+                      handleTicketPriceChange(e.target.value, variation.name)
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">

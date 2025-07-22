@@ -317,14 +317,24 @@ export default function BookingForm({
       }, 0);
     }
 
+    let ticketPriceForVariation = Number(programPricing.ticketAirline || 0);
+    if (
+      programPricing.ticketPricesByVariation &&
+      formState.selectedVariation.name &&
+      programPricing.ticketPricesByVariation[formState.selectedVariation.name]
+    ) {
+      ticketPriceForVariation = Number(
+        programPricing.ticketPricesByVariation[formState.selectedVariation.name]
+      );
+    }
+
     const personTypeInfo = (programPricing.personTypes || []).find(
       (p) => p.type === personType
     );
     const ticketPercentage = personTypeInfo
       ? personTypeInfo.ticketPercentage / 100
       : 1;
-    const ticketAirline =
-      Number(programPricing.ticketAirline || 0) * ticketPercentage;
+    const ticketAirline = ticketPriceForVariation * ticketPercentage;
 
     const visaFees = Number(programPricing.visaFees || 0);
     const guideFees = Number(programPricing.guideFees || 0);

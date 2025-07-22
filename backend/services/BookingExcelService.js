@@ -35,20 +35,27 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     { header: "الاسم/النسب", key: "clientNameAr" },
     { header: "Passport Number", key: "passportNumber" },
     { header: "Phone Number", key: "phoneNumber" },
+    { header: "Variation", key: "variationName" },
     { header: "الباقة", key: "packageId" },
   ];
 
   // Dynamically add hotel and room type columns based on program cities
-  const hasCities = program.cities && program.cities.length > 0;
+  const hasCities =
+    program.variations &&
+    program.variations[0] &&
+    program.variations[0].cities &&
+    program.variations[0].cities.length > 0;
   if (hasCities) {
-    const hotelHeaders = (program.cities || []).map((city) => ({
+    const hotelHeaders = (program.variations[0].cities || []).map((city) => ({
       header: `${city.name} Hotel`,
       key: `hotel_${sanitizeName(city.name)}`,
     }));
-    const roomTypeHeaders = (program.cities || []).map((city) => ({
-      header: `${city.name} Room Type`,
-      key: `roomType_${sanitizeName(city.name)}`,
-    }));
+    const roomTypeHeaders = (program.variations[0].cities || []).map(
+      (city) => ({
+        header: `${city.name} Room Type`,
+        key: `roomType_${sanitizeName(city.name)}`,
+      })
+    );
     allColumns.push(...hotelHeaders, ...roomTypeHeaders);
   } else {
     // Fallback for programs without structured city/hotel data
@@ -145,6 +152,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       clientNameAr: booking.clientNameAr,
       passportNumber: booking.passportNumber,
       phoneNumber: booking.phoneNumber,
+      variationName: booking.variationName,
       packageId: booking.packageId,
       sellingPrice: Number(booking.sellingPrice),
       paid: totalPaid,
@@ -153,7 +161,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
     // Populate dynamic hotel/room columns
     if (hasCities) {
-      (program.cities || []).forEach((city) => {
+      (program.variations[0].cities || []).forEach((city) => {
         const cityIndex = (booking.selectedHotel.cities || []).indexOf(
           city.name
         );

@@ -102,6 +102,7 @@ const applyDatabaseMigrations = async (client) => {
           "programId" INTEGER NOT NULL,
           "selectProgram" VARCHAR(255),
           "ticketAirline" NUMERIC(10, 2),
+          "ticketPricesByVariation" JSONB,
           "visaFees" NUMERIC(10, 2),
           "guideFees" NUMERIC(10, 2),
           "transportFees" NUMERIC(10, 2),
@@ -111,6 +112,17 @@ const applyDatabaseMigrations = async (client) => {
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE("programId")
       );
+    `);
+    
+    // Add 'ticketPricesByVariation' column to program_pricing if it doesn't exist
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='program_pricing' AND column_name='ticketPricesByVariation') THEN
+          ALTER TABLE program_pricing ADD COLUMN "ticketPricesByVariation" JSONB;
+        END IF;
+      END;
+      $$;
     `);
 
     await client.query(`
