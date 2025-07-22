@@ -68,6 +68,8 @@ export default function Programs() {
     queryClient.invalidateQueries({ queryKey: ["programs"] });
     // Invalidate all booking queries as program changes can affect them
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
+    queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
     // Invalidate dashboard and reports as they depend on program data
     queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
