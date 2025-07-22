@@ -150,8 +150,14 @@ exports.createProgram = async (req, res, next) => {
     const userId = req.user.adminId;
     const employeeId = req.user.role !== "admin" ? req.user.id : null;
 
+    // Extract legacy fields from the first variation for backward compatibility
+    const firstVariation =
+      variations && variations.length > 0 ? variations[0] : {};
+    const duration = firstVariation.duration || 0;
+    const cities = firstVariation.cities || [];
+
     const { rows } = await req.db.query(
-      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
       [
         userId,
         employeeId,
@@ -159,6 +165,8 @@ exports.createProgram = async (req, res, next) => {
         type,
         JSON.stringify(variations),
         JSON.stringify(packages),
+        duration,
+        JSON.stringify(cities),
       ]
     );
     res.status(201).json(rows[0]);
@@ -197,9 +205,23 @@ exports.updateProgram = async (req, res, next) => {
       );
     }
 
+    // Extract legacy fields from the first variation for backward compatibility
+    const firstVariation =
+      variations && variations.length > 0 ? variations[0] : {};
+    const duration = firstVariation.duration || 0;
+    const cities = firstVariation.cities || [];
+
     const { rows: updatedProgramRows } = await client.query(
-      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, "updatedAt" = NOW() WHERE id = $5 RETURNING *',
-      [name, type, JSON.stringify(variations), JSON.stringify(packages), id]
+      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "updatedAt" = NOW() WHERE id = $7 RETURNING *',
+      [
+        name,
+        type,
+        JSON.stringify(variations),
+        JSON.stringify(packages),
+        duration,
+        JSON.stringify(cities),
+        id,
+      ]
     );
     const updatedProgram = updatedProgramRows[0];
 

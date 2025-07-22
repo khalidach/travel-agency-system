@@ -24,14 +24,24 @@ const programValidation = [
   body("type")
     .isIn(["Hajj", "Umrah", "Tourism"])
     .withMessage("Invalid program type."),
-  body("duration")
+  body("variations")
+    .isArray({ min: 1 })
+    .withMessage("At least one program variation is required."),
+  body("variations.*.name")
+    .notEmpty()
+    .trim()
+    .withMessage("Variation name is required."),
+  body("variations.*.duration")
     .isInt({ gte: 0 })
     .withMessage("Duration must be a non-negative integer."),
-  body("cities")
+  body("variations.*.cities")
     .isArray({ min: 1 })
-    .withMessage("At least one city is required."),
-  body("cities.*.name").notEmpty().trim().withMessage("City name is required."),
-  body("cities.*.nights")
+    .withMessage("At least one city is required for each variation."),
+  body("variations.*.cities.*.name")
+    .notEmpty()
+    .trim()
+    .withMessage("City name is required."),
+  body("variations.*.cities.*.nights")
     .isInt({ gte: 0 })
     .withMessage("Nights must be a non-negative integer."),
   body("packages").isArray().withMessage("Packages must be an array."),
