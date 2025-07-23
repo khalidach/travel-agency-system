@@ -43,15 +43,12 @@ function AppRoutes() {
 
   const hasInvoicingAccess = useMemo(() => {
     if (!user) return false;
-    // 1. Check for a specific custom limit on the user.
     if (typeof user.limits?.invoicing === "boolean") {
       return user.limits.invoicing;
     }
-    // 2. Fallback to the limits defined by the user's tier.
     if (typeof user.tierLimits?.invoicing === "boolean") {
       return user.tierLimits.invoicing;
     }
-    // 3. A final fallback for older data structures or if tierLimits isn't populated.
     if (user.tierId) {
       return user.tierId !== 1;
     }
@@ -89,99 +86,97 @@ function AppRoutes() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         ) : (
-          <Route
-            path="/*"
-            element={
-              userRole === "owner" ? (
+          <>
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/*"
+              element={
                 <Layout>
                   <Routes>
-                    <Route path="/owner" element={<OwnerPage />} />
-                    <Route path="/tiers" element={<TiersPage />} />
-                    <Route
-                      path="/"
-                      element={<Navigate to="/owner" replace />}
-                    />
-                    <Route
-                      path="*"
-                      element={<Navigate to="/owner" replace />}
-                    />
+                    {userRole === "owner" ? (
+                      <>
+                        <Route path="/owner" element={<OwnerPage />} />
+                        <Route path="/tiers" element={<TiersPage />} />
+                        <Route
+                          path="*"
+                          element={<Navigate to="/owner" replace />}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/programs" element={<Programs />} />
+                        {hasDailyServiceAccess && (
+                          <>
+                            <Route
+                              path="/daily-services"
+                              element={<DailyServices />}
+                            />
+                            <Route
+                              path="/daily-services-report"
+                              element={<DailyServiceReport />}
+                            />
+                          </>
+                        )}
+                        <Route
+                          path="/facturation"
+                          element={
+                            hasInvoicingAccess ? (
+                              <Facturation />
+                            ) : (
+                              <Navigate to="/dashboard" replace />
+                            )
+                          }
+                        />
+                        {(userRole === "admin" || userRole === "manager") && (
+                          <>
+                            <Route
+                              path="/program-pricing"
+                              element={<ProgramPricing />}
+                            />
+                            <Route
+                              path="/room-management"
+                              element={<RoomManagementPage />}
+                            />
+                            <Route
+                              path="/room-management/program/:programId"
+                              element={<RoomManage />}
+                            />
+                          </>
+                        )}
+                        <Route path="/booking" element={<Booking />} />
+                        <Route
+                          path="/booking/program/:programId"
+                          element={<BookingPage />}
+                        />
+                        {userRole === "admin" && (
+                          <>
+                            <Route
+                              path="/profit-report"
+                              element={<ProfitReport />}
+                            />
+                            <Route
+                              path="/employees"
+                              element={<EmployeesPage />}
+                            />
+                            <Route
+                              path="/employees/:username"
+                              element={<EmployeeAnalysisPage />}
+                            />
+                            <Route path="/settings" element={<Settings />} />
+                          </>
+                        )}
+                        <Route
+                          path="*"
+                          element={<Navigate to="/dashboard" replace />}
+                        />
+                      </>
+                    )}
                   </Routes>
                 </Layout>
-              ) : (
-                <Layout>
-                  <Routes>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/programs" element={<Programs />} />
-                    {hasDailyServiceAccess && (
-                      <>
-                        <Route
-                          path="/daily-services"
-                          element={<DailyServices />}
-                        />
-                        <Route
-                          path="/daily-services-report"
-                          element={<DailyServiceReport />}
-                        />
-                      </>
-                    )}
-                    <Route
-                      path="/facturation"
-                      element={
-                        hasInvoicingAccess ? (
-                          <Facturation />
-                        ) : (
-                          <Navigate to="/dashboard" replace />
-                        )
-                      }
-                    />
-                    {(userRole === "admin" || userRole === "manager") && (
-                      <>
-                        <Route
-                          path="/program-pricing"
-                          element={<ProgramPricing />}
-                        />
-                        <Route
-                          path="/room-management"
-                          element={<RoomManagementPage />}
-                        />
-                        <Route
-                          path="/room-management/program/:programId"
-                          element={<RoomManage />}
-                        />
-                      </>
-                    )}
-                    <Route path="/booking" element={<Booking />} />
-                    <Route
-                      path="/booking/program/:programId"
-                      element={<BookingPage />}
-                    />
-                    {userRole === "admin" && (
-                      <>
-                        <Route
-                          path="/profit-report"
-                          element={<ProfitReport />}
-                        />
-                        <Route path="/employees" element={<EmployeesPage />} />
-                        <Route
-                          path="/employees/:username"
-                          element={<EmployeeAnalysisPage />}
-                        />
-                        <Route path="/settings" element={<Settings />} />
-                      </>
-                    )}
-                    <Route
-                      path="/"
-                      element={<Navigate to="/dashboard" replace />}
-                    />
-                    <Route
-                      path="*"
-                      element={<Navigate to="/dashboard" replace />}
-                    />
-                  </Routes>
-                </Layout>
-              )
-            }
-          />
+              }
+            />
+          </>
         )}
       </Routes>
     </Suspense>

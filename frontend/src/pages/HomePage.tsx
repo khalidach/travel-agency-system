@@ -1,14 +1,8 @@
 // frontend/src/pages/HomePage.tsx
 import React from "react";
-import { Link } from "react-router-dom";
-import {
-  Plane,
-  BarChart,
-  DollarSign,
-  Users,
-  TrendingUp,
-  ChevronDown,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plane, BarChart, DollarSign, Users, TrendingUp } from "lucide-react";
+import { useAuthContext } from "../context/AuthContext";
 
 const StatCard = ({
   icon: Icon,
@@ -35,6 +29,21 @@ const StatCard = ({
 );
 
 const HomePage = () => {
+  const { state } = useAuthContext();
+  const navigate = useNavigate();
+
+  const handleLoginClick = () => {
+    if (state.isAuthenticated) {
+      if (state.user?.role === "owner") {
+        navigate("/owner");
+      } else {
+        navigate("/dashboard");
+      }
+    } else {
+      navigate("/login");
+    }
+  };
+
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans">
       {/* Header */}
@@ -67,12 +76,12 @@ const HomePage = () => {
           </a>
         </nav>
         <div className="flex items-center space-x-4">
-          <Link
-            to="/login"
+          <button
+            onClick={handleLoginClick}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
           >
-            Se Connecter
-          </Link>
+            {state.isAuthenticated ? "Dashboard" : "Se Connecter"}
+          </button>
           <button className="hidden md:block bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
             3 Jours d'essai gratuit
           </button>
