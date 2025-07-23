@@ -1,3 +1,4 @@
+// frontend/src/App.tsx
 import {
   BrowserRouter as Router,
   Routes,
@@ -15,6 +16,7 @@ import useIdleTimeout from "./services/useIdleTimeout";
 import BookingSkeleton from "./components/skeletons/BookingSkeleton";
 
 // Lazy load the page components
+const HomePage = lazy(() => import("./pages/HomePage")); // New Home Page
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Programs = lazy(() => import("./pages/Programs"));
 const Booking = lazy(() => import("./pages/Booking"));
@@ -82,8 +84,9 @@ function AppRoutes() {
       <Routes>
         {!state.isAuthenticated ? (
           <>
+            <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </>
         ) : (
           <Route
@@ -92,15 +95,22 @@ function AppRoutes() {
               userRole === "owner" ? (
                 <Layout>
                   <Routes>
-                    <Route path="/" element={<OwnerPage />} />
+                    <Route path="/owner" element={<OwnerPage />} />
                     <Route path="/tiers" element={<TiersPage />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route
+                      path="/"
+                      element={<Navigate to="/owner" replace />}
+                    />
+                    <Route
+                      path="*"
+                      element={<Navigate to="/owner" replace />}
+                    />
                   </Routes>
                 </Layout>
               ) : (
                 <Layout>
                   <Routes>
-                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/programs" element={<Programs />} />
                     {hasDailyServiceAccess && (
                       <>
@@ -120,7 +130,7 @@ function AppRoutes() {
                         hasInvoicingAccess ? (
                           <Facturation />
                         ) : (
-                          <Navigate to="/" replace />
+                          <Navigate to="/dashboard" replace />
                         )
                       }
                     />
@@ -159,7 +169,14 @@ function AppRoutes() {
                         <Route path="/settings" element={<Settings />} />
                       </>
                     )}
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route
+                      path="/"
+                      element={<Navigate to="/dashboard" replace />}
+                    />
+                    <Route
+                      path="*"
+                      element={<Navigate to="/dashboard" replace />}
+                    />
                   </Routes>
                 </Layout>
               )
