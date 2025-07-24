@@ -31,7 +31,7 @@ type MenuItem = {
 const allMenuItems: MenuItem[] = [
   {
     key: "owner",
-    path: "/",
+    path: "/owner",
     icon: Crown,
     roles: ["owner"],
   },
@@ -43,7 +43,7 @@ const allMenuItems: MenuItem[] = [
   },
   {
     key: "dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: BarChart3,
     roles: ["admin", "manager", "employee"],
   },
