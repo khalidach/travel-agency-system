@@ -1,5 +1,6 @@
 // backend/services/ExcelService.js
 const excel = require("exceljs");
+const { calculateBasePrice } = require("./BookingService");
 
 /**
  * Sanitizes a string to be used as a valid Excel named range.
@@ -294,12 +295,6 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
     }
     const program = programs[0];
 
-    const { rows: allPricings } = await client.query(
-      'SELECT * FROM program_pricing WHERE "userId" = $1 AND "programId" = $2',
-      [userId, programId]
-    );
-    const programPricing = allPricings[0];
-
     const { rows: existingBookings } = await client.query(
       'SELECT "passportNumber" FROM bookings WHERE "userId" = $1 AND "tripId" = $2',
       [userId, programId]
@@ -365,98 +360,41 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       }
 
       const variationName = rowData["Variation"];
+      const packageId = rowData["Package"];
       const bookingPackage = (program.packages || []).find(
-        (p) => p.name === rowData["Package"]
+        (p) => p.name === packageId
       );
       if (!bookingPackage && program.packages && program.packages.length > 0)
         continue;
 
       const selectedHotel = { cities: [], hotelNames: [], roomTypes: [] };
-      (program.variations[0]?.cities || []).forEach((city) => {
+      const variationForHotels =
+        (program.variations || []).find((v) => v.name === variationName) ||
+        program.variations[0];
+
+      (variationForHotels?.cities || []).forEach((city) => {
         const hotelName = rowData[`${city.name} Hotel`];
         if (hotelName) {
-          // Only require hotelName to be present
           const roomType = rowData[`${city.name} Room Type`];
           selectedHotel.cities.push(city.name);
           selectedHotel.hotelNames.push(hotelName);
-          selectedHotel.roomTypes.push(roomType || null); // Add roomType or null if it's missing
+          selectedHotel.roomTypes.push(roomType || null);
         }
       });
 
-      const hotelCombination = selectedHotel.hotelNames.join("_");
-      const priceStructure =
-        (bookingPackage?.prices || []).find(
-          (p) => p.hotelCombination === hotelCombination
-        ) || null;
-
-      if (program.packages && program.packages.length > 0 && !priceStructure)
-        continue;
-
-      let basePrice = 0;
       const sellingPrice = Number(rowData["Selling Price"]) || 0;
       const personType = rowData["Person Type"] || "adult";
 
-      if (programPricing && priceStructure) {
-        const guestMap = new Map(
-          priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
-        );
-
-        const hotelCosts = selectedHotel.cities.reduce((total, city, index) => {
-          const hotelName = selectedHotel.hotelNames[index];
-          const roomTypeName = selectedHotel.roomTypes[index];
-          const hotelInfo = (programPricing.allHotels || []).find(
-            (h) => h.name === hotelName && h.city === city
-          );
-          const cityInfo = program.variations[0]?.cities.find(
-            (c) => c.name === city
-          );
-
-          if (
-            hotelInfo &&
-            cityInfo &&
-            hotelInfo.PricePerNights &&
-            roomTypeName
-          ) {
-            const pricePerNight = Number(
-              hotelInfo.PricePerNights[roomTypeName] || 0
-            );
-            const nights = Number(cityInfo.nights || 0);
-            const guests = Number(guestMap.get(roomTypeName) || 1);
-
-            if (guests > 0) {
-              return total + (pricePerNight * nights) / guests;
-            }
-          }
-          return total;
-        }, 0);
-
-        let ticketPriceForVariation = Number(programPricing.ticketAirline || 0);
-        if (
-          programPricing.ticketPricesByVariation &&
-          variationName &&
-          programPricing.ticketPricesByVariation[variationName]
-        ) {
-          ticketPriceForVariation = Number(
-            programPricing.ticketPricesByVariation[variationName]
-          );
-        }
-
-        const personTypeInfo = (programPricing.personTypes || []).find(
-          (p) => p.type === personType
-        );
-        const ticketPercentage = personTypeInfo
-          ? personTypeInfo.ticketPercentage / 100
-          : 1;
-        const ticketPrice = ticketPriceForVariation * ticketPercentage;
-
-        basePrice = Math.round(
-          ticketPrice +
-            Number(programPricing.visaFees || 0) +
-            Number(programPricing.guideFees || 0) +
-            Number(programPricing.transportFees || 0) +
-            hotelCosts
-        );
-      }
+      // Use the centralized base price calculation function
+      const basePrice = await calculateBasePrice(
+        client,
+        userId,
+        programId,
+        packageId,
+        selectedHotel,
+        personType,
+        variationName
+      );
 
       bookingsToCreate.push({
         userId: userId,
