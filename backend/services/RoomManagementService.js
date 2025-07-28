@@ -130,3 +130,199 @@ exports.searchUnassignedOccupants = async (
   const { rows } = await db.query(query, params);
   return rows;
 };
+
+/**
+ * Automatically assigns a new booking and its related persons to rooms.
+ * @param {object} client - The database client for the transaction.
+ * @param {number} userId - The ID of the admin user.
+ * @param {object} newBooking - The newly created booking object.
+ */
+exports.autoAssignToRoom = async (client, userId, newBooking) => {
+  const { tripId: programId, selectedHotel, relatedPersons } = newBooking;
+
+  if (
+    !selectedHotel ||
+    !selectedHotel.hotelNames ||
+    selectedHotel.hotelNames.length === 0
+  ) {
+    return;
+  }
+
+  const allFamilyMembers = [newBooking];
+  if (relatedPersons && relatedPersons.length > 0) {
+    const relatedIds = relatedPersons.map((p) => p.ID);
+    const { rows: familyBookings } = await client.query(
+      "SELECT * FROM bookings WHERE id = ANY($1::int[])",
+      [relatedIds]
+    );
+    allFamilyMembers.push(...familyBookings);
+  }
+
+  for (let i = 0; i < selectedHotel.hotelNames.length; i++) {
+    const hotelName = selectedHotel.hotelNames[i];
+    const roomType = selectedHotel.roomTypes[i];
+    if (!hotelName || !roomType) continue;
+
+    const { rows: managementRows } = await client.query(
+      'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
+      [userId, programId, hotelName]
+    );
+
+    let rooms = managementRows.length > 0 ? managementRows[0].rooms : [];
+    const managementId =
+      managementRows.length > 0 ? managementRows[0].id : null;
+
+    const programResult = await client.query(
+      "SELECT packages FROM programs WHERE id = $1",
+      [programId]
+    );
+    const program = programResult.rows[0];
+    let capacity = 2; // Default
+    if (program && program.packages) {
+      for (const pkg of program.packages) {
+        if (pkg.prices) {
+          for (const price of pkg.prices) {
+            const rt = price.roomTypes.find((r) => r.type === roomType);
+            if (rt) {
+              capacity = rt.guests;
+              break;
+            }
+          }
+        }
+        if (capacity !== 2) break;
+      }
+    }
+
+    if (allFamilyMembers.length > 1 && allFamilyMembers.length === capacity) {
+      let emptyRoomIndex = rooms.findIndex(
+        (r) => r.type === roomType && r.occupants.every((o) => o === null)
+      );
+      if (emptyRoomIndex === -1) {
+        const newRoom = {
+          name: `${roomType} ${
+            rooms.filter((r) => r.type === roomType).length + 1
+          }`,
+          type: roomType,
+          capacity: capacity,
+          occupants: Array(capacity).fill(null),
+        };
+        rooms.push(newRoom);
+        emptyRoomIndex = rooms.length - 1;
+      }
+      allFamilyMembers.forEach((member, index) => {
+        rooms[emptyRoomIndex].occupants[index] = {
+          id: member.id,
+          clientName: member.clientNameFr,
+          gender: member.gender,
+        };
+      });
+    } else {
+      for (const member of allFamilyMembers) {
+        let placed = false;
+        const occupant = {
+          id: member.id,
+          clientName: member.clientNameFr,
+          gender: member.gender,
+        };
+
+        for (const room of rooms) {
+          if (
+            room.type === roomType &&
+            room.occupants.some((o) => o === null) &&
+            room.occupants.every(
+              (o) => o === null || o.gender === member.gender
+            )
+          ) {
+            const emptySlot = room.occupants.findIndex((o) => o === null);
+            if (emptySlot !== -1) {
+              room.occupants[emptySlot] = occupant;
+              placed = true;
+              break;
+            }
+          }
+        }
+
+        if (!placed) {
+          for (const room of rooms) {
+            if (
+              room.type === roomType &&
+              room.occupants.some((o) => o === null)
+            ) {
+              const emptySlot = room.occupants.findIndex((o) => o === null);
+              if (emptySlot !== -1) {
+                room.occupants[emptySlot] = occupant;
+                placed = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!placed) {
+          const newRoom = {
+            name: `${roomType} ${
+              rooms.filter((r) => r.type === roomType).length + 1
+            }`,
+            type: roomType,
+            capacity: capacity,
+            occupants: Array(capacity).fill(null),
+          };
+          newRoom.occupants[0] = occupant;
+          rooms.push(newRoom);
+        }
+      }
+    }
+
+    if (managementId) {
+      await client.query(
+        'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
+        [JSON.stringify(rooms), managementId]
+      );
+    } else {
+      await client.query(
+        'INSERT INTO room_managements ("userId", "programId", "hotelName", rooms) VALUES ($1, $2, $3, $4)',
+        [userId, programId, hotelName, JSON.stringify(rooms)]
+      );
+    }
+  }
+};
+
+/**
+ * Removes an occupant from all rooms for a given program.
+ * @param {object} client - The database client for the transaction.
+ * @param {number} userId - The ID of the admin user.
+ * @param {string} programId - The ID of the program.
+ * @param {number} occupantId - The ID of the occupant (booking ID) to remove.
+ */
+exports.removeOccupantFromRooms = async (
+  client,
+  userId,
+  programId,
+  occupantId
+) => {
+  const { rows } = await client.query(
+    'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2',
+    [userId, programId]
+  );
+
+  for (const management of rows) {
+    let rooms = management.rooms;
+    let changed = false;
+    rooms.forEach((room) => {
+      const initialOccupantCount = room.occupants.filter((o) => o).length;
+      room.occupants = room.occupants.map((o) =>
+        o && o.id === occupantId ? null : o
+      );
+      if (room.occupants.filter((o) => o).length < initialOccupantCount) {
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      await client.query(
+        'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
+        [JSON.stringify(rooms), management.id]
+      );
+    }
+  }
+};

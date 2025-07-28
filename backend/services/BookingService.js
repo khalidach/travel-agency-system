@@ -1,4 +1,5 @@
 // backend/services/BookingService.js
+const RoomManagementService = require("./RoomManagementService");
 
 const calculateBasePrice = async (
   db,
@@ -211,13 +212,22 @@ const createBooking = async (db, user, bookingData) => {
       ]
     );
 
+    const newBooking = rows[0];
+
+    // Auto-assign to room
+    await RoomManagementService.autoAssignToRoom(
+      client,
+      user.adminId,
+      newBooking
+    );
+
     await client.query(
       'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
       [tripId]
     );
 
     await client.query("COMMIT");
-    return rows[0];
+    return newBooking;
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -391,6 +401,14 @@ const deleteBooking = async (db, user, bookingId) => {
       throw new Error("You are not authorized to delete this booking.");
     }
 
+    // Remove from room management
+    await RoomManagementService.removeOccupantFromRooms(
+      client,
+      adminId,
+      booking.tripId,
+      bookingId
+    );
+
     const { tripId } = booking;
     const deleteRes = await client.query("DELETE FROM bookings WHERE id = $1", [
       bookingId,
@@ -477,6 +495,15 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
     const bookingsToDelete = bookingsToDeleteRes.rows;
     if (bookingsToDelete.length === 0) {
       return { message: "No matching bookings found to delete." };
+    }
+
+    for (const booking of bookingsToDelete) {
+      await RoomManagementService.removeOccupantFromRooms(
+        client,
+        user.adminId,
+        booking.tripId,
+        booking.id
+      );
     }
 
     if (user.role !== "admin") {
