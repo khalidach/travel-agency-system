@@ -133,6 +133,7 @@ exports.searchUnassignedOccupants = async (
 
 /**
  * Automatically assigns a new booking and its related persons to rooms.
+ * This version uses the Arabic name and enforces strict gender separation for non-family groups.
  * @param {object} client - The database client for the transaction.
  * @param {number} userId - The ID of the admin user.
  * @param {object} newBooking - The newly created booking object.
@@ -193,6 +194,7 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
       }
     }
 
+    // Handle family placement first if they perfectly fit a room
     if (allFamilyMembers.length > 1 && allFamilyMembers.length === capacity) {
       let emptyRoomIndex = rooms.findIndex(
         (r) => r.type === roomType && r.occupants.every((o) => o === null)
@@ -212,26 +214,28 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
       allFamilyMembers.forEach((member, index) => {
         rooms[emptyRoomIndex].occupants[index] = {
           id: member.id,
-          clientName: member.clientNameFr,
+          clientName: member.clientNameAr, // FIX 1: Use Arabic name
           gender: member.gender,
         };
       });
     } else {
+      // Handle individual placement with strict gender separation
       for (const member of allFamilyMembers) {
-        let placed = false;
         const occupant = {
           id: member.id,
-          clientName: member.clientNameFr,
+          clientName: member.clientNameAr, // FIX 1: Use Arabic name
           gender: member.gender,
         };
 
+        let placed = false;
+
+        // Find a suitable room (correct type, has space, and same gender or empty)
         for (const room of rooms) {
+          const roomGender = room.occupants.find((o) => o !== null)?.gender;
           if (
             room.type === roomType &&
             room.occupants.some((o) => o === null) &&
-            room.occupants.every(
-              (o) => o === null || o.gender === member.gender
-            )
+            (!roomGender || roomGender === member.gender) // FIX 2: Strict gender check
           ) {
             const emptySlot = room.occupants.findIndex((o) => o === null);
             if (emptySlot !== -1) {
@@ -242,22 +246,7 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
           }
         }
 
-        if (!placed) {
-          for (const room of rooms) {
-            if (
-              room.type === roomType &&
-              room.occupants.some((o) => o === null)
-            ) {
-              const emptySlot = room.occupants.findIndex((o) => o === null);
-              if (emptySlot !== -1) {
-                room.occupants[emptySlot] = occupant;
-                placed = true;
-                break;
-              }
-            }
-          }
-        }
-
+        // If no suitable room found, create a new one
         if (!placed) {
           const newRoom = {
             name: `${roomType} ${

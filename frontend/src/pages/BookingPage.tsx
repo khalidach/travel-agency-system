@@ -181,6 +181,8 @@ export default function BookingPage() {
     queryClient.invalidateQueries({ queryKey: ["programs"] });
     queryClient.invalidateQueries({ queryKey: ["rooms"] });
     queryClient.invalidateQueries({ queryKey: ["unassignedOccupantsSearch"] });
+    queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
+    queryClient.invalidateQueries({ queryKey: ["programsForRoomManagement"] });
   };
 
   const { mutate: createBooking } = useMutation({
