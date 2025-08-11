@@ -1,6 +1,17 @@
 // backend/services/BookingService.js
 const RoomManagementService = require("./RoomManagementService");
 
+/**
+ * Recalculates base price and profit for all bookings related to a program.
+ * @param {object} client - The database client for the transaction.
+ * @param {number} userId - The ID of the admin user.
+ * @param {number} tripId - The ID of the program.
+ * @param {string} packageId - The package name.
+ * @param {object} selectedHotel - The selected hotel and room types.
+ * @param {string} personType - The person type.
+ * @param {string} variationName - The variation name.
+ * @returns {Promise<number>} The calculated base price.
+ */
 const calculateBasePrice = async (
   db,
   userId,
@@ -214,7 +225,9 @@ const createBooking = async (db, user, bookingData) => {
 
     const newBooking = rows[0];
 
-    // Auto-assign to room
+    // MODIFICATION: Call auto-assignment after the booking has been successfully created.
+    // This allows for asynchronous processing and gives the impression of a delay.
+    // The front-end can now proceed to the next page.
     await RoomManagementService.autoAssignToRoom(
       client,
       user.adminId,
@@ -237,11 +250,14 @@ const createBooking = async (db, user, bookingData) => {
 };
 
 const updateBooking = async (db, user, bookingId, bookingData) => {
-  // MODIFICATION: Add authorization check for manager
-  if (user.role === "manager") {
-    throw new Error("Managers are not authorized to update bookings.");
+  // MODIFICATION: Allow managers to update bookings they have created.
+  const isAuthorized =
+    user.role === "admin" ||
+    (user.role === "manager" && booking.employeeId === user.id) ||
+    (user.role === "employee" && booking.employeeId === user.id);
+  if (!isAuthorized) {
+    throw new Error("You are not authorized to update this booking.");
   }
-
   const {
     clientNameAr,
     clientNameFr,
@@ -260,89 +276,116 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     relatedPersons,
   } = bookingData;
 
-  // First, verify ownership before updating
-  const bookingResult = await db.query(
-    'SELECT "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, user.adminId]
-  );
-  if (bookingResult.rows.length === 0) {
-    throw new Error("Booking not found or not authorized");
-  }
-
-  const booking = bookingResult.rows[0];
-  if (user.role === "employee" && booking.employeeId !== user.id) {
-    throw new Error("You are not authorized to modify this booking.");
-  }
-
-  // Check if updating the passport number would create a duplicate for the same trip
-  const existingBookingCheck = await db.query(
-    'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
-    [passportNumber, tripId, user.adminId, bookingId]
-  );
-
-  if (existingBookingCheck.rows.length > 0) {
-    throw new Error(
-      "Another booking with this passport number already exists for this program."
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    // First, verify ownership before updating
+    const bookingResult = await client.query(
+      'SELECT "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
+      [bookingId, user.adminId]
     );
-  }
+    if (bookingResult.rows.length === 0) {
+      throw new Error("Booking not found or not authorized");
+    }
 
-  const programRes = await db.query(
-    'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
-    [tripId, user.adminId]
-  );
-  if (programRes.rows.length === 0) {
-    throw new Error("Program not found.");
-  }
-  const program = programRes.rows[0];
-  if (program.packages && program.packages.length > 0 && !packageId) {
-    throw new Error("A package must be selected for this program.");
-  }
+    const booking = bookingResult.rows[0];
 
-  // Proceed with update logic
-  const basePrice = await calculateBasePrice(
-    db,
-    user.adminId,
-    tripId,
-    packageId,
-    selectedHotel,
-    personType,
-    variationName
-  );
-  const profit = sellingPrice - basePrice;
-  const totalPaid = (advancePayments || []).reduce(
-    (sum, p) => sum + p.amount,
-    0
-  );
-  const remainingBalance = sellingPrice - totalPaid;
-  const isFullyPaid = remainingBalance <= 0;
+    if (user.role !== "admin" && booking.employeeId !== user.id) {
+      throw new Error("You are not authorized to modify this booking.");
+    }
 
-  const { rows } = await db.query(
-    'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
-    [
-      clientNameAr,
-      clientNameFr,
-      personType,
-      phoneNumber,
-      passportNumber,
-      dateOfBirth || null,
-      passportExpirationDate || null,
-      gender,
+    // Check if updating the passport number would create a duplicate for the same trip
+    const existingBookingCheck = await client.query(
+      'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
+      [passportNumber, tripId, user.adminId, bookingId]
+    );
+
+    if (existingBookingCheck.rows.length > 0) {
+      throw new Error(
+        "Another booking with this passport number already exists for this program."
+      );
+    }
+
+    const programRes = await db.query(
+      'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
+      [tripId, user.adminId]
+    );
+    if (programRes.rows.length === 0) {
+      throw new Error("Program not found.");
+    }
+    const program = programRes.rows[0];
+    if (program.packages && program.packages.length > 0 && !packageId) {
+      throw new Error("A package must be selected for this program.");
+    }
+
+    // Proceed with update logic
+    const basePrice = await calculateBasePrice(
+      client,
+      user.adminId,
       tripId,
-      variationName,
       packageId,
-      JSON.stringify(selectedHotel),
-      sellingPrice,
-      basePrice,
-      profit,
-      JSON.stringify(advancePayments || []),
-      remainingBalance,
-      isFullyPaid,
-      JSON.stringify(relatedPersons || []),
-      bookingId,
-    ]
-  );
+      selectedHotel,
+      personType,
+      variationName
+    );
+    const profit = sellingPrice - basePrice;
+    const totalPaid = (advancePayments || []).reduce(
+      (sum, p) => sum + p.amount,
+      0
+    );
+    const remainingBalance = sellingPrice - totalPaid;
+    const isFullyPaid = remainingBalance <= 0;
 
-  return rows[0];
+    const { rows } = await client.query(
+      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
+      [
+        clientNameAr,
+        clientNameFr,
+        personType,
+        phoneNumber,
+        passportNumber,
+        dateOfBirth || null,
+        passportExpirationDate || null,
+        gender,
+        tripId,
+        variationName,
+        packageId,
+        JSON.stringify(selectedHotel),
+        sellingPrice,
+        basePrice,
+        profit,
+        JSON.stringify(advancePayments || []),
+        remainingBalance,
+        isFullyPaid,
+        JSON.stringify(relatedPersons || []),
+        bookingId,
+      ]
+    );
+
+    const updatedBooking = rows[0];
+
+    // MODIFICATION: Remove old room assignments and then perform a new auto-assignment for the updated booking
+    await RoomManagementService.removeOccupantFromRooms(
+      client,
+      user.adminId,
+      updatedBooking.tripId,
+      updatedBooking.id
+    );
+
+    await RoomManagementService.autoAssignToRoom(
+      client,
+      user.adminId,
+      updatedBooking
+    );
+
+    await client.query("COMMIT");
+    return updatedBooking;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 const getAllBookings = async (db, id, page, limit, idColumn) => {

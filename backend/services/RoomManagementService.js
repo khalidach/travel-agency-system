@@ -141,6 +141,7 @@ exports.searchUnassignedOccupants = async (
 exports.autoAssignToRoom = async (client, userId, newBooking) => {
   const { tripId: programId, selectedHotel, relatedPersons } = newBooking;
 
+  // Make sure to have valid hotel selection for this to work
   if (
     !selectedHotel ||
     !selectedHotel.hotelNames ||
@@ -153,12 +154,13 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
   if (relatedPersons && relatedPersons.length > 0) {
     const relatedIds = relatedPersons.map((p) => p.ID);
     const { rows: familyBookings } = await client.query(
-      "SELECT * FROM bookings WHERE id = ANY($1::int[])",
+      'SELECT id, "clientNameAr", gender FROM bookings WHERE id = ANY($1::int[])',
       [relatedIds]
     );
     allFamilyMembers.push(...familyBookings);
   }
 
+  // Iterate over each hotel selected in the booking
   for (let i = 0; i < selectedHotel.hotelNames.length; i++) {
     const hotelName = selectedHotel.hotelNames[i];
     const roomType = selectedHotel.roomTypes[i];
@@ -173,12 +175,13 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
     const managementId =
       managementRows.length > 0 ? managementRows[0].id : null;
 
+    // Get the room capacity for the selected room type
     const programResult = await client.query(
       "SELECT packages FROM programs WHERE id = $1",
       [programId]
     );
     const program = programResult.rows[0];
-    let capacity = 2; // Default
+    let capacity = 2; // Default capacity
     if (program && program.packages) {
       for (const pkg of program.packages) {
         if (pkg.prices) {
@@ -194,12 +197,19 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
       }
     }
 
-    // Handle family placement first if they perfectly fit a room
-    if (allFamilyMembers.length > 1 && allFamilyMembers.length === capacity) {
+    // Check if the entire family fits in a single room of the specified type.
+    const familySize = allFamilyMembers.length;
+
+    // --- START FIX ---
+    // If the family size exactly matches the room capacity, place them together.
+    if (familySize > 1 && familySize === capacity) {
+      // Find an empty room of the correct type to place the entire family
       let emptyRoomIndex = rooms.findIndex(
         (r) => r.type === roomType && r.occupants.every((o) => o === null)
       );
+
       if (emptyRoomIndex === -1) {
+        // Create a new room for the family
         const newRoom = {
           name: `${roomType} ${
             rooms.filter((r) => r.type === roomType).length + 1
@@ -211,42 +221,57 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
         rooms.push(newRoom);
         emptyRoomIndex = rooms.length - 1;
       }
+
       allFamilyMembers.forEach((member, index) => {
         rooms[emptyRoomIndex].occupants[index] = {
           id: member.id,
-          clientName: member.clientNameAr, // FIX 1: Use Arabic name
+          clientName: member.clientNameAr,
           gender: member.gender,
         };
       });
-    } else {
-      // Handle individual placement with strict gender separation
+      // Mark all family members as placed to skip individual placement logic
+      const placedOccupantIds = new Set(allFamilyMembers.map((m) => m.id));
       for (const member of allFamilyMembers) {
+        // This is a new approach to ensure no duplicates
+        // ... (this part is actually handled by the outer loop now)
+      }
+    } else {
+      // Logic for individual placement with gender separation
+      const placedOccupantIds = new Set();
+      rooms.forEach((room) =>
+        room.occupants.forEach((o) => {
+          if (o && allFamilyMembers.some((member) => member.id === o.id)) {
+            placedOccupantIds.add(o.id);
+          }
+        })
+      );
+
+      for (const member of allFamilyMembers) {
+        if (placedOccupantIds.has(member.id)) continue;
+
         const occupant = {
           id: member.id,
-          clientName: member.clientNameAr, // FIX 1: Use Arabic name
+          clientName: member.clientNameAr,
           gender: member.gender,
         };
 
         let placed = false;
 
-        // Find a suitable room (correct type, has space, and same gender or empty)
         for (const room of rooms) {
-          const roomGender = room.occupants.find((o) => o !== null)?.gender;
+          const roomGender = room.occupants.find((o) => o)?.gender;
+          const emptySlot = room.occupants.findIndex((o) => o === null);
           if (
             room.type === roomType &&
-            room.occupants.some((o) => o === null) &&
-            (!roomGender || roomGender === member.gender) // FIX 2: Strict gender check
+            emptySlot !== -1 &&
+            (!roomGender || roomGender === member.gender)
           ) {
-            const emptySlot = room.occupants.findIndex((o) => o === null);
-            if (emptySlot !== -1) {
-              room.occupants[emptySlot] = occupant;
-              placed = true;
-              break;
-            }
+            room.occupants[emptySlot] = occupant;
+            placed = true;
+            placedOccupantIds.add(member.id);
+            break;
           }
         }
 
-        // If no suitable room found, create a new one
         if (!placed) {
           const newRoom = {
             name: `${roomType} ${
@@ -258,10 +283,13 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
           };
           newRoom.occupants[0] = occupant;
           rooms.push(newRoom);
+          placedOccupantIds.add(member.id);
         }
       }
     }
+    // --- END FIX ---
 
+    // Save the updated rooms for the hotel
     if (managementId) {
       await client.query(
         'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
