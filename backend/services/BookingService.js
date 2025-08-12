@@ -41,7 +41,7 @@ const calculateBasePrice = async (
     if (program.variations && program.variations.length > 0) {
       variation = program.variations[0];
     } else {
-      // If no variations exist at all, throw an error.
+      // If no variations exist at all, the base price calculation cannot proceed accurately.
       throw new Error(`Variation "${variationName}" not found in program.`);
     }
   }
@@ -364,13 +364,21 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const updatedBooking = rows[0];
 
-    // MODIFICATION: Remove old room assignments and then perform a new auto-assignment for the updated booking
-    await RoomManagementService.removeOccupantFromRooms(
+    // MODIFICATION: Get all family members and remove them from rooms before re-assigning them.
+    const allFamilyMembers = await RoomManagementService.getFamilyMembers(
       client,
       user.adminId,
-      updatedBooking.tripId,
       updatedBooking.id
     );
+    const allFamilyIds = allFamilyMembers.map((member) => member.id);
+    for (const memberId of allFamilyIds) {
+      await RoomManagementService.removeOccupantFromRooms(
+        client,
+        user.adminId,
+        updatedBooking.tripId,
+        memberId
+      );
+    }
 
     await RoomManagementService.autoAssignToRoom(
       client,
@@ -543,7 +551,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
     for (const booking of bookingsToDelete) {
       await RoomManagementService.removeOccupantFromRooms(
         client,
-        user.adminId,
+        adminId,
         booking.tripId,
         booking.id
       );
