@@ -1,7 +1,8 @@
 // backend/services/RoomManagementService.js
 
 /**
- * Recalculates base price and profit for all bookings related to a program.
+ * يقوم بجمع جميع أفراد العائلة لحجز معين، بما في ذلك الحجز الرئيسي والأشخاص المرتبطين به.
+ *
  * @param {object} client - The database client for the transaction.
  * @param {number} userId - The ID of the admin user.
  * @param {number} bookingId - The ID of the booking to get family members for.
@@ -17,43 +18,29 @@ exports.getFamilyMembers = async (client, userId, bookingId) => {
     return [];
   }
   const mainBooking = mainBookingRows[0];
-  const allFamilyMembers = [
-    {
-      id: mainBooking.id,
-      clientName: mainBooking.clientNameAr,
-      gender: mainBooking.gender,
-    },
-  ];
+  const allFamilyMembers = [mainBooking];
 
   if (mainBooking.relatedPersons && mainBooking.relatedPersons.length > 0) {
     const relatedIds = mainBooking.relatedPersons.map((p) => p.ID);
     const { rows: relatedBookings } = await client.query(
-      'SELECT id, "clientNameAr" as "clientName", gender FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
+      'SELECT id, "clientNameAr", gender FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
       [relatedIds, userId]
     );
     allFamilyMembers.push(...relatedBookings);
   } else {
-    // If this booking itself is a related person, find the leader booking.
+    // إذا كان هذا الحجز نفسه هو شخص مرتبط، ابحث عن الحجز الرئيسي.
     const { rows: leaderBookingRows } = await client.query(
-      `SELECT id, "clientNameAr" as "clientName", gender, "relatedPersons" FROM bookings 
-       WHERE "relatedPersons" @> jsonb_build_array(jsonb_build_object('ID', $1)) AND "userId" = $2 AND "tripId" = $3`,
-      [bookingId, userId, mainBooking.tripId]
+      'SELECT id, "clientNameAr", gender, "relatedPersons" FROM bookings WHERE "relatedPersons" @> jsonb_build_array(jsonb_build_object(\'ID\', $1)) AND "userId" = $2',
+      [bookingId, userId]
     );
     if (leaderBookingRows.length > 0) {
       const leaderBooking = leaderBookingRows[0];
       const relatedIds = leaderBooking.relatedPersons.map((p) => p.ID);
       const { rows: relatedBookings } = await client.query(
-        'SELECT id, "clientNameAr" as "clientName", gender FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
+        'SELECT id, "clientNameAr", gender FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
         [relatedIds, userId]
       );
-      return [
-        {
-          id: leaderBooking.id,
-          clientName: leaderBooking.clientName,
-          gender: leaderBooking.gender,
-        },
-        ...relatedBookings,
-      ];
+      return [leaderBooking, ...relatedBookings];
     }
   }
 
@@ -164,10 +151,10 @@ exports.searchUnassignedOccupants = async (
   let query = `
     SELECT id, "clientNameAr" as "clientName"
     FROM bookings
-    WHERE "userId" = $1 AND "tripId" = $2
+    WHERE "userId" = $1
   `;
-  const params = [userId, programId];
-  let paramIndex = 3;
+  const params = [userId];
+  let paramIndex = 2;
 
   // Add condition to exclude already assigned occupants
   if (assignedIds.size > 0) {
@@ -198,14 +185,15 @@ exports.searchUnassignedOccupants = async (
  * @param {object} client - The database client for the transaction.
  * @param {number} userId - The ID of the admin user.
  * @param {object} newBooking - The newly created booking object.
+ * @param {Array<object>} allFamilyMembers - An array containing the leader and all related bookings.
  */
-exports.autoAssignToRoom = async (client, userId, newBooking) => {
-  const {
-    tripId: programId,
-    selectedHotel,
-    relatedPersons,
-    id: bookingId,
-  } = newBooking;
+exports.autoAssignToRoom = async (
+  client,
+  userId,
+  newBooking,
+  allFamilyMembers
+) => {
+  const { tripId: programId, selectedHotel } = newBooking;
 
   // Make sure to have valid hotel selection for this to work
   if (
@@ -216,12 +204,8 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
     return;
   }
 
-  // Get all members of the family (leader + related persons)
-  const allFamilyMembers = await exports.getFamilyMembers(
-    client,
-    userId,
-    bookingId
-  );
+  // Use the provided list of all family members. If not provided, it's a single booking.
+  const members = allFamilyMembers || [newBooking];
 
   // Iterate over each hotel selected in the booking
   for (let i = 0; i < selectedHotel.hotelNames.length; i++) {
@@ -229,18 +213,6 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
     const roomType = selectedHotel.roomTypes[i];
     if (!hotelName || !roomType) continue;
 
-    // Remove any previous assignment for the family in this hotel to prevent duplicates.
-    const allFamilyIds = allFamilyMembers.map((m) => m.id);
-    for (const memberId of allFamilyIds) {
-      await exports.removeOccupantFromRooms(
-        client,
-        userId,
-        programId,
-        memberId
-      );
-    }
-
-    // Get existing rooms for the current hotel (which should be empty of this family now)
     const { rows: managementRows } = await client.query(
       'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
       [userId, programId, hotelName]
@@ -272,11 +244,10 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
       }
     }
 
-    const familySize = allFamilyMembers.length;
-    let placedOccupantIds = new Set();
-    let isFamilyPlaced = false;
+    const familySize = members.length;
+    const placedOccupantIds = new Set();
 
-    // Rule 1: Attempt to place the entire family together if their number matches the room capacity.
+    // Attempt to place the entire family together if their number matches the room capacity.
     if (familySize > 1 && familySize === capacity) {
       let emptyRoomIndex = rooms.findIndex(
         (r) =>
@@ -298,59 +269,58 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
         emptyRoomIndex = rooms.length - 1;
       }
 
-      allFamilyMembers.forEach((member, index) => {
+      members.forEach((member, index) => {
         rooms[emptyRoomIndex].occupants[index] = {
           id: member.id,
-          clientName: member.clientName,
+          clientName: member.clientNameAr,
           gender: member.gender,
         };
         placedOccupantIds.add(member.id);
       });
-      isFamilyPlaced = true;
     }
 
-    // Rule 2 & 3: Individual placement with gender separation if not placed as a family.
-    if (!isFamilyPlaced) {
-      for (const member of allFamilyMembers) {
-        if (placedOccupantIds.has(member.id)) continue;
+    // Logic for individual placement with gender separation
+    for (const member of members) {
+      // Check if this member has already been placed as part of a family group
+      if (placedOccupantIds.has(member.id)) continue;
 
-        const occupant = {
-          id: member.id,
-          clientName: member.clientName,
-          gender: member.gender,
-        };
+      const occupant = {
+        id: member.id,
+        clientName: member.clientNameAr,
+        gender: member.gender,
+      };
 
-        let placed = false;
-        // Search for an existing room of the same type that has an empty slot and the same gender
-        for (const room of rooms) {
-          const roomGender = room.occupants.find((o) => o)?.gender;
-          const emptySlot = room.occupants.findIndex((o) => o === null);
-          if (
-            room.type === roomType &&
-            emptySlot !== -1 &&
-            (roomGender === undefined || roomGender === member.gender)
-          ) {
-            room.occupants[emptySlot] = occupant;
-            placed = true;
-            break;
-          }
-        }
-
-        // If no suitable room was found, create a new one.
-        if (!placed) {
-          const newRoom = {
-            name: `${roomType} ${
-              rooms.filter((r) => r.type === roomType).length + 1
-            }`,
-            type: roomType,
-            capacity: capacity,
-            occupants: Array(capacity).fill(null),
-          };
-          newRoom.occupants[0] = occupant;
-          rooms.push(newRoom);
+      let placed = false;
+      // Search for an existing room of the same type that has an empty slot and the same gender
+      for (const room of rooms) {
+        const roomGender = room.occupants.find((o) => o)?.gender;
+        const emptySlot = room.occupants.findIndex((o) => o === null);
+        if (
+          room.type === roomType &&
+          emptySlot !== -1 &&
+          (roomGender === undefined || roomGender === member.gender)
+        ) {
+          room.occupants[emptySlot] = occupant;
+          placed = true;
+          break;
         }
       }
+
+      // If no suitable room was found, create a new one.
+      if (!placed) {
+        const newRoom = {
+          name: `${roomType} ${
+            rooms.filter((r) => r.type === roomType).length + 1
+          }`,
+          type: roomType,
+          capacity: capacity,
+          occupants: Array(capacity).fill(null),
+        };
+        newRoom.occupants[0] = occupant;
+        rooms.push(newRoom);
+      }
     }
+    // --- END FIX ---
 
     // Save the updated rooms for the hotel
     if (managementId) {
