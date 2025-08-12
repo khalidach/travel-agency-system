@@ -29,34 +29,26 @@ const calculateBasePrice = async (
     throw new Error("Program not found for base price calculation.");
   const program = programs[0];
 
-  // --- Start of fix ---
-  // Find the correct variation from the program's variations array based on the name.
   let variation = (program.variations || []).find(
     (v) => v.name === variationName
   );
 
   if (!variation) {
-    // Fallback to the first variation if the provided name is not found.
-    // This maintains backward compatibility for older data that might not have a variationName.
     if (program.variations && program.variations.length > 0) {
       variation = program.variations[0];
     } else {
-      // If no variations exist at all, throw an error.
       throw new Error(`Variation "${variationName}" not found in program.`);
     }
   }
-  // --- End of fix ---
 
   const { rows: pricings } = await db.query(
     'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
     [tripId, userId]
   );
-  // If no pricing is set up at all, the base price is 0.
   if (pricings.length === 0) return 0;
   const pricing = pricings[0];
 
-  // --- Determine ticket price ---
-  let ticketPriceForVariation = Number(pricing.ticketAirline || 0); // Default
+  let ticketPriceForVariation = Number(pricing.ticketAirline || 0);
   if (
     pricing.ticketPricesByVariation &&
     pricing.ticketPricesByVariation[variationName]
@@ -66,7 +58,6 @@ const calculateBasePrice = async (
     );
   }
 
-  // --- Calculate non-hotel costs first ---
   const personTypeInfo = (pricing.personTypes || []).find(
     (p) => p.type === personType
   );
@@ -81,13 +72,11 @@ const calculateBasePrice = async (
 
   const nonHotelCosts = ticketPrice + visaPrice + guidePrice + transportPrice;
 
-  // --- Conditionally calculate hotel costs ---
   let hotelCosts = 0;
   const bookingPackage = (program.packages || []).find(
     (p) => p.name === packageId
   );
 
-  // Only proceed with hotel cost calculation if a package and hotels are selected
   if (
     bookingPackage &&
     selectedHotel &&
@@ -99,7 +88,6 @@ const calculateBasePrice = async (
       (p) => p.hotelCombination === hotelCombination
     );
 
-    // And a corresponding price structure for the selected hotels exists
     if (priceStructure) {
       const guestMap = new Map(
         priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
@@ -111,7 +99,6 @@ const calculateBasePrice = async (
         const hotelPricingInfo = (pricing.allHotels || []).find(
           (h) => h.name === hotelName && h.city === city
         );
-        // --- Fix applied here: Use the correct variation's cities array to get the number of nights ---
         const cityInfo = (variation.cities || []).find((c) => c.name === city);
 
         if (hotelPricingInfo && cityInfo && roomTypeName) {
@@ -155,7 +142,6 @@ const createBooking = async (db, user, bookingData) => {
       relatedPersons,
     } = bookingData;
 
-    // Check if a booking with the same passport number already exists for this trip
     const existingBookingCheck = await client.query(
       'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
       [passportNumber, tripId, adminId]
@@ -178,7 +164,7 @@ const createBooking = async (db, user, bookingData) => {
     }
 
     const basePrice = await calculateBasePrice(
-      client, // Use client for transaction
+      client,
       adminId,
       tripId,
       packageId,
@@ -225,9 +211,7 @@ const createBooking = async (db, user, bookingData) => {
 
     const newBooking = rows[0];
 
-    // MODIFICATION: Call auto-assignment after the booking has been successfully created.
-    // This allows for asynchronous processing and gives the impression of a delay.
-    // The front-end can now proceed to the next page.
+    // MODIFICATION: Call auto-assignment for the newly created booking and its family members.
     await RoomManagementService.autoAssignToRoom(
       client,
       user.adminId,
@@ -250,36 +234,10 @@ const createBooking = async (db, user, bookingData) => {
 };
 
 const updateBooking = async (db, user, bookingId, bookingData) => {
-  // MODIFICATION: Allow managers to update bookings they have created.
-  const isAuthorized =
-    user.role === "admin" ||
-    (user.role === "manager" && booking.employeeId === user.id) ||
-    (user.role === "employee" && booking.employeeId === user.id);
-  if (!isAuthorized) {
-    throw new Error("You are not authorized to update this booking.");
-  }
-  const {
-    clientNameAr,
-    clientNameFr,
-    personType,
-    phoneNumber,
-    passportNumber,
-    dateOfBirth,
-    passportExpirationDate,
-    gender,
-    tripId,
-    variationName,
-    packageId,
-    selectedHotel,
-    sellingPrice,
-    advancePayments,
-    relatedPersons,
-  } = bookingData;
-
   const client = await db.connect();
   try {
     await client.query("BEGIN");
-    // First, verify ownership before updating
+
     const bookingResult = await client.query(
       'SELECT "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
       [bookingId, user.adminId]
@@ -294,7 +252,24 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       throw new Error("You are not authorized to modify this booking.");
     }
 
-    // Check if updating the passport number would create a duplicate for the same trip
+    const {
+      clientNameAr,
+      clientNameFr,
+      personType,
+      phoneNumber,
+      passportNumber,
+      dateOfBirth,
+      passportExpirationDate,
+      gender,
+      tripId,
+      variationName,
+      packageId,
+      selectedHotel,
+      sellingPrice,
+      advancePayments,
+      relatedPersons,
+    } = bookingData;
+
     const existingBookingCheck = await client.query(
       'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
       [passportNumber, tripId, user.adminId, bookingId]
@@ -318,7 +293,6 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       throw new Error("A package must be selected for this program.");
     }
 
-    // Proceed with update logic
     const basePrice = await calculateBasePrice(
       client,
       user.adminId,
@@ -364,7 +338,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const updatedBooking = rows[0];
 
-    // MODIFICATION: Remove old room assignments and then perform a new auto-assignment for the updated booking
+    // MODIFICATION: Remove old room assignments for the entire family before re-assignment
     await RoomManagementService.removeOccupantFromRooms(
       client,
       user.adminId,
@@ -372,6 +346,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       updatedBooking.id
     );
 
+    // Call auto-assignment for the entire family.
     await RoomManagementService.autoAssignToRoom(
       client,
       user.adminId,
@@ -390,11 +365,6 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
 const getAllBookings = async (db, id, page, limit, idColumn) => {
   const offset = (page - 1) * limit;
-  // This query now fetches all bookings for the agency for both admin and manager
-  const queryUserId = id;
-  const queryIdColumn =
-    idColumn === "employeeId" && id !== "admin" ? "employeeId" : "userId";
-
   const bookingsPromise = db.query(
     `SELECT b.*, e.username as "employeeName"
      FROM bookings b
@@ -422,7 +392,6 @@ const deleteBooking = async (db, user, bookingId) => {
     await client.query("BEGIN");
     const { role, id, adminId } = user;
 
-    // MODIFICATION: Add authorization check for manager
     if (role === "manager") {
       throw new Error(
         "Managers are not authorized to delete individual bookings."
@@ -439,12 +408,10 @@ const deleteBooking = async (db, user, bookingId) => {
     }
     const booking = bookingRes.rows[0];
 
-    // Check ownership for delete
     if (role === "employee" && booking.employeeId !== id) {
       throw new Error("You are not authorized to delete this booking.");
     }
 
-    // Remove from room management
     await RoomManagementService.removeOccupantFromRooms(
       client,
       adminId,
@@ -621,7 +588,6 @@ const findBookingForUser = async (
 };
 
 const addPayment = async (db, user, bookingId, paymentData) => {
-  // Check ownership before adding a payment
   const booking = await findBookingForUser(db, user, bookingId, true);
   const newPayment = { ...paymentData, _id: new Date().getTime().toString() };
   const advancePayments = [...(booking.advancePayments || []), newPayment];
@@ -637,7 +603,6 @@ const addPayment = async (db, user, bookingId, paymentData) => {
 };
 
 const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
-  // Check ownership before updating a payment
   const booking = await findBookingForUser(db, user, bookingId, true);
   const advancePayments = (booking.advancePayments || []).map((p) =>
     p._id === paymentId ? { ...p, ...paymentData, _id: p._id } : p
@@ -654,7 +619,6 @@ const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
 };
 
 const deletePayment = async (db, user, bookingId, paymentId) => {
-  // Check ownership before deleting a payment
   const booking = await findBookingForUser(db, user, bookingId, true);
   const advancePayments = (booking.advancePayments || []).filter(
     (p) => p._id !== paymentId
