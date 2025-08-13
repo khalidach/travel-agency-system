@@ -429,3 +429,29 @@ exports.getFamilyMembers = async (client, userId, bookingId) => {
 
   return allFamilyMembers;
 };
+
+/**
+ * Checks if any of the given booking IDs are currently assigned to a room in a program.
+ * @param {object} client - The database client for the transaction.
+ * @param {number} userId - The ID of the admin user.
+ * @param {number} programId - The ID of the program.
+ * @param {Array<number>} bookingIds - An array of booking IDs to check for assignment.
+ * @returns {Promise<boolean>} A promise that resolves to true if any booking is assigned, otherwise false.
+ */
+exports.checkIfAnyAssigned = async (client, userId, programId, bookingIds) => {
+  if (!bookingIds || bookingIds.length === 0) return false;
+  const { rows } = await client.query(
+    `SELECT EXISTS (
+          SELECT 1
+          FROM room_managements
+          WHERE "userId" = $1 AND "programId" = $2
+          AND EXISTS (
+              SELECT 1
+              FROM jsonb_array_elements(rooms) as r, jsonb_array_elements(r->'occupants') as o
+              WHERE (o->>'id')::int = ANY($3::int[])
+          )
+      ) AS is_assigned`,
+    [userId, programId, bookingIds]
+  );
+  return rows[0].is_assigned;
+};

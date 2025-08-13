@@ -1,5 +1,7 @@
 // backend/services/BookingService.js
 const RoomManagementService = require("./RoomManagementService");
+const isEqual = require("fast-deep-equal");
+const logger = require("../utils/logger");
 
 /**
  * Recalculates base price and profit for all bookings related to a program.
@@ -202,7 +204,7 @@ const createBooking = async (db, user, bookingData) => {
         sellingPrice,
         basePrice,
         profit,
-        JSON.stringify(advancePayments || []),
+        "[]",
         remainingBalance,
         isFullyPaid,
         JSON.stringify(relatedPersons || []),
@@ -238,17 +240,19 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   try {
     await client.query("BEGIN");
 
-    const bookingResult = await client.query(
-      'SELECT "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
+    // Get the old booking data before the update
+    const oldBookingResult = await client.query(
+      'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
       [bookingId, user.adminId]
     );
-    if (bookingResult.rows.length === 0) {
+
+    if (oldBookingResult.rows.length === 0) {
       throw new Error("Booking not found or not authorized");
     }
 
-    const booking = bookingResult.rows[0];
+    const oldBooking = oldBookingResult.rows[0];
 
-    if (user.role !== "admin" && booking.employeeId !== user.id) {
+    if (user.role !== "admin" && oldBooking.employeeId !== user.id) {
       throw new Error("You are not authorized to modify this booking.");
     }
 
@@ -338,20 +342,62 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const updatedBooking = rows[0];
 
-    // MODIFICATION: Remove old room assignments for the entire family before re-assignment
-    await RoomManagementService.removeOccupantFromRooms(
-      client,
-      user.adminId,
-      updatedBooking.tripId,
-      updatedBooking.id
+    // --- NEW LOGIC: CONDITIONAL ROOM RE-ASSIGNMENT ---
+    const isPackageIdChanged =
+      oldBooking.packageId !== updatedBooking.packageId;
+    const isGenderChanged = oldBooking.gender !== updatedBooking.gender;
+    const isRelatedPersonsChanged = !isEqual(
+      oldBooking.relatedPersons,
+      updatedBooking.relatedPersons
+    );
+    const isSelectedHotelChanged = !isEqual(
+      oldBooking.selectedHotel,
+      updatedBooking.selectedHotel
     );
 
-    // Call auto-assignment for the entire family.
-    await RoomManagementService.autoAssignToRoom(
+    // Fetch the entire family group for the booking and check if any are currently assigned.
+    const oldFamilyMembers = await RoomManagementService.getFamilyMembers(
       client,
       user.adminId,
-      updatedBooking
+      oldBooking.id
     );
+    const oldFamilyIds = oldFamilyMembers.map((m) => m.id);
+    const isCurrentlyAssigned = await RoomManagementService.checkIfAnyAssigned(
+      client,
+      user.adminId,
+      oldBooking.tripId,
+      oldFamilyIds
+    );
+
+    // Re-assign only if a key field has changed OR if the person was not assigned to a room.
+    if (
+      isPackageIdChanged ||
+      isGenderChanged ||
+      isRelatedPersonsChanged ||
+      isSelectedHotelChanged ||
+      !isCurrentlyAssigned
+    ) {
+      logger.info(
+        `Changes detected or person was unassigned for booking ID ${bookingId}. Re-assigning rooms.`
+      );
+      // Remove old room assignments for the entire family before re-assignment
+      await RoomManagementService.removeOccupantFromRooms(
+        client,
+        user.adminId,
+        updatedBooking.tripId,
+        updatedBooking.id
+      );
+      // Call auto-assignment for the entire family.
+      await RoomManagementService.autoAssignToRoom(
+        client,
+        user.adminId,
+        updatedBooking
+      );
+    } else {
+      logger.info(
+        `No key changes and person was already assigned for booking ID ${bookingId}. Skipping room re-assignment.`
+      );
+    }
 
     await client.query("COMMIT");
     return updatedBooking;
