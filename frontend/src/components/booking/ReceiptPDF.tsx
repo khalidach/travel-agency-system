@@ -27,10 +27,10 @@ export default function ReceiptPDF({
   const user = authState.user;
 
   // Memoize the calculation to get the total of payments made BEFORE the current one
-  const { totalPreviouslyPaid, remainingAfterThisPayment } = useMemo(() => {
+  const { paymentsBeforeThis, remainingAfterThisPayment } = useMemo(() => {
     if (!booking || !payment || !booking.advancePayments) {
       return {
-        totalPreviouslyPaid: 0,
+        paymentsBeforeThis: [],
         remainingAfterThisPayment: booking.sellingPrice,
       };
     }
@@ -40,7 +40,13 @@ export default function ReceiptPDF({
       (p) => p._id === payment._id
     );
 
-    // Sum all payments that occurred before the current one.
+    // Get the array of all payments that occurred before the current one.
+    const paymentsBeforeThis = booking.advancePayments.slice(
+      0,
+      currentPaymentIndex
+    );
+
+    // Sum all payments up to and including the current one to get the new remaining balance.
     const paymentsUpToThisPoint = booking.advancePayments.slice(
       0,
       currentPaymentIndex + 1
@@ -53,17 +59,7 @@ export default function ReceiptPDF({
     const remainingAfterThisPayment =
       booking.sellingPrice - totalPaidUpToThisPoint;
 
-    // Sum of payments before the current one
-    const paymentsBeforeThis = booking.advancePayments.slice(
-      0,
-      currentPaymentIndex
-    );
-    const totalPreviouslyPaid = paymentsBeforeThis.reduce(
-      (sum, p) => sum + p.amount,
-      0
-    );
-
-    return { totalPreviouslyPaid, remainingAfterThisPayment };
+    return { paymentsBeforeThis, remainingAfterThisPayment };
   }, [booking, payment]);
 
   return (
@@ -180,9 +176,47 @@ export default function ReceiptPDF({
           </p>
         </div>
       </div>
-      <div className="flex items-center mt-6">
+      <div className="flex items-center mt-6 mb-10">
         <p className="text-2xl mr-7 text-cyan-800">الامضاء</p>
       </div>
+
+      {paymentsBeforeThis.length > 0 && (
+        <div className="mt-8 border-t-2 border-gray-200 pt-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            الدفوعات السابقة
+          </h3>
+          <table className="w-full text-sm text-gray-600 table-auto border border-cyan-900 p-3">
+            <thead>
+              <tr>
+                <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
+                  المبلغ
+                </th>
+                <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
+                  رقم الإيصال
+                </th>
+                <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
+                  التاريخ
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paymentsBeforeThis.map((prevPayment, index) => (
+                <tr key={prevPayment._id}>
+                  <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
+                    {prevPayment.amount.toLocaleString()} درهم
+                  </td>
+                  <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
+                    {booking.id}-{prevPayment._id.substring(0, 5).toUpperCase()}
+                  </td>
+                  <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
+                    {new Date(prevPayment.date).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
