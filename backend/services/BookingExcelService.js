@@ -320,7 +320,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
     // Set the column width to the calculated max length plus a small amount of padding.
     // Set a minimum width for columns with little content.
-    const MIN_WIDTH = 15;
+    const MIN_WIDTH = 10;
     column.width = Math.max(MIN_WIDTH, maxLength + 5);
   });
 
