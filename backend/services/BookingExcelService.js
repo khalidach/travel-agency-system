@@ -225,7 +225,9 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     if (isFamily) {
       const startRow = i + 2; // +2 for 1-based index and header row
       const endRow = startRow + familySize;
-      const phoneColumn = worksheet.getColumn("phoneNumber");
+      const phoneColumn = worksheet.columns.find(
+        (c) => c.key === "phoneNumber"
+      );
       const phoneColumnLetter = phoneColumn.letter;
 
       // Use the leader's phone number for the entire family.
@@ -320,7 +322,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
     // Set the column width to the calculated max length plus a small amount of padding.
     // Set a minimum width for columns with little content.
-    const MIN_WIDTH = 10;
+    const MIN_WIDTH = 15;
     column.width = Math.max(MIN_WIDTH, maxLength + 5);
   });
 
