@@ -299,20 +299,29 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
   totalsRow.height = 30;
 
-  // Auto-fit columns
-  const MIN_WIDTH = 30;
-
+  // Iterate over all columns to set the width to the length of the longest cell value.
+  // The font size of the header row (20) needs to be considered,
+  // as it may be larger than the content rows (which are 12 by default in exceljs).
   worksheet.columns.forEach((column) => {
-    let maxColumnLength = 0;
+    let maxLength = 0;
     column.eachCell({ includeEmpty: true }, (cell) => {
+      // Get the value and its font size
       const cellValue = cell.value ? String(cell.value) : "";
-      if (cellValue.length > maxColumnLength) {
-        maxColumnLength = cellValue.length;
+      const fontSize =
+        cell.font && cell.font.size ? Number(cell.font.size) : 12; // Default to 12 if not set
+
+      // Calculate an approximate "weighted" length based on font size
+      const weightedLength = cellValue.length * (fontSize / 12);
+
+      if (weightedLength > maxLength) {
+        maxLength = weightedLength;
       }
     });
 
-    // Heuristic for adjusting width based on length, with a multiplier for visual fit.
-    column.width = Math.max(MIN_WIDTH, maxColumnLength * 1.8);
+    // Set the column width to the calculated max length plus a small amount of padding.
+    // Set a minimum width for columns with little content.
+    const MIN_WIDTH = 15;
+    column.width = Math.max(MIN_WIDTH, maxLength + 5);
   });
 
   return workbook;
