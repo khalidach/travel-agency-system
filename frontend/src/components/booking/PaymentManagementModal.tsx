@@ -1,11 +1,22 @@
 // frontend/src/components/booking/PaymentManagementModal.tsx
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import Modal from "../Modal";
 import PaymentForm from "../PaymentForm";
 import ConfirmationModal from "../modals/ConfirmationModal";
-import { CreditCard, Edit2, Trash2 } from "lucide-react";
-import type { Booking, Payment } from "../../context/models";
+import { CreditCard, Edit2, Trash2, Download } from "lucide-react";
+import type {
+  Booking,
+  Payment,
+  Program,
+  FacturationSettings,
+} from "../../context/models";
+import { toast } from "react-hot-toast";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import * as api from "../../services/api";
+import ReceiptPDF from "./ReceiptPDF"; // Import the new component
 
 interface PaymentManagementModalProps {
   booking: Booking | null;
@@ -31,6 +42,25 @@ export default function PaymentManagementModal({
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const [receiptToPreview, setReceiptToPreview] = useState<{
+    booking: Booking;
+    payment: Payment;
+  } | null>(null);
+
+  // Use a query to fetch the program details for the receipt
+  const { data: program } = useQuery<Program>({
+    queryKey: ["program", booking?.tripId],
+    queryFn: () => api.getProgramById(booking!.tripId),
+    enabled: !!booking,
+    staleTime: Infinity,
+  });
+
+  // Use a query to fetch the settings for the receipt
+  const { data: settings } = useQuery<FacturationSettings>({
+    queryKey: ["settings"],
+    queryFn: api.getSettings,
+    staleTime: Infinity,
+  });
 
   if (!isOpen || !booking) return null;
 
@@ -65,6 +95,35 @@ export default function PaymentManagementModal({
     }
   };
 
+  const handleDownloadReceipt = async (payment: Payment) => {
+    if (!booking || !program) {
+      toast.error("Booking or program data not available.");
+      return;
+    }
+
+    setReceiptToPreview({ booking, payment });
+
+    // Wait for the DOM to render the receipt component
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const input = document.getElementById("receipt-pdf-preview");
+    if (input) {
+      const receiptFilename = `${t("receipt")}_${booking.clientNameFr.replace(
+        /\s/g,
+        "_"
+      )}.pdf`;
+      html2canvas(input, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a5");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save(receiptFilename);
+        setReceiptToPreview(null);
+      });
+    }
+  };
+
   return (
     <>
       <Modal
@@ -95,7 +154,7 @@ export default function PaymentManagementModal({
             className="space-y-3"
             key={(booking.advancePayments || []).length}
           >
-            {(booking.advancePayments || []).map((payment) => (
+            {(booking.advancePayments || []).map((payment, index) => (
               <div
                 key={`${payment._id}-${payment.amount}`}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
@@ -133,6 +192,13 @@ export default function PaymentManagementModal({
                   )}
                 </div>
                 <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleDownloadReceipt(payment)}
+                    className="p-2 text-gray-400 hover:text-green-600 rounded-lg transition-colors"
+                    title={t("downloadReceipt") as string}
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleEditPaymentClick(payment)}
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -181,6 +247,23 @@ export default function PaymentManagementModal({
           title={t("deletePaymentTitle")}
           message={t("deletePaymentMessage")}
         />
+      )}
+
+      {/* Hidden container for PDF generation */}
+      {receiptToPreview && (
+        <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
+          <div
+            id="receipt-pdf-preview"
+            style={{ width: "210mm", height: "297mm" }}
+          >
+            <ReceiptPDF
+              booking={receiptToPreview.booking}
+              payment={receiptToPreview.payment}
+              program={program}
+              settings={settings}
+            />
+          </div>
+        </div>
       )}
     </>
   );
