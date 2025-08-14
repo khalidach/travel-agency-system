@@ -84,7 +84,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   });
 
   const headerRow = worksheet.getRow(1);
-  headerRow.font = { bold: true, size: 14, color: { argb: "FFFFFFFF" } };
+  headerRow.font = { bold: true, size: 20, color: { argb: "FFFFFFFF" } };
   headerRow.height = 35;
   headerRow.eachCell((cell) => {
     cell.alignment = { vertical: "middle", horizontal: "center" };
@@ -192,7 +192,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
     const row = worksheet.addRow(rowData);
 
-    row.font = { size: 12 };
+    row.font = { size: 20 };
     row.height = 25;
 
     row.eachCell({ includeEmpty: true }, (cell) => {
@@ -274,7 +274,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     );
     const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
     totalLabelCell.value = "Total";
-    totalLabelCell.font = { bold: true, size: 14 };
+    totalLabelCell.font = { bold: true, size: 20 };
     totalLabelCell.alignment = { vertical: "middle", horizontal: "center" };
   }
 
@@ -287,7 +287,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         formula: `SUM(${colLetter}2:${colLetter}${lastDataRowNumber})`,
       };
       cell.numFmt = '#,##0.00 "MAD"';
-      cell.font = { bold: true, size: 14 };
+      cell.font = { bold: true, size: 20 };
       cell.alignment = { vertical: "middle", horizontal: "center" };
       cell.fill = {
         type: "pattern",
@@ -300,27 +300,19 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   totalsRow.height = 30;
 
   // Auto-fit columns
-  const MIN_WIDTH = 18;
-  const PADDING = 5;
+  const MIN_WIDTH = 30;
 
   worksheet.columns.forEach((column) => {
-    const priceColumns = ["sellingPrice", "paid", "remaining"];
-    if (userRole === "admin") {
-      priceColumns.push("basePrice", "profit");
-    }
+    let maxColumnLength = 0;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const cellValue = cell.value ? String(cell.value) : "";
+      if (cellValue.length > maxColumnLength) {
+        maxColumnLength = cellValue.length;
+      }
+    });
 
-    if (priceColumns.includes(column.key)) {
-      column.width = 22;
-    } else {
-      let maxColumnLength = 0;
-      column.eachCell({ includeEmpty: true }, (cell) => {
-        const cellLength = cell.value ? cell.value.toString().length : 0;
-        if (cellLength > maxColumnLength) {
-          maxColumnLength = cellLength;
-        }
-      });
-      column.width = Math.max(MIN_WIDTH, maxColumnLength + PADDING);
-    }
+    // Heuristic for adjusting width based on length, with a multiplier for visual fit.
+    column.width = Math.max(MIN_WIDTH, maxColumnLength * 1.8);
   });
 
   return workbook;
