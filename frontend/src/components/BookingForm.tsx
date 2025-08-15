@@ -549,15 +549,15 @@ export default function BookingForm({
     return searchResults.filter((b) => !selectedIDs.has(b.id));
   }, [searchResults, watchedValues.relatedPersons, booking]);
 
-  const addRelatedPerson = useCallback(
-    (person: Booking) => {
-      const newPerson: RelatedPerson = {
+  const addRelatedPersons = useCallback(
+    (persons: Booking[]) => {
+      const newPersons: RelatedPerson[] = persons.map((person) => ({
         ID: person.id,
         clientName: person.clientNameFr,
-      };
+      }));
       setValue("relatedPersons", [
         ...(watchedValues.relatedPersons || []),
-        newPerson,
+        ...newPersons,
       ]);
       setFormState((prev) => ({
         ...prev,
@@ -622,7 +622,7 @@ export default function BookingForm({
               200
             )
           }
-          onAddPerson={addRelatedPerson}
+          onAddPersons={addRelatedPersons}
           onRemovePerson={removeRelatedPerson}
         />
 

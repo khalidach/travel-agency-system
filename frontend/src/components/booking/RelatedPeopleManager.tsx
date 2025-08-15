@@ -1,5 +1,5 @@
 // frontend/src/components/booking/RelatedPeopleManager.tsx
-import React from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import type { Booking, RelatedPerson } from "../../context/models";
@@ -13,7 +13,7 @@ interface RelatedPeopleManagerProps {
   onSearchChange: (value: string) => void;
   onFocus: () => void;
   onBlur: () => void;
-  onAddPerson: (person: Booking) => void;
+  onAddPersons: (persons: Booking[]) => void;
   onRemovePerson: (personId: number) => void;
 }
 
@@ -26,10 +26,24 @@ const RelatedPeopleManager = ({
   onSearchChange,
   onFocus,
   onBlur,
-  onAddPerson,
+  onAddPersons,
   onRemovePerson,
 }: RelatedPeopleManagerProps) => {
   const { t } = useTranslation();
+  const [selectedPeople, setSelectedPeople] = useState<Booking[]>([]);
+
+  const handlePersonSelect = (person: Booking) => {
+    setSelectedPeople((prev) =>
+      prev.some((p) => p.id === person.id)
+        ? prev.filter((p) => p.id !== person.id)
+        : [...prev, person]
+    );
+  };
+
+  const handleAddSelected = () => {
+    onAddPersons(selectedPeople);
+    setSelectedPeople([]);
+  };
 
   return (
     <div>
@@ -40,7 +54,10 @@ const RelatedPeopleManager = ({
         <input
           type="text"
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e) => {
+            onSearchChange(e.target.value);
+            setSelectedPeople([]); // Reset selection on new search
+          }}
           onFocus={onFocus}
           onBlur={onBlur}
           placeholder={
@@ -52,17 +69,40 @@ const RelatedPeopleManager = ({
           disabled={!selectedProgram}
         />
         {showDropdown && availablePeople.length > 0 && (
-          <ul className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 overflow-y-auto">
-            {availablePeople.map((person) => (
-              <li
-                key={person.id}
-                onClick={() => onAddPerson(person)}
-                className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-              >
-                {person.clientNameFr} ({person.passportNumber})
-              </li>
-            ))}
-          </ul>
+          <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-60 shadow-lg">
+            <ul className="overflow-y-auto max-h-48">
+              {availablePeople.map((person) => (
+                <li
+                  key={person.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handlePersonSelect(person);
+                  }}
+                  className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPeople.some((p) => p.id === person.id)}
+                    readOnly
+                    className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  {person.clientNameFr} ({person.passportNumber})
+                </li>
+              ))}
+            </ul>
+            {selectedPeople.length > 0 && (
+              <div className="p-2 border-t bg-gray-50">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleAddSelected}
+                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Add {selectedPeople.length} person(s)
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
