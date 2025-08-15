@@ -153,8 +153,22 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     }
   }
 
-  // Add rows from the correctly ordered list
-  orderedBookings.forEach((booking, index) => {
+  // Create a new array with final phone numbers resolved for family members
+  const finalBookings = orderedBookings.map((b) => ({ ...b }));
+  for (const booking of finalBookings) {
+    if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+      const leaderPhoneNumber = booking.phoneNumber || "";
+      booking.relatedPersons.forEach((related) => {
+        const memberBooking = finalBookings.find((b) => b.id === related.ID);
+        if (memberBooking && !memberBooking.phoneNumber) {
+          memberBooking.phoneNumber = leaderPhoneNumber;
+        }
+      });
+    }
+  }
+
+  // Add rows from the final bookings list
+  finalBookings.forEach((booking, index) => {
     const totalPaid = (booking.advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
       0
@@ -229,41 +243,35 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     });
   });
 
-  // Perform merges based on family groups
-  let i = 0;
-  while (i < orderedBookings.length) {
-    const leaderBooking = orderedBookings[i];
-    const familySize = leaderBooking.relatedPersons?.length || 0;
-    const isFamily = familySize > 0;
+  // Merge consecutive cells with the same phone number
+  const phoneColumn = worksheet.columns.find((c) => c.key === "phoneNumber");
+  if (phoneColumn) {
+    const phoneColumnLetter = phoneColumn.letter;
+    let mergeStartRow = 4; // Data starts at row 4
 
-    if (isFamily) {
-      const startRow = i + 4; // +4 for 1-based index, header row, program name row, and empty row
-      const endRow = startRow + familySize;
-      const phoneColumn = worksheet.columns.find(
-        (c) => c.key === "phoneNumber"
-      );
-      const phoneColumnLetter = phoneColumn.letter;
+    for (let i = 0; i < finalBookings.length; i++) {
+      const currentRow = i + 4;
+      const currentPhoneNumber = finalBookings[i].phoneNumber || "";
+      const nextPhoneNumber = (finalBookings[i + 1] || {}).phoneNumber;
 
-      // Use the leader's phone number for the entire family.
-      const leaderPhoneNumber = leaderBooking.phoneNumber || "";
-
-      // Set the phone number for all members to be the leader's.
-      // This includes the leader's row itself and all member rows.
-      for (let j = startRow; j <= endRow; j++) {
-        const cell = worksheet.getCell(`${phoneColumnLetter}${j}`);
-        cell.value = leaderPhoneNumber;
+      // If the next row has a different number, or it's the last row
+      if (
+        currentPhoneNumber !== nextPhoneNumber ||
+        i === finalBookings.length - 1
+      ) {
+        // If there's more than one row in the current group to merge
+        if (currentRow > mergeStartRow) {
+          worksheet.mergeCells(
+            `${phoneColumnLetter}${mergeStartRow}:${phoneColumnLetter}${currentRow}`
+          );
+          const cellToAlign = worksheet.getCell(
+            `${phoneColumnLetter}${mergeStartRow}`
+          );
+          cellToAlign.alignment = { vertical: "middle", horizontal: "center" };
+        }
+        // Start the next merge group from the next row
+        mergeStartRow = currentRow + 1;
       }
-
-      // Merge the cells for a cleaner look
-      worksheet.mergeCells(
-        `${phoneColumnLetter}${startRow}:${phoneColumnLetter}${endRow}`
-      );
-      const cellToAlign = worksheet.getCell(`${phoneColumnLetter}${startRow}`);
-      cellToAlign.alignment = { vertical: "middle", horizontal: "center" };
-
-      i += familySize + 1; // Skip past the processed family members
-    } else {
-      i++; // Not a family leader, move to the next person
     }
   }
 
