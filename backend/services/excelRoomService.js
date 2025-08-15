@@ -33,12 +33,34 @@ exports.generateRoomingListExcel = async (program, roomData) => {
     const roomTypes = Object.keys(roomsByType);
     let currentCol = 1;
 
-    // Main header for the hotel
+    // Program Name Header
     if (roomTypes.length > 0) {
-      // Adjust the merge range to account for separator columns
       const totalColumns = roomTypes.length * 2 + (roomTypes.length - 1);
       worksheet.mergeCells(1, 1, 1, totalColumns);
-      const hotelHeaderCell = worksheet.getCell(1, 1);
+      const programHeaderCell = worksheet.getCell(1, 1);
+      programHeaderCell.value = program.name;
+      programHeaderCell.font = {
+        bold: true,
+        size: 25,
+        color: { argb: "FF000000" },
+      };
+      programHeaderCell.alignment = {
+        vertical: "middle",
+        horizontal: "center",
+      };
+      programHeaderCell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    }
+
+    // Main header for the hotel on row 2
+    if (roomTypes.length > 0) {
+      const totalColumns = roomTypes.length * 2 + (roomTypes.length - 1);
+      worksheet.mergeCells(2, 1, 2, totalColumns);
+      const hotelHeaderCell = worksheet.getCell(2, 1);
       hotelHeaderCell.value = hotelName;
       hotelHeaderCell.font = {
         bold: true,
@@ -59,45 +81,43 @@ exports.generateRoomingListExcel = async (program, roomData) => {
       };
     }
 
-    // Keep track of separator column numbers to skip them during auto-fit
     const separatorColumns = new Set();
 
-    // Process each room type as a separate vertical block
     for (const type of roomTypes) {
       const roomsForType = roomsByType[type];
 
-      // Type Header
-      const typeHeaderCell = worksheet.getCell(2, currentCol);
+      // Type Header on row 3
+      const typeHeaderCell = worksheet.getCell(3, currentCol);
       typeHeaderCell.value = type;
-      typeHeaderCell.font = { bold: true, size: 20 }; // Changed from 14 to 18
+      typeHeaderCell.font = { bold: true, size: 20 };
       typeHeaderCell.fill = {
         type: "pattern",
         pattern: "solid",
         fgColor: { argb: "FFFFFF00" },
       }; // Yellow
       typeHeaderCell.alignment = { vertical: "middle", horizontal: "center" };
-      worksheet.mergeCells(2, currentCol, 2, currentCol + 1);
-      worksheet.getCell(2, currentCol).border = {
+      worksheet.mergeCells(3, currentCol, 3, currentCol + 1);
+      worksheet.getCell(3, currentCol).border = {
         top: { style: "thin" },
         left: { style: "thin" },
         bottom: { style: "thin" },
         right: { style: "thin" },
       };
-      worksheet.getCell(2, currentCol + 1).border = {
+      worksheet.getCell(3, currentCol + 1).border = {
         top: { style: "thin" },
         left: { style: "thin" },
         bottom: { style: "thin" },
         right: { style: "thin" },
       };
 
-      // Sub-headers
-      const roomHeaderCell = worksheet.getCell(3, currentCol);
+      // Sub-headers on row 4
+      const roomHeaderCell = worksheet.getCell(4, currentCol);
       roomHeaderCell.value = "الغرفة";
-      const occupantHeaderCell = worksheet.getCell(3, currentCol + 1);
+      const occupantHeaderCell = worksheet.getCell(4, currentCol + 1);
       occupantHeaderCell.value = "الساكن";
 
       [roomHeaderCell, occupantHeaderCell].forEach((cell) => {
-        cell.font = { bold: true, size: 18 }; // Changed from 12 to 18
+        cell.font = { bold: true, size: 18 };
         cell.fill = {
           type: "pattern",
           pattern: "solid",
@@ -112,14 +132,13 @@ exports.generateRoomingListExcel = async (program, roomData) => {
         };
       });
 
-      let currentRow = 4;
+      let currentRow = 5; // Data starts from row 5
       for (const room of roomsForType) {
         const startRow = currentRow;
         const capacity = room.capacity || 0;
         const occupants = room.occupants || [];
         const numRowsForRoom = Math.max(1, capacity);
 
-        // Write room name and merge cells based on capacity
         const roomNameCell = worksheet.getCell(startRow, currentCol);
         roomNameCell.value = room.name;
         if (numRowsForRoom > 1) {
@@ -131,11 +150,9 @@ exports.generateRoomingListExcel = async (program, roomData) => {
           );
         }
         roomNameCell.alignment = { vertical: "middle", horizontal: "center" };
-        roomNameCell.font = { size: 18 }; // Set font size for room name cell
+        roomNameCell.font = { size: 18 };
 
-        // Write occupants and apply borders to all cells in the room block
         for (let i = 0; i < numRowsForRoom; i++) {
-          // Apply border and font to the room name cell part
           const currentRoomNameCell = worksheet.getCell(
             startRow + i,
             currentCol
@@ -148,60 +165,50 @@ exports.generateRoomingListExcel = async (program, roomData) => {
           };
           currentRoomNameCell.font = { size: 18 };
 
-          // Get or create the occupant cell
           const occupantCell = worksheet.getCell(startRow + i, currentCol + 1);
           const occupant = occupants[i];
           if (occupant && occupant.clientName) {
             occupantCell.value = occupant.clientName;
           } else {
-            occupantCell.value = null; // Ensure it's empty
+            occupantCell.value = null;
           }
-          // Apply border and font to the occupant cell, even if empty
           occupantCell.border = {
             top: { style: "thin" },
             left: { style: "thin" },
             bottom: { style: "thin" },
             right: { style: "thin" },
           };
-          occupantCell.font = { size: 18 }; // Set font size for occupant cell
+          occupantCell.font = { size: 18 };
         }
 
         currentRow += numRowsForRoom;
-        // Add an empty row after each room, but not after the last room in the type
         if (roomsForType.indexOf(room) < roomsForType.length - 1) {
           worksheet.addRow([]);
           currentRow++;
         }
       }
 
-      // If this is not the last room type, add a separator column
       if (roomTypes.indexOf(type) < roomTypes.length - 1) {
         const separatorColIndex = currentCol + 2;
-        worksheet.getColumn(separatorColIndex).width = 5; // Set a fixed small width
+        worksheet.getColumn(separatorColIndex).width = 5;
         separatorColumns.add(separatorColIndex);
       }
 
-      // Move to the next block for the next type, adding a separator column
       currentCol += 3;
     }
 
-    // Auto-fit columns based on content, skipping separator columns
     worksheet.columns.forEach((column, index) => {
-      // exceljs columns are 1-based, so index+1
       if (separatorColumns.has(index + 1)) {
-        return; // Skip separator columns
+        return;
       }
       let maxColumnLength = 0;
       column.eachCell({ includeEmpty: true }, (cell) => {
-        // Calculate the length of the cell's text content
         const cellLength = cell.value ? cell.value.toString().length : 0;
         if (cellLength > maxColumnLength) {
           maxColumnLength = cellLength;
         }
       });
-      // Set the column width to the max content length with padding
-      // A larger multiplier is used to account for wider characters (like Arabic) and larger font size.
-      column.width = maxColumnLength * 1.1 + 7; // Add padding for better readability
+      column.width = maxColumnLength * 1.1 + 7;
     });
   }
 

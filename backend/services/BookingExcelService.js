@@ -28,6 +28,14 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     views: [{ rightToLeft: false }],
   });
 
+  // Add Program Name Header
+  const programNameRow = worksheet.addRow([program.name]);
+  programNameRow.font = { bold: true, size: 25 };
+  programNameRow.alignment = { vertical: "middle", horizontal: "center" };
+  programNameRow.height = 30;
+  // An empty row for spacing
+  worksheet.addRow([]);
+
   // Base columns
   let allColumns = [
     { header: "ID", key: "id" },
@@ -83,7 +91,13 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     return col.key !== "basePrice" && col.key !== "profit";
   });
 
-  const headerRow = worksheet.getRow(1);
+  // Merge cells for the program name header now that we have columns
+  if (worksheet.columns.length > 0) {
+    worksheet.mergeCells(1, 1, 1, worksheet.columns.length);
+  }
+
+  const headerRow = worksheet.getRow(3);
+  headerRow.values = worksheet.columns.map((c) => c.header);
   headerRow.font = { bold: true, size: 20, color: { argb: "FFFFFFFF" } };
   headerRow.height = 35;
   headerRow.eachCell((cell) => {
@@ -223,7 +237,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     const isFamily = familySize > 0;
 
     if (isFamily) {
-      const startRow = i + 2; // +2 for 1-based index and header row
+      const startRow = i + 4; // +4 for 1-based index, header row, program name row, and empty row
       const endRow = startRow + familySize;
       const phoneColumn = worksheet.columns.find(
         (c) => c.key === "phoneNumber"
@@ -255,7 +269,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
 
   // Add totals row
   worksheet.addRow([]);
-  const lastDataRowNumber = orderedBookings.length + 1;
+  const lastDataRowNumber = orderedBookings.length + 3; // Adjusted for new rows
   const totalsRow = worksheet.addRow({});
   const totalRowNumber = totalsRow.number;
 
@@ -286,7 +300,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       const colLetter = col.letter;
       const cell = worksheet.getCell(`${colLetter}${totalRowNumber}`);
       cell.value = {
-        formula: `SUM(${colLetter}2:${colLetter}${lastDataRowNumber})`,
+        formula: `SUM(${colLetter}4:${colLetter}${lastDataRowNumber})`, // Start from row 4
       };
       cell.numFmt = '#,##0.00 "MAD"';
       cell.font = { bold: true, size: 20 };
@@ -302,26 +316,17 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   totalsRow.height = 30;
 
   // Iterate over all columns to set the width to the length of the longest cell value.
-  // The font size of the header row (20) needs to be considered,
-  // as it may be larger than the content rows (which are 12 by default in exceljs).
   worksheet.columns.forEach((column) => {
     let maxLength = 0;
     column.eachCell({ includeEmpty: true }, (cell) => {
-      // Get the value and its font size
       const cellValue = cell.value ? String(cell.value) : "";
       const fontSize =
-        cell.font && cell.font.size ? Number(cell.font.size) : 12; // Default to 12 if not set
-
-      // Calculate an approximate "weighted" length based on font size
+        cell.font && cell.font.size ? Number(cell.font.size) : 12;
       const weightedLength = cellValue.length * (fontSize / 12);
-
       if (weightedLength > maxLength) {
         maxLength = weightedLength;
       }
     });
-
-    // Set the column width to the calculated max length plus a small amount of padding.
-    // Set a minimum width for columns with little content.
     const MIN_WIDTH = 15;
     column.width = Math.max(MIN_WIDTH, maxLength + 5);
   });
