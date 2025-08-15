@@ -346,6 +346,10 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     const isPackageIdChanged =
       oldBooking.packageId !== updatedBooking.packageId;
     const isGenderChanged = oldBooking.gender !== updatedBooking.gender;
+    const isPersonTypeChanged =
+      oldBooking.personType !== updatedBooking.personType;
+    const isVariationChanged =
+      oldBooking.variationName !== updatedBooking.variationName;
     const isRelatedPersonsChanged = !isEqual(
       oldBooking.relatedPersons,
       updatedBooking.relatedPersons
@@ -373,8 +377,10 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     if (
       isPackageIdChanged ||
       isGenderChanged ||
+      isPersonTypeChanged ||
       isRelatedPersonsChanged ||
       isSelectedHotelChanged ||
+      isVariationChanged ||
       !isCurrentlyAssigned
     ) {
       logger.info(
