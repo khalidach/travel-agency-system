@@ -176,12 +176,12 @@ export default function ReceiptPDF({
           </p>
         </div>
       </div>
-      <div className="flex items-center mt-6 mb-10">
+      <div className="flex items-center mt-6 mb-16">
         <p className="text-2xl mr-7 text-cyan-800">الامضاء</p>
       </div>
 
       {paymentsBeforeThis.length > 0 && (
-        <div className="mt-8 border-t-2 border-gray-200 pt-6">
+        <div className="mt-32 border-t-2 border-gray-200 pt-6">
           <h3 className="text-xl font-bold text-gray-900 mb-4">
             الدفوعات السابقة
           </h3>
