@@ -7,7 +7,7 @@ const logger = require("../utils/logger");
  * Recalculates base price and profit for all bookings related to a program.
  * @param {object} client - The database client for the transaction.
  * @param {number} userId - The ID of the admin user.
- * @param {number} tripId - The ID of the program.
+ * @param {number} programId - The ID of the program whose bookings need updating.
  * @param {string} packageId - The package name.
  * @param {object} selectedHotel - The selected hotel and room types.
  * @param {string} personType - The person type.
@@ -342,24 +342,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const updatedBooking = rows[0];
 
-    // --- NEW LOGIC: CONDITIONAL ROOM RE-ASSIGNMENT ---
-    const isPackageIdChanged =
-      oldBooking.packageId !== updatedBooking.packageId;
-    const isGenderChanged = oldBooking.gender !== updatedBooking.gender;
-    const isPersonTypeChanged =
-      oldBooking.personType !== updatedBooking.personType;
-    const isVariationChanged =
-      oldBooking.variationName !== updatedBooking.variationName;
-    const isRelatedPersonsChanged = !isEqual(
-      oldBooking.relatedPersons,
-      updatedBooking.relatedPersons
-    );
-    const isSelectedHotelChanged = !isEqual(
-      oldBooking.selectedHotel,
-      updatedBooking.selectedHotel
-    );
-
-    // Fetch the entire family group for the booking and check if any are currently assigned.
+    // --- MODIFIED LOGIC: CHECK FOR UNASSIGNED STATUS OR KEY CHANGES ---
     const oldFamilyMembers = await RoomManagementService.getFamilyMembers(
       client,
       user.adminId,
@@ -373,27 +356,25 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       oldFamilyIds
     );
 
-    // Re-assign only if a key field has changed OR if the person was not assigned to a room.
-    if (
-      isPackageIdChanged ||
-      isGenderChanged ||
-      isPersonTypeChanged ||
-      isRelatedPersonsChanged ||
-      isSelectedHotelChanged ||
-      isVariationChanged ||
-      !isCurrentlyAssigned
-    ) {
+    const shouldReassignRooms =
+      !isCurrentlyAssigned ||
+      oldBooking.packageId !== updatedBooking.packageId ||
+      oldBooking.gender !== updatedBooking.gender ||
+      oldBooking.personType !== updatedBooking.personType ||
+      oldBooking.variationName !== updatedBooking.variationName ||
+      !isEqual(oldBooking.relatedPersons, updatedBooking.relatedPersons) ||
+      !isEqual(oldBooking.selectedHotel, updatedBooking.selectedHotel);
+
+    if (shouldReassignRooms) {
       logger.info(
-        `Changes detected or person was unassigned for booking ID ${bookingId}. Re-assigning rooms.`
+        `Re-assignment triggered for booking ID ${bookingId}. Reason: Not assigned or key fields changed.`
       );
-      // Remove old room assignments for the entire family before re-assignment
       await RoomManagementService.removeOccupantFromRooms(
         client,
         user.adminId,
-        updatedBooking.tripId,
-        updatedBooking.id
+        oldBooking.tripId,
+        oldBooking.id
       );
-      // Call auto-assignment for the entire family.
       await RoomManagementService.autoAssignToRoom(
         client,
         user.adminId,
@@ -401,9 +382,10 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       );
     } else {
       logger.info(
-        `No key changes and person was already assigned for booking ID ${bookingId}. Skipping room re-assignment.`
+        `No relevant changes or already assigned for booking ID ${bookingId}. Skipping room re-assignment.`
       );
     }
+    // --- END OF MODIFIED LOGIC ---
 
     await client.query("COMMIT");
     return updatedBooking;
@@ -526,7 +508,13 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
       if (filters.statusFilter === "paid") {
         whereConditions.push('"isFullyPaid" = true');
       } else if (filters.statusFilter === "pending") {
-        whereConditions.push('"isFullyPaid" = false');
+        whereConditions.push(
+          'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) > 0'
+        );
+      } else if (filters.statusFilter === "notPaid") {
+        whereConditions.push(
+          'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0'
+        );
       }
 
       if (role === "admin") {
