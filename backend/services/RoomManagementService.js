@@ -455,3 +455,63 @@ exports.checkIfAnyAssigned = async (client, userId, programId, bookingIds) => {
   );
   return rows[0].is_assigned;
 };
+
+/**
+ * Checks if a booking and its entire family are assigned to a room in every required hotel for the program.
+ * @param {object} client - The database client.
+ * @param {number} userId - The ID of the admin user.
+ * @param {string} programId - The ID of the program.
+ * @param {object} booking - The booking object to check.
+ * @returns {Promise<boolean>} A promise that resolves to true if fully assigned, otherwise false.
+ */
+exports.isFamilyFullyAssigned = async (client, userId, programId, booking) => {
+  const familyMembers = await exports.getFamilyMembers(
+    client,
+    userId,
+    booking.id
+  );
+  if (familyMembers.length === 0) {
+    return false;
+  }
+  const familyMemberIds = new Set(familyMembers.map((m) => m.id));
+
+  const requiredHotels = (booking.selectedHotel?.hotelNames || []).filter(
+    (h) => h
+  );
+  if (requiredHotels.length === 0) {
+    return true;
+  }
+
+  const { rows: allRoomManagements } = await client.query(
+    'SELECT "hotelName", rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2',
+    [userId, programId]
+  );
+
+  const assignmentsByHotel = new Map();
+  allRoomManagements.forEach((mgmt) => {
+    const assignedIdsInHotel = new Set();
+    (mgmt.rooms || []).forEach((room) => {
+      (room.occupants || []).forEach((occupant) => {
+        if (occupant && occupant.id) {
+          assignedIdsInHotel.add(occupant.id);
+        }
+      });
+    });
+    assignmentsByHotel.set(mgmt.hotelName, assignedIdsInHotel);
+  });
+
+  for (const hotelName of requiredHotels) {
+    const assignedInThisHotel = assignmentsByHotel.get(hotelName);
+    if (!assignedInThisHotel) {
+      return false;
+    }
+
+    for (const memberId of familyMemberIds) {
+      if (!assignedInThisHotel.has(memberId)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+};

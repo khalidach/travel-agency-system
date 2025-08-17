@@ -343,21 +343,14 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     const updatedBooking = rows[0];
 
     // --- MODIFIED LOGIC: CHECK FOR UNASSIGNED STATUS OR KEY CHANGES ---
-    const oldFamilyMembers = await RoomManagementService.getFamilyMembers(
+    const isFullyAssigned = await RoomManagementService.isFamilyFullyAssigned(
       client,
       user.adminId,
-      oldBooking.id
-    );
-    const oldFamilyIds = oldFamilyMembers.map((m) => m.id);
-    const isCurrentlyAssigned = await RoomManagementService.checkIfAnyAssigned(
-      client,
-      user.adminId,
-      oldBooking.tripId,
-      oldFamilyIds
+      updatedBooking.tripId,
+      updatedBooking
     );
 
-    const shouldReassignRooms =
-      !isCurrentlyAssigned ||
+    const keyFieldsChanged =
       oldBooking.packageId !== updatedBooking.packageId ||
       oldBooking.gender !== updatedBooking.gender ||
       oldBooking.personType !== updatedBooking.personType ||
@@ -365,16 +358,28 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       !isEqual(oldBooking.relatedPersons, updatedBooking.relatedPersons) ||
       !isEqual(oldBooking.selectedHotel, updatedBooking.selectedHotel);
 
-    if (shouldReassignRooms) {
+    if (!isFullyAssigned || keyFieldsChanged) {
+      let reason = [];
+      if (!isFullyAssigned) reason.push("not fully assigned");
+      if (keyFieldsChanged) reason.push("key fields changed");
       logger.info(
-        `Re-assignment triggered for booking ID ${bookingId}. Reason: Not assigned or key fields changed.`
+        `Re-assignment triggered for booking ID ${bookingId}. Reason: ${reason.join(
+          " and "
+        )}.`
       );
+
+      // First, remove all existing assignments for this family across the entire program to avoid duplicates or conflicts.
       await RoomManagementService.removeOccupantFromRooms(
         client,
         user.adminId,
         oldBooking.tripId,
         oldBooking.id
       );
+
+      // If the tripId changed, the previous call already cleaned the old program.
+      // The autoAssignToRoom will handle assignment to the new program.
+
+      // Now, auto-assign to the correct rooms based on the new booking data.
       await RoomManagementService.autoAssignToRoom(
         client,
         user.adminId,
@@ -382,7 +387,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       );
     } else {
       logger.info(
-        `No relevant changes or already assigned for booking ID ${bookingId}. Skipping room re-assignment.`
+        `Booking ID ${bookingId} is fully assigned and no key fields changed. Skipping room re-assignment.`
       );
     }
     // --- END OF MODIFIED LOGIC ---
