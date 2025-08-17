@@ -22,10 +22,15 @@ import {
 } from "lucide-react";
 import * as api from "../services/api";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
+import { usePagination } from "../hooks/usePagination";
+import PaginationControls from "../components/booking/PaginationControls";
+import { PaginatedResponse } from "../context/models";
 
 interface ProfitReportData {
-  profitData: any[];
+  topProgramsData: any[];
+  detailedPerformanceData: any[];
   monthlyTrend: any[];
+  pagination: PaginatedResponse<any>["pagination"];
 }
 
 export default function ProfitReport() {
@@ -33,21 +38,28 @@ export default function ProfitReport() {
   const navigate = useNavigate();
 
   const [filterType, setFilterType] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const {
     data: reportData,
     isLoading,
     isError,
   } = useQuery<ProfitReportData>({
-    queryKey: ["profitReport", filterType],
-    queryFn: () => api.getProfitReport(filterType),
+    queryKey: ["profitReport", filterType, currentPage],
+    queryFn: () => api.getProfitReport(filterType, currentPage, itemsPerPage),
   });
 
-  const profitData = reportData?.profitData ?? [];
+  const topProgramsData = reportData?.topProgramsData ?? [];
+  const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
+  const pagination = reportData?.pagination;
 
   const totals = useMemo(() => {
-    return profitData.reduce(
+    // Note: This calculates totals for the current page. If you need totals for all data,
+    // you would need another API endpoint or to fetch all data.
+    // For this implementation, we'll assume totals are based on the visible (paginated) data.
+    return detailedPerformanceData.reduce(
       (acc, item) => ({
         totalBookings: acc.totalBookings + item.bookings,
         totalSales: acc.totalSales + item.totalSales,
@@ -61,9 +73,15 @@ export default function ProfitReport() {
         totalCost: 0,
       }
     );
-  }, [profitData]);
+  }, [detailedPerformanceData]);
 
-  if (isLoading) {
+  const paginationRange = usePagination({
+    currentPage,
+    totalCount: pagination?.totalCount ?? 0,
+    pageSize: itemsPerPage,
+  });
+
+  if (isLoading && !reportData) {
     return <DashboardSkeleton />;
   }
 
@@ -90,7 +108,7 @@ export default function ProfitReport() {
                 {t("totalBookings")}
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-2">
-                {totals.totalBookings}
+                {pagination?.totalCount || 0}
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -158,7 +176,10 @@ export default function ProfitReport() {
           </div>
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            onChange={(e) => {
+              setFilterType(e.target.value);
+              setCurrentPage(1); // Reset page on filter change
+            }}
             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">{t("allProgramTypes")}</option>
@@ -175,7 +196,7 @@ export default function ProfitReport() {
             {t("profitByProgram")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={profitData.slice(0, 8)}>
+            <BarChart data={topProgramsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
                 dataKey="programName"
@@ -299,7 +320,7 @@ export default function ProfitReport() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {profitData.map((item) => (
+              {detailedPerformanceData.map((item) => (
                 <tr
                   key={item.id}
                   className="hover:bg-blue-50 transition-colors cursor-pointer"
@@ -361,6 +382,14 @@ export default function ProfitReport() {
             </tbody>
           </table>
         </div>
+        {pagination && pagination.totalPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={pagination.totalPages}
+            onPageChange={setCurrentPage}
+            paginationRange={paginationRange}
+          />
+        )}
       </div>
     </div>
   );

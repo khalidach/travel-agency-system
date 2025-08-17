@@ -118,13 +118,19 @@ export const getDashboardStats = (startDate?: string, endDate?: string) => {
   return request(endpoint);
 };
 
-export const getProfitReport = (filterType?: string) => {
-  let endpoint = "/dashboard/profit-report";
+export const getProfitReport = (
+  filterType?: string,
+  page: number = 1,
+  limit: number = 6
+) => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
   if (filterType && filterType !== "all") {
-    const params = new URLSearchParams({ programType: filterType });
-    endpoint += `?${params.toString()}`;
+    params.append("programType", filterType);
   }
-  return request(endpoint);
+  return request(`/dashboard/profit-report?${params.toString()}`);
 };
 
 // --- Program API ---
