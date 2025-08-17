@@ -45,6 +45,10 @@ const RelatedPeopleManager = ({
     setSelectedPeople([]);
   };
 
+  const handleClearSelection = () => {
+    setSelectedPeople([]);
+  };
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -56,7 +60,6 @@ const RelatedPeopleManager = ({
           value={search}
           onChange={(e) => {
             onSearchChange(e.target.value);
-            setSelectedPeople([]); // Reset selection on new search
           }}
           onFocus={onFocus}
           onBlur={onBlur}
@@ -91,14 +94,22 @@ const RelatedPeopleManager = ({
               ))}
             </ul>
             {selectedPeople.length > 0 && (
-              <div className="p-2 border-t bg-gray-50">
+              <div className="p-2 border-t bg-gray-50 flex gap-2">
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={handleAddSelected}
-                  className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-grow bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Add {selectedPeople.length} person(s)
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleClearSelection}
+                  className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Clear
                 </button>
               </div>
             )}
@@ -125,5 +136,4 @@ const RelatedPeopleManager = ({
     </div>
   );
 };
-
 export default RelatedPeopleManager;

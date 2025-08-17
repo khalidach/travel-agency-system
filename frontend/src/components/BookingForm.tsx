@@ -441,19 +441,6 @@ export default function BookingForm({
         return;
       }
 
-      if (
-        hasCitiesWithNights &&
-        !formState.selectedPriceStructure &&
-        watchedValues.selectedHotel.hotelNames.some((h) => h)
-      ) {
-        setFormState((prev) => ({
-          ...prev,
-          error:
-            "A valid hotel and room combination is required for programs with overnight stays.",
-        }));
-        return;
-      }
-
       const processedData = { ...data };
 
       if (
@@ -468,15 +455,7 @@ export default function BookingForm({
 
       onSave(processedData, booking?.advancePayments || []);
     },
-    [
-      formState,
-      hasPackages,
-      watchedValues,
-      userRole,
-      calculateTotalBasePrice,
-      onSave,
-      booking,
-    ]
+    [formState, hasPackages, userRole, calculateTotalBasePrice, onSave, booking]
   );
 
   const handlePackageChange = useCallback(
@@ -511,12 +490,16 @@ export default function BookingForm({
   const updateHotelSelection = useCallback(
     (cityIndex: number, hotelName: string) => {
       const newHotelNames = [...selectedHotel.hotelNames];
+      const newRoomTypes = [...selectedHotel.roomTypes];
+
       newHotelNames[cityIndex] = hotelName;
+      // Only reset the room type for the city where the hotel was changed.
+      newRoomTypes[cityIndex] = "";
 
       setValue("selectedHotel", {
         ...selectedHotel,
         hotelNames: newHotelNames,
-        roomTypes: Array(selectedHotel.cities.length).fill(""),
+        roomTypes: newRoomTypes,
       });
     },
     [selectedHotel, setValue]
@@ -630,7 +613,6 @@ export default function BookingForm({
           selectedProgram={formState.selectedProgram}
           selectedVariation={formState.selectedVariation}
           selectedPackage={formState.selectedPackage}
-          selectedPriceStructure={formState.selectedPriceStructure}
           selectedHotel={selectedHotel}
           updateHotelSelection={updateHotelSelection}
           updateRoomTypeSelection={updateRoomTypeSelection}
