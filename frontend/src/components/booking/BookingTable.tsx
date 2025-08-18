@@ -217,6 +217,9 @@ export default function BookingTable({
                       <div className="text-sm text-gray-500">
                         {booking.packageId} {t("package")}
                       </div>
+                      <div className="text-sm text-gray-500">
+                        {booking.variationName}
+                      </div>
                       <div className="space-y-1 mt-2">
                         {(booking.selectedHotel.cities || []).map(
                           (city, index) => {
