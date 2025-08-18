@@ -185,7 +185,6 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
       }
 
       // --- Rule 2: Individual Placement for remaining members ---
-      // Place any members who were not part of a perfect match.
       for (const member of remainingMembersToPlace) {
         const occupant = {
           id: member.id,
@@ -194,33 +193,46 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
         };
 
         let placed = false;
-        // Try to place in an existing room of the correct type and gender
+
+        // Stage 1: Prioritize filling partially occupied rooms with matching gender
         for (const room of rooms) {
-          const emptySlotIndex = room.occupants.findIndex((o) => o === null);
-          if (room.type === roomType && emptySlotIndex !== -1) {
-            const roomGender = room.occupants.find((o) => o)?.gender;
-            // Place if room is empty or genders match
-            if (roomGender === undefined || roomGender === member.gender) {
-              room.occupants[emptySlotIndex] = occupant;
+          const hasOccupants = room.occupants.length > 0;
+          const hasSpace = room.occupants.length < room.capacity;
+
+          if (room.type === roomType && hasOccupants && hasSpace) {
+            const roomGender = room.occupants[0]?.gender; // Get gender from the first person in the room
+            if (roomGender === member.gender) {
+              room.occupants.push(occupant);
               placed = true;
               break;
             }
           }
         }
 
-        // If not placed, create a new room for this individual
-        if (!placed) {
-          const newRoom = {
-            name: `${roomType} ${
-              rooms.filter((r) => r.type === roomType).length + 1
-            }`,
-            type: roomType,
-            capacity: capacity,
-            occupants: Array(capacity).fill(null),
-          };
-          newRoom.occupants[0] = occupant;
-          rooms.push(newRoom);
+        if (placed) continue;
+
+        // Stage 2: If no partially filled room is suitable, find a completely empty room
+        for (const room of rooms) {
+          if (room.type === roomType && room.occupants.length === 0) {
+            // This room was created but is now empty. Let's use it.
+            room.occupants.push(occupant);
+            placed = true;
+            break;
+          }
         }
+
+        if (placed) continue;
+
+        // Stage 3: If no existing room is suitable, create a new one
+        const newRoom = {
+          name: `${roomType} ${
+            rooms.filter((r) => r.type === roomType).length + 1
+          }`,
+          type: roomType,
+          capacity: capacity,
+          occupants: [occupant], // Add the first occupant directly
+        };
+        rooms.push(newRoom);
       }
 
       // Save changes for this hotel
