@@ -26,13 +26,10 @@ exports.getFamilyMembers = async (client, userId, bookingId) => {
   let leader = initialBooking;
 
   // Step 2: If the initial booking is not the leader, find the actual leader.
-  // A booking is a member if it has no relatedPersons but is listed in another's relatedPersons.
   if (
     !initialBooking.relatedPersons ||
     initialBooking.relatedPersons.length === 0
   ) {
-    // FIX: Construct the JSON query object as a string and cast it to jsonb in the query.
-    // This avoids the "could not determine data type" error with the node-postgres driver.
     const relatedPersonQueryObject = JSON.stringify([{ ID: bookingId }]);
     const potentialLeaderRes = await client.query(
       `SELECT * FROM bookings
@@ -72,59 +69,78 @@ exports.getFamilyMembers = async (client, userId, bookingId) => {
 exports.autoAssignToRoom = async (client, userId, newBooking) => {
   const { tripId: programId } = newBooking;
 
-  // Fetch the entire family group for the booking
   const members = await exports.getFamilyMembers(client, userId, newBooking.id);
   if (members.length === 0) return;
 
-  // Get a list of all unique cities across all family members' selections
-  const allCities = new Set();
-  members.forEach((member) => {
-    (member.selectedHotel.cities || []).forEach((city) => allCities.add(city));
-  });
+  // FIX 1: Remove all family members from all rooms in the program first for a clean slate.
+  await exports.removeOccupantFromRooms(
+    client,
+    userId,
+    programId,
+    newBooking.id
+  );
 
-  // Iterate over each city relevant to the family
-  for (const cityName of allCities) {
-    // Remove any existing assignments for the family members in this city first to avoid duplicates
-    await exports.removeOccupantFromCity(
-      client,
-      userId,
-      programId,
-      cityName,
-      members.map((m) => m.id)
+  // Group members by the hotel they are staying in.
+  const membersByHotel = members.reduce((acc, member) => {
+    (member.selectedHotel.cities || []).forEach((city, cityIndex) => {
+      const hotelName = (member.selectedHotel.hotelNames || [])[cityIndex];
+      if (hotelName) {
+        if (!acc[hotelName]) acc[hotelName] = [];
+        acc[hotelName].push(member);
+      }
+    });
+    return acc;
+  }, {});
+
+  // Process assignments hotel by hotel to prevent race conditions.
+  for (const hotelName in membersByHotel) {
+    const membersInHotel = membersByHotel[hotelName];
+
+    // Fetch room management data ONCE for this hotel
+    const { rows: managementRows } = await client.query(
+      'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
+      [userId, programId, hotelName]
     );
+    let rooms = managementRows.length > 0 ? managementRows[0].rooms : [];
+    const managementId =
+      managementRows.length > 0 ? managementRows[0].id : null;
 
-    // Group members by their chosen hotel and room type in this city
-    const membersByHotelAndRoom = members.reduce((acc, member) => {
-      const cityIndex = (member.selectedHotel.cities || []).indexOf(cityName);
+    // *** FIX 3: Pad occupant arrays to full capacity before processing ***
+    // This ensures that we can find empty slots (`null`) in partially filled rooms.
+    rooms.forEach((room) => {
+      const occupantsCount = room.occupants.length;
+      if (occupantsCount < room.capacity) {
+        room.occupants.push(
+          ...Array(room.capacity - occupantsCount).fill(null)
+        );
+      }
+    });
+
+    // Group members within the hotel by their chosen room type
+    const membersByRoomType = membersInHotel.reduce((acc, member) => {
+      const cityIndex = (member.selectedHotel.cities || []).findIndex(
+        (city) => {
+          const hotelForCity = (member.selectedHotel.hotelNames || [])[
+            (member.selectedHotel.cities || []).indexOf(city)
+          ];
+          return hotelForCity === hotelName;
+        }
+      );
+
       if (cityIndex !== -1) {
-        const hotelName = (member.selectedHotel.hotelNames || [])[cityIndex];
         const roomType = (member.selectedHotel.roomTypes || [])[cityIndex];
-        if (hotelName && roomType) {
-          const key = `${hotelName}|${roomType}`;
-          if (!acc[key]) {
-            acc[key] = [];
-          }
-          acc[key].push(member);
+        if (roomType) {
+          if (!acc[roomType]) acc[roomType] = [];
+          acc[roomType].push(member);
         }
       }
       return acc;
     }, {});
 
-    // Process each group (e.g., all members who chose Room Type 'Triple' in 'Hotel A')
-    for (const key in membersByHotelAndRoom) {
-      const [hotelName, roomType] = key.split("|");
-      const groupOfMembers = membersByHotelAndRoom[key];
+    // Process each room type group for the current hotel
+    for (const roomType in membersByRoomType) {
+      const groupOfMembers = membersByRoomType[roomType];
 
-      // Fetch room management data for this specific hotel
-      const { rows: managementRows } = await client.query(
-        'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
-        [userId, programId, hotelName]
-      );
-      let rooms = managementRows.length > 0 ? managementRows[0].rooms : [];
-      const managementId =
-        managementRows.length > 0 ? managementRows[0].id : null;
-
-      // Get room capacity for the selected room type
       const programResult = await client.query(
         "SELECT packages FROM programs WHERE id = $1",
         [programId]
@@ -148,8 +164,7 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
 
       const remainingMembersToPlace = [...groupOfMembers];
 
-      // --- Rule 1: Perfect Family Match ---
-      // If the group size perfectly matches the room capacity, place them together.
+      // Rule 1: Perfect Family Match
       if (
         remainingMembersToPlace.length > 1 &&
         remainingMembersToPlace.length === capacity
@@ -159,11 +174,19 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
         );
 
         if (emptyRoomIndex === -1) {
-          // Create a new room if no empty one is available
+          let maxNum = 0;
+          rooms.forEach((r) => {
+            if (r.type === roomType) {
+              const match = r.name.match(/\s(\d+)$/);
+              if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNum) maxNum = num;
+              }
+            }
+          });
+          const newRoomName = `${roomType} ${maxNum + 1}`;
           const newRoom = {
-            name: `${roomType} ${
-              rooms.filter((r) => r.type === roomType).length + 1
-            }`,
+            name: newRoomName,
             type: roomType,
             capacity: capacity,
             occupants: Array(capacity).fill(null),
@@ -172,7 +195,6 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
           emptyRoomIndex = rooms.length - 1;
         }
 
-        // Assign all members to the room
         remainingMembersToPlace.forEach((member, index) => {
           rooms[emptyRoomIndex].occupants[index] = {
             id: member.id,
@@ -180,81 +202,79 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
             gender: member.gender,
           };
         });
-        // Clear the array as everyone has been placed
         remainingMembersToPlace.length = 0;
       }
 
-      // --- Rule 2: Individual Placement for remaining members ---
+      // Rule 2: Individual Placement
       for (const member of remainingMembersToPlace) {
         const occupant = {
           id: member.id,
           clientName: member.clientNameAr,
           gender: member.gender,
         };
-
         let placed = false;
 
-        // Stage 1: Prioritize filling partially occupied rooms with matching gender
         for (const room of rooms) {
-          const hasOccupants = room.occupants.length > 0;
-          const hasSpace = room.occupants.length < room.capacity;
-
-          if (room.type === roomType && hasOccupants && hasSpace) {
-            const roomGender = room.occupants[0]?.gender; // Get gender from the first person in the room
-            if (roomGender === member.gender) {
-              room.occupants.push(occupant);
-              placed = true;
-              break;
+          if (
+            room.type === roomType &&
+            room.occupants.filter((o) => o).length < room.capacity
+          ) {
+            const roomGender = room.occupants.find((o) => o)?.gender;
+            if (!roomGender || roomGender === member.gender) {
+              const emptySlotIndex = room.occupants.findIndex((o) => !o);
+              if (emptySlotIndex !== -1) {
+                room.occupants[emptySlotIndex] = occupant;
+                placed = true;
+                break;
+              }
             }
           }
         }
 
         if (placed) continue;
 
-        // Stage 2: If no partially filled room is suitable, find a completely empty room
-        for (const room of rooms) {
-          if (room.type === roomType && room.occupants.length === 0) {
-            // This room was created but is now empty. Let's use it.
-            room.occupants.push(occupant);
-            placed = true;
-            break;
+        // FIX 2: Ensure unique room names when creating new rooms.
+        let maxNum = 0;
+        rooms.forEach((r) => {
+          if (r.type === roomType) {
+            const match = r.name.match(/\s(\d+)$/);
+            if (match) {
+              const num = parseInt(match[1], 10);
+              if (num > maxNum) maxNum = num;
+            }
           }
-        }
+        });
+        const newRoomName = `${roomType} ${maxNum + 1}`;
 
-        if (placed) continue;
-
-        // Stage 3: If no existing room is suitable, create a new one
         const newRoom = {
-          name: `${roomType} ${
-            rooms.filter((r) => r.type === roomType).length + 1
-          }`,
+          name: newRoomName,
           type: roomType,
           capacity: capacity,
-          occupants: [occupant], // Add the first occupant directly
+          occupants: Array(capacity).fill(null),
         };
+        newRoom.occupants[0] = occupant;
         rooms.push(newRoom);
       }
+    }
 
-      // Save changes for this hotel
-      const roomsToSave = rooms.filter((room) => room.occupants.some((o) => o));
-      if (roomsToSave.length > 0) {
-        if (managementId) {
-          await client.query(
-            'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
-            [JSON.stringify(roomsToSave), managementId]
-          );
-        } else {
-          await client.query(
-            'INSERT INTO room_managements ("userId", "programId", "hotelName", rooms) VALUES ($1, $2, $3, $4)',
-            [userId, programId, hotelName, JSON.stringify(roomsToSave)]
-          );
-        }
-      } else if (managementId) {
-        // If there are no more occupants for this hotel, delete the record.
-        await client.query("DELETE FROM room_managements WHERE id = $1", [
-          managementId,
-        ]);
+    // Save changes for this hotel AFTER processing all its groups
+    const roomsToSave = rooms.filter((room) => room.occupants.some((o) => o));
+    if (roomsToSave.length > 0) {
+      if (managementId) {
+        await client.query(
+          'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
+          [JSON.stringify(roomsToSave), managementId]
+        );
+      } else {
+        await client.query(
+          'INSERT INTO room_managements ("userId", "programId", "hotelName", rooms) VALUES ($1, $2, $3, $4)',
+          [userId, programId, hotelName, JSON.stringify(roomsToSave)]
+        );
       }
+    } else if (managementId) {
+      await client.query("DELETE FROM room_managements WHERE id = $1", [
+        managementId,
+      ]);
     }
   }
 };
@@ -293,10 +313,11 @@ exports.removeOccupantFromCity = async (
       let rooms = management.rooms;
       let changed = false;
       rooms.forEach((room) => {
+        const originalOccupantCount = room.occupants.filter(Boolean).length;
         room.occupants = room.occupants.map((o) =>
           o && occupantIds.includes(o.id) ? null : o
         );
-        if (room.occupants.some((o) => o === null)) {
+        if (room.occupants.filter(Boolean).length < originalOccupantCount) {
           changed = true;
         }
       });
@@ -320,13 +341,12 @@ exports.removeOccupantFromCity = async (
 };
 
 /**
- * Removes an occupant from all rooms for a given program, regardless of city.
- * This is used when a booking is being deleted or changed to ensure a clean slate.
+ * Removes an occupant and their entire family from all rooms for a given program.
  *
  * @param {object} client - The database client for the transaction.
  * @param {number} userId - The ID of the admin user.
  * @param {string} programId - The ID of the program.
- * @param {number} occupantId - The ID of the occupant (booking ID) to remove.
+ * @param {number} occupantId - The ID of any occupant (booking ID) in the family to remove.
  */
 exports.removeOccupantFromRooms = async (
   client,
@@ -339,6 +359,7 @@ exports.removeOccupantFromRooms = async (
     userId,
     occupantId
   );
+  if (allBookings.length === 0) return;
   const occupantIds = allBookings.map((b) => b.id);
 
   const { rows } = await client.query(
@@ -350,16 +371,23 @@ exports.removeOccupantFromRooms = async (
     let rooms = management.rooms;
     let changed = false;
     rooms.forEach((room) => {
-      const initialOccupantCount = room.occupants.filter((o) => o).length;
+      const initialOccupantCount = room.occupants.filter(Boolean).length;
       room.occupants = room.occupants.map((o) =>
         o && occupantIds.includes(o.id) ? null : o
       );
-      if (room.occupants.filter((o) => o).length < initialOccupantCount) {
+      if (room.occupants.filter(Boolean).length < initialOccupantCount) {
         changed = true;
       }
     });
+
     if (changed) {
-      const roomsToSave = rooms.filter((room) => room.occupants.some((o) => o));
+      const roomsToSave = rooms
+        .map((room) => ({
+          ...room,
+          occupants: room.occupants.filter((o) => o !== null),
+        }))
+        .filter((room) => room.occupants.length > 0);
+
       if (roomsToSave.length > 0) {
         await client.query(
           'UPDATE room_managements SET rooms = $1, "updatedAt" = NOW() WHERE id = $2',
@@ -406,7 +434,13 @@ exports.getRooms = async (db, userId, programId, hotelName) => {
  * @returns {Promise<Array>} A promise that resolves to the saved list of rooms, or an empty array if deleted.
  */
 exports.saveRooms = async (db, userId, programId, hotelName, rooms) => {
-  if (!rooms || rooms.length === 0) {
+  // Filter out any null occupants before saving
+  const sanitizedRooms = rooms.map((room) => ({
+    ...room,
+    occupants: room.occupants.filter((o) => o),
+  }));
+
+  if (!sanitizedRooms || sanitizedRooms.length === 0) {
     await db.query(
       'DELETE FROM room_managements WHERE "userId" = $1 AND "programId" = $2 AND "hotelName" = $3',
       [userId, programId, hotelName]
@@ -419,7 +453,7 @@ exports.saveRooms = async (db, userId, programId, hotelName, rooms) => {
        ON CONFLICT ("userId", "programId", "hotelName")
        DO UPDATE SET rooms = $4, "updatedAt" = NOW()
        RETURNING rooms`,
-      [userId, programId, hotelName, JSON.stringify(rooms)]
+      [userId, programId, hotelName, JSON.stringify(sanitizedRooms)]
     );
     return rows[0].rooms;
   }
