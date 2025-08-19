@@ -121,6 +121,74 @@ const calculateBasePrice = async (
   return Math.round(nonHotelCosts + hotelCosts);
 };
 
+/**
+ * Handles cascading name updates for a booking.
+ * @param {object} client - The database client for the transaction.
+ * @param {object} oldBooking - The booking state before the update.
+ * @param {object} updatedBooking - The booking state after the update.
+ */
+async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
+  const nameChanged =
+    oldBooking.clientNameFr !== updatedBooking.clientNameFr ||
+    oldBooking.clientNameAr !== updatedBooking.clientNameAr;
+
+  if (!nameChanged) {
+    return;
+  }
+
+  const userId = updatedBooking.userId;
+  const tripId = updatedBooking.tripId;
+  const bookingId = updatedBooking.id;
+
+  // 1. Update `relatedPersons` in other bookings that reference this one.
+  const relatedPersonIdentifier = JSON.stringify([{ ID: bookingId }]);
+  const { rows: referencingBookings } = await client.query(
+    `SELECT id, "relatedPersons" FROM bookings 
+     WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
+    [userId, tripId, relatedPersonIdentifier]
+  );
+
+  for (const booking of referencingBookings) {
+    const updatedRelatedPersons = booking.relatedPersons.map((person) => {
+      if (person.ID === bookingId) {
+        return { ...person, clientName: updatedBooking.clientNameFr };
+      }
+      return person;
+    });
+    await client.query(
+      'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
+      [JSON.stringify(updatedRelatedPersons), booking.id]
+    );
+  }
+
+  // 2. Update the name in `room_managements`.
+  const { rows: roomManagements } = await client.query(
+    'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2',
+    [userId, tripId]
+  );
+
+  for (const management of roomManagements) {
+    let roomsChanged = false;
+    const updatedRooms = management.rooms.map((room) => {
+      const updatedOccupants = room.occupants.map((occupant) => {
+        if (occupant && occupant.id === bookingId) {
+          roomsChanged = true;
+          return { ...occupant, clientName: updatedBooking.clientNameAr };
+        }
+        return occupant;
+      });
+      return { ...room, occupants: updatedOccupants };
+    });
+
+    if (roomsChanged) {
+      await client.query(
+        "UPDATE room_managements SET rooms = $1 WHERE id = $2",
+        [JSON.stringify(updatedRooms), management.id]
+      );
+    }
+  }
+}
+
 const createBooking = async (db, user, bookingData) => {
   const client = await db.connect();
   try {
@@ -341,6 +409,9 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     );
 
     const updatedBooking = rows[0];
+
+    // Handle cascading updates if the name changed
+    await handleNameChangeCascades(client, oldBooking, updatedBooking);
 
     // --- MODIFIED LOGIC: CHECK FOR UNASSIGNED STATUS OR KEY CHANGES ---
     const isFullyAssigned = await RoomManagementService.isFamilyFullyAssigned(

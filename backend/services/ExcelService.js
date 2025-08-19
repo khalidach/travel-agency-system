@@ -1,6 +1,7 @@
 // backend/services/ExcelService.js
 const excel = require("exceljs");
 const { calculateBasePrice } = require("./BookingService");
+const RoomManagementService = require("./RoomManagementService"); // استيراد خدمة إدارة الغرف
 
 /**
  * Sanitizes a string to be used as a valid Excel named range.
@@ -423,8 +424,8 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
     }
 
     for (const booking of bookingsToCreate) {
-      await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "gender", "dateOfBirth", "passportExpirationDate", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)',
+      const { rows } = await client.query(
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "gender", "dateOfBirth", "passportExpirationDate", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *',
         [
           booking.userId,
           booking.employeeId,
@@ -448,6 +449,15 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
           booking.isFullyPaid,
         ]
       );
+      // **تفعيل التسكين التلقائي لكل حجز مستورد**
+      if (rows[0]) {
+        const newBooking = rows[0];
+        await RoomManagementService.autoAssignToRoom(
+          client,
+          user.adminId,
+          newBooking
+        );
+      }
     }
 
     if (newBookingsCount > 0) {

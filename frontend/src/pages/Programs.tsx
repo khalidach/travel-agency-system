@@ -75,6 +75,7 @@ export default function Programs() {
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
     // Invalidate room management as it's program-dependent
     queryClient.invalidateQueries({ queryKey: ["rooms"] });
+    queryClient.invalidateQueries({ queryKey: ["programsForRoomManagement"] });
   };
 
   const { mutate: createProgram, isPending: isCreating } = useMutation({
