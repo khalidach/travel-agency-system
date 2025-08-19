@@ -72,7 +72,7 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
   const members = await exports.getFamilyMembers(client, userId, newBooking.id);
   if (members.length === 0) return;
 
-  // FIX 1: Remove all family members from all rooms in the program first for a clean slate.
+  // Remove all family members from all rooms in the program first for a clean slate.
   await exports.removeOccupantFromRooms(
     client,
     userId,
@@ -105,8 +105,7 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
     const managementId =
       managementRows.length > 0 ? managementRows[0].id : null;
 
-    // *** FIX 3: Pad occupant arrays to full capacity before processing ***
-    // This ensures that we can find empty slots (`null`) in partially filled rooms.
+    // Pad occupant arrays to full capacity before processing
     rooms.forEach((room) => {
       const occupantsCount = room.occupants.length;
       if (occupantsCount < room.capacity) {
@@ -205,56 +204,87 @@ exports.autoAssignToRoom = async (client, userId, newBooking) => {
         remainingMembersToPlace.length = 0;
       }
 
-      // Rule 2: Individual Placement
-      for (const member of remainingMembersToPlace) {
-        const occupant = {
-          id: member.id,
-          clientName: member.clientNameAr,
-          gender: member.gender,
-        };
+      // MODIFICATION START: Logic to keep family members of the same gender together.
+      // Rule 2: Grouped Placement by Gender
+      const membersByGender = remainingMembersToPlace.reduce((acc, member) => {
+        const gender = member.gender || "unknown";
+        if (!acc[gender]) {
+          acc[gender] = [];
+        }
+        acc[gender].push(member);
+        return acc;
+      }, {});
+
+      for (const gender in membersByGender) {
+        if (gender === "unknown") continue; // Skip members with no gender
+
+        const genderGroup = membersByGender[gender];
+        const groupSize = genderGroup.length;
         let placed = false;
 
+        // 1. Attempt to place the entire gender group into ONE existing room
         for (const room of rooms) {
+          const occupants = room.occupants.filter((o) => o);
+          const roomGender = occupants.length > 0 ? occupants[0].gender : null;
+          const emptySlots = room.capacity - occupants.length;
+
           if (
             room.type === roomType &&
-            room.occupants.filter((o) => o).length < room.capacity
+            (!roomGender || roomGender === gender) &&
+            emptySlots >= groupSize
           ) {
-            const roomGender = room.occupants.find((o) => o)?.gender;
-            if (!roomGender || roomGender === member.gender) {
+            genderGroup.forEach((member) => {
               const emptySlotIndex = room.occupants.findIndex((o) => !o);
               if (emptySlotIndex !== -1) {
-                room.occupants[emptySlotIndex] = occupant;
-                placed = true;
-                break;
+                room.occupants[emptySlotIndex] = {
+                  id: member.id,
+                  clientName: member.clientNameAr,
+                  gender: member.gender,
+                };
               }
-            }
+            });
+            placed = true;
+            break; // Exit room loop, group is placed
           }
         }
 
-        if (placed) continue;
+        // 2. If not placed, create new room(s) for them
+        if (!placed) {
+          const membersToPlace = [...genderGroup];
+          while (membersToPlace.length > 0) {
+            // Create a new room
+            let maxNum = 0;
+            rooms.forEach((r) => {
+              if (r.type === roomType) {
+                const match = r.name.match(/\s(\d+)$/);
+                if (match) {
+                  const num = parseInt(match[1], 10);
+                  if (num > maxNum) maxNum = num;
+                }
+              }
+            });
+            const newRoomName = `${roomType} ${maxNum + 1}`;
+            const newRoom = {
+              name: newRoomName,
+              type: roomType,
+              capacity: capacity,
+              occupants: Array(capacity).fill(null),
+            };
 
-        // FIX 2: Ensure unique room names when creating new rooms.
-        let maxNum = 0;
-        rooms.forEach((r) => {
-          if (r.type === roomType) {
-            const match = r.name.match(/\s(\d+)$/);
-            if (match) {
-              const num = parseInt(match[1], 10);
-              if (num > maxNum) maxNum = num;
-            }
+            // Fill the new room
+            const membersForNewRoom = membersToPlace.splice(0, capacity);
+            membersForNewRoom.forEach((member, index) => {
+              newRoom.occupants[index] = {
+                id: member.id,
+                clientName: member.clientNameAr,
+                gender: member.gender,
+              };
+            });
+            rooms.push(newRoom);
           }
-        });
-        const newRoomName = `${roomType} ${maxNum + 1}`;
-
-        const newRoom = {
-          name: newRoomName,
-          type: roomType,
-          capacity: capacity,
-          occupants: Array(capacity).fill(null),
-        };
-        newRoom.occupants[0] = occupant;
-        rooms.push(newRoom);
+        }
       }
+      // MODIFICATION END
     }
 
     // Save changes for this hotel AFTER processing all its groups
