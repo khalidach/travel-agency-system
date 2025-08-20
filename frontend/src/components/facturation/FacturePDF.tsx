@@ -45,13 +45,14 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
           {settings?.ice && <p className="text-sm">ICE: {settings.ice}</p>}
         </div>
       </div>
-
-      <div className="mt-8 border-t border-b py-4">
-        <h3 className="font-semibold">Client:</h3>
-        <p>{facture.clientName}</p>
-        <p>{facture.clientAddress}</p>
-        {facture.clientICE && <p>ICE: {facture.clientICE}</p>}
-      </div>
+      {facture?.clientName && (
+        <div className="mt-8 border-t border-b py-4">
+          {/* <h3 className="font-semibold">Client:</h3> */}
+          <p>{facture.clientName}</p>
+          <p>{facture.clientAddress}</p>
+          {facture.clientICE && <p>ICE: {facture.clientICE}</p>}
+        </div>
+      )}
 
       <table className="w-full mt-8 text-xs border-collapse">
         <thead className="bg-gray-100">
@@ -144,7 +145,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
             </>
           )}
           <div className="flex justify-between font-bold text-sm bg-gray-100 p-2 rounded mt-1">
-            <span>Total Facture</span>
+            <span>Total {facture.type == "devis" ? "Devis" : "Factures"}</span>
             <span>
               {Number(facture.total).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
