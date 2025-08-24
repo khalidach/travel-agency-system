@@ -131,8 +131,36 @@ exports.getBookingsByProgram = async (req, res, next) => {
 
       familyLeaders.forEach((leader) => {
         if (!processedIds.has(leader.id)) {
-          sortedBookings.push({ ...leader, isRelated: false });
+          const familyMembers = [leader];
+          if (leader.relatedPersons && Array.isArray(leader.relatedPersons)) {
+            leader.relatedPersons.forEach((person) => {
+              const member = bookingsMap.get(person.ID);
+              if (member) {
+                familyMembers.push(member);
+              }
+            });
+          }
+
+          const familySummary = familyMembers.reduce(
+            (summary, member) => {
+              const sellingPrice = Number(member.sellingPrice) || 0;
+              const remainingBalance = Number(member.remainingBalance) || 0;
+              summary.totalPrice += sellingPrice;
+              summary.totalPaid += sellingPrice - remainingBalance;
+              summary.totalRemaining += remainingBalance;
+              return summary;
+            },
+            { totalPrice: 0, totalPaid: 0, totalRemaining: 0 }
+          );
+
+          const leaderWithSummary = {
+            ...leader,
+            isRelated: false,
+            familySummary,
+          };
+          sortedBookings.push(leaderWithSummary);
           processedIds.add(leader.id);
+
           if (leader.relatedPersons && Array.isArray(leader.relatedPersons)) {
             leader.relatedPersons.forEach((person) => {
               const member = bookingsMap.get(person.ID);

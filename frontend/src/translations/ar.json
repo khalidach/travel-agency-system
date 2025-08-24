@@ -3,6 +3,7 @@
   "pageSelectionNotification": "تم تحديد {{count}} حجوزات في هذه الصفحة.",
   "allSelectedNotification": "تم تحديد كل الحجوزات الـ {{count}}.",
   "clearSelection": "إلغاء التحديد",
+  "familyTotal": "مجموع العائلة",
   "hotels_one": "فندق",
   "hotels_two": "فندقان",
   "hotels_few": "فنادق",

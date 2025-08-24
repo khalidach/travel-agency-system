@@ -3,6 +3,7 @@
   "pageSelectionNotification": "{{count}} réservations sélectionnées sur cette page.",
   "allSelectedNotification": "Toutes les {{count}} réservations sont sélectionnées.",
   "clearSelection": "Effacer la sélection",
+  "familyTotal": "Total Famille",
   "hotels_other": "Hôtels",
   "rooms": "Chambre",
   "rooms_other": "Chambres",

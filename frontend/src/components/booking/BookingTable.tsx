@@ -1,4 +1,5 @@
 // frontend/src/components/booking/BookingTable.tsx
+import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
@@ -14,7 +15,7 @@ import {
 } from "lucide-react";
 
 interface BookingTableProps {
-  bookings: (Booking & { isRelated?: boolean })[];
+  bookings: (Booking & { isRelated?: boolean; familySummary?: any })[];
   programs: Program[];
   selectedIds: number[];
   onSelectionChange: (id: number) => void;
@@ -111,7 +112,7 @@ export default function BookingTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {bookings.map((booking) => {
+            {bookings.map((booking, index) => {
               const program = programs.find(
                 (p) => p.id.toString() === (booking.tripId || "").toString()
               );
@@ -131,219 +132,272 @@ export default function BookingTable({
                 currentUser?.role === "admin" ||
                 booking.employeeId === currentUser?.id;
 
+              const nextBooking = bookings[index + 1];
+              const isLastInFamilyGroup =
+                !nextBooking || !nextBooking.isRelated;
+
+              let familyLeader = null;
+              if (isLastInFamilyGroup) {
+                if (!booking.isRelated) {
+                  familyLeader = booking;
+                } else {
+                  for (let i = index; i >= 0; i--) {
+                    if (!bookings[i].isRelated) {
+                      familyLeader = bookings[i];
+                      break;
+                    }
+                  }
+                }
+              }
+
               return (
-                <tr
-                  key={booking.id}
-                  className={`hover:bg-gray-50 transition-colors ${
-                    booking.isRelated ? "bg-blue-50" : ""
-                  } ${selectedIds.includes(booking.id) ? "bg-blue-100" : ""}`}
-                >
-                  <td className="px-4 py-4">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
-                      checked={selectedIds.includes(booking.id)}
-                      onChange={() => onSelectionChange(booking.id)}
-                      disabled={!canSelect}
-                      aria-label={`Select booking for ${booking.clientNameFr}`}
-                    />
-                  </td>
-                  <td
-                    className={`px-3 py-4 align-top ${
-                      booking.isRelated ? "pl-12" : ""
-                    }`}
+                <React.Fragment key={booking.id}>
+                  <tr
+                    className={`hover:bg-gray-50 transition-colors ${
+                      booking.isRelated ? "bg-blue-50" : ""
+                    } ${selectedIds.includes(booking.id) ? "bg-blue-100" : ""}`}
                   >
-                    <div className="flex items-center">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          booking.relatedPersons &&
-                          booking.relatedPersons.length > 0
-                            ? "bg-gradient-to-br from-purple-500 to-purple-600"
-                            : "bg-gradient-to-br from-blue-500 to-blue-600"
-                        }`}
-                      >
-                        {booking.isRelated ? (
-                          <User className="w-5 h-5 text-white" />
-                        ) : (
-                          <Users className="w-5 h-5 text-white" />
-                        )}
-                      </div>
-                      <div
-                        className={
-                          document.documentElement.dir === "rtl"
-                            ? "mr-4"
-                            : "ml-4"
-                        }
-                      >
-                        <div className="text-sm font-medium text-gray-900">
-                          {booking.clientNameFr}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {booking.clientNameAr}
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          {booking.passportNumber}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          <span className="font-medium">
-                            {t("phoneNumber")}:
-                          </span>{" "}
-                          {booking.phoneNumber}
-                        </div>
-                        {(currentUser?.role === "admin" ||
-                          currentUser?.role === "manager") &&
-                          booking.employeeName && (
-                            <div className="flex items-center text-xs text-gray-500 mt-1">
-                              <Briefcase
-                                className={`w-3 h-3 text-gray-400 ${
-                                  document.documentElement.dir === "rtl"
-                                    ? "ml-1"
-                                    : "mr-1"
-                                }`}
-                              />
-                              <span>
-                                {t("addedBy")} {booking.employeeName}
-                              </span>
-                            </div>
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                        checked={selectedIds.includes(booking.id)}
+                        onChange={() => onSelectionChange(booking.id)}
+                        disabled={!canSelect}
+                        aria-label={`Select booking for ${booking.clientNameFr}`}
+                      />
+                    </td>
+                    <td
+                      className={`px-3 py-4 align-top ${
+                        booking.isRelated ? "pl-12" : ""
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            booking.relatedPersons &&
+                            booking.relatedPersons.length > 0
+                              ? "bg-gradient-to-br from-purple-500 to-purple-600"
+                              : "bg-gradient-to-br from-blue-500 to-blue-600"
+                          }`}
+                        >
+                          {booking.isRelated ? (
+                            <User className="w-5 h-5 text-white" />
+                          ) : (
+                            <Users className="w-5 h-5 text-white" />
                           )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-2 py-4 align-top">
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-gray-900">
-                        {program?.name || t("unknownProgram")}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {booking.packageId} {t("package")}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {booking.variationName}
-                      </div>
-                      <div className="space-y-1 mt-2">
-                        {(booking.selectedHotel.cities || []).map(
-                          (city, index) => {
-                            const hotelName = (booking.selectedHotel
-                              .hotelNames || [])[index];
-                            const roomType = (booking.selectedHotel.roomTypes ||
-                              [])[index];
-                            if (!city || !hotelName) return null;
-                            return (
-                              <div
-                                key={index}
-                                className="flex items-center text-xs text-gray-600"
-                              >
-                                <MapPin
+                        </div>
+                        <div
+                          className={
+                            document.documentElement.dir === "rtl"
+                              ? "mr-4"
+                              : "ml-4"
+                          }
+                        >
+                          <div className="text-sm font-medium text-gray-900">
+                            {booking.clientNameFr}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {booking.clientNameAr}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {booking.passportNumber}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            <span className="font-medium">
+                              {t("phoneNumber")}:
+                            </span>{" "}
+                            {booking.phoneNumber}
+                          </div>
+                          {(currentUser?.role === "admin" ||
+                            currentUser?.role === "manager") &&
+                            booking.employeeName && (
+                              <div className="flex items-center text-xs text-gray-500 mt-1">
+                                <Briefcase
                                   className={`w-3 h-3 text-gray-400 ${
                                     document.documentElement.dir === "rtl"
                                       ? "ml-1"
                                       : "mr-1"
                                   }`}
                                 />
-                                <span className="font-medium">{city}:</span>
-                                <Hotel
-                                  className={`${
-                                    document.documentElement.dir === "rtl"
-                                      ? "ml-1 mr-2"
-                                      : "ml-2 mr-1"
-                                  }w-3 h-3 text-gray-400`}
-                                />
                                 <span>
-                                  {hotelName} ({roomType})
+                                  {t("addedBy")} {booking.employeeName}
                                 </span>
                               </div>
-                            );
-                          }
-                        )}
+                            )}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-2 py-4 align-top">
-                    <div className="text-sm text-gray-900">
-                      {t("selling")}:{" "}
-                      {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
-                    </div>
-                    {(currentUser?.role === "admin" ||
-                      currentUser?.role === "manager") && (
-                      <>
+                    </td>
+                    <td className="px-2 py-4 align-top">
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-gray-900">
+                          {program?.name || t("unknownProgram")}
+                        </div>
                         <div className="text-sm text-gray-500">
-                          {t("base")}:{" "}
-                          {Number(booking.basePrice).toLocaleString()}{" "}
-                          {t("mad")}
+                          {booking.packageId} {t("package")}
                         </div>
-                        <div className="text-sm text-emerald-600 font-medium">
-                          {t("profit")}:{" "}
-                          {Number(booking.profit).toLocaleString()} {t("mad")}
+                        <div className="text-sm text-gray-500">
+                          {booking.variationName}
                         </div>
-                      </>
-                    )}
-                  </td>
-                  <td className="px-3 py-4 align-top">
-                    <div className="space-y-2">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                          booking.isFullyPaid
-                        )}`}
-                      >
-                        {getStatusText(booking.isFullyPaid)}
-                      </span>
-                      <div className="text-sm font-medium text-gray-900">
-                        {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
+                        <div className="space-y-1 mt-2">
+                          {(booking.selectedHotel.cities || []).map(
+                            (city, index) => {
+                              const hotelName = (booking.selectedHotel
+                                .hotelNames || [])[index];
+                              const roomType = (booking.selectedHotel
+                                .roomTypes || [])[index];
+                              if (!city || !hotelName) return null;
+                              return (
+                                <div
+                                  key={index}
+                                  className="flex items-center text-xs text-gray-600"
+                                >
+                                  <MapPin
+                                    className={`w-3 h-3 text-gray-400 ${
+                                      document.documentElement.dir === "rtl"
+                                        ? "ml-1"
+                                        : "mr-1"
+                                    }`}
+                                  />
+                                  <span className="font-medium">{city}:</span>
+                                  <Hotel
+                                    className={`${
+                                      document.documentElement.dir === "rtl"
+                                        ? "ml-1 mr-2"
+                                        : "ml-2 mr-1"
+                                    }w-3 h-3 text-gray-400`}
+                                  />
+                                  <span>
+                                    {hotelName} ({roomType})
+                                  </span>
+                                </div>
+                              );
+                            }
+                          )}
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {t("remainingBalance")}:{" "}
-                        {Number(booking.remainingBalance).toLocaleString()}{" "}
+                    </td>
+                    <td className="px-2 py-4 align-top">
+                      <div className="text-sm text-gray-900">
+                        {t("selling")}:{" "}
+                        {Number(booking.sellingPrice).toLocaleString()}{" "}
                         {t("mad")}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-3 py-4 align-top">
-                    <div className="flex flex-col space-y-2">
-                      <button
-                        onClick={() => onManagePayments(booking)}
-                        disabled={!canModify}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      {(currentUser?.role === "admin" ||
+                        currentUser?.role === "manager") && (
+                        <>
+                          <div className="text-sm text-gray-500">
+                            {t("base")}:{" "}
+                            {Number(booking.basePrice).toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
+                          <div className="text-sm text-emerald-600 font-medium">
+                            {t("profit")}:{" "}
+                            {Number(booking.profit).toLocaleString()} {t("mad")}
+                          </div>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-3 py-4 align-top">
+                      <div className="space-y-2">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                            booking.isFullyPaid
+                          )}`}
+                        >
+                          {getStatusText(booking.isFullyPaid)}
+                        </span>
+                        <div className="text-sm font-medium text-gray-900">
+                          {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {t("remainingBalance")}:{" "}
+                          {Number(booking.remainingBalance).toLocaleString()}{" "}
+                          {t("mad")}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-4 align-top">
+                      <div className="flex flex-col space-y-2">
+                        <button
+                          onClick={() => onManagePayments(booking)}
+                          disabled={!canModify}
+                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <CreditCard
+                            className={`w-3 h-3 ${
+                              document.documentElement.dir === "rtl"
+                                ? "ml-1"
+                                : "mr-1"
+                            }`}
+                          />{" "}
+                          {t("managePayments")}
+                        </button>
+                        <button
+                          onClick={() => onEditBooking(booking)}
+                          disabled={!canModify}
+                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Edit2
+                            className={`w-3 h-3 ${
+                              document.documentElement.dir === "rtl"
+                                ? "ml-1"
+                                : "mr-1"
+                            }`}
+                          />{" "}
+                          {t("editBooking")}
+                        </button>
+                        <button
+                          onClick={() => onDeleteBooking(booking.id)}
+                          disabled={!canModify}
+                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2
+                            className={`w-3 h-3 ${
+                              document.documentElement.dir === "rtl"
+                                ? "ml-1"
+                                : "mr-1"
+                            }`}
+                          />{" "}
+                          {t("deleteBooking")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isLastInFamilyGroup && familyLeader?.familySummary && (
+                    <tr className="bg-blue-50 hover:bg-blue-100 font-medium">
+                      <td></td>
+                      <td
+                        className="px-6 py-2 text-right text-sm text-gray-700"
+                        colSpan={2}
                       >
-                        <CreditCard
-                          className={`w-3 h-3 ${
-                            document.documentElement.dir === "rtl"
-                              ? "ml-1"
-                              : "mr-1"
-                          }`}
-                        />{" "}
-                        {t("managePayments")}
-                      </button>
-                      <button
-                        onClick={() => onEditBooking(booking)}
-                        disabled={!canModify}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Edit2
-                          className={`w-3 h-3 ${
-                            document.documentElement.dir === "rtl"
-                              ? "ml-1"
-                              : "mr-1"
-                          }`}
-                        />{" "}
-                        {t("editBooking")}
-                      </button>
-                      <button
-                        onClick={() => onDeleteBooking(booking.id)}
-                        disabled={!canModify}
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Trash2
-                          className={`w-3 h-3 ${
-                            document.documentElement.dir === "rtl"
-                              ? "ml-1"
-                              : "mr-1"
-                          }`}
-                        />{" "}
-                        {t("deleteBooking")}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                        {t("familyTotal")}
+                      </td>
+                      <td className="px-2 py-2 text-sm">
+                        <div>
+                          {t("selling")}:{" "}
+                          {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
+                          {t("mad")}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-900">
+                            {t("paid")}:{" "}
+                            {familyLeader.familySummary.totalPaid.toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {t("remainingBalance")}:{" "}
+                            {familyLeader.familySummary.totalRemaining.toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
+                        </div>
+                      </td>
+                      <td></td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>

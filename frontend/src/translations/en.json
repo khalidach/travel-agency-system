@@ -3,6 +3,7 @@
   "pageSelectionNotification": "{{count}} bookings selected on this page.",
   "allSelectedNotification": "All {{count}} bookings are selected.",
   "clearSelection": "Clear selection",
+  "familyTotal": "Family Total",
   "hotels_other": "Hotels",
   "rooms": "Room",
   "rooms_other": "Rooms",
