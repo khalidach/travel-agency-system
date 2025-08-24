@@ -522,6 +522,28 @@ const deleteBooking = async (db, user, bookingId) => {
       throw new Error("You are not authorized to delete this booking.");
     }
 
+    const { tripId } = booking;
+
+    // New logic: Remove this booking from other bookings' relatedPersons list
+    const relatedPersonIdentifier = JSON.stringify([
+      { ID: parseInt(bookingId, 10) },
+    ]);
+    const { rows: referencingBookings } = await client.query(
+      `SELECT id, "relatedPersons" FROM bookings
+       WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
+      [adminId, tripId, relatedPersonIdentifier]
+    );
+
+    for (const referencingBooking of referencingBookings) {
+      const updatedRelatedPersons = referencingBooking.relatedPersons.filter(
+        (person) => person.ID !== parseInt(bookingId, 10)
+      );
+      await client.query(
+        'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
+        [JSON.stringify(updatedRelatedPersons), referencingBooking.id]
+      );
+    }
+
     await RoomManagementService.removeOccupantFromRooms(
       client,
       adminId,
@@ -529,7 +551,6 @@ const deleteBooking = async (db, user, bookingId) => {
       bookingId
     );
 
-    const { tripId } = booking;
     const deleteRes = await client.query("DELETE FROM bookings WHERE id = $1", [
       bookingId,
     ]);
@@ -623,6 +644,23 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
       return { message: "No matching bookings found to delete." };
     }
 
+    const idsToDelete = bookingsToDelete.map((b) => b.id);
+    const tripId = bookingsToDelete[0]?.tripId;
+
+    // New logic: Remove deleted bookings from other bookings' relatedPersons lists
+    if (tripId) {
+      await client.query(
+        `UPDATE bookings
+         SET "relatedPersons" = (
+             SELECT jsonb_agg(elem)
+             FROM jsonb_array_elements("relatedPersons") AS elem
+             WHERE NOT ((elem->>'ID')::int = ANY($1::int[]))
+         )
+         WHERE "userId" = $2 AND "tripId" = $3 AND "relatedPersons" IS NOT NULL AND "relatedPersons" != '[]'::jsonb`,
+        [idsToDelete, adminId, tripId]
+      );
+    }
+
     for (const booking of bookingsToDelete) {
       await RoomManagementService.removeOccupantFromRooms(
         client,
@@ -643,7 +681,6 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
       }
     }
 
-    const idsToDelete = bookingsToDelete.map((b) => b.id);
     const deleteRes = await client.query(
       "DELETE FROM bookings WHERE id = ANY($1::int[])",
       [idsToDelete]
