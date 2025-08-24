@@ -243,34 +243,75 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     });
   });
 
-  // Merge consecutive cells with the same phone number
+  // Merge phone number cells for family groups
   const phoneColumn = worksheet.columns.find((c) => c.key === "phoneNumber");
   if (phoneColumn) {
     const phoneColumnLetter = phoneColumn.letter;
-    let mergeStartRow = 4; // Data starts at row 4
+    let i = 0;
+    while (i < finalBookings.length) {
+      const leader = finalBookings[i];
+      // A family group is identified by the leader having related persons.
+      const isFamilyLeader =
+        leader.relatedPersons && leader.relatedPersons.length > 0;
 
-    for (let i = 0; i < finalBookings.length; i++) {
-      const currentRow = i + 4;
-      const currentPhoneNumber = finalBookings[i].phoneNumber || "";
-      const nextPhoneNumber = (finalBookings[i + 1] || {}).phoneNumber;
+      if (isFamilyLeader) {
+        const familySize = 1 + leader.relatedPersons.length;
 
-      // If the next row has a different number, or it's the last row
-      if (
-        currentPhoneNumber !== nextPhoneNumber ||
-        i === finalBookings.length - 1
-      ) {
-        // If there's more than one row in the current group to merge
-        if (currentRow > mergeStartRow) {
+        let subGroupStartIndex = i; // Index in finalBookings for the start of a mergeable subgroup
+
+        // Iterate through the family members
+        for (let j = 1; j < familySize; j++) {
+          const currentIndex = i + j;
+          const prevIndex = currentIndex - 1;
+
+          // Check if we are at the end of the family or if the phone number changes
+          if (
+            currentIndex >= i + familySize || // Should not happen with j < familySize, but for safety
+            finalBookings[currentIndex].phoneNumber !==
+              finalBookings[prevIndex].phoneNumber
+          ) {
+            // A subgroup has ended. Check if it's worth merging.
+            const mergeCount = currentIndex - subGroupStartIndex;
+            if (mergeCount > 1) {
+              const startRow = subGroupStartIndex + 4;
+              const endRow = startRow + mergeCount - 1;
+              worksheet.mergeCells(
+                `${phoneColumnLetter}${startRow}:${phoneColumnLetter}${endRow}`
+              );
+              const cellToAlign = worksheet.getCell(
+                `${phoneColumnLetter}${startRow}`
+              );
+              cellToAlign.alignment = {
+                vertical: "middle",
+                horizontal: "center",
+              };
+            }
+            // Start a new subgroup
+            subGroupStartIndex = currentIndex;
+          }
+        }
+
+        // After the loop, check the last subgroup of the family
+        const lastMergeCount = i + familySize - subGroupStartIndex;
+        if (lastMergeCount > 1) {
+          const startRow = subGroupStartIndex + 4;
+          const endRow = startRow + lastMergeCount - 1;
           worksheet.mergeCells(
-            `${phoneColumnLetter}${mergeStartRow}:${phoneColumnLetter}${currentRow}`
+            `${phoneColumnLetter}${startRow}:${phoneColumnLetter}${endRow}`
           );
           const cellToAlign = worksheet.getCell(
-            `${phoneColumnLetter}${mergeStartRow}`
+            `${phoneColumnLetter}${startRow}`
           );
-          cellToAlign.alignment = { vertical: "middle", horizontal: "center" };
+          cellToAlign.alignment = {
+            vertical: "middle",
+            horizontal: "center",
+          };
         }
-        // Start the next merge group from the next row
-        mergeStartRow = currentRow + 1;
+
+        i += familySize; // Move index past the entire family group
+      } else {
+        // Not a family leader, just move to the next person
+        i++;
       }
     }
   }
