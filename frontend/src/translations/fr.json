@@ -343,5 +343,8 @@
   "dailyServiceReportTitle": "Rapport des Services Journaliers",
   "dailyServiceReportSubtitle": "Analysez la performance de vos services journaliers.",
   "totalSalesCount": "Total des Ventes",
-  "totalVatPaid": "Total TVA Payée"
+  "totalVatPaid": "Total TVA Payée",
+  "commissionBasedProgram": "Programme basé sur la commission",
+  "commissionBasedProgramDesc": "Activer si ce programme est revendu.",
+  "purchasePrice": "Prix d'achat"
 }

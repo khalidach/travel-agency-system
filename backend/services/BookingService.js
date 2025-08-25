@@ -43,6 +43,36 @@ const calculateBasePrice = async (
     }
   }
 
+  // New logic for commission-based programs
+  if (program.isCommissionBased) {
+    const bookingPackage = (program.packages || []).find(
+      (p) => p.name === packageId
+    );
+    if (!bookingPackage) return 0;
+
+    const hotelCombination = (selectedHotel.hotelNames || []).join("_");
+    const priceStructure = (bookingPackage.prices || []).find(
+      (p) => p.hotelCombination === hotelCombination
+    );
+    if (!priceStructure) return 0;
+
+    // A person is booked into a specific room type for the package.
+    // We assume the first selected room type applies to the entire booking for price calculation.
+    const roomTypeName = selectedHotel.roomTypes?.[0];
+    if (!roomTypeName) return 0;
+
+    const roomTypeDef = priceStructure.roomTypes.find(
+      (rt) => rt.type === roomTypeName
+    );
+    if (!roomTypeDef) return 0;
+
+    const purchasePrice = Number(roomTypeDef.purchasePrice || 0);
+
+    // The purchase price is the total base price per person for this package/hotel combo.
+    return Math.round(purchasePrice);
+  }
+
+  // Existing logic for regular (non-commission) programs
   const { rows: pricings } = await db.query(
     'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
     [tripId, userId]

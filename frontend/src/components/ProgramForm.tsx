@@ -33,6 +33,7 @@ export default function ProgramForm({
       : {
           name: "",
           type: "Umrah",
+          isCommissionBased: false,
           variations: [
             {
               name: "Default Variation",
@@ -53,6 +54,8 @@ export default function ProgramForm({
     getValues,
     formState: { errors },
   } = methods;
+
+  const isCommissionBased = watch("isCommissionBased");
 
   // Watch for changes in cities to auto-calculate duration for each variation.
   useEffect(() => {
@@ -152,9 +155,38 @@ export default function ProgramForm({
           </div>
         </div>
 
+        {/* Commission Based Toggle */}
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <label
+            htmlFor="isCommissionBased"
+            className="font-medium text-gray-700"
+          >
+            {t("commissionBasedProgram")}
+            <p className="text-xs text-gray-500 font-normal">
+              {t("commissionBasedProgramDesc")}
+            </p>
+          </label>
+          <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+            <input
+              type="checkbox"
+              id="isCommissionBased"
+              {...methods.register("isCommissionBased")}
+              className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+            />
+            <label
+              htmlFor="isCommissionBased"
+              className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+            ></label>
+          </div>
+        </div>
+        <style>{`
+            .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
+            .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
+        `}</style>
+
         <VariationManager />
 
-        <PackageManager />
+        <PackageManager isCommissionBased={isCommissionBased ?? false} />
 
         <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
           <button

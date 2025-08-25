@@ -117,6 +117,7 @@ export interface Program {
   pricing?: ProgramPricing;
   hotelRoomCounts?: HotelRoomCount[];
   totalOccupants?: number;
+  isCommissionBased?: boolean; // New field
 }
 
 export interface Package {
@@ -135,6 +136,7 @@ export interface PriceStructure {
 export interface RoomPrice {
   type: string;
   guests: number;
+  purchasePrice?: number; // New field for commission-based programs
 }
 
 export interface RelatedPerson {

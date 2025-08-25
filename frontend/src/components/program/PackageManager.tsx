@@ -1,9 +1,13 @@
 // frontend/src/components/program/PackageManager.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFormContext, useFieldArray } from "react-hook-form";
-import { Plus, Trash2, Hotel, Users } from "lucide-react";
-import type { Package, ProgramVariation } from "../../context/models";
+import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
+import { Plus, Trash2, Hotel, Users, DollarSign } from "lucide-react";
+import type {
+  Package,
+  ProgramVariation,
+  RoomPrice,
+} from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
 import Accordion from "../ui/Accordion"; // Import the Accordion component
 
@@ -190,7 +194,11 @@ const HotelManager = ({
 };
 
 // Main PackageManager Component
-export default function PackageManager() {
+export default function PackageManager({
+  isCommissionBased,
+}: {
+  isCommissionBased: boolean;
+}) {
   const { t } = useTranslation();
   const { control, register, watch } = useFormContext();
 
@@ -316,6 +324,7 @@ export default function PackageManager() {
               <PriceStructureManager
                 packageIndex={packageIndex}
                 generateAllHotelOptions={generateAllHotelOptions}
+                isCommissionBased={isCommissionBased}
               />
             </Accordion>
           ))
@@ -336,9 +345,11 @@ export default function PackageManager() {
 const PriceStructureManager = ({
   packageIndex,
   generateAllHotelOptions,
+  isCommissionBased,
 }: {
   packageIndex: number;
   generateAllHotelOptions: (idx: number) => string[];
+  isCommissionBased: boolean;
 }) => {
   const { t } = useTranslation();
   const { control, watch } = useFormContext();
@@ -377,6 +388,7 @@ const PriceStructureManager = ({
                     roomTypes: availableRoomTypes.map((type) => ({
                       type,
                       guests: getGuestsForType(type),
+                      purchasePrice: 0,
                     })),
                   })
                 }
@@ -423,6 +435,7 @@ const PriceStructureManager = ({
               <RoomTypeManager
                 packageIndex={packageIndex}
                 priceIndex={priceIndex}
+                isCommissionBased={isCommissionBased}
               />
             </div>
           );
@@ -435,9 +448,11 @@ const PriceStructureManager = ({
 const RoomTypeManager = ({
   packageIndex,
   priceIndex,
+  isCommissionBased,
 }: {
   packageIndex: number;
   priceIndex: number;
+  isCommissionBased: boolean;
 }) => {
   const { t } = useTranslation();
   const { control, register } = useFormContext();
@@ -452,7 +467,9 @@ const RoomTypeManager = ({
         return (
           <div
             key={room.id}
-            className="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg"
+            className={`grid grid-cols-1 md:grid-cols-${
+              isCommissionBased ? "4" : "3"
+            } gap-3 p-3 bg-gray-50 rounded-lg`}
           >
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -480,6 +497,22 @@ const RoomTypeManager = ({
                 required
               />
             </div>
+            {isCommissionBased && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {t("purchasePrice")}
+                </label>
+                <input
+                  type="number"
+                  {...register(
+                    `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
+                    { valueAsNumber: true }
+                  )}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  min="0"
+                />
+              </div>
+            )}
             <div className="flex items-end">
               <button
                 type="button"
@@ -494,7 +527,7 @@ const RoomTypeManager = ({
       })}
       <button
         type="button"
-        onClick={() => append({ type: "Custom", guests: 1 })}
+        onClick={() => append({ type: "Custom", guests: 1, purchasePrice: 0 })}
         className="text-xs text-blue-600 hover:text-blue-700 font-medium"
       >
         {t("addCustomRoomType")}

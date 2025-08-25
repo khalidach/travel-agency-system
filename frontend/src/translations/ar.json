@@ -9,15 +9,9 @@
   "hotels_few": "فنادق",
   "hotels_many": "فندق",
   "hotels_other": "فنادق",
-  "rooms_one": "غرفة",
-  "rooms_two": "غرفتان",
-  "rooms_few": "غرف",
-  "rooms_many": "غرفة",
+  "rooms": "غرفة",
   "rooms_other": "غرف",
-  "members_one": "عضو",
-  "members_two": "عضوان",
-  "members_few": "أعضاء",
-  "members_many": "عضو",
+  "members": "عضو",
   "members_other": "أعضاء",
   "viewRooms": "عرض الغرف",
   "dateOfBirth": "تاريخ الميلاد",
@@ -353,5 +347,8 @@
   "dailyServiceReportTitle": "تقرير الخدمات اليومية",
   "dailyServiceReportSubtitle": "تحليل أداء خدماتك اليومية.",
   "totalSalesCount": "إجمالي المبيعات",
-  "totalVatPaid": "إجمالي ضريبة القيمة المضافة المدفوعة"
+  "totalVatPaid": "إجمالي ضريبة القيمة المضافة المدفوعة",
+  "commissionBasedProgram": "برنامج بالعمولة",
+  "commissionBasedProgramDesc": "فعّل هذا الخيار إذا كان هذا البرنامج لإعادة البيع.",
+  "purchasePrice": "ثمن الشراء"
 }

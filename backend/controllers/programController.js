@@ -30,6 +30,11 @@ exports.getAllPrograms = async (req, res, next) => {
       queryParams.push(filterType);
     }
 
+    // If the view is for the pricing page, only show non-commission based programs
+    if (view === "pricing") {
+      whereConditions.push(`p."isCommissionBased" = FALSE`);
+    }
+
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
     let dataQueryFields = `
@@ -146,7 +151,7 @@ exports.getProgramById = async (req, res, next) => {
 
 exports.createProgram = async (req, res, next) => {
   try {
-    const { name, type, variations, packages } = req.body;
+    const { name, type, variations, packages, isCommissionBased } = req.body;
     const userId = req.user.adminId;
     const employeeId = req.user.role !== "admin" ? req.user.id : null;
 
@@ -157,7 +162,7 @@ exports.createProgram = async (req, res, next) => {
     const cities = firstVariation.cities || [];
 
     const { rows } = await req.db.query(
-      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities, "isCommissionBased") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
       [
         userId,
         employeeId,
@@ -167,6 +172,7 @@ exports.createProgram = async (req, res, next) => {
         JSON.stringify(packages),
         duration,
         JSON.stringify(cities),
+        isCommissionBased || false,
       ]
     );
     res.status(201).json(rows[0]);
@@ -182,7 +188,7 @@ exports.createProgram = async (req, res, next) => {
 
 exports.updateProgram = async (req, res, next) => {
   const { id } = req.params;
-  const { name, type, variations, packages } = req.body;
+  const { name, type, variations, packages, isCommissionBased } = req.body;
   const client = await req.db.connect();
 
   try {
@@ -212,7 +218,7 @@ exports.updateProgram = async (req, res, next) => {
     const cities = firstVariation.cities || [];
 
     const { rows: updatedProgramRows } = await client.query(
-      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "updatedAt" = NOW() WHERE id = $7 RETURNING *',
+      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "isCommissionBased" = $7, "updatedAt" = NOW() WHERE id = $8 RETURNING *',
       [
         name,
         type,
@@ -220,6 +226,7 @@ exports.updateProgram = async (req, res, next) => {
         JSON.stringify(packages),
         duration,
         JSON.stringify(cities),
+        isCommissionBased || false,
         id,
       ]
     );

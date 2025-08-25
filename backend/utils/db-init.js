@@ -53,9 +53,21 @@ const applyDatabaseMigrations = async (client) => {
           variations JSONB, -- Renamed from cities and duration is now inside
           packages JSONB,
           "totalBookings" INTEGER DEFAULT 0,
+          "isCommissionBased" BOOLEAN DEFAULT FALSE, -- New field for commission-based programs
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add 'isCommissionBased' column if it doesn't exist for existing installations
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='isCommissionBased') THEN
+          ALTER TABLE programs ADD COLUMN "isCommissionBased" BOOLEAN DEFAULT FALSE;
+        END IF;
+      END;
+      $$;
     `);
 
     // Add 'variations' column, migrate old data, and then drop old columns safely.
@@ -113,7 +125,7 @@ const applyDatabaseMigrations = async (client) => {
           UNIQUE("programId")
       );
     `);
-    
+
     // Add 'ticketPricesByVariation' column to program_pricing if it doesn't exist
     await client.query(`
       DO $$
