@@ -175,7 +175,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     );
 
     const clientNameFr =
-      `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+      `${booking.clientNameFr.lastName} / ${booking.clientNameFr.firstName} `.trim();
 
     const rowData = {
       id: index + 1,
