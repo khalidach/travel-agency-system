@@ -49,6 +49,10 @@ const RelatedPeopleManager = ({
     setSelectedPeople([]);
   };
 
+  const getFullName = (person: Booking) => {
+    return `${person.clientNameFr.firstName} ${person.clientNameFr.lastName}`.trim();
+  };
+
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -89,7 +93,7 @@ const RelatedPeopleManager = ({
                     readOnly
                     className="mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  {person.clientNameFr} ({person.passportNumber})
+                  {getFullName(person)} ({person.passportNumber})
                 </li>
               ))}
             </ul>

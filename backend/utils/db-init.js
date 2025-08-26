@@ -143,7 +143,7 @@ const applyDatabaseMigrations = async (client) => {
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
         "clientNameAr" VARCHAR(255) NOT NULL,
-        "clientNameFr" VARCHAR(255) NOT NULL,
+        "clientNameFr" JSONB,
         "personType" VARCHAR(50) NOT NULL,
         "phoneNumber" VARCHAR(50),
         "passportNumber" VARCHAR(255) NOT NULL,
@@ -164,6 +164,39 @@ const applyDatabaseMigrations = async (client) => {
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Migration for clientNameFr
+    await client.query(`
+      DO $$
+      BEGIN
+        IF (SELECT data_type FROM information_schema.columns WHERE table_name='bookings' AND column_name='clientNameFr') = 'character varying' THEN
+          -- 1. Add a temporary column
+          ALTER TABLE bookings ADD COLUMN "clientNameFr_json" JSONB;
+
+          -- 2. Migrate data
+          UPDATE bookings
+          SET "clientNameFr_json" = jsonb_build_object(
+            'lastName', SPLIT_PART("clientNameFr", ' ', 1),
+            'firstName', SUBSTRING("clientNameFr" FROM POSITION(' ' IN "clientNameFr") + 1)
+          )
+          WHERE "clientNameFr" IS NOT NULL AND "clientNameFr" LIKE '% %';
+
+          UPDATE bookings
+          SET "clientNameFr_json" = jsonb_build_object(
+            'lastName', "clientNameFr",
+            'firstName', ''
+          )
+          WHERE "clientNameFr" IS NOT NULL AND "clientNameFr" NOT LIKE '% %';
+
+          -- 3. Drop old column
+          ALTER TABLE bookings DROP COLUMN "clientNameFr";
+
+          -- 4. Rename new column
+          ALTER TABLE bookings RENAME COLUMN "clientNameFr_json" TO "clientNameFr";
+        END IF;
+      END;
+      $$;
     `);
 
     // Add 'variationName' column to bookings if it doesn't exist
@@ -283,7 +316,7 @@ const applyDatabaseMigrations = async (client) => {
       'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "isFullyPaid");'
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN ("clientNameFr" gin_trgm_ops);'
+      `CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN (("clientNameFr" ->> 'lastName') gin_trgm_ops, ("clientNameFr" ->> 'firstName') gin_trgm_ops);`
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_ar_gin ON bookings USING GIN ("clientNameAr" gin_trgm_ops);'

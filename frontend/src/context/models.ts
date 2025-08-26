@@ -147,10 +147,15 @@ export interface RelatedPerson {
 export type PersonType = "adult" | "child" | "infant";
 export type Gender = "male" | "female";
 
+export interface ClientNameFr {
+  lastName: string;
+  firstName: string;
+}
+
 export interface Booking {
   id: number;
   clientNameAr: string;
-  clientNameFr: string;
+  clientNameFr: ClientNameFr;
   personType: PersonType;
   phoneNumber: string;
   passportNumber: string;

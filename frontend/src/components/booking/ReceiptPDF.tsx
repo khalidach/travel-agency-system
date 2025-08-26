@@ -62,6 +62,9 @@ export default function ReceiptPDF({
     return { paymentsBeforeThis, remainingAfterThisPayment };
   }, [booking, payment]);
 
+  const clientNameFr =
+    `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+
   return (
     <div
       className="bg-white p-10 font-sans text-sm"
@@ -113,7 +116,7 @@ export default function ReceiptPDF({
           <p className="text-lg font-bold text-cyan-800">الإسم :</p>
           <p className="text-lg font-bold">{booking.clientNameAr}</p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
-            Nom :
+            Nom : {clientNameFr}
           </p>
         </div>
         <div className="flex justify-between items-center mb-2">

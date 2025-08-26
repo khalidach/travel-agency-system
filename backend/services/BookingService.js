@@ -158,13 +158,17 @@ const calculateBasePrice = async (
  * @param {object} updatedBooking - The booking state after the update.
  */
 async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
-  const nameChanged =
-    oldBooking.clientNameFr !== updatedBooking.clientNameFr ||
-    oldBooking.clientNameAr !== updatedBooking.clientNameAr;
+  const nameChanged = !isEqual(
+    oldBooking.clientNameFr,
+    updatedBooking.clientNameFr
+  );
 
   if (!nameChanged) {
     return;
   }
+
+  const newFullName =
+    `${updatedBooking.clientNameFr.firstName} ${updatedBooking.clientNameFr.lastName}`.trim();
 
   const userId = updatedBooking.userId;
   const tripId = updatedBooking.tripId;
@@ -181,7 +185,7 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   for (const booking of referencingBookings) {
     const updatedRelatedPersons = booking.relatedPersons.map((person) => {
       if (person.ID === bookingId) {
-        return { ...person, clientName: updatedBooking.clientNameFr };
+        return { ...person, clientName: newFullName };
       }
       return person;
     });
@@ -288,7 +292,7 @@ const createBooking = async (db, user, bookingData) => {
         adminId,
         employeeId,
         clientNameAr,
-        clientNameFr,
+        JSON.stringify(clientNameFr),
         personType,
         phoneNumber,
         passportNumber,
@@ -416,7 +420,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
       [
         clientNameAr,
-        clientNameFr,
+        JSON.stringify(clientNameFr),
         personType,
         phoneNumber,
         passportNumber,
@@ -627,7 +631,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
 
       if (filters.searchTerm) {
         whereConditions.push(
-          `("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+          `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
         );
         queryParams.push(`%${filters.searchTerm}%`);
         paramIndex++;

@@ -150,6 +150,9 @@ export default function BookingTable({
                 }
               }
 
+              const clientNameFr =
+                `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+
               return (
                 <React.Fragment key={booking.id}>
                   <tr
@@ -164,7 +167,7 @@ export default function BookingTable({
                         checked={selectedIds.includes(booking.id)}
                         onChange={() => onSelectionChange(booking.id)}
                         disabled={!canSelect}
-                        aria-label={`Select booking for ${booking.clientNameFr}`}
+                        aria-label={`Select booking for ${clientNameFr}`}
                       />
                     </td>
                     <td
@@ -195,7 +198,7 @@ export default function BookingTable({
                           }
                         >
                           <div className="text-sm font-medium text-gray-900">
-                            {booking.clientNameFr}
+                            {clientNameFr}
                           </div>
                           <div className="text-sm text-gray-500">
                             {booking.clientNameAr}

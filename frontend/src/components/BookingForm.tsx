@@ -13,6 +13,7 @@ import type {
   PriceStructure,
   ProgramPricing,
   ProgramVariation,
+  ClientNameFr,
 } from "../context/models";
 import * as api from "../services/api";
 import { useAuthContext } from "../context/AuthContext";
@@ -66,7 +67,7 @@ export default function BookingForm({
     mode: "onChange",
     defaultValues: {
       clientNameAr: "",
-      clientNameFr: "",
+      clientNameFr: { lastName: "", firstName: "" },
       personType: "adult",
       phoneNumber: "",
       passportNumber: "",
@@ -251,6 +252,7 @@ export default function BookingForm({
 
         reset({
           ...booking,
+          clientNameFr: booking.clientNameFr || { lastName: "", firstName: "" },
           gender: booking.gender || "male", // FIX: Ensure gender has a default value
           dob_day: day,
           dob_month: month,
@@ -536,7 +538,7 @@ export default function BookingForm({
     (persons: Booking[]) => {
       const newPersons: RelatedPerson[] = persons.map((person) => ({
         ID: person.id,
-        clientName: person.clientNameFr,
+        clientName: `${person.clientNameFr.firstName} ${person.clientNameFr.lastName}`,
       }));
       setValue("relatedPersons", [
         ...(watchedValues.relatedPersons || []),

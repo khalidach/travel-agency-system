@@ -76,10 +76,11 @@ const programPricingValidation = [
 ];
 
 const bookingValidation = [
-  body("clientNameFr")
+  body("clientNameFr.lastName")
     .notEmpty()
     .trim()
-    .withMessage("Client name (French) is required."),
+    .withMessage("Client last name (French) is required."),
+  body("clientNameFr.firstName").trim(),
   body("clientNameAr")
     .notEmpty()
     .trim()

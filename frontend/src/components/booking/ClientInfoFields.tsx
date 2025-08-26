@@ -1,6 +1,6 @@
 // frontend/src/components/booking/ClientInfoFields.tsx
 import React, { useRef } from "react";
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller, get } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 
 const ClientInfoFields = () => {
@@ -33,28 +33,49 @@ const ClientInfoFields = () => {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[3fr_2fr_1fr] gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("clientNameFr")}
           </label>
-          <Controller
-            name="clientNameFr"
-            control={control}
-            rules={{ required: t("clientNameFrRequired") as string }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                className={`w-full px-3 py-2 border rounded-lg ${
-                  errors.clientNameFr ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-            )}
-          />
-          {errors.clientNameFr && (
+          <div className="grid grid-cols-2 gap-2">
+            <Controller
+              name="clientNameFr.lastName"
+              control={control}
+              rules={{ required: t("clientLastNameFrRequired") as string }}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  placeholder="Last Name"
+                  className={`w-full px-3 py-2 border rounded-lg ${
+                    get(errors, "clientNameFr.lastName")
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+            <Controller
+              name="clientNameFr.firstName"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  placeholder="First Name"
+                  className={`w-full px-3 py-2 border rounded-lg ${
+                    get(errors, "clientNameFr.firstName")
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                />
+              )}
+            />
+          </div>
+          {get(errors, "clientNameFr.lastName") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.clientNameFr as any).message}
+              {(get(errors, "clientNameFr.lastName") as any).message}
             </p>
           )}
         </div>
