@@ -508,7 +508,7 @@ export default function Dashboard() {
               >
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    {booking.clientNameFr}
+                    {`${booking.clientNameFr.lastName} ${booking.clientNameFr.firstName} `.trim()}
                   </p>
                   <p className="text-xs text-gray-500">
                     {booking.passportNumber}
