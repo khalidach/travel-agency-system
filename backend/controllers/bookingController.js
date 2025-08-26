@@ -61,7 +61,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
 
     if (searchTerm) {
       whereConditions.push(
-        `(b."clientNameFr" ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`
+        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`
       );
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;
@@ -299,7 +299,7 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
 
     if (searchTerm) {
       whereConditions.push(
-        `("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
       );
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;

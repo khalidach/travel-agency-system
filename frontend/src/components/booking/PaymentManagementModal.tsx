@@ -64,6 +64,9 @@ export default function PaymentManagementModal({
 
   if (!isOpen || !booking) return null;
 
+  const clientNameFr =
+    `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+
   const handleAddPaymentClick = () => {
     setEditingPayment(null);
     setIsPaymentFormOpen(true);
@@ -108,7 +111,7 @@ export default function PaymentManagementModal({
 
     const input = document.getElementById("receipt-pdf-preview");
     if (input) {
-      const receiptFilename = `${t("receipt")}_${booking.clientNameFr.replace(
+      const receiptFilename = `${t("receipt")}_${clientNameFr.replace(
         /\s/g,
         "_"
       )}.pdf`;
@@ -136,7 +139,7 @@ export default function PaymentManagementModal({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium text-gray-900">
-              {booking.clientNameFr}
+              {clientNameFr}
             </h3>
             <button
               onClick={handleAddPaymentClick}

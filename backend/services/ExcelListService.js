@@ -89,16 +89,10 @@ exports.generateFlightListExcel = async (bookings, program) => {
 
   // Add booking data rows starting from row 8
   bookings.forEach((booking, index) => {
-    const nameParts = (booking.clientNameFr || "").trim().split(" ");
-    let firstName = "";
-    let lastName = "";
-
-    if (nameParts.length > 1) {
-      lastName = nameParts.pop() || ""; // Last element is the last name
-      firstName = nameParts.join(" "); // The rest is the first name
-    } else {
-      lastName = nameParts[0] || ""; // If only one part, it's the last name
-    }
+    const { firstName, lastName } = booking.clientNameFr || {
+      firstName: "",
+      lastName: "",
+    };
 
     let title = "";
     let genderChar = "";

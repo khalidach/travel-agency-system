@@ -30,7 +30,8 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
 
   // --- MODIFICATION: Add new headers for gender and dates ---
   let headers = [
-    { header: "Client Name (French)", key: "clientNameFr", width: 25 },
+    { header: "Last Name (French)", key: "lastNameFr", width: 25 },
+    { header: "First Name (French)", key: "firstNameFr", width: 25 },
     { header: "Client Name (Arabic)", key: "clientNameAr", width: 25 },
     { header: "Person Type", key: "personType", width: 15 },
     { header: "Gender", key: "gender", width: 15 }, // New
@@ -397,11 +398,16 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
         variationName
       );
 
+      const clientNameFr = {
+        lastName: rowData["Last Name (French)"] || "",
+        firstName: rowData["First Name (French)"] || "",
+      };
+
       bookingsToCreate.push({
         userId: userId,
         employeeId: user.role === "admin" ? null : user.id,
         clientNameAr: rowData["Client Name (Arabic)"],
-        clientNameFr: rowData["Client Name (French)"],
+        clientNameFr,
         personType: personType,
         phoneNumber: rowData["Phone Number"] || "",
         passportNumber,
@@ -430,7 +436,7 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
           booking.userId,
           booking.employeeId,
           booking.clientNameAr,
-          booking.clientNameFr,
+          JSON.stringify(booking.clientNameFr),
           booking.personType,
           booking.phoneNumber,
           booking.passportNumber,

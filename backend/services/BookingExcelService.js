@@ -39,7 +39,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   // Base columns
   let allColumns = [
     { header: "ID", key: "id" },
-    { header: "Prenom/Nom", key: "clientNameFr" },
+    { header: "Nom/Prénom", key: "clientNameFr" },
     { header: "الاسم/النسب", key: "clientNameAr" },
     { header: "Passport Number", key: "passportNumber" },
     { header: "Phone Number", key: "phoneNumber" },
@@ -174,9 +174,12 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       0
     );
 
+    const clientNameFr =
+      `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+
     const rowData = {
       id: index + 1,
-      clientNameFr: booking.clientNameFr,
+      clientNameFr,
       clientNameAr: booking.clientNameAr,
       passportNumber: booking.passportNumber,
       phoneNumber: booking.phoneNumber,

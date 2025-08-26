@@ -151,7 +151,7 @@ export default function BookingTable({
               }
 
               const clientNameFr =
-                `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+                `${booking.clientNameFr.lastName} ${booking.clientNameFr.firstName}`.trim();
 
               return (
                 <React.Fragment key={booking.id}>
