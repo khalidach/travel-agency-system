@@ -10,16 +10,17 @@ const generateToken = (id, role, adminId, tierId) => {
   });
 };
 
-// Helper to safely parse JSON that might already be an object or a string
+// Helper function to safely parse JSON that might be a string or already an object
 const safeJsonParse = (data) => {
   if (typeof data === "string") {
     try {
       return JSON.parse(data);
     } catch (e) {
-      logger.warn("Failed to parse JSON data in auth controller", { data });
+      // Return null or an empty object if parsing fails
       return null;
     }
   }
+  // Return data as is if it's already an object (or null/undefined)
   return data;
 };
 
@@ -47,6 +48,15 @@ const loginUser = async (req, res, next) => {
       }
       if (await bcrypt.compare(password, user.password)) {
         logger.info(`User login successful: ${user.username}`);
+
+        const token = generateToken(user.id, user.role, user.id, user.tierId);
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 60 * 60 * 1000, // 1 hour
+        });
+
         return res.status(200).json({
           id: user.id,
           username: user.username,
@@ -56,7 +66,6 @@ const loginUser = async (req, res, next) => {
           tierId: user.tierId,
           limits: safeJsonParse(user.limits),
           tierLimits: safeJsonParse(user.tierLimits),
-          token: generateToken(user.id, user.role, user.id, user.tierId),
         });
       }
     }
@@ -86,6 +95,20 @@ const loginUser = async (req, res, next) => {
 
       if (await bcrypt.compare(password, employee.password)) {
         logger.info(`Employee login successful: ${employee.username}`);
+
+        const token = generateToken(
+          employee.id,
+          employee.role,
+          employee.adminId,
+          adminData.tierId
+        );
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+          maxAge: 60 * 60 * 1000, // 1 hour
+        });
+
         return res.status(200).json({
           id: employee.id,
           username: employee.username,
@@ -96,12 +119,6 @@ const loginUser = async (req, res, next) => {
           tierId: adminData.tierId,
           limits: safeJsonParse(adminData.limits),
           tierLimits: safeJsonParse(adminData.tierLimits),
-          token: generateToken(
-            employee.id,
-            employee.role,
-            employee.adminId,
-            adminData.tierId
-          ),
         });
       }
     }
@@ -132,6 +149,15 @@ const refreshToken = async (req, res, next) => {
       username,
     } = req.user;
     logger.info(`Token refreshed for user: ${username}`);
+
+    const token = generateToken(id, role, adminId, tierId);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 1000, // 1 hour
+    });
+
     res.status(200).json({
       id,
       username: username,
@@ -141,7 +167,6 @@ const refreshToken = async (req, res, next) => {
       tierId,
       limits: safeJsonParse(limits),
       tierLimits: safeJsonParse(tierLimits),
-      token: generateToken(id, role, adminId, tierId),
     });
   } catch (error) {
     logger.error("Token Refresh Error:", {
@@ -154,4 +179,14 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-module.exports = { loginUser, refreshToken };
+const logoutUser = (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+module.exports = { loginUser, refreshToken, logoutUser };

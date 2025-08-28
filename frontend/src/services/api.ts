@@ -14,6 +14,7 @@ export const login = async (username: string, password: string) => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
+    credentials: "include", // Send cookies with the login request
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -28,19 +29,15 @@ async function request(
   options: RequestInit = {},
   returnsBlob = false
 ) {
-  // Use sessionStorage to get user data for the current session.
-  const userStr = sessionStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   } as Record<string, string>;
-  if (user && user.token) {
-    headers["Authorization"] = `Bearer ${user.token}`;
-  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: "include", // Include cookies in all API requests
   });
   if (!response.ok) {
     if (response.status === 401) window.dispatchEvent(new Event("auth-error"));
@@ -55,6 +52,8 @@ async function request(
 export const refreshToken = async () => {
   return request("/auth/refresh", { method: "POST" });
 };
+
+export const logout = () => request("/auth/logout", { method: "POST" });
 
 // --- Settings API ---
 export const getSettings = () => request("/settings");
@@ -376,16 +375,11 @@ export const exportBookingTemplateForProgram = (programId: string) =>
 export const importBookings = (file: File, programId: string) => {
   const formData = new FormData();
   formData.append("file", file);
-  const userStr = sessionStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
-  const headers: Record<string, string> = {};
-  if (user && user.token) {
-    headers["Authorization"] = `Bearer ${user.token}`;
-  }
+  // The 'request' helper handles credentials, so we don't need token logic here.
   return fetch(`${API_BASE_URL}/bookings/import-excel/program/${programId}`, {
     method: "POST",
     body: formData,
-    headers,
+    credentials: "include", // Ensure cookie is sent with FormData request
   }).then(async (res) => {
     if (!res.ok) {
       const errorData = await res.json();

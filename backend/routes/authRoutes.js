@@ -1,7 +1,11 @@
 // backend/routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
-const { loginUser, refreshToken } = require("../controllers/authController");
+const {
+  loginUser,
+  refreshToken,
+  logoutUser,
+} = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 const {
   loginValidation,
@@ -17,5 +21,6 @@ router.post(
   loginUser
 );
 router.post("/refresh", protect, refreshToken);
+router.post("/logout", logoutUser);
 
 module.exports = router;

@@ -1,8 +1,11 @@
+// frontend/src/components/Header.tsx
 import React, { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { User, LogOut } from "lucide-react";
+import * as api from "../services/api";
+import { toast } from "react-hot-toast";
 
 export default function Header() {
   const { t, i18n } = useTranslation();
@@ -27,10 +30,17 @@ export default function Header() {
     }
   }, [i18n.language]);
 
-  const handleLogout = () => {
-    // Clear the React Query cache to remove the previous user's data
-    queryClient.clear();
-    dispatch({ type: "LOGOUT" });
+  const handleLogout = async () => {
+    try {
+      await api.logout(); // Call the new logout API endpoint
+    } catch (error) {
+      console.error("Logout API call failed:", error);
+      toast.error("Could not clear session on server. Logging out locally.");
+    } finally {
+      // Always clear client-side state
+      queryClient.clear();
+      dispatch({ type: "LOGOUT" });
+    }
   };
 
   return (
@@ -41,9 +51,7 @@ export default function Header() {
             <h2 className="text-2xl font-bold text-gray-900">
               {t("welcomeMessage", { name: state.user?.agencyName || "User" })}
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {t("headerSubtitle")}
-            </p>
+            <p className="text-sm text-gray-600 mt-1">{t("headerSubtitle")}</p>
           </div>
 
           <div className="flex items-center space-x-4">

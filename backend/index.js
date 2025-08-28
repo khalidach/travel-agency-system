@@ -4,6 +4,7 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet"); // Add helmet for security headers
+const cookieParser = require("cookie-parser"); // Added
 require("dotenv").config();
 
 // Import middleware and new DB initializer
@@ -29,7 +30,8 @@ const dailyServiceRoutes = require("./routes/dailyServiceRoutes");
 
 const app = express();
 const corsOptions = {
-  origin: process.env.frontend_URL,
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Updated for credentials
+  credentials: true, // Added
 };
 
 // Security Headers - Apply helmet middleware for security
@@ -67,6 +69,7 @@ app.use(
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser()); // Added
 
 // Connect to PostgreSQL
 const pool = new Pool({

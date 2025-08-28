@@ -17,9 +17,18 @@ const useIdleTimeout = (
 
   // --- LOGOUT LOGIC ---
   // This function handles the actual logout process.
-  const handleLogout = useCallback(() => {
-    dispatch({ type: "LOGOUT" });
-    toast.error("You have been logged out due to inactivity.");
+  const handleLogout = useCallback(async () => {
+    try {
+      await api.logout();
+    } catch (error) {
+      console.error(
+        "Failed to clear session on server during idle logout:",
+        error
+      );
+    } finally {
+      dispatch({ type: "LOGOUT" });
+      toast.error("You have been logged out due to inactivity.");
+    }
   }, [dispatch]);
 
   // This function resets the idle timer. It's called whenever there's user activity.
