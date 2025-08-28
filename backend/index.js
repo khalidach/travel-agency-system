@@ -108,6 +108,13 @@ app.use((req, res, next) => {
 // Apply the general rate limiter to all API routes
 app.use("/api/", apiLimiter);
 
+// --- Caching Middleware ---
+// This middleware will prevent caching of API responses.
+app.use("/api/", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/owner", ownerRoutes);
