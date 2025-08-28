@@ -4,15 +4,15 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
 const helmet = require("helmet"); // Add helmet for security headers
-const cookieParser = require("cookie-parser"); // Added
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 // Import middleware and new DB initializer
 const { protect } = require("./middleware/authMiddleware");
-const { apiLimiter } = require("./middleware/rateLimitMiddleware"); // Import the apiLimiter
-const { applyDatabaseMigrations } = require("./utils/db-init"); // <-- Import the new function
-const errorHandler = require("./middleware/errorHandler"); // <-- Import the new error handler
-const logger = require("./utils/logger"); // <-- Import the logger
+const { apiLimiter } = require("./middleware/rateLimitMiddleware");
+const { applyDatabaseMigrations } = require("./utils/db-init");
+const errorHandler = require("./middleware/errorHandler");
+const logger = require("./utils/logger");
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
@@ -29,9 +29,23 @@ const tierRoutes = require("./routes/tierRoutes");
 const dailyServiceRoutes = require("./routes/dailyServiceRoutes");
 
 const app = express();
+
+// --- CORS Configuration Fix ---
+// Whitelist of allowed origins. Add any other frontend URLs you might have (e.g., preview domains).
+const allowedOrigins = [process.env.FRONTEND_URL];
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Updated for credentials
-  credentials: true, // Added
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg =
+        "The CORS policy for this site does not allow access from the specified Origin.";
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true, // This is crucial for cookies
 };
 
 // Security Headers - Apply helmet middleware for security
@@ -53,15 +67,15 @@ app.use(
         upgradeInsecureRequests: [],
       },
     },
-    crossOriginEmbedderPolicy: false, // May need to be disabled for some applications
+    crossOriginEmbedderPolicy: false,
     hsts: {
-      maxAge: 31536000, // 1 year
+      maxAge: 31536000,
       includeSubDomains: true,
       preload: true,
     },
-    noSniff: true, // X-Content-Type-Options: nosniff
-    frameguard: { action: "deny" }, // X-Frame-Options: DENY (prevents clickjacking)
-    xssFilter: true, // X-XSS-Protection: 1; mode=block
+    noSniff: true,
+    frameguard: { action: "deny" },
+    xssFilter: true,
     referrerPolicy: { policy: "same-origin" },
   })
 );
@@ -69,7 +83,7 @@ app.use(
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cookieParser()); // Added
+app.use(cookieParser());
 
 // Connect to PostgreSQL
 const pool = new Pool({
@@ -80,10 +94,7 @@ pool
   .connect()
   .then(async (client) => {
     logger.info("Connected to PostgreSQL");
-
-    // Apply all database migrations (tables, indexes, etc.)
     await applyDatabaseMigrations(client);
-
     client.release();
   })
   .catch((err) => logger.error("Database initialization error:", err));
