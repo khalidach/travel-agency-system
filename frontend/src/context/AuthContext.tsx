@@ -1,4 +1,3 @@
-// frontend/src/context/AuthContext.tsx
 import React, {
   createContext,
   useContext,
@@ -22,12 +21,12 @@ type AuthAction =
   | { type: "LOGOUT" }
   | { type: "SET_LOADING"; payload: boolean };
 
-// Use sessionStorage to ensure session is cleared when the tab is closed.
-const userFromStorage = sessionStorage.getItem("user");
+// Use localStorage to persist session across tabs.
+const userFromStorage = localStorage.getItem("user");
 const initialUser = userFromStorage ? JSON.parse(userFromStorage) : null;
 
 const initialState: AuthState = {
-  loading: true, // Start with loading true to check session status
+  loading: false,
   isAuthenticated: !!initialUser,
   user: initialUser,
 };
@@ -36,8 +35,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case "LOGIN":
     case "REFRESH_TOKEN":
-      // The payload no longer contains a token.
-      sessionStorage.setItem("user", JSON.stringify(action.payload));
+      // Use localStorage to store user data.
+      localStorage.setItem("user", JSON.stringify(action.payload));
       return {
         ...state,
         isAuthenticated: true,
@@ -45,8 +44,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         loading: false,
       };
     case "LOGOUT":
-      // Remove user data from sessionStorage on logout.
-      sessionStorage.removeItem("user");
+      // Remove user data from localStorage on logout.
+      localStorage.removeItem("user");
       return {
         ...initialState,
         isAuthenticated: false,
@@ -74,31 +73,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error("Your session has expired. Please log in again.");
     };
 
-    const checkUserStatus = async () => {
-      try {
-        // On initial load, try to refresh the token.
-        // If it succeeds, the user is still logged in.
-        // If it fails (401), the auth-error event will be caught and the user logged out.
-        const userStr = sessionStorage.getItem("user");
-        if (userStr) {
-          const userData = await api.refreshToken();
-          dispatch({ type: "REFRESH_TOKEN", payload: userData });
-        } else {
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
-      } catch (error) {
-        // This will catch network errors or if the refresh endpoint itself fails for non-auth reasons.
-        // The auth-error for 401 is handled by the event listener.
-        console.error("Failed to refresh token on initial load", error);
+    // Event listener to sync logout across tabs
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "user" && event.newValue === null) {
+        // When 'user' is removed from localStorage in another tab, log out here too.
         dispatch({ type: "LOGOUT" });
       }
     };
 
-    checkUserStatus();
-
     window.addEventListener("auth-error", handleAuthError);
-    return () => window.removeEventListener("auth-error", handleAuthError);
-  }, [dispatch]);
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("auth-error", handleAuthError);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ state, dispatch }}>
