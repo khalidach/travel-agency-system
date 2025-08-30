@@ -72,6 +72,44 @@ exports.generateFlightListExcel = async (bookings, program) => {
     cell.alignment = { vertical: "middle", horizontal: "center" };
   });
 
+  // Correctly re-order bookings to group families together.
+  const bookingMap = new Map(bookings.map((b) => [b.id, b]));
+  const memberIds = new Set();
+  bookings.forEach((booking) => {
+    if (booking.relatedPersons) {
+      booking.relatedPersons.forEach((p) => memberIds.add(p.ID));
+    }
+  });
+
+  const orderedBookings = [];
+  const processedIds = new Set();
+
+  for (const booking of bookings) {
+    if (processedIds.has(booking.id) || memberIds.has(booking.id)) {
+      continue;
+    }
+
+    orderedBookings.push(booking);
+    processedIds.add(booking.id);
+
+    if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+      for (const related of booking.relatedPersons) {
+        const memberBooking = bookingMap.get(related.ID);
+        if (memberBooking && !processedIds.has(memberBooking.id)) {
+          orderedBookings.push(memberBooking);
+          processedIds.add(memberBooking.id);
+        }
+      }
+    }
+  }
+
+  // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
+  for (const booking of bookings) {
+    if (!processedIds.has(booking.id)) {
+      orderedBookings.push(booking);
+    }
+  }
+
   // Helper function to map personType to PassengerType
   const getPassengerType = (type) => {
     if (!type) return "ADT"; // Default to Adult if not specified
@@ -88,7 +126,7 @@ exports.generateFlightListExcel = async (bookings, program) => {
   };
 
   // Add booking data rows starting from row 8
-  bookings.forEach((booking, index) => {
+  orderedBookings.forEach((booking, index) => {
     const { firstName, lastName } = booking.clientNameFr || {
       firstName: "",
       lastName: "",

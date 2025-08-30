@@ -516,7 +516,7 @@ exports.exportBookingsToExcel = async (req, res, next) => {
     }
 
     const { rows: bookings } = await client.query(
-      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "phoneNumber", "clientNameFr"',
+      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
       [programId, adminId]
     );
 
@@ -598,7 +598,7 @@ exports.exportFlightListToExcel = async (req, res, next) => {
     const programData = { ...programs[0], agencyName };
 
     const { rows: bookings } = await client.query(
-      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 ORDER BY "clientNameFr"',
+      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
       [programId, adminId]
     );
 

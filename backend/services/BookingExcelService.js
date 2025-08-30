@@ -28,11 +28,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     views: [{ rightToLeft: false }],
   });
 
-  // Add Program Name Header
-  const programNameRow = worksheet.addRow([program.name]);
-  programNameRow.font = { bold: true, size: 25 };
-  programNameRow.alignment = { vertical: "middle", horizontal: "center" };
-  programNameRow.height = 30;
+  // Add an empty row that will become the title row
+  worksheet.addRow([]);
   // An empty row for spacing
   worksheet.addRow([]);
 
@@ -94,6 +91,11 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   // Merge cells for the program name header now that we have columns
   if (worksheet.columns.length > 0) {
     worksheet.mergeCells(1, 1, 1, worksheet.columns.length);
+    const programHeaderCell = worksheet.getCell(1, 1);
+    programHeaderCell.value = program.name;
+    programHeaderCell.font = { bold: true, size: 25 };
+    programHeaderCell.alignment = { vertical: "middle", horizontal: "center" };
+    worksheet.getRow(1).height = 30;
   }
 
   const headerRow = worksheet.getRow(3);
