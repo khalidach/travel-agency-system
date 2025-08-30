@@ -109,9 +109,12 @@ app.use((req, res, next) => {
 app.use("/api/", apiLimiter);
 
 // --- Caching Middleware ---
-// This middleware will prevent caching of API responses.
+// This middleware configures caching for API responses.
 app.use("/api/", (req, res, next) => {
-  res.setHeader("Cache-Control", "no-store");
+  // 'no-cache' tells the browser it can cache the response but must revalidate with the server before using it.
+  res.setHeader("Cache-Control", "no-cache");
+  // 'Vary: Cookie' tells the browser to cache responses based on the presence of the authentication cookie.
+  res.setHeader("Vary", "Cookie");
   next();
 });
 
