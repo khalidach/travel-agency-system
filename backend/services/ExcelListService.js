@@ -156,14 +156,12 @@ exports.generateFlightListExcel = async (bookings, program) => {
     if (expirationDate) {
       const d = new Date(expirationDate);
       if (!isNaN(d.getTime())) {
-        // Formats to "DD Month YYYY", e.g., "01 February 2029"
-        expirationDate = d
-          .toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-          })
-          .replace(/ /g, " ");
+        const day = d.getDate().toString().padStart(2, "0");
+        const month = d
+          .toLocaleString("en-GB", { month: "short" })
+          .toUpperCase();
+        const year = d.getFullYear().toString().slice(-2);
+        expirationDate = `${day}-${month}-${year}`;
       }
     }
 
