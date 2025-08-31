@@ -2,6 +2,9 @@
 import React, { useRef } from "react";
 import { useFormContext, Controller, get } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { CalendarIcon } from "lucide-react";
 
 const ClientInfoFields = () => {
   const { t } = useTranslation();
@@ -275,17 +278,24 @@ const ClientInfoFields = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t("passportExpirationDate")}
           </label>
-          <Controller
-            name="passportExpirationDate"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            )}
-          />
+          <div className="relative">
+            <Controller
+              name="passportExpirationDate"
+              control={control}
+              render={({ field }) => (
+                <DatePicker
+                  selected={field.value ? new Date(field.value) : null}
+                  onChange={(date) =>
+                    field.onChange(date?.toISOString().split("T")[0])
+                  }
+                  dateFormat="dd/MM/yyyy"
+                  minDate={new Date()}
+                  className="w-full  px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholderText="dd/MM/yyyy"
+                />
+              )}
+            />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
