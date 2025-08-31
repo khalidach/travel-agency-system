@@ -246,9 +246,21 @@ const createBooking = async (db, user, bookingData) => {
       relatedPersons,
     } = bookingData;
 
+    const processedClientNameFr = {
+      lastName: clientNameFr.lastName
+        ? clientNameFr.lastName.toUpperCase()
+        : "",
+      firstName: clientNameFr.firstName
+        ? clientNameFr.firstName.toUpperCase()
+        : "",
+    };
+    const processedPassportNumber = passportNumber
+      ? passportNumber.toUpperCase()
+      : "";
+
     const existingBookingCheck = await client.query(
       'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
-      [passportNumber, tripId, adminId]
+      [processedPassportNumber, tripId, adminId]
     );
 
     if (existingBookingCheck.rows.length > 0) {
@@ -292,10 +304,10 @@ const createBooking = async (db, user, bookingData) => {
         adminId,
         employeeId,
         clientNameAr,
-        JSON.stringify(clientNameFr),
+        JSON.stringify(processedClientNameFr),
         personType,
         phoneNumber,
-        passportNumber,
+        processedPassportNumber,
         dateOfBirth || null,
         passportExpirationDate || null,
         gender,
@@ -376,9 +388,21 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       relatedPersons,
     } = bookingData;
 
+    const processedClientNameFr = {
+      lastName: clientNameFr.lastName
+        ? clientNameFr.lastName.toUpperCase()
+        : "",
+      firstName: clientNameFr.firstName
+        ? clientNameFr.firstName.toUpperCase()
+        : "",
+    };
+    const processedPassportNumber = passportNumber
+      ? passportNumber.toUpperCase()
+      : "";
+
     const existingBookingCheck = await client.query(
       'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
-      [passportNumber, tripId, user.adminId, bookingId]
+      [processedPassportNumber, tripId, user.adminId, bookingId]
     );
 
     if (existingBookingCheck.rows.length > 0) {
@@ -420,10 +444,10 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
       [
         clientNameAr,
-        JSON.stringify(clientNameFr),
+        JSON.stringify(processedClientNameFr),
         personType,
         phoneNumber,
-        passportNumber,
+        processedPassportNumber,
         dateOfBirth || null,
         passportExpirationDate || null,
         gender,

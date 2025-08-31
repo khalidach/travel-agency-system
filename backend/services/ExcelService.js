@@ -323,7 +323,9 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
         rowData[header] = row.getCell(headerMap[header]).value;
       });
 
-      const passportNumber = rowData["Passport Number"];
+      const passportNumber = rowData["Passport Number"]
+        ? String(rowData["Passport Number"]).toUpperCase()
+        : null;
       if (!passportNumber || existingPassportNumbers.has(passportNumber))
         continue;
 
@@ -399,8 +401,12 @@ exports.parseBookingsFromExcel = async (file, user, db, programId) => {
       );
 
       const clientNameFr = {
-        lastName: rowData["Last Name (French)"] || "",
-        firstName: rowData["First Name (French)"] || "",
+        lastName: rowData["Last Name (French)"]
+          ? String(rowData["Last Name (French)"]).toUpperCase()
+          : "",
+        firstName: rowData["First Name (French)"]
+          ? String(rowData["First Name (French)"]).toUpperCase()
+          : "",
       };
 
       bookingsToCreate.push({
