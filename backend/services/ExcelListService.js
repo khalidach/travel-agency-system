@@ -143,24 +143,44 @@ exports.generateFlightListExcel = async (bookings, program) => {
     }
 
     // Format Date of Birth
-    let dob = booking.dateOfBirth || "";
-    if (dob && /^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-      // YYYY-MM-DD
-      const [year, month, day] = dob.split("-");
-      dob = `${day}/${month}/${year}`;
+    let formattedDob = "";
+    const dob = booking.dateOfBirth || "";
+    if (dob) {
+      // Case 1: Full date is available (e.g., "1995-01-14")
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+        // Create a date object interpreting the string as UTC to avoid timezone shifts
+        const parts = dob.split("-").map((part) => parseInt(part, 10));
+        const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+
+        if (!isNaN(date.getTime())) {
+          const day = date.getUTCDate().toString().padStart(2, "0");
+          const month = date
+            .toLocaleString("en-GB", { month: "short", timeZone: "UTC" })
+            .toUpperCase();
+          const year = date.getUTCFullYear().toString().slice(-2);
+          formattedDob = `${day}${month}${year}`;
+        }
+      }
+      // Case 2: Only year is available (e.g., "XX/XX/1995" or "1995")
+      else if (/^(?:XX\/XX\/)?(\d{4})$/.test(dob)) {
+        const yearMatch = dob.match(/(\d{4})$/);
+        if (yearMatch) {
+          const year = yearMatch[1].slice(-2);
+          formattedDob = `01JAN${year}`;
+        }
+      }
     }
-    // Leaves "XX/XX/YYYY" format as is
 
     // Format Passport Expiration Date
     let expirationDate = booking.passportExpirationDate || "";
     if (expirationDate) {
       const d = new Date(expirationDate);
       if (!isNaN(d.getTime())) {
-        const day = d.getDate().toString().padStart(2, "0");
+        const day = d.getUTCDate().toString().padStart(2, "0");
         const month = d
-          .toLocaleString("en-GB", { month: "short" })
+          .toLocaleString("en-GB", { month: "short", timeZone: "UTC" })
           .toUpperCase();
-        const year = d.getFullYear().toString().slice(-2);
+        const year = d.getUTCFullYear().toString().slice(-2);
         expirationDate = `${day}-${month}-${year}`;
       }
     }
@@ -174,7 +194,7 @@ exports.generateFlightListExcel = async (bookings, program) => {
       getPassengerType(booking.personType),
       "P", // Fixed value
       genderChar,
-      dob,
+      formattedDob,
       booking.passportNumber,
       expirationDate,
       "MA", // Fixed value
