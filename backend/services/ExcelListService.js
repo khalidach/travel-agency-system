@@ -176,12 +176,22 @@ exports.generateFlightListExcel = async (bookings, program) => {
     if (expirationDate) {
       const d = new Date(expirationDate);
       if (!isNaN(d.getTime())) {
-        const day = d.getUTCDate().toString().padStart(2, "0");
-        const month = d
+        // FIX: Use methods that respect the "local" time of the Date object from the DB,
+        // avoiding the automatic shift to UTC that toISOString() or similar methods cause.
+        const year = d.getFullYear();
+        const month = d.getMonth(); // 0-indexed, so January is 0
+        const day = d.getDate();
+
+        // Re-create a new date object explicitly in UTC from the extracted components.
+        // This makes formatting consistent regardless of server timezone.
+        const utcDate = new Date(Date.UTC(year, month, day));
+
+        const formattedDay = utcDate.getUTCDate().toString().padStart(2, "0");
+        const formattedMonth = utcDate
           .toLocaleString("en-GB", { month: "short", timeZone: "UTC" })
           .toUpperCase();
-        const year = d.getUTCFullYear().toString().slice(-2);
-        expirationDate = `${day}-${month}-${year}`;
+        const formattedYear = utcDate.getUTCFullYear().toString().slice(-2);
+        expirationDate = `${formattedDay}-${formattedMonth}-${formattedYear}`;
       }
     }
 
