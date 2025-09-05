@@ -8,7 +8,7 @@ import {
 import { I18nextProvider } from "react-i18next";
 import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
-import React, { Suspense, lazy, useMemo } from "react";
+import React, { Suspense, lazy, useMemo, useEffect } from "react";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
 import Layout from "./components/Layout";
@@ -71,7 +71,7 @@ function AppRoutes() {
   if (state.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div>Loading...</div>
+        <BookingSkeleton />
       </div>
     );
   }
@@ -184,6 +184,13 @@ function AppRoutes() {
 }
 
 function App() {
+  useEffect(() => {
+    // This code runs once when the app starts.
+    // It automatically removes the old 'user' item from localStorage
+    // to prevent conflicts with the new httpOnly cookie system.
+    localStorage.removeItem("user");
+  }, []);
+
   return (
     <I18nextProvider i18n={i18n}>
       <AuthProvider>

@@ -21,22 +21,20 @@ type AuthAction =
   | { type: "LOGOUT" }
   | { type: "SET_LOADING"; payload: boolean };
 
-// Use localStorage to persist session across tabs.
-const userFromStorage = localStorage.getItem("user");
-const initialUser = userFromStorage ? JSON.parse(userFromStorage) : null;
-
+// The initial state should always assume the user is logged out until verified.
+// We start in a loading state to check the session on app load.
 const initialState: AuthState = {
-  loading: false,
-  isAuthenticated: !!initialUser,
-  user: initialUser,
+  loading: true,
+  isAuthenticated: false,
+  user: null,
 };
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case "LOGIN":
     case "REFRESH_TOKEN":
-      // Use localStorage to store user data.
-      localStorage.setItem("user", JSON.stringify(action.payload));
+      // The httpOnly cookie is the source of truth, not localStorage.
+      // We no longer store user data in localStorage.
       return {
         ...state,
         isAuthenticated: true,
@@ -44,7 +42,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         loading: false,
       };
     case "LOGOUT":
-      // Remove user data from localStorage on logout.
+      // Clear localStorage for any old data that might exist.
       localStorage.removeItem("user");
       return {
         ...initialState,
@@ -68,6 +66,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   useEffect(() => {
+    // This function runs on initial app load to check for a valid session cookie.
+    const checkUserSession = async () => {
+      try {
+        // The refreshToken API endpoint will succeed if a valid httpOnly cookie is present.
+        const userData = await api.refreshToken();
+        if (userData) {
+          dispatch({ type: "LOGIN", payload: userData });
+        }
+      } catch (error) {
+        // If it fails, it means no valid session exists. The state is already logged out.
+        console.log("No active session found.");
+        dispatch({ type: "LOGOUT" }); // Ensure any lingering state is cleared
+      } finally {
+        // Stop the loading indicator once the check is complete.
+        dispatch({ type: "SET_LOADING", payload: false });
+      }
+    };
+
+    checkUserSession();
+  }, []); // The empty dependency array ensures this runs only once.
+
+  useEffect(() => {
     const handleAuthError = () => {
       dispatch({ type: "LOGOUT" });
       toast.error("Your session has expired. Please log in again.");
@@ -75,8 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Event listener to sync logout across tabs
     const handleStorageChange = (event: StorageEvent) => {
+      // This is now less critical but good for handling manual logout in another tab.
       if (event.key === "user" && event.newValue === null) {
-        // When 'user' is removed from localStorage in another tab, log out here too.
         dispatch({ type: "LOGOUT" });
       }
     };
@@ -88,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("auth-error", handleAuthError);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [dispatch]);
 
   return (
     <AuthContext.Provider value={{ state, dispatch }}>
