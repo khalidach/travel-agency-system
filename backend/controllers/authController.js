@@ -54,6 +54,7 @@ const loginUser = async (req, res, next) => {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+          path: "/", // Make cookie available to all paths
           maxAge: 60 * 60 * 1000, // 1 hour
         });
 
@@ -106,6 +107,7 @@ const loginUser = async (req, res, next) => {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+          path: "/", // Make cookie available to all paths
           maxAge: 60 * 60 * 1000, // 1 hour
         });
 
@@ -155,6 +157,7 @@ const refreshToken = async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      path: "/", // Make cookie available to all paths
       maxAge: 60 * 60 * 1000, // 1 hour
     });
 
@@ -185,6 +188,7 @@ const logoutUser = (req, res) => {
     expires: new Date(0),
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    path: "/", // Ensure cookie is cleared from the root path
   });
   res.status(200).json({ message: "Logged out successfully" });
 };

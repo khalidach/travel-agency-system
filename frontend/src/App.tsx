@@ -185,10 +185,11 @@ function AppRoutes() {
 
 function App() {
   useEffect(() => {
-    // This code runs once when the app starts.
-    // It automatically removes the old 'user' item from localStorage
-    // to prevent conflicts with the new httpOnly cookie system.
+    // This code runs once when the app starts. It automatically removes old
+    // 'user' items from both localStorage and sessionStorage to prevent
+    // conflicts with the new httpOnly cookie system after the migration.
     localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
   }, []);
 
   return (
