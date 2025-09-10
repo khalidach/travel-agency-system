@@ -89,8 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleAuthError = () => {
-      dispatch({ type: "LOGOUT" });
-      toast.error("Your session has expired. Please log in again.");
+      // FIX: Rely on the authentication state to prevent duplicate toasts.
+      // Only show the toast if the user is currently authenticated. Once logged out,
+      // subsequent calls to this function will not trigger another toast.
+      if (state.isAuthenticated) {
+        toast.error("Your session has expired. Please log in again.");
+        dispatch({ type: "LOGOUT" });
+      }
     };
 
     // Event listener to sync logout across tabs
@@ -108,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("auth-error", handleAuthError);
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [dispatch]);
+  }, [dispatch, state.isAuthenticated]); // Add state.isAuthenticated to dependencies
 
   return (
     <AuthContext.Provider value={{ state, dispatch }}>

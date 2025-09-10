@@ -77,9 +77,12 @@ const useIdleTimeout = (
       dispatch({ type: "REFRESH_TOKEN", payload: userData });
       console.log("Token refreshed successfully to keep session active.");
     } catch (error) {
-      console.error("Session has expired, logging out.", error);
-      dispatch({ type: "LOGOUT" });
-      toast.error("Your session has expired. Please log in again.");
+      // FIX: The generic error handler in `api.ts` will now catch the 401 error
+      // and dispatch the `auth-error` event. We don't need to handle it here.
+      console.error(
+        "Session has expired, logging out via global handler.",
+        error
+      );
     }
   }, [dispatch, state.isAuthenticated]);
 
