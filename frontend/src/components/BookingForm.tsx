@@ -162,7 +162,7 @@ export default function BookingForm({
   const { data: programPricing } = useQuery<ProgramPricing | null>({
     queryKey: ["programPricing", tripId],
     queryFn: () => api.getProgramPricingByProgramId(tripId!),
-    enabled: !!tripId,
+    enabled: !!tripId && !formState.selectedProgram?.isCommissionBased, // Only fetch pricing for non-commission programs
   });
 
   const handleProgramChange = useCallback(
@@ -280,12 +280,47 @@ export default function BookingForm({
   }, [booking, programs, reset, programId, handleProgramChange, trigger]);
 
   const calculateTotalBasePrice = useCallback((): number => {
-    if (
-      !formState.selectedProgram ||
-      !programPricing ||
-      !formState.selectedVariation
-    )
+    if (!formState.selectedProgram || !formState.selectedVariation) {
       return 0;
+    }
+
+    // --- NEW LOGIC: Branch for Commission-Based Programs ---
+    if (formState.selectedProgram.isCommissionBased) {
+      if (
+        !formState.selectedPackage ||
+        !selectedHotel.hotelNames.some((h) => h)
+      ) {
+        return 0;
+      }
+
+      const bookingPackage = formState.selectedPackage;
+      const hotelCombination = selectedHotel.hotelNames.join("_");
+      const priceStructure = (bookingPackage.prices || []).find(
+        (p) => p.hotelCombination === hotelCombination
+      );
+
+      if (!priceStructure) return 0;
+
+      const firstCityIndexWithHotel = selectedHotel.hotelNames.findIndex(
+        (h) => h
+      );
+      if (firstCityIndexWithHotel === -1) return 0;
+
+      const roomTypeName = selectedHotel.roomTypes?.[firstCityIndexWithHotel];
+      if (!roomTypeName) return 0;
+
+      const roomTypeDef = priceStructure.roomTypes.find(
+        (rt) => rt.type === roomTypeName
+      );
+
+      if (!roomTypeDef || typeof roomTypeDef.purchasePrice === "undefined")
+        return 0;
+
+      return Math.round(Number(roomTypeDef.purchasePrice || 0));
+    }
+
+    // --- Existing Logic for Regular Programs ---
+    if (!programPricing) return 0;
 
     let hotelCosts = 0;
     if (formState.selectedPriceStructure && programPricing.allHotels) {
@@ -348,6 +383,7 @@ export default function BookingForm({
   }, [
     formState.selectedProgram,
     formState.selectedVariation,
+    formState.selectedPackage,
     formState.selectedPriceStructure,
     selectedHotel,
     programPricing,
@@ -366,6 +402,7 @@ export default function BookingForm({
     personType,
     formState.selectedProgram,
     formState.selectedVariation,
+    formState.selectedPackage, // Add dependency
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
     setValue,
