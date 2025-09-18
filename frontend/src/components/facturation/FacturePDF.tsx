@@ -54,7 +54,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
         </div>
       )}
 
-      <table className="w-full mt-8 text-xs border-collapse">
+      <table className="w-full mt-28 text-xs border-collapse">
         <thead className="bg-gray-100">
           <tr>
             <th className="p-2 text-left font-semibold border">DESIGNATION</th>

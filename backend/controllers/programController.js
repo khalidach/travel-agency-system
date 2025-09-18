@@ -30,8 +30,8 @@ exports.getAllPrograms = async (req, res, next) => {
       queryParams.push(filterType);
     }
 
-    // If the view is for the pricing page, only show non-commission based programs
-    if (view === "pricing") {
+    // If the view is for the pricing or costing page, only show non-commission based programs
+    if (view === "pricing" || view === "costing") {
       whereConditions.push(`p."isCommissionBased" = FALSE`);
     }
 

@@ -18,6 +18,7 @@ import {
   Layers,
   ChevronDown,
   ConciergeBell,
+  DollarSign,
 } from "lucide-react";
 
 type MenuItem = {
@@ -63,6 +64,12 @@ const allMenuItems: MenuItem[] = [
         path: "/program-pricing",
         icon: ShipWheel,
         roles: ["admin", "manager"],
+      },
+      {
+        key: "programCosting",
+        path: "/program-costing",
+        icon: DollarSign,
+        roles: ["admin"],
       },
       {
         key: "booking",

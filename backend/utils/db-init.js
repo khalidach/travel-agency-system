@@ -280,6 +280,19 @@ const applyDatabaseMigrations = async (client) => {
     `;
     await client.query(alterFacturesTable);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS program_costs (
+        id SERIAL PRIMARY KEY,
+        "programId" INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE UNIQUE,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        costs JSONB,
+        "totalCost" NUMERIC(12, 2) DEFAULT 0,
+        "isEnabled" BOOLEAN DEFAULT FALSE,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     console.log("All tables checked/created successfully.");
 
     // --- Index Creation ---
@@ -329,6 +342,9 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_factures_user_created_at ON factures("userId", "createdAt" DESC);'
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");'
     );
 
     console.log("Database indexes applied successfully.");

@@ -23,6 +23,8 @@ const Booking = lazy(() => import("./pages/Booking"));
 const BookingPage = lazy(() => import("./pages/BookingPage"));
 const ProfitReport = lazy(() => import("./pages/ProfitReport"));
 const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
+const ProgramCostingList = lazy(() => import("./pages/ProgramCostingList"));
+const ProgramCosting = lazy(() => import("./pages/ProgramCosting"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
@@ -155,6 +157,8 @@ function AppRoutes() {
                               path="/profit-report"
                               element={<ProfitReport />}
                             />
+                             <Route path="/program-costing" element={<ProgramCostingList />} />
+                            <Route path="/program-costing/:programId" element={<ProgramCosting />} />
                             <Route
                               path="/employees"
                               element={<EmployeesPage />}

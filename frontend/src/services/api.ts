@@ -138,7 +138,7 @@ export const getPrograms = (
   limit = 6,
   searchTerm = "",
   filterType = "all",
-  view?: "list" | "pricing" | "rooms" | "full"
+  view?: "list" | "pricing" | "rooms" | "full" | "costing"
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -186,6 +186,16 @@ export const updateProgramPricing = (id: number, pricing: any) =>
   });
 export const deleteProgramPricing = (id: number) =>
   request(`/program-pricing/${id}`, { method: "DELETE" });
+
+// --- Program Costing API ---
+export const getProgramCosts = (programId: string) =>
+  request(`/program-costs/${programId}`);
+
+export const saveProgramCosts = (programId: string, data: any) =>
+  request(`/program-costs/${programId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 
 // --- Booking API ---
 export const getBookingsByProgram = (

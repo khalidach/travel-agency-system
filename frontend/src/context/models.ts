@@ -115,9 +115,10 @@ export interface Program {
   employeeId?: number;
   totalBookings?: number;
   pricing?: ProgramPricing;
+  costs?: ProgramCost;
   hotelRoomCounts?: HotelRoomCount[];
   totalOccupants?: number;
-  isCommissionBased?: boolean; // New field
+  isCommissionBased?: boolean;
 }
 
 export interface Package {
@@ -136,7 +137,7 @@ export interface PriceStructure {
 export interface RoomPrice {
   type: string;
   guests: number;
-  purchasePrice?: number; // New field for commission-based programs
+  purchasePrice?: number;
 }
 
 export interface RelatedPerson {
@@ -163,7 +164,7 @@ export interface Booking {
   passportExpirationDate?: string;
   gender?: Gender;
   tripId: string;
-  variationName?: string; // New field
+  variationName?: string;
   packageId: string;
   selectedHotel: {
     cities: string[];
@@ -327,4 +328,20 @@ export interface ServicePerformanceData {
     totalCost: number;
     totalProfit: number;
   };
+}
+
+export interface ProgramCostDetails {
+  flightTickets?: number;
+  visa?: number;
+  transport?: number;
+  hotels?: { name: string; amount: number }[];
+  custom?: { name: string; amount: number }[];
+}
+
+export interface ProgramCost {
+  id: number;
+  programId: number;
+  costs: ProgramCostDetails;
+  isEnabled: boolean;
+  totalCost: number;
 }

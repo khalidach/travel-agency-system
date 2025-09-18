@@ -18,6 +18,7 @@ const logger = require("./utils/logger");
 const authRoutes = require("./routes/authRoutes");
 const programRoutes = require("./routes/programRoutes");
 const programPricingRoutes = require("./routes/programPricingRoutes");
+const programCostsRoutes = require("./routes/programCostsRoutes"); // Import new route
 const bookingRoutes = require("./routes/bookingRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
@@ -125,6 +126,7 @@ app.use("/api/tiers", protect, tierRoutes);
 app.use("/api/dashboard", protect, dashboardRoutes);
 app.use("/api/programs", protect, programRoutes);
 app.use("/api/program-pricing", protect, programPricingRoutes);
+app.use("/api/program-costs", protect, programCostsRoutes); // Add new route
 app.use("/api/bookings", protect, bookingRoutes);
 app.use("/api/employees", protect, employeeRoutes);
 app.use("/api/room-management", protect, roomManagementRoutes);
