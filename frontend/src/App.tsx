@@ -68,6 +68,17 @@ function AppRoutes() {
     return false;
   }, [user]);
 
+  const hasProgramCostAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.programCosts === "boolean") {
+      return user.limits.programCosts;
+    }
+    if (typeof user.tierLimits?.programCosts === "boolean") {
+      return user.tierLimits.programCosts;
+    }
+    return false;
+  }, [user]);
+
   useIdleTimeout();
 
   if (state.loading) {
@@ -157,8 +168,26 @@ function AppRoutes() {
                               path="/profit-report"
                               element={<ProfitReport />}
                             />
-                             <Route path="/program-costing" element={<ProgramCostingList />} />
-                            <Route path="/program-costing/:programId" element={<ProgramCosting />} />
+                            <Route
+                              path="/program-costing"
+                              element={
+                                hasProgramCostAccess ? (
+                                  <ProgramCostingList />
+                                ) : (
+                                  <Navigate to="/dashboard" replace />
+                                )
+                              }
+                            />
+                            <Route
+                              path="/program-costing/:programId"
+                              element={
+                                hasProgramCostAccess ? (
+                                  <ProgramCosting />
+                                ) : (
+                                  <Navigate to="/dashboard" replace />
+                                )
+                              }
+                            />
                             <Route
                               path="/employees"
                               element={<EmployeesPage />}

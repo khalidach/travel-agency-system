@@ -3,6 +3,7 @@ export interface TierLimits {
   bookingsPerMonth: number;
   programsPerMonth: number;
   programPricingsPerMonth: number;
+  programCosts: boolean; // تم التغيير من programCostsPerMonth
   employees: number;
   invoicing: boolean;
   facturesPerMonth: number;

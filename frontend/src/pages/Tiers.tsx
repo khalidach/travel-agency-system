@@ -25,6 +25,7 @@ const TierForm = ({
       bookingsPerMonth: 0,
       programsPerMonth: 0,
       programPricingsPerMonth: 0,
+      programCosts: false, // تم التغيير
       employees: 0,
       invoicing: false,
       facturesPerMonth: 0,
@@ -43,6 +44,7 @@ const TierForm = ({
         bookingsPerMonth: 0,
         programsPerMonth: 0,
         programPricingsPerMonth: 0,
+        programCosts: false, // تم التغيير
         employees: 0,
         invoicing: false,
         facturesPerMonth: 0,
@@ -66,7 +68,8 @@ const TierForm = ({
     } else if (
       name === "invoicing" ||
       name === "dailyServices" ||
-      name === "flightListExport"
+      name === "flightListExport" ||
+      name === "programCosts"
     ) {
       processedValue = value === "true";
     }
@@ -102,7 +105,7 @@ const TierForm = ({
 
   const limitFields: (keyof Omit<
     TierLimits,
-    "invoicing" | "dailyServices" | "flightListExport"
+    "invoicing" | "dailyServices" | "flightListExport" | "programCosts"
   >)[] = [
     "bookingsPerMonth",
     "programsPerMonth",
@@ -116,18 +119,6 @@ const TierForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Tier Name
-        </label>
-        <input
-          type="text"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
-          required
-        />
-      </div>
       <p className="text-sm text-gray-500">
         Set the limits for this tier. Use -1 for unlimited.
       </p>
@@ -146,6 +137,22 @@ const TierForm = ({
             />
           </div>
         ))}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Program Costs Access
+          </label>
+          <select
+            name="programCosts"
+            value={String(
+              (formData.limits as TierLimits)?.programCosts ?? false
+            )}
+            onChange={handleLimitChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Invoicing Access
@@ -337,6 +344,12 @@ export default function TiersPage() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                       <span>Bookings/mo: {tier.limits.bookingsPerMonth}</span>
                       <span>Programs/mo: {tier.limits.programsPerMonth}</span>
+                      <span>
+                        Pricings/mo: {tier.limits.programPricingsPerMonth}
+                      </span>
+                      <span>
+                        Costs: {tier.limits.programCosts ? "Yes" : "No"}
+                      </span>
                       <span>Employees: {tier.limits.employees}</span>
                       <span>
                         Invoicing: {tier.limits.invoicing ? "Yes" : "No"}

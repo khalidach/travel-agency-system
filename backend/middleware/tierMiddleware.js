@@ -26,6 +26,7 @@ const getLimits = async (req) => {
         bookingsPerMonth: 0,
         programsPerMonth: 0,
         programPricingsPerMonth: 0,
+        programCosts: false, // تم التغيير
         employees: 0,
         invoicing: false,
         facturesPerMonth: 0,
@@ -185,6 +186,21 @@ const checkDailyServiceAccess = async (req, res, next) => {
   }
 };
 
+const checkProgramCostAccess = async (req, res, next) => {
+  try {
+    const limits = await getLimits(req);
+    if (!limits.programCosts) {
+      return res.status(403).json({
+        message: "Program Costing is not available for your subscription.",
+      });
+    }
+    next();
+  } catch (error) {
+    console.error("Program Cost access check error:", error);
+    res.status(500).json({ message: "Server error during access check." });
+  }
+};
+
 module.exports = {
   getLimits,
   checkBookingLimit: (req, res, next) =>
@@ -229,5 +245,6 @@ module.exports = {
     checkExportLimit(req, res, next, "list"),
   checkInvoicingAccess,
   checkDailyServiceAccess,
+  checkProgramCostAccess, // تمت الإضافة
   tierLimitsCache, // Export the cache to be used in other modules
 };

@@ -1,6 +1,6 @@
 // frontend/src/components/Sidebar.tsx
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import {
@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ConciergeBell,
   DollarSign,
+  Lock,
 } from "lucide-react";
 
 type MenuItem = {
@@ -27,6 +28,8 @@ type MenuItem = {
   icon: React.ElementType;
   roles: string[];
   children?: MenuItem[];
+  accessCheck?: (user: any) => boolean;
+  isDisabled?: boolean;
 };
 
 const allMenuItems: MenuItem[] = [
@@ -70,6 +73,14 @@ const allMenuItems: MenuItem[] = [
         path: "/program-costing",
         icon: DollarSign,
         roles: ["admin"],
+        accessCheck: (user) => {
+          if (!user) return false;
+          if (typeof user.limits?.programCosts === "boolean")
+            return user.limits.programCosts;
+          if (typeof user.tierLimits?.programCosts === "boolean")
+            return user.tierLimits.programCosts;
+          return false;
+        },
       },
       {
         key: "booking",
@@ -95,6 +106,14 @@ const allMenuItems: MenuItem[] = [
     key: "dailyServices",
     icon: ConciergeBell,
     roles: ["admin", "manager", "employee"],
+    accessCheck: (user) => {
+      if (!user) return false;
+      if (typeof user.limits?.dailyServices === "boolean")
+        return user.limits.dailyServices;
+      if (typeof user.tierLimits?.dailyServices === "boolean")
+        return user.tierLimits.dailyServices;
+      return false;
+    },
     children: [
       {
         key: "manageDailyServices",
@@ -115,6 +134,15 @@ const allMenuItems: MenuItem[] = [
     path: "/facturation",
     icon: FileText,
     roles: ["admin", "manager", "employee"],
+    accessCheck: (user) => {
+      if (!user) return false;
+      if (typeof user.limits?.invoicing === "boolean")
+        return user.limits.invoicing;
+      if (typeof user.tierLimits?.invoicing === "boolean")
+        return user.tierLimits.invoicing;
+      if (user.tierId) return user.tierId !== 1;
+      return false;
+    },
   },
   { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
   {
@@ -125,77 +153,85 @@ const allMenuItems: MenuItem[] = [
   },
 ];
 
+const MenuItemContent = ({
+  item,
+  isActive,
+}: {
+  item: MenuItem;
+  isActive: boolean;
+}) => {
+  const { t } = useTranslation();
+  const Icon = item.icon;
+  return (
+    <>
+      <Icon
+        className={`mx-3 h-5 w-5 transition-colors ${
+          isActive && !item.isDisabled
+            ? "text-blue-600"
+            : item.isDisabled
+            ? "text-gray-300"
+            : "text-gray-400 group-hover:text-gray-600"
+        }`}
+      />
+      <span className={item.isDisabled ? "text-gray-400" : ""}>
+        {t(item.key)}
+      </span>
+      {item.isDisabled && (
+        <Lock className="ml-auto mr-3 h-4 w-4 text-gray-400" />
+      )}
+    </>
+  );
+};
+
 export default function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
   const { state } = useAuthContext();
   const user = state.user;
   const userRole = user?.role;
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-  const hasInvoicingAccess = useMemo(() => {
-    if (!user) return false;
-    if (typeof user.limits?.invoicing === "boolean") {
-      return user.limits.invoicing;
-    }
-    if (typeof user.tierLimits?.invoicing === "boolean") {
-      return user.tierLimits.invoicing;
-    }
-    if (user.tierId) {
-      return user.tierId !== 1;
-    }
-    return false;
-  }, [user]);
-
-  const hasDailyServiceAccess = useMemo(() => {
-    if (!user) return false;
-    if (typeof user.limits?.dailyServices === "boolean") {
-      return user.limits.dailyServices;
-    }
-    if (typeof user.tierLimits?.dailyServices === "boolean") {
-      return user.tierLimits.dailyServices;
-    }
-    return false;
-  }, [user]);
-
-  const filteredMenuItems = useMemo(() => {
-    const filterItems = (items: MenuItem[]): MenuItem[] => {
+  const menuItems = useMemo(() => {
+    const processItems = (items: MenuItem[]): MenuItem[] => {
       return items
+        .filter((item) => userRole && item.roles.includes(userRole))
         .map((item) => {
-          if (!userRole || !item.roles.includes(userRole)) {
-            return null;
-          }
-          if (item.key === "facturation" && !hasInvoicingAccess) {
-            return null;
-          }
-          if (item.key === "dailyServices" && !hasDailyServiceAccess) {
-            return null;
-          }
+          const isDisabled = item.accessCheck ? !item.accessCheck(user) : false;
           if (item.children) {
-            const visibleChildren = filterItems(item.children);
-            if (visibleChildren.length > 0) {
-              return { ...item, children: visibleChildren };
-            }
-            return null;
+            const processedChildren = processItems(item.children);
+            // A parent is disabled if its own access check fails OR if all its children are disabled.
+            const areAllChildrenDisabled =
+              processedChildren.length > 0 &&
+              processedChildren.every((child) => child.isDisabled);
+            return {
+              ...item,
+              children: processedChildren,
+              isDisabled: isDisabled || areAllChildrenDisabled,
+            };
           }
-          return item;
-        })
-        .filter((item): item is MenuItem => item !== null);
+          return { ...item, isDisabled };
+        });
     };
-    return filterItems(allMenuItems);
-  }, [userRole, hasInvoicingAccess, hasDailyServiceAccess]);
+    return processItems(allMenuItems);
+  }, [userRole, user]);
 
   useEffect(() => {
-    const activeParent = filteredMenuItems.find((item) =>
+    const activeParent = menuItems.find((item) =>
       item.children?.some((child) => location.pathname.startsWith(child.path!))
     );
     if (activeParent) {
       setOpenMenu(activeParent.key);
     }
-  }, [location.pathname, filteredMenuItems]);
+  }, [location.pathname, menuItems]);
 
-  const handleMenuClick = (key: string) => {
-    setOpenMenu(openMenu === key ? null : key);
+  const handleMenuClick = (item: MenuItem) => {
+    if (item.isDisabled) return;
+    if (item.children) {
+      setOpenMenu(openMenu === item.key ? null : item.key);
+    } else if (item.path) {
+      navigate(item.path);
+    }
   };
 
   return (
@@ -214,8 +250,7 @@ export default function Sidebar() {
 
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {filteredMenuItems.map((item) => {
-            const Icon = item.icon;
+          {menuItems.map((item) => {
             if (item.children) {
               const isParentActive = item.children.some((child) =>
                 location.pathname.startsWith(child.path!)
@@ -224,28 +259,25 @@ export default function Sidebar() {
               return (
                 <li key={item.key}>
                   <button
-                    onClick={() => handleMenuClick(item.key)}
+                    onClick={() => handleMenuClick(item)}
                     className={`group flex items-center justify-between w-full px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                      isParentActive && !isOpen
+                      isParentActive && !isOpen && !item.isDisabled
                         ? "bg-blue-50 text-blue-700 shadow-sm"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    } ${
+                      item.isDisabled ? "cursor-not-allowed opacity-60" : ""
                     }`}
                   >
                     <div className="flex items-center">
-                      <Icon
-                        className={`mx-3 h-5 w-5 transition-colors ${
-                          isParentActive
-                            ? "text-blue-600"
-                            : "text-gray-400 group-hover:text-gray-600"
+                      <MenuItemContent item={item} isActive={isParentActive} />
+                    </div>
+                    {!item.isDisabled && (
+                      <ChevronDown
+                        className={`w-5 h-5 transition-transform duration-300 ${
+                          isOpen ? "rotate-180" : ""
                         }`}
                       />
-                      {t(item.key)}
-                    </div>
-                    <ChevronDown
-                      className={`w-5 h-5 transition-transform duration-300 ${
-                        isOpen ? "rotate-180" : ""
-                      }`}
-                    />
+                    )}
                   </button>
                   <div
                     className={`overflow-hidden transition-[max-height] duration-500 ease-in-out ${
@@ -254,28 +286,30 @@ export default function Sidebar() {
                   >
                     <ul className="pl-8 pt-2 space-y-1">
                       {item.children.map((child) => {
-                        const ChildIcon = child.icon;
                         const isChildActive = location.pathname.startsWith(
                           child.path!
                         );
                         return (
                           <li key={child.key}>
                             <Link
-                              to={child.path!}
+                              to={child.isDisabled ? "#" : child.path!}
                               className={`group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-                                isChildActive
+                                isChildActive && !child.isDisabled
                                   ? "text-blue-700 bg-blue-50"
                                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                              } ${
+                                child.isDisabled
+                                  ? "cursor-not-allowed opacity-60"
+                                  : ""
                               }`}
+                              onClick={(e) =>
+                                child.isDisabled && e.preventDefault()
+                              }
                             >
-                              <ChildIcon
-                                className={`mr-3 h-4 w-4 transition-colors ${
-                                  isChildActive
-                                    ? "text-blue-600"
-                                    : "text-gray-400 group-hover:text-gray-500"
-                                }`}
+                              <MenuItemContent
+                                item={child}
+                                isActive={isChildActive}
                               />
-                              {t(child.key)}
                             </Link>
                           </li>
                         );
@@ -289,21 +323,15 @@ export default function Sidebar() {
             return (
               <li key={item.key}>
                 <Link
-                  to={item.path!}
+                  to={item.isDisabled ? "#" : item.path!}
+                  onClick={(e) => item.isDisabled && e.preventDefault()}
                   className={`group flex items-center px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    isActive
+                    isActive && !item.isDisabled
                       ? "bg-blue-50 text-blue-700 shadow-sm"
                       : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
+                  } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
-                  <Icon
-                    className={`mx-3 h-5 w-5 transition-colors ${
-                      isActive
-                        ? "text-blue-600"
-                        : "text-gray-400 group-hover:text-gray-600"
-                    }`}
-                  />
-                  {t(item.key)}
+                  <MenuItemContent item={item} isActive={isActive} />
                 </Link>
               </li>
             );

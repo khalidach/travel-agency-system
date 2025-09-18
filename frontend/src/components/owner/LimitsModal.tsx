@@ -40,7 +40,8 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     const isBooleanField =
       name === "invoicing" ||
       name === "dailyServices" ||
-      name === "flightListExport";
+      name === "flightListExport" ||
+      name === "programCosts";
 
     let processedValue: string | number | boolean | undefined;
 
@@ -75,7 +76,8 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
         if (
           key === "invoicing" ||
           key === "dailyServices" ||
-          key === "flightListExport"
+          key === "flightListExport" ||
+          key === "programCosts"
         ) {
           finalLimits[key] = value as boolean;
         } else {
@@ -89,7 +91,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
   const limitFields: (keyof Omit<
     TierLimits,
-    "invoicing" | "dailyServices" | "flightListExport"
+    "invoicing" | "dailyServices" | "flightListExport" | "programCosts"
   >)[] = [
     "bookingsPerMonth",
     "programsPerMonth",
@@ -130,6 +132,29 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             />
           </div>
         ))}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Program Costs Access
+          </label>
+          <select
+            name="programCosts"
+            value={
+              limits.programCosts === undefined
+                ? ""
+                : String(limits.programCosts)
+            }
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          >
+            <option value="">
+              Use Tier Default (
+              {user.tierLimits?.programCosts ? "Enabled" : "Disabled"})
+            </option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">
