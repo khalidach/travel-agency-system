@@ -21,6 +21,7 @@ import {
   DollarSign,
   Lock,
 } from "lucide-react";
+import NewBadge from "./ui/NewBadge"; // استيراد الشارة الجديدة
 
 type MenuItem = {
   key: string;
@@ -30,6 +31,7 @@ type MenuItem = {
   children?: MenuItem[];
   accessCheck?: (user: any) => boolean;
   isDisabled?: boolean;
+  new?: boolean; // خاصية جديدة للإشارة إلى الميزات الجديدة
 };
 
 const allMenuItems: MenuItem[] = [
@@ -73,7 +75,8 @@ const allMenuItems: MenuItem[] = [
         path: "/program-costing",
         icon: DollarSign,
         roles: ["admin"],
-        accessCheck: (user) => {
+        new: true, // إضافة شارة "جديد" هنا
+        accessCheck: (user: any) => {
           if (!user) return false;
           if (typeof user.limits?.programCosts === "boolean")
             return user.limits.programCosts;
@@ -173,8 +176,9 @@ const MenuItemContent = ({
             : "text-gray-400 group-hover:text-gray-600"
         }`}
       />
-      <span className={item.isDisabled ? "text-gray-400" : ""}>
+      <span className={`${item.isDisabled ? "text-gray-400" : ""}`}>
         {t(item.key)}
+        {item.new && <NewBadge />}
       </span>
       {item.isDisabled && (
         <Lock className="ml-auto mr-3 h-4 w-4 text-gray-400" />
@@ -293,7 +297,7 @@ export default function Sidebar() {
                           <li key={child.key}>
                             <Link
                               to={child.isDisabled ? "#" : child.path!}
-                              className={`group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
+                              className={`relative group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                                 isChildActive && !child.isDisabled
                                   ? "text-blue-700 bg-blue-50"
                                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
