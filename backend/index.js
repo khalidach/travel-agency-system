@@ -28,6 +28,7 @@ const factureRoutes = require("./routes/factureRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const tierRoutes = require("./routes/tierRoutes");
 const dailyServiceRoutes = require("./routes/dailyServiceRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 
 const app = express();
 
@@ -121,6 +122,7 @@ app.use("/api/", (req, res, next) => {
 
 // API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/account", accountRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/tiers", protect, tierRoutes);
 app.use("/api/dashboard", protect, dashboardRoutes);

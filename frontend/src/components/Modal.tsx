@@ -20,14 +20,14 @@ export default function Modal({
 }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     }
 
     // Cleanup function to restore scroll when component unmounts
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [isOpen]); // This effect runs whenever the 'isOpen' prop changes
   if (!isOpen) return null;
@@ -40,10 +40,7 @@ export default function Modal({
   };
 
   return (
-    <div
-      className={`fixed inset-0 `}
-      style={{ zIndex: 50 + level * 10 }}
-    >
+    <div className={`fixed inset-0 `} style={{ zIndex: 50 + level * 10 }}>
       <div className="flex min-h-screen items-center justify-center p-4">
         <div
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
@@ -51,7 +48,7 @@ export default function Modal({
           style={{ zIndex: 50 + level * 10 }}
         />
         <div
-          className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all max-h-[90vh] overflow-y-auto`}
+          className={`relative bg-white dark:bg-gray-800 dark:text-gray-100 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all max-h-[90vh] overflow-y-auto`}
           style={{ zIndex: 51 + level * 10 }}
         >
           <div className="flex items-center justify-between p-6 border-b border-gray-100">

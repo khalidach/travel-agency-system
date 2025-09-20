@@ -55,6 +55,10 @@ export const refreshToken = async () => {
 
 export const logout = () => request("/auth/logout", { method: "POST" });
 
+// --- Account Settings API ---
+export const updateAccountSettings = (data: any) =>
+  request(`/account/settings`, { method: "PUT", body: JSON.stringify(data) });
+
 // --- Settings API ---
 export const getSettings = () => request("/settings");
 export const updateSettings = (settings: any) =>

@@ -19,6 +19,19 @@ const loginValidation = [
   body("password").notEmpty().withMessage("Password is required."),
 ];
 
+const accountSettingsValidation = [
+  body('agencyName').optional().isString().withMessage('Agency name must be a string.'),
+  body('currentPassword').notEmpty().withMessage('Current password is required.'),
+  body('newPassword').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('New password must be at least 6 characters long.'),
+  body('confirmPassword').custom((value, { req }) => {
+      if (req.body.newPassword && value !== req.body.newPassword) {
+          throw new Error('Passwords do not match.');
+      }
+      return true;
+  })
+];
+
+
 const programValidation = [
   body("name").notEmpty().trim().withMessage("Program name is required."),
   body("type")
@@ -202,6 +215,7 @@ const bookingFilterValidation = [
 module.exports = {
   handleValidationErrors,
   loginValidation,
+  accountSettingsValidation,
   programValidation,
   programPricingValidation,
   bookingValidation,

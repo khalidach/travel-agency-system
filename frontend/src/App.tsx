@@ -11,12 +11,13 @@ import { Toaster } from "react-hot-toast";
 import React, { Suspense, lazy, useMemo, useEffect } from "react";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import Layout from "./components/Layout";
 import useIdleTimeout from "./services/useIdleTimeout";
 import BookingSkeleton from "./components/skeletons/BookingSkeleton";
 
 // Lazy load the page components
-const HomePage = lazy(() => import("./pages/HomePage")); // New Home Page
+const HomePage = lazy(() => import("./pages/HomePage"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Programs = lazy(() => import("./pages/Programs"));
 const Booking = lazy(() => import("./pages/Booking"));
@@ -34,8 +35,9 @@ const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
 const RoomManage = lazy(() => import("./pages/RoomManage"));
 const Facturation = lazy(() => import("./pages/Facturation"));
 const Settings = lazy(() => import("./pages/Settings"));
-const DailyServices = lazy(() => import("./pages/DailyServices")); // New
-const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport")); // New
+const DailyServices = lazy(() => import("./pages/DailyServices"));
+const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings")); // New Page
 
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
@@ -54,7 +56,7 @@ function AppRoutes() {
     if (user.tierId) {
       return user.tierId !== 1;
     }
-    return false; // Default to no access if no information is available.
+    return false;
   }, [user]);
 
   const hasDailyServiceAccess = useMemo(() => {
@@ -110,6 +112,10 @@ function AppRoutes() {
                       <>
                         <Route path="/owner" element={<OwnerPage />} />
                         <Route path="/tiers" element={<TiersPage />} />
+                        <Route
+                          path="/account-settings"
+                          element={<AccountSettings />}
+                        />
                         <Route
                           path="*"
                           element={<Navigate to="/owner" replace />}
@@ -200,6 +206,10 @@ function AppRoutes() {
                           </>
                         )}
                         <Route
+                          path="/account-settings"
+                          element={<AccountSettings />}
+                        />
+                        <Route
                           path="*"
                           element={<Navigate to="/dashboard" replace />}
                         />
@@ -218,9 +228,6 @@ function AppRoutes() {
 
 function App() {
   useEffect(() => {
-    // This code runs once when the app starts. It automatically removes old
-    // 'user' items from both localStorage and sessionStorage to prevent
-    // conflicts with the new httpOnly cookie system after the migration.
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
   }, []);
@@ -228,10 +235,12 @@ function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
-        <Toaster position="bottom-right" />
+        <ThemeProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+          <Toaster position="bottom-right" />
+        </ThemeProvider>
       </AuthProvider>
     </I18nextProvider>
   );

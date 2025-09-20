@@ -239,15 +239,19 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white shadow-xl border-r border-gray-100 flex flex-col">
-      <div className="p-6 border-b border-gray-100">
+    <div className="w-64 bg-white dark:bg-gray-800 shadow-xl border-r border-gray-100 dark:border-gray-700 flex flex-col">
+      <div className="p-6 border-b border-gray-100 dark:border-gray-700">
         <div className="flex items-center gap-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
             <Plane className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">TravelPro</h1>
-            <p className="text-sm text-gray-500">Management System</p>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+              TravelPro
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Management System
+            </p>
           </div>
         </div>
       </div>
@@ -267,7 +271,7 @@ export default function Sidebar() {
                     className={`group flex items-center justify-between w-full px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                       isParentActive && !isOpen && !item.isDisabled
                         ? "bg-blue-50 text-blue-700 shadow-sm"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        : "text-gray-600 dark:text-gray-100 dark:hover:text-gray-900  hover:bg-gray-50 hover:text-gray-900"
                     } ${
                       item.isDisabled ? "cursor-not-allowed opacity-60" : ""
                     }`}
@@ -300,7 +304,7 @@ export default function Sidebar() {
                               className={`relative group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                                 isChildActive && !child.isDisabled
                                   ? "text-blue-700 bg-blue-50"
-                                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                                  : "text-gray-500 dark:text-gray-100 hover:text-gray-900 dark:hover:text-gray-900 hover:bg-gray-50"
                               } ${
                                 child.isDisabled
                                   ? "cursor-not-allowed opacity-60"
@@ -332,7 +336,7 @@ export default function Sidebar() {
                   className={`group flex items-center px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     isActive && !item.isDisabled
                       ? "bg-blue-50 text-blue-700 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      : "text-gray-600 dark:text-gray-100 hover:bg-gray-50 hover:text-gray-900 dark:hover:text-gray-900"
                   } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <MenuItemContent item={item} isActive={isActive} />
