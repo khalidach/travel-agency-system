@@ -39,6 +39,12 @@ router.put(
   handleValidationErrors,
   employeeController.updateEmployee
 );
+router.put(
+  "/:id/status",
+  idValidation,
+  handleValidationErrors,
+  employeeController.toggleEmployeeStatus
+);
 router.delete(
   "/:id",
   idValidation,

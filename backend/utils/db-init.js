@@ -38,8 +38,20 @@ const applyDatabaseMigrations = async (client) => {
         username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) NOT NULL,
-        "adminId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+        "adminId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        active BOOLEAN DEFAULT TRUE
       );
+    `);
+
+    // Add 'active' column if it doesn't exist for existing installations
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='active') THEN
+          ALTER TABLE employees ADD COLUMN active BOOLEAN DEFAULT TRUE;
+        END IF;
+      END;
+      $$;
     `);
 
     // Modified programs table

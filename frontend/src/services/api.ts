@@ -303,6 +303,11 @@ export const updateEmployee = (id: number, employeeData: any) =>
   });
 export const deleteEmployee = (id: number) =>
   request(`/employees/${id}`, { method: "DELETE" });
+export const toggleEmployeeStatus = (id: number, active: boolean) =>
+  request(`/employees/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({ active }),
+  });
 
 export const getEmployeeAnalysis = (username: string) => {
   return request(`/employees/${username}/analysis`);

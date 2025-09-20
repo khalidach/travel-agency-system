@@ -79,6 +79,11 @@ const loginUser = async (req, res, next) => {
 
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
+      if (employee.active === false) {
+        return next(
+          new AppError("This employee account has been deactivated.", 401)
+        );
+      }
       const adminResult = await req.db.query(
         `SELECT u."agencyName", u."activeUser", u."tierId", u.limits, t.limits as "tierLimits"
          FROM users u

@@ -46,7 +46,7 @@ exports.getEmployees = async (req, res, next) => {
       );
     }
     const employeesQuery = `
-      SELECT e.id, e.username, e.role, COUNT(b.id) as "bookingCount"
+      SELECT e.id, e.username, e.role, e.active, COUNT(b.id) as "bookingCount"
       FROM employees e
       LEFT JOIN bookings b ON e.id = b."employeeId"
       WHERE e."adminId" = $1
@@ -418,5 +418,40 @@ exports.deleteEmployee = async (req, res, next) => {
     next(new AppError("Failed to delete employee.", 500));
   } finally {
     client.release();
+  }
+};
+
+exports.toggleEmployeeStatus = async (req, res, next) => {
+  try {
+    if (req.user.role !== "admin") {
+      return next(
+        new AppError("You are not authorized to perform this action.", 403)
+      );
+    }
+    const { id } = req.params;
+    const { active } = req.body;
+
+    if (typeof active !== "boolean") {
+      return next(
+        new AppError("Invalid 'active' value. Must be a boolean.", 400)
+      );
+    }
+
+    const { rows } = await req.db.query(
+      `UPDATE employees SET active = $1 WHERE id = $2 AND "adminId" = $3 RETURNING id, username, role, active`,
+      [active, id, req.user.id]
+    );
+
+    if (rows.length === 0) {
+      return next(new AppError("Employee not found or not authorized.", 404));
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    logger.error("Toggle Employee Status Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to update employee status.", 500));
   }
 };

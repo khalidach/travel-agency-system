@@ -81,6 +81,7 @@ export interface Employee {
   username: string;
   role: "manager" | "employee";
   adminId: number;
+  active?: boolean;
 }
 
 export interface CityData {

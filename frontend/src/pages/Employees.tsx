@@ -125,7 +125,7 @@ export default function EmployeesPage() {
   const { mutate: createEmployee } = useMutation({
     mutationFn: (data: Partial<Employee>) => api.createEmployee(data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee created successfully!");
       setIsFormModalOpen(false);
     },
@@ -138,7 +138,7 @@ export default function EmployeesPage() {
     mutationFn: (data: Partial<Employee>) =>
       api.updateEmployee(editingEmployee!.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee updated successfully!");
       setIsFormModalOpen(false);
     },
@@ -148,11 +148,26 @@ export default function EmployeesPage() {
   const { mutate: deleteEmployee } = useMutation({
     mutationFn: (id: number) => api.deleteEmployee(id),
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee deleted successfully!");
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const { mutate: toggleStatus } = useMutation({
+    mutationFn: (data: { id: number; active: boolean }) =>
+      api.toggleEmployeeStatus(data.id, data.active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
+      toast.success("Employee status updated successfully!");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const handleToggleStatus = (e: React.ChangeEvent, employee: Employee) => {
+    e.stopPropagation(); // Prevent navigation when clicking the toggle
+    toggleStatus({ id: employee.id, active: !employee.active });
+  };
 
   const handleSave = (data: Partial<Employee>) => {
     if (editingEmployee) {
@@ -183,6 +198,8 @@ export default function EmployeesPage() {
     if (employeeToDelete) {
       deleteEmployee(employeeToDelete);
     }
+    setIsDeleteModalOpen(false);
+    setEmployeeToDelete(null);
   };
 
   return (
@@ -252,6 +269,15 @@ export default function EmployeesPage() {
                     : "text-left"
                 }`}
               >
+                {t("status")}
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
                 {t("actions")}
               </th>
             </tr>
@@ -259,7 +285,7 @@ export default function EmployeesPage() {
           <tbody className="bg-white divide-y divide-gray-200">
             {isLoadingEmployees ? (
               <tr>
-                <td colSpan={4} className="text-center p-4">
+                <td colSpan={5} className="text-center p-4">
                   {t("loading")}...
                 </td>
               </tr>
@@ -304,6 +330,36 @@ export default function EmployeesPage() {
                       </span>
                     </div>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <label
+                      htmlFor={`toggle-${emp.id}`}
+                      className="flex items-center cursor-pointer"
+                      onClick={(e) => e.stopPropagation()} // Prevent row click from firing
+                    >
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          id={`toggle-${emp.id}`}
+                          className="sr-only"
+                          checked={!!emp.active}
+                          onChange={(e) => handleToggleStatus(e, emp)}
+                        />
+                        <div
+                          className={`block w-14 h-8 rounded-full ${
+                            emp.active ? "bg-green-500" : "bg-gray-300"
+                          }`}
+                        ></div>
+                        <div
+                          className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                            emp.active ? "translate-x-6" : ""
+                          }`}
+                        ></div>
+                      </div>
+                      <div className="ml-3 text-gray-700 font-medium">
+                        {emp.active ? t("active") : t("inactive")}
+                      </div>
+                    </label>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
@@ -341,7 +397,7 @@ export default function EmployeesPage() {
 
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onClose={() => setEmployeeToDelete(null)}
         onConfirm={confirmDelete}
         title={t("deleteEmployeeTitle")}
         message={t("deleteEmployeeMessage")}
