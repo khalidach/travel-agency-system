@@ -363,5 +363,21 @@
   "totalProgramCost": "Total Program Cost",
   "useCostsForProfitCalculation": "Use these costs for profit calculation",
   "calculationLocked": "Calculation Locked (uses detailed pricing)",
-  "calculationActive": "Calculation Active (uses this total cost)"
+  "calculationActive": "Calculation Active (uses this total cost)",
+  "accountSettings": "Account Settings",
+  "changeTheme": "Change Theme",
+  "theme": "Theme",
+  "light": "Light",
+  "dark": "Dark",
+  "logout": "Logout",
+  "agencyName": "Agency Name",
+  "currentPassword": "Current Password",
+  "newPassword": "New Password",
+  "confirmNewPassword": "Confirm New Password",
+  "updateAccount": "Update Account",
+  "updateAccountInfo": "Update your account information.",
+  "changePassword": "Change Password",
+  "currentPasswordRequired": "Current password is required.",
+  "passwordTooShort": "New password must be at least 6 characters.",
+  "passwordMismatch": "Passwords do not match."
 }

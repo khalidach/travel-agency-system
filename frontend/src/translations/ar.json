@@ -367,5 +367,21 @@
   "totalProgramCost": "التكلفة الإجمالية للبرنامج",
   "useCostsForProfitCalculation": "استخدام هذه التكاليف لحساب الربح",
   "calculationLocked": "الحساب مقفل (يستخدم التسعير التفصيلي)",
-  "calculationActive": "الحساب مفعل (يستخدم هذه التكلفة الإجمالية)"
+  "calculationActive": "الحساب مفعل (يستخدم هذه التكلفة الإجمالية)",
+  "accountSettings": "إعدادات الحساب",
+  "changeTheme": "تغيير المظهر",
+  "theme": "المظهر",
+  "light": "فاتح",
+  "dark": "داكن",
+  "logout": "تسجيل الخروج",
+  "agencyName": "اسم الوكالة",
+  "currentPassword": "كلمة المرور الحالية",
+  "newPassword": "كلمة المرور الجديدة",
+  "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+  "updateAccount": "تحديث الحساب",
+  "updateAccountInfo": "قم بتحديث معلومات حسابك.",
+  "changePassword": "تغيير كلمة المرور",
+  "currentPasswordRequired": "كلمة المرور الحالية مطلوبة.",
+  "passwordTooShort": "يجب أن تتكون كلمة المرور الجديدة من 6 أحرف على الأقل.",
+  "passwordMismatch": "كلمات المرور غير متطابقة."
 }

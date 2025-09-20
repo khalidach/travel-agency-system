@@ -367,5 +367,21 @@
   "totalProgramCost": "Coût total du programme",
   "useCostsForProfitCalculation": "Utiliser ces coûts pour le calcul des bénéfices",
   "calculationLocked": "Calcul verrouillé (utilise la tarification détaillée)",
-  "calculationActive": "Calcul activé (utilise ce coût total)"
+  "calculationActive": "Calcul activé (utilise ce coût total)",
+  "accountSettings": "Paramètres du compte",
+  "changeTheme": "Changer de thème",
+  "theme": "Thème",
+  "light": "Clair",
+  "dark": "Sombre",
+  "logout": "Se déconnecter",
+  "agencyName": "Nom de l'agence",
+  "currentPassword": "Mot de passe actuel",
+  "newPassword": "Nouveau mot de passe",
+  "confirmNewPassword": "Confirmer le nouveau mot de passe",
+  "updateAccount": "Mettre à jour le compte",
+  "updateAccountInfo": "Mettez à jour les informations de votre compte.",
+  "changePassword": "Changer le mot de passe",
+  "currentPasswordRequired": "Le mot de passe actuel est requis.",
+  "passwordTooShort": "Le nouveau mot de passe doit comporter au moins 6 caractères.",
+  "passwordMismatch": "Les mots de passe ne correspondent pas."
 }
