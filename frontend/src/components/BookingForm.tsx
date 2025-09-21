@@ -1,6 +1,11 @@
 // frontend/src/components/BookingForm.tsx
 import React, { useEffect, useMemo, useCallback, useState } from "react";
-import { useForm, FormProvider, FieldErrors } from "react-hook-form";
+import {
+  useForm,
+  FormProvider,
+  useFieldArray,
+  FieldErrors,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -22,22 +27,48 @@ import ClientInfoFields from "./booking/ClientInfoFields";
 import ProgramPackageSelection from "./booking/ProgramPackageSelection";
 import RelatedPeopleManager from "./booking/RelatedPeopleManager";
 import PricingFields from "./booking/PricingFields";
+import BulkClientRow from "./booking/BulkClientRow";
+import { Plus, Users } from "lucide-react";
+
+export type ClientFormData = {
+  clientNameAr: string;
+  clientNameFr: ClientNameFr;
+  personType: "adult" | "child" | "infant";
+  phoneNumber: string;
+  passportNumber: string;
+  gender: "male" | "female";
+  dateOfBirth?: string;
+  passportExpirationDate?: string;
+  // Add optional fields for the three-part date of birth
+  dob_day?: number | string;
+  dob_month?: number | string;
+  dob_year?: number | string;
+};
 
 export type BookingFormData = Omit<
   Booking,
-  "id" | "isFullyPaid" | "remainingBalance" | "advancePayments" | "createdAt"
+  | "id"
+  | "isFullyPaid"
+  | "remainingBalance"
+  | "advancePayments"
+  | "createdAt"
+  | "clientNameAr"
+  | "clientNameFr"
+  | "personType"
+  | "phoneNumber"
+  | "passportNumber"
+  | "gender"
+  | "dateOfBirth"
+  | "passportExpirationDate"
 > & {
   createdAt: string;
-  // Add optional fields for the three-part date of birth
-  dob_day?: number;
-  dob_month?: number;
-  dob_year?: number;
+  clients: ClientFormData[];
 };
 
 interface BookingFormProps {
   booking?: Booking | null;
   programs: Program[];
-  onSave: (bookingData: BookingFormData, initialPayments: Payment[]) => void;
+  onSave: (bookingData: any, initialPayments: Payment[]) => void;
   onCancel: () => void;
   programId?: string;
 }
@@ -52,6 +83,18 @@ interface FormState {
   error: string | null;
 }
 
+const emptyClient: ClientFormData = {
+  clientNameFr: { lastName: "", firstName: "" },
+  clientNameAr: "",
+  passportNumber: "",
+  phoneNumber: "",
+  personType: "adult",
+  gender: "male",
+  dob_day: "",
+  dob_month: "",
+  dob_year: "",
+};
+
 export default function BookingForm({
   booking,
   programs,
@@ -62,20 +105,12 @@ export default function BookingForm({
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
+  const [isBulkMode, setIsBulkMode] = useState(false);
 
   const methods = useForm<BookingFormData>({
     mode: "onChange",
     defaultValues: {
-      clientNameAr: "",
-      clientNameFr: { lastName: "", firstName: "" },
-      personType: "adult",
-      phoneNumber: "",
-      passportNumber: "",
-      dateOfBirth: "",
-      passportExpirationDate: "",
-      gender: "male",
       tripId: "",
-      variationName: "",
       packageId: "",
       selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
       sellingPrice: 0,
@@ -83,10 +118,12 @@ export default function BookingForm({
       profit: 0,
       createdAt: new Date().toISOString().split("T")[0],
       relatedPersons: [],
+      clients: [emptyClient],
     },
   });
 
   const {
+    control,
     handleSubmit,
     watch,
     setValue,
@@ -94,6 +131,11 @@ export default function BookingForm({
     trigger,
     formState: { isValid },
   } = methods;
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "clients",
+  });
 
   const [formState, setFormState] = React.useState<FormState>({
     search: "",
@@ -108,29 +150,25 @@ export default function BookingForm({
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   const watchedValues = watch();
-  const {
-    selectedHotel,
-    sellingPrice,
-    basePrice,
-    personType,
-    tripId,
-    dob_day,
-    dob_month,
-    dob_year,
-  } = watchedValues;
+  const { selectedHotel, sellingPrice, basePrice, tripId, clients } =
+    watchedValues;
 
-  // Re-introduce the logic to combine the three DOB inputs into one string
+  const personType = clients?.[0]?.personType || "adult";
+  const dob_day = clients?.[0]?.dob_day;
+  const dob_month = clients?.[0]?.dob_month;
+  const dob_year = clients?.[0]?.dob_year;
+
   useEffect(() => {
     const day = dob_day ? String(dob_day).padStart(2, "0") : "";
     const month = dob_month ? String(dob_month).padStart(2, "0") : "";
     const year = dob_year || "";
 
     if (year && (!day || !month)) {
-      setValue("dateOfBirth", `XX/XX/${year}`);
+      setValue("clients.0.dateOfBirth", `XX/XX/${year}`);
     } else if (day && month && year) {
-      setValue("dateOfBirth", `${year}-${month}-${day}`);
+      setValue("clients.0.dateOfBirth", `${year}-${month}-${day}`);
     } else {
-      setValue("dateOfBirth", "");
+      setValue("clients.0.dateOfBirth", "");
     }
   }, [dob_day, dob_month, dob_year, setValue]);
 
@@ -162,7 +200,7 @@ export default function BookingForm({
   const { data: programPricing } = useQuery<ProgramPricing | null>({
     queryKey: ["programPricing", tripId],
     queryFn: () => api.getProgramPricingByProgramId(tripId!),
-    enabled: !!tripId && !formState.selectedProgram?.isCommissionBased, // Only fetch pricing for non-commission programs
+    enabled: !!tripId && !formState.selectedProgram?.isCommissionBased,
   });
 
   const handleProgramChange = useCallback(
@@ -213,6 +251,7 @@ export default function BookingForm({
   useEffect(() => {
     const initializeForm = async () => {
       if (booking) {
+        setIsBulkMode(false); // Never allow bulk mode on edit
         const program = programs.find(
           (p) => p.id.toString() === (booking.tripId || "").toString()
         );
@@ -232,7 +271,9 @@ export default function BookingForm({
           }));
         }
 
-        let day, month, year;
+        let day: number | string = "",
+          month: number | string = "",
+          year: number | string = "";
         if (booking.dateOfBirth) {
           if (booking.dateOfBirth.includes("XX/XX/")) {
             year = parseInt(booking.dateOfBirth.split("/")[2], 10);
@@ -250,26 +291,30 @@ export default function BookingForm({
           }
         }
 
-        reset({
-          ...booking,
+        const clientData: ClientFormData = {
+          clientNameAr: booking.clientNameAr,
           clientNameFr: booking.clientNameFr || { lastName: "", firstName: "" },
-          gender: booking.gender || "male", // FIX: Ensure gender has a default value
+          personType: booking.personType,
+          phoneNumber: booking.phoneNumber,
+          passportNumber: booking.passportNumber,
+          gender: booking.gender || "male",
+          dateOfBirth: booking.dateOfBirth,
+          passportExpirationDate: booking.passportExpirationDate,
           dob_day: day,
           dob_month: month,
           dob_year: year,
-          passportExpirationDate: booking.passportExpirationDate
-            ? new Date(booking.passportExpirationDate)
-                .toISOString()
-                .split("T")[0]
-            : "",
+        };
+
+        reset({
+          ...booking,
           sellingPrice: Number(booking.sellingPrice),
           basePrice: Number(booking.basePrice),
           profit: Number(booking.sellingPrice) - Number(booking.basePrice),
           createdAt: new Date(booking.createdAt).toISOString().split("T")[0],
           relatedPersons: booking.relatedPersons || [],
+          clients: [clientData],
         });
 
-        // FIX: Await trigger to ensure validation state is updated
         await trigger();
       } else if (programId) {
         handleProgramChange(programId);
@@ -280,11 +325,12 @@ export default function BookingForm({
   }, [booking, programs, reset, programId, handleProgramChange, trigger]);
 
   const calculateTotalBasePrice = useCallback((): number => {
+    const representativePersonType = clients?.[0]?.personType || "adult";
+
     if (!formState.selectedProgram || !formState.selectedVariation) {
       return 0;
     }
 
-    // --- NEW LOGIC: Branch for Commission-Based Programs ---
     if (formState.selectedProgram.isCommissionBased) {
       if (
         !formState.selectedPackage ||
@@ -292,34 +338,21 @@ export default function BookingForm({
       ) {
         return 0;
       }
-
-      const bookingPackage = formState.selectedPackage;
       const hotelCombination = selectedHotel.hotelNames.join("_");
-      const priceStructure = (bookingPackage.prices || []).find(
+      const priceStructure = (formState.selectedPackage.prices || []).find(
         (p) => p.hotelCombination === hotelCombination
       );
-
       if (!priceStructure) return 0;
-
-      const firstCityIndexWithHotel = selectedHotel.hotelNames.findIndex(
-        (h) => h
-      );
-      if (firstCityIndexWithHotel === -1) return 0;
-
-      const roomTypeName = selectedHotel.roomTypes?.[firstCityIndexWithHotel];
+      const roomTypeName = selectedHotel.roomTypes?.[0];
       if (!roomTypeName) return 0;
-
       const roomTypeDef = priceStructure.roomTypes.find(
         (rt) => rt.type === roomTypeName
       );
-
       if (!roomTypeDef || typeof roomTypeDef.purchasePrice === "undefined")
         return 0;
-
       return Math.round(Number(roomTypeDef.purchasePrice || 0));
     }
 
-    // --- Existing Logic for Regular Programs ---
     if (!programPricing) return 0;
 
     let hotelCosts = 0;
@@ -328,12 +361,10 @@ export default function BookingForm({
         const hotelName = selectedHotel.hotelNames[index];
         const roomTypeName = selectedHotel.roomTypes[index];
         if (!roomTypeName || !hotelName) return total;
-
         const roomDef = formState.selectedPriceStructure?.roomTypes.find(
           (rt) => rt.type === roomTypeName
         );
         const guests = roomDef ? roomDef.guests : 1;
-
         const hotelPricingInfo = programPricing.allHotels.find(
           (h) => h.name === hotelName && h.city === city
         );
@@ -345,7 +376,6 @@ export default function BookingForm({
             (c) => c.name === city
           );
           const nights = cityInfo ? cityInfo.nights : 0;
-
           if (pricePerNight > 0 && nights > 0 && guests > 0) {
             return total + (pricePerNight * nights) / guests;
           }
@@ -366,17 +396,15 @@ export default function BookingForm({
     }
 
     const personTypeInfo = (programPricing.personTypes || []).find(
-      (p) => p.type === personType
+      (p) => p.type === representativePersonType
     );
     const ticketPercentage = personTypeInfo
       ? personTypeInfo.ticketPercentage / 100
       : 1;
     const ticketAirline = ticketPriceForVariation * ticketPercentage;
-
     const visaFees = Number(programPricing.visaFees || 0);
     const guideFees = Number(programPricing.guideFees || 0);
     const transportFees = Number(programPricing.transportFees || 0);
-
     return Math.round(
       ticketAirline + visaFees + guideFees + transportFees + hotelCosts
     );
@@ -387,7 +415,7 @@ export default function BookingForm({
     formState.selectedPriceStructure,
     selectedHotel,
     programPricing,
-    personType,
+    clients,
   ]);
 
   useEffect(() => {
@@ -402,7 +430,7 @@ export default function BookingForm({
     personType,
     formState.selectedProgram,
     formState.selectedVariation,
-    formState.selectedPackage, // Add dependency
+    formState.selectedPackage,
     formState.selectedPriceStructure,
     calculateTotalBasePrice,
     setValue,
@@ -451,50 +479,22 @@ export default function BookingForm({
   }, []);
 
   const onSubmit = useCallback(
-    (data: any) => {
-      if (!formState.selectedProgram) {
-        setFormState((prev) => ({
-          ...prev,
-          error: "A valid program must be selected.",
-        }));
+    (data: BookingFormData) => {
+      // For single booking mode (not bulk), we need to ensure the structure is what the update expects
+      if (!isBulkMode && booking) {
+        const { clients, ...restOfData } = data;
+        const singleClientData =
+          clients && clients.length > 0 ? clients[0] : {};
+        onSave(
+          { ...singleClientData, ...restOfData },
+          booking?.advancePayments || []
+        );
         return;
       }
 
-      if (!formState.selectedVariation) {
-        setFormState((prev) => ({
-          ...prev,
-          error: "A program variation must be selected.",
-        }));
-        return;
-      }
-
-      const hasCitiesWithNights = (
-        formState.selectedVariation?.cities || []
-      ).some((c) => c.nights > 0);
-
-      if (hasPackages && !formState.selectedPackage) {
-        setFormState((prev) => ({
-          ...prev,
-          error: "A package must be selected for this program.",
-        }));
-        return;
-      }
-
-      const processedData = { ...data };
-
-      if (
-        userRole === "employee" ||
-        userRole === "manager" ||
-        userRole === "admin"
-      ) {
-        processedData.basePrice = calculateTotalBasePrice();
-        processedData.profit =
-          processedData.sellingPrice - processedData.basePrice;
-      }
-
-      onSave(processedData, booking?.advancePayments || []);
+      onSave(data, booking?.advancePayments || []);
     },
-    [formState, hasPackages, userRole, calculateTotalBasePrice, onSave, booking]
+    [onSave, booking, isBulkMode]
   );
 
   const handlePackageChange = useCallback(
@@ -532,7 +532,6 @@ export default function BookingForm({
       const newRoomTypes = [...selectedHotel.roomTypes];
 
       newHotelNames[cityIndex] = hotelName;
-      // Only reset the room type for the city where the hotel was changed.
       newRoomTypes[cityIndex] = "";
 
       setValue("selectedHotel", {
@@ -557,17 +556,11 @@ export default function BookingForm({
   );
 
   const availablePeople = useMemo(() => {
-    if (!searchResults) {
-      return [];
-    }
-
+    if (!searchResults) return [];
     const selectedIDs = new Set(
       (watchedValues.relatedPersons || []).map((p) => p.ID)
     );
-    if (booking) {
-      selectedIDs.add(booking.id);
-    }
-
+    if (booking) selectedIDs.add(booking.id);
     return searchResults.filter((b) => !selectedIDs.has(b.id));
   }, [searchResults, watchedValues.relatedPersons, booking]);
 
@@ -609,7 +602,50 @@ export default function BookingForm({
           </div>
         )}
 
-        <ClientInfoFields />
+        {!booking && (
+          <div className="flex items-center justify-end">
+            <label
+              htmlFor="bulk-mode-toggle"
+              className="flex items-center cursor-pointer"
+            >
+              <span className="mr-3 text-sm font-medium text-gray-900">
+                Ajout groupé
+              </span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  id="bulk-mode-toggle"
+                  className="sr-only"
+                  checked={isBulkMode}
+                  onChange={() => setIsBulkMode(!isBulkMode)}
+                />
+                <div className="block bg-gray-200 w-14 h-8 rounded-full"></div>
+                <div
+                  className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                    isBulkMode ? "translate-x-6 bg-blue-600" : ""
+                  }`}
+                ></div>
+              </div>
+            </label>
+          </div>
+        )}
+
+        {isBulkMode && !booking ? (
+          <div>
+            {fields.map((field, index) => (
+              <BulkClientRow key={field.id} index={index} remove={remove} />
+            ))}
+            <button
+              type="button"
+              onClick={() => append(emptyClient)}
+              className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+            >
+              <Plus className="w-4 h-4 mr-1" /> Ajouter une personne
+            </button>
+          </div>
+        ) : (
+          <ClientInfoFields />
+        )}
 
         <ProgramPackageSelection
           programs={programs}

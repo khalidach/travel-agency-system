@@ -223,49 +223,26 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   }
 }
 
-const createBooking = async (db, user, bookingData) => {
+const createBookings = async (db, user, bulkData) => {
   const client = await db.connect();
   try {
     await client.query("BEGIN");
+    const { clients, ...sharedData } = bulkData;
     const { role, id, adminId } = user;
+
+    if (!clients || clients.length === 0) {
+      throw new Error("No clients provided for booking.");
+    }
+
+    const createdBookings = [];
     const {
-      clientNameAr,
-      clientNameFr,
-      personType,
-      phoneNumber,
-      passportNumber,
-      dateOfBirth,
-      passportExpirationDate,
-      gender,
       tripId,
-      variationName,
       packageId,
       selectedHotel,
       sellingPrice,
-      advancePayments,
+      variationName,
       relatedPersons,
-    } = bookingData;
-
-    const processedClientNameFr = {
-      lastName: clientNameFr.lastName
-        ? clientNameFr.lastName.toUpperCase()
-        : "",
-      firstName: clientNameFr.firstName
-        ? clientNameFr.firstName.toUpperCase()
-        : "",
-    };
-    const processedPassportNumber = passportNumber
-      ? passportNumber.toUpperCase()
-      : "";
-
-    const existingBookingCheck = await client.query(
-      'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
-      [processedPassportNumber, tripId, adminId]
-    );
-
-    if (existingBookingCheck.rows.length > 0) {
-      throw new Error("This person is already booked for this program.");
-    }
+    } = sharedData;
 
     const programRes = await client.query(
       'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
@@ -279,68 +256,100 @@ const createBooking = async (db, user, bookingData) => {
       throw new Error("A package must be selected for this program.");
     }
 
-    const basePrice = await calculateBasePrice(
-      client,
-      adminId,
-      tripId,
-      packageId,
-      selectedHotel,
-      personType,
-      variationName
-    );
-    const profit = sellingPrice - basePrice;
-
-    const totalPaid = (advancePayments || []).reduce(
-      (sum, p) => sum + p.amount,
-      0
-    );
-    const remainingBalance = sellingPrice - totalPaid;
-    const isFullyPaid = remainingBalance <= 0;
-    const employeeId = role === "admin" ? null : id;
-
-    const { rows } = await client.query(
-      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW()) RETURNING *',
-      [
-        adminId,
-        employeeId,
+    for (const clientData of clients) {
+      const {
         clientNameAr,
-        JSON.stringify(processedClientNameFr),
+        clientNameFr,
         personType,
         phoneNumber,
-        processedPassportNumber,
-        dateOfBirth || null,
-        passportExpirationDate || null,
+        passportNumber,
+        dateOfBirth,
+        passportExpirationDate,
         gender,
+      } = clientData;
+
+      const processedClientNameFr = {
+        lastName: clientNameFr.lastName
+          ? clientNameFr.lastName.toUpperCase()
+          : "",
+        firstName: clientNameFr.firstName
+          ? clientNameFr.firstName.toUpperCase()
+          : "",
+      };
+      const processedPassportNumber = passportNumber
+        ? passportNumber.toUpperCase()
+        : "";
+
+      const existingBookingCheck = await client.query(
+        'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
+        [processedPassportNumber, tripId, adminId]
+      );
+
+      if (existingBookingCheck.rows.length > 0) {
+        throw new Error(
+          `Passport number ${processedPassportNumber} is already booked for this program.`
+        );
+      }
+
+      const basePrice = await calculateBasePrice(
+        client,
+        adminId,
         tripId,
-        variationName,
         packageId,
-        JSON.stringify(selectedHotel),
-        sellingPrice,
-        basePrice,
-        profit,
-        "[]",
-        remainingBalance,
-        isFullyPaid,
-        JSON.stringify(relatedPersons || []),
-      ]
-    );
+        selectedHotel,
+        personType,
+        variationName
+      );
+      const profit = sellingPrice - basePrice;
+      const remainingBalance = sellingPrice;
+      const isFullyPaid = remainingBalance <= 0;
+      const employeeId = role === "admin" ? null : id;
 
-    const newBooking = rows[0];
-
-    // MODIFICATION: Call auto-assignment for the newly created booking and its family members.
-    await RoomManagementService.autoAssignToRoom(
-      client,
-      user.adminId,
-      newBooking
-    );
+      const { rows } = await client.query(
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW()) RETURNING *',
+        [
+          adminId,
+          employeeId,
+          clientNameAr,
+          JSON.stringify(processedClientNameFr),
+          personType,
+          phoneNumber,
+          processedPassportNumber,
+          dateOfBirth || null,
+          passportExpirationDate || null,
+          gender,
+          tripId,
+          variationName,
+          packageId,
+          JSON.stringify(selectedHotel),
+          sellingPrice,
+          basePrice,
+          profit,
+          "[]",
+          remainingBalance,
+          isFullyPaid,
+          JSON.stringify(relatedPersons || []),
+        ]
+      );
+      const newBooking = rows[0];
+      createdBookings.push(newBooking);
+      await RoomManagementService.autoAssignToRoom(
+        client,
+        user.adminId,
+        newBooking
+      );
+    }
 
     await client.query(
-      'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
-      [tripId]
+      'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
+      [clients.length, tripId]
     );
 
     await client.query("COMMIT");
-    return newBooking;
+    return {
+      message: `${clients.length} booking(s) created successfully.`,
+      bookings: createdBookings,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
@@ -848,7 +857,7 @@ const deletePayment = async (db, user, bookingId, paymentId) => {
 module.exports = {
   calculateBasePrice,
   getAllBookings,
-  createBooking,
+  createBookings,
   updateBooking,
   deleteBooking,
   deleteMultipleBookings,

@@ -17,12 +17,11 @@ const ClientInfoFields = () => {
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: "dob_day" | "dob_month",
+    field: "clients.0.dob_day" | "clients.0.dob_month",
     maxLength: number,
     nextFieldRef?: React.RefObject<HTMLInputElement>
   ) => {
     const { value } = e.target;
-    // Allow only numeric input
     const numericValue = value.replace(/[^0-9]/g, "");
     if (numericValue.length <= maxLength) {
       setValue(field, numericValue, { shouldValidate: true });
@@ -41,7 +40,7 @@ const ClientInfoFields = () => {
           </label>
           <div className="grid grid-cols-2 gap-2">
             <Controller
-              name="clientNameFr.lastName"
+              name="clients.0.clientNameFr.lastName"
               control={control}
               rules={{ required: t("clientLastNameFrRequired") as string }}
               render={({ field }) => (
@@ -50,7 +49,7 @@ const ClientInfoFields = () => {
                   type="text"
                   placeholder="Last Name"
                   className={`w-full px-3 py-2 border rounded-lg ${
-                    get(errors, "clientNameFr.lastName")
+                    get(errors, "clients.0.clientNameFr.lastName")
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
@@ -58,7 +57,7 @@ const ClientInfoFields = () => {
               )}
             />
             <Controller
-              name="clientNameFr.firstName"
+              name="clients.0.clientNameFr.firstName"
               control={control}
               render={({ field }) => (
                 <input
@@ -66,7 +65,7 @@ const ClientInfoFields = () => {
                   type="text"
                   placeholder="First Name"
                   className={`w-full px-3 py-2 border rounded-lg ${
-                    get(errors, "clientNameFr.firstName")
+                    get(errors, "clients.0.clientNameFr.firstName")
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
@@ -74,9 +73,9 @@ const ClientInfoFields = () => {
               )}
             />
           </div>
-          {get(errors, "clientNameFr.lastName") && (
+          {get(errors, "clients.0.clientNameFr.lastName") && (
             <p className="text-red-500 text-sm mt-1">
-              {(get(errors, "clientNameFr.lastName") as any).message}
+              {(get(errors, "clients.0.clientNameFr.lastName") as any).message}
             </p>
           )}
         </div>
@@ -85,7 +84,7 @@ const ClientInfoFields = () => {
             {t("clientNameAr")}
           </label>
           <Controller
-            name="clientNameAr"
+            name="clients.0.clientNameAr"
             control={control}
             rules={{ required: t("clientNameArRequired") as string }}
             render={({ field }) => (
@@ -93,15 +92,17 @@ const ClientInfoFields = () => {
                 {...field}
                 type="text"
                 className={`w-full px-3 py-2 border rounded-lg ${
-                  errors.clientNameAr ? "border-red-500" : "border-gray-300"
+                  get(errors, "clients.0.clientNameAr")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
                 dir="rtl"
               />
             )}
           />
-          {errors.clientNameAr && (
+          {get(errors, "clients.0.clientNameAr") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.clientNameAr as any).message}
+              {(get(errors, "clients.0.clientNameAr") as any).message}
             </p>
           )}
         </div>
@@ -110,13 +111,12 @@ const ClientInfoFields = () => {
             {t("personType")}
           </label>
           <Controller
-            name="personType"
+            name="clients.0.personType"
             control={control}
             rules={{ required: t("personTypeRequired") as string }}
             render={({ field }) => (
               <select
                 {...field}
-                value={field.value || ""}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="adult">{t("adult")}</option>
@@ -125,9 +125,9 @@ const ClientInfoFields = () => {
               </select>
             )}
           />
-          {errors.personType && (
+          {get(errors, "clients.0.personType") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.personType as any).message}
+              {(get(errors, "clients.0.personType") as any).message}
             </p>
           )}
         </div>
@@ -138,7 +138,7 @@ const ClientInfoFields = () => {
             {t("passportNumber")}
           </label>
           <Controller
-            name="passportNumber"
+            name="clients.0.passportNumber"
             control={control}
             rules={{ required: t("passportNumberRequired") as string }}
             render={({ field }) => (
@@ -146,14 +146,16 @@ const ClientInfoFields = () => {
                 {...field}
                 type="text"
                 className={`w-full px-3 py-2 border rounded-lg ${
-                  errors.passportNumber ? "border-red-500" : "border-gray-300"
+                  get(errors, "clients.0.passportNumber")
+                    ? "border-red-500"
+                    : "border-gray-300"
                 }`}
               />
             )}
           />
-          {errors.passportNumber && (
+          {get(errors, "clients.0.passportNumber") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.passportNumber as any).message}
+              {(get(errors, "clients.0.passportNumber") as any).message}
             </p>
           )}
         </div>
@@ -162,7 +164,7 @@ const ClientInfoFields = () => {
             {t("phoneNumber")}
           </label>
           <Controller
-            name="phoneNumber"
+            name="clients.0.phoneNumber"
             control={control}
             render={({ field }) => (
               <input
@@ -172,9 +174,9 @@ const ClientInfoFields = () => {
               />
             )}
           />
-          {errors.phoneNumber && (
+          {get(errors, "clients.0.phoneNumber") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.phoneNumber as any).message}
+              {(get(errors, "clients.0.phoneNumber") as any).message}
             </p>
           )}
         </div>
@@ -186,7 +188,7 @@ const ClientInfoFields = () => {
           </label>
           <div className="grid grid-cols-3 gap-2">
             <Controller
-              name="dob_day"
+              name="clients.0.dob_day"
               control={control}
               rules={{
                 validate: (value) =>
@@ -195,17 +197,21 @@ const ClientInfoFields = () => {
               render={({ field }) => (
                 <input
                   {...field}
-                  onChange={(e) => handleInputChange(e, "dob_day", 2, monthRef)}
+                  onChange={(e) =>
+                    handleInputChange(e, "clients.0.dob_day", 2, monthRef)
+                  }
                   type="text"
                   placeholder={t("day") as string}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${
-                    errors.dob_day ? "border-red-500" : "border-gray-300"
+                    get(errors, "clients.0.dob_day")
+                      ? "border-red-500"
+                      : "border-gray-300"
                   }`}
                 />
               )}
             />
             <Controller
-              name="dob_month"
+              name="clients.0.dob_month"
               control={control}
               rules={{
                 validate: (value) =>
@@ -216,18 +222,20 @@ const ClientInfoFields = () => {
                   {...field}
                   ref={monthRef}
                   onChange={(e) =>
-                    handleInputChange(e, "dob_month", 2, yearRef)
+                    handleInputChange(e, "clients.0.dob_month", 2, yearRef)
                   }
                   type="text"
                   placeholder={t("month") as string}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${
-                    errors.dob_month ? "border-red-500" : "border-gray-300"
+                    get(errors, "clients.0.dob_month")
+                      ? "border-red-500"
+                      : "border-gray-300"
                   }`}
                 />
               )}
             />
             <Controller
-              name="dob_year"
+              name="clients.0.dob_year"
               control={control}
               rules={{
                 min: { value: 1900, message: "Invalid year" },
@@ -246,29 +254,33 @@ const ClientInfoFields = () => {
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, "");
                     if (value.length <= 4) {
-                      setValue("dob_year", value, { shouldValidate: true });
+                      setValue("clients.0.dob_year", value, {
+                        shouldValidate: true,
+                      });
                     }
                   }}
                   className={`w-full px-2 py-2 border rounded-lg text-center ${
-                    errors.dob_year ? "border-red-500" : "border-gray-300"
+                    get(errors, "clients.0.dob_year")
+                      ? "border-red-500"
+                      : "border-gray-300"
                   }`}
                 />
               )}
             />
           </div>
-          {errors.dob_day && (
+          {get(errors, "clients.0.dob_day") && (
             <p className="text-red-500 text-xs mt-1">
-              {(errors.dob_day as any).message}
+              {(get(errors, "clients.0.dob_day") as any).message}
             </p>
           )}
-          {errors.dob_month && (
+          {get(errors, "clients.0.dob_month") && (
             <p className="text-red-500 text-xs mt-1">
-              {(errors.dob_month as any).message}
+              {(get(errors, "clients.0.dob_month") as any).message}
             </p>
           )}
-          {errors.dob_year && (
+          {get(errors, "clients.0.dob_year") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.dob_year as any).message}
+              {(get(errors, "clients.0.dob_year") as any).message}
             </p>
           )}
         </div>
@@ -278,7 +290,7 @@ const ClientInfoFields = () => {
           </label>
           <div className="relative">
             <Controller
-              name="passportExpirationDate"
+              name="clients.0.passportExpirationDate"
               control={control}
               render={({ field }) => (
                 <input
@@ -297,13 +309,12 @@ const ClientInfoFields = () => {
             {t("gender")}
           </label>
           <Controller
-            name="gender"
+            name="clients.0.gender"
             control={control}
             rules={{ required: t("genderRequired") as string }}
             render={({ field }) => (
               <select
                 {...field}
-                value={field.value || "male"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               >
                 <option value="male">{t("male")}</option>
@@ -311,9 +322,9 @@ const ClientInfoFields = () => {
               </select>
             )}
           />
-          {errors.gender && (
+          {get(errors, "clients.0.gender") && (
             <p className="text-red-500 text-sm mt-1">
-              {(errors.gender as any).message}
+              {(get(errors, "clients.0.gender") as any).message}
             </p>
           )}
         </div>

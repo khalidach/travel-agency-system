@@ -26,7 +26,7 @@ const getLimits = async (req) => {
         bookingsPerMonth: 0,
         programsPerMonth: 0,
         programPricingsPerMonth: 0,
-        programCosts: false, // تم التغيير
+        programCosts: false,
         employees: 0,
         invoicing: false,
         facturesPerMonth: 0,
@@ -63,16 +63,30 @@ const checkLimit = async (req, res, next, resource) => {
       return next();
     }
 
+    // Determine the number of new items being created from the request
+    let itemsBeingAdded = 1; // Default to 1 for single-item creation
+    if (
+      resource.table === "bookings" &&
+      req.body.clients &&
+      Array.isArray(req.body.clients)
+    ) {
+      itemsBeingAdded = req.body.clients.length;
+    }
+
+    if (itemsBeingAdded === 0) {
+      return next(); // No items to add, so no need to check the limit
+    }
+
     if (resource.limitKey === "employees") {
       const { rows: countRows } = await req.db.query(
         `SELECT COUNT(*) FROM employees WHERE "adminId" = $1`,
         [adminId]
       );
       const currentCount = parseInt(countRows[0].count, 10);
-      if (currentCount >= limit) {
+      if (currentCount + itemsBeingAdded > limit) {
         return res
           .status(403)
-          .json({ message: `Limit of ${limit} employees reached.` });
+          .json({ message: `Limit of ${limit} employees would be exceeded.` });
       }
     } else {
       // Monthly limits for other resources
@@ -81,9 +95,9 @@ const checkLimit = async (req, res, next, resource) => {
         [adminId]
       );
       const currentCount = parseInt(countRows[0].count, 10);
-      if (currentCount >= limit) {
+      if (currentCount + itemsBeingAdded > limit) {
         return res.status(403).json({
-          message: `Monthly limit of ${limit} ${resource.name} reached.`,
+          message: `Cannot add ${itemsBeingAdded} ${resource.name}. Monthly limit of ${limit} would be exceeded.`,
         });
       }
     }

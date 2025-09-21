@@ -351,14 +351,14 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
 
 exports.createBooking = async (req, res, next) => {
   try {
-    const newBooking = await BookingService.createBooking(
+    const result = await BookingService.createBookings(
       req.db,
       req.user,
       req.body
     );
-    res.status(201).json(newBooking);
+    res.status(201).json(result);
   } catch (error) {
-    logger.error("Create Booking Error:", {
+    logger.error("Create Booking(s) Error:", {
       message: error.message,
       stack: error.stack,
       body: req.body,
@@ -366,7 +366,7 @@ exports.createBooking = async (req, res, next) => {
     if (error.message.includes("already booked")) {
       return next(new AppError(error.message, 409)); // 409 Conflict
     }
-    next(new AppError("Failed to create booking.", 400));
+    next(new AppError("Failed to create booking(s).", 400));
   }
 };
 

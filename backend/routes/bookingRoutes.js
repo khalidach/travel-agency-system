@@ -24,6 +24,7 @@ const {
   handleValidationErrors,
   idValidation,
   bookingFilterValidation,
+  bookingUpdateValidation,
 } = require("../middleware/validationMiddleware");
 const {
   checkBookingLimit,
@@ -62,7 +63,7 @@ router.post(
 router.put(
   "/:id",
   idValidation,
-  bookingValidation,
+  bookingUpdateValidation,
   handleValidationErrors,
   updateBooking
 );

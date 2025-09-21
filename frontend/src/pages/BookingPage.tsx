@@ -186,17 +186,10 @@ export default function BookingPage() {
   };
 
   const { mutate: createBooking } = useMutation({
-    mutationFn: (data: {
-      bookingData: BookingFormData;
-      initialPayments: Payment[];
-    }) =>
-      api.createBooking({
-        ...data.bookingData,
-        advancePayments: data.initialPayments,
-      }),
-    onSuccess: () => {
+    mutationFn: (data: any) => api.createBooking(data),
+    onSuccess: (result) => {
       invalidateAllQueries();
-      toast.success("Booking created!");
+      toast.success(result.message || "Booking created!");
       closeBookingModal();
     },
     onError: (error: Error) =>
@@ -206,7 +199,7 @@ export default function BookingPage() {
   const { mutate: updateBooking } = useMutation({
     mutationFn: (data: {
       bookingId: number;
-      bookingData: BookingFormData;
+      bookingData: any;
       initialPayments: Payment[];
     }) =>
       api.updateBooking(data.bookingId, {
@@ -304,18 +297,17 @@ export default function BookingPage() {
     pageSize: bookingsPerPage,
   });
 
-  const handleSaveBooking = (
-    bookingData: BookingFormData,
-    initialPayments: Payment[]
-  ) => {
+  const handleSaveBooking = (bookingData: any, initialPayments: Payment[]) => {
     if (editingBooking) {
+      const { clients, ...restOfData } = bookingData;
+      const singleClientData = clients && clients.length > 0 ? clients[0] : {};
       updateBooking({
         bookingId: editingBooking.id,
-        bookingData,
+        bookingData: { ...singleClientData, ...restOfData },
         initialPayments,
       });
     } else {
-      createBooking({ bookingData, initialPayments });
+      createBooking(bookingData);
     }
   };
 
