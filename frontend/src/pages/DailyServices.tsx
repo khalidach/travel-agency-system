@@ -194,7 +194,7 @@ const DailyServiceForm = ({
 
 // Main Page Component
 export default function DailyServices() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { state: authState } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -338,7 +338,9 @@ export default function DailyServices() {
               ].map((h) => (
                 <th
                   key={h}
-                  className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className={`px-6 py-4 ${
+                    i18n.language === "ar" ? "text-right" : "text-left"
+                  } text-xs font-medium text-gray-500 uppercase tracking-wider`}
                 >
                   {t(h)}
                 </th>
