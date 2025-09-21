@@ -2,14 +2,23 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2, ConciergeBell } from "lucide-react";
+import { Plus, Edit2, Trash2, ConciergeBell, Download } from "lucide-react";
 import * as api from "../services/api";
-import { DailyService, PaginatedResponse } from "../context/models";
+import {
+  DailyService,
+  PaginatedResponse,
+  FacturationSettings,
+  User,
+} from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/booking/PaginationControls";
 import { usePagination } from "../hooks/usePagination";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
+import { useAuthContext } from "../context/AuthContext";
 
 // Form Component
 const DailyServiceForm = ({
@@ -187,11 +196,15 @@ const DailyServiceForm = ({
 export default function DailyServices() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { state: authState } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<DailyService | null>(
     null
   );
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+  const [serviceToPreview, setServiceToPreview] = useState<DailyService | null>(
+    null
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const servicesPerPage = 10;
 
@@ -201,6 +214,12 @@ export default function DailyServices() {
     queryKey: ["dailyServices", currentPage],
     queryFn: () => api.getDailyServices(currentPage, servicesPerPage),
     placeholderData: (prev) => prev,
+  });
+
+  const { data: settings } = useQuery<FacturationSettings>({
+    queryKey: ["settings"],
+    queryFn: api.getSettings,
+    staleTime: Infinity,
   });
 
   const services = servicesResponse?.data ?? [];
@@ -256,6 +275,29 @@ export default function DailyServices() {
       updateService({ ...editingService, ...data });
     } else {
       createService(data);
+    }
+  };
+
+  const handleDownloadReceipt = async (service: DailyService) => {
+    setServiceToPreview(service);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const input = document.getElementById("service-receipt-pdf-preview");
+    if (input) {
+      const receiptFilename = `Receipt_${service.serviceName.replace(
+        /\s/g,
+        "_"
+      )}.pdf`;
+      html2canvas(input, { scale: 2 }).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a5");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save(receiptFilename);
+        setServiceToPreview(null);
+      });
     }
   };
 
@@ -349,6 +391,13 @@ export default function DailyServices() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
                       <button
+                        onClick={() => handleDownloadReceipt(service)}
+                        className="p-2 text-gray-400 hover:text-green-600"
+                        title={t("downloadReceipt") as string}
+                      >
+                        <Download className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => {
                           setEditingService(service);
                           setIsModalOpen(true);
@@ -401,6 +450,18 @@ export default function DailyServices() {
         title={t("deleteServiceTitle")}
         message={t("deleteServiceMessage")}
       />
+
+      {serviceToPreview && (
+        <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
+          <div id="service-receipt-pdf-preview">
+            <ServiceReceiptPDF
+              service={serviceToPreview}
+              settings={settings}
+              user={authState.user}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
