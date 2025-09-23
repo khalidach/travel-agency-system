@@ -22,16 +22,18 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
   };
 
   return (
-    <div className="grid grid-cols-12 gap-3 items-start p-3 border-b">
+    <div className="grid grid-cols-12 gap-3 items-start p-3 border-b dark:border-gray-700">
       {/* Index */}
       <div className="col-span-12 md:col-span-1 flex items-center pt-2">
-        <span className="text-gray-500 font-semibold">{index + 1}.</span>
+        <span className="text-gray-500 dark:text-gray-400 font-semibold">
+          {index + 1}.
+        </span>
       </div>
 
       {/* Client Info */}
       <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("clientNameFr")}
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -44,10 +46,10 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                   {...field}
                   type="text"
                   placeholder="Last Name"
-                  className={`w-full px-2 py-1.5 border rounded-md text-sm ${
+                  className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
                     getError("clientNameFr.lastName")
                       ? "border-red-500"
-                      : "border-gray-300"
+                      : "border-gray-300 dark:border-gray-600"
                   }`}
                 />
               )}
@@ -60,14 +62,14 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                   {...field}
                   type="text"
                   placeholder="First Name"
-                  className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                  className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
                 />
               )}
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("clientNameAr")}
           </label>
           <Controller
@@ -78,10 +80,10 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               <input
                 {...field}
                 type="text"
-                className={`w-full px-2 py-1.5 border rounded-md text-sm ${
+                className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
                   getError("clientNameAr")
                     ? "border-red-500"
-                    : "border-gray-300"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
                 dir="rtl"
               />
@@ -89,7 +91,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("passportNumber")}
           </label>
           <Controller
@@ -100,17 +102,17 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               <input
                 {...field}
                 type="text"
-                className={`w-full px-2 py-1.5 border rounded-md text-sm ${
+                className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
                   getError("passportNumber")
                     ? "border-red-500"
-                    : "border-gray-300"
+                    : "border-gray-300 dark:border-gray-600"
                 }`}
               />
             )}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("phoneNumber")}
           </label>
           <Controller
@@ -120,13 +122,13 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               <input
                 {...field}
                 type="tel"
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
               />
             )}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("personType")}
           </label>
           <Controller
@@ -136,7 +138,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             render={({ field }) => (
               <select
                 {...field}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="adult">{t("adult")}</option>
                 <option value="child">{t("child")}</option>
@@ -146,7 +148,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("gender")}
           </label>
           <Controller
@@ -156,7 +158,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             render={({ field }) => (
               <select
                 {...field}
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-sm"
+                className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="male">{t("male")}</option>
                 <option value="female">{t("female")}</option>
@@ -171,7 +173,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
         <button
           type="button"
           onClick={() => remove(index)}
-          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+          className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
         >
           <Trash2 className="w-4 h-4" />
         </button>
