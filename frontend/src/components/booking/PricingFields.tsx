@@ -24,7 +24,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
       } gap-4`}
     >
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("sellingPrice")} ({t("mad")})
         </label>
         <Controller
@@ -42,14 +42,14 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
                 field.onChange(e.target.value);
                 handleSellingPriceChange(Number(e.target.value));
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               min="0"
               step="0.01"
             />
           )}
         />
         {errors.sellingPrice && (
-          <p className="text-red-500 text-sm mt-1">
+          <p className="text-red-500 dark:text-red-400 text-sm mt-1">
             {(errors.sellingPrice as any).message}
           </p>
         )}
@@ -58,7 +58,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
       {userRole === "admin" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("basePrice")} ({t("mad")})
             </label>
             <Controller
@@ -68,14 +68,14 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
                 <input
                   {...field}
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   readOnly
                 />
               )}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("profit")} ({t("mad")})
             </label>
             <Controller
@@ -85,7 +85,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
                 <input
                   {...field}
                   type="number"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   readOnly
                 />
               )}

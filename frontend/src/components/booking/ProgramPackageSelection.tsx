@@ -34,7 +34,7 @@ const ProgramPackageSelection = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("travelProgram")}
         </label>
         <Controller
@@ -48,7 +48,7 @@ const ProgramPackageSelection = ({
                 field.onChange(e);
                 handleProgramChange(e.target.value);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               disabled={!!programId || !booking}
             >
               <option value="">{t("selectAProgram")}</option>
@@ -61,13 +61,13 @@ const ProgramPackageSelection = ({
           )}
         />
         {errors.tripId && (
-          <p className="text-red-500 text-sm mt-1">
+          <p className="text-red-500 dark:text-red-400 text-sm mt-1">
             {(errors.tripId as any).message}
           </p>
         )}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Variation
         </label>
         <Controller
@@ -81,7 +81,7 @@ const ProgramPackageSelection = ({
                 field.onChange(e);
                 handleVariationChange(e.target.value);
               }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               disabled={!selectedProgram}
             >
               <option value="">Select a variation</option>
@@ -94,14 +94,14 @@ const ProgramPackageSelection = ({
           )}
         />
         {errors.variationName && (
-          <p className="text-red-500 text-sm mt-1">
+          <p className="text-red-500 dark:text-red-400 text-sm mt-1">
             {(errors.variationName as any).message}
           </p>
         )}
       </div>
       {hasPackages && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {t("package")}
           </label>
           <Controller
@@ -117,7 +117,7 @@ const ProgramPackageSelection = ({
                   field.onChange(e);
                   handlePackageChange(e.target.value);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 disabled={!selectedProgram}
               >
                 <option value="">{t("selectAPackage")}</option>
@@ -130,7 +130,7 @@ const ProgramPackageSelection = ({
             )}
           />
           {errors.packageId && (
-            <p className="text-red-500 text-sm mt-1">
+            <p className="text-red-500 dark:text-red-400 text-sm mt-1">
               {(errors.packageId as any).message}
             </p>
           )}
