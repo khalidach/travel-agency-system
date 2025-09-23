@@ -35,13 +35,13 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
       title: t("totalPaid"),
       value: stats.totalPaid,
       unit: t("mad"),
-      color: "text-blue-600",
+      color: "text-blue-600 dark:text-blue-400",
     },
     {
       title: t("totalRemaining"),
       value: stats.totalRemaining,
       unit: t("mad"),
-      color: "text-orange-600",
+      color: "text-orange-600 dark:text-orange-400",
     },
   ];
 
@@ -60,7 +60,7 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
         title: t("totalProfit"),
         value: stats.totalProfit,
         unit: t("mad"),
-        color: "text-emerald-600",
+        color: "text-emerald-600 dark:text-emerald-400",
       }
     );
   }
@@ -76,11 +76,16 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
       className={`grid grid-cols-2 md:grid-cols-3 ${gridLayoutClass} gap-4 text-center`}
     >
       {allCards.map((card, index) => (
-        <div key={index} className="bg-white p-4 rounded-xl shadow-sm border">
-          <p className="text-sm font-medium text-gray-500">{card.title}</p>
+        <div
+          key={index}
+          className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700"
+        >
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+            {card.title}
+          </p>
           <p
             className={`text-2xl font-bold mt-1 ${
-              card.color || "text-gray-900"
+              card.color || "text-gray-900 dark:text-gray-100"
             }`}
           >
             {typeof card.value === "number"

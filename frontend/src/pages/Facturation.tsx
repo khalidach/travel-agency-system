@@ -122,10 +122,12 @@ export default function Facturation() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("facturationTitle")}
           </h1>
-          <p className="text-gray-600 mt-2">{t("facturationSubtitle")}</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {t("facturationSubtitle")}
+          </p>
         </div>
         <button
           onClick={handleNewDocumentClick}
@@ -140,67 +142,32 @@ export default function Facturation() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                N°
-              </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {t("documentType")}
-              </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {t("clientName")}
-              </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {t("documentDate")}
-              </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {t("total")}
-              </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                {t("actions")}
-              </th>
+              {[
+                "N°",
+                "documentType",
+                "clientName",
+                "documentDate",
+                "total",
+                "actions",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                    document.documentElement.dir === "rtl"
+                      ? "text-right"
+                      : "text-left"
+                  }`}
+                >
+                  {t(h)}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="text-center p-4">
@@ -210,38 +177,41 @@ export default function Facturation() {
             ) : factures.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center p-12">
-                  <FileText className="w-12 h-12 mx-auto text-gray-300" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  <FileText className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
                     {t("noDocuments")}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     {t("createFirstDocument")}
                   </p>
                 </td>
               </tr>
             ) : (
               factures.map((facture) => (
-                <tr key={facture.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <tr
+                  key={facture.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     {facture.facture_number}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm capitalize">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm capitalize text-gray-700 dark:text-gray-300">
                     {t(facture.type)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {facture.clientName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {new Date(facture.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {facture.total.toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleDownloadPDF(facture)}
-                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Download className="w-4 h-4" />
                       </button>
@@ -250,13 +220,13 @@ export default function Facturation() {
                           setEditingFacture(facture);
                           setIsModalOpen(true);
                         }}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setFactureToDelete(facture.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

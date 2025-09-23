@@ -17,10 +17,12 @@ import { Link } from "react-router-dom";
 import type { Booking, DashboardStats } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { useAuthContext } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const { state } = useAuthContext();
+  const { theme } = useTheme();
   const userRole = state.user?.role;
 
   const [dateFilter, setDateFilter] = useState("month");
@@ -221,8 +223,12 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{t("dashboard")}</h1>
-        <p className="text-gray-600 mt-2">{t("dashboardSubtitle")}</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {t("dashboard")}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 mt-2">
+          {t("dashboardSubtitle")}
+        </p>
       </div>
 
       <div
@@ -237,14 +243,14 @@ export default function Dashboard() {
           return (
             <div
               key={index}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200"
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
                     {stat.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
                     {stat.value}
                   </p>
                 </div>
@@ -260,16 +266,16 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="pb-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center flex-wrap gap-2">
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter("today")}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateFilter === "today"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   {t("today")}
@@ -278,8 +284,8 @@ export default function Dashboard() {
                   onClick={() => setDateFilter("7days")}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateFilter === "7days"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   {t("last7Days")}
@@ -288,8 +294,8 @@ export default function Dashboard() {
                   onClick={() => setDateFilter("month")}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateFilter === "month"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   {t("last30Days")}
@@ -298,8 +304,8 @@ export default function Dashboard() {
                   onClick={() => setDateFilter("year")}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateFilter === "year"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   {t("lastYear")}
@@ -308,8 +314,8 @@ export default function Dashboard() {
                   onClick={() => setDateFilter("custom")}
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     dateFilter === "custom"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                   }`}
                 >
                   {t("customRange")}
@@ -327,9 +333,9 @@ export default function Dashboard() {
                       start: e.target.value,
                     })
                   }
-                  className="px-3 py-1 border border-gray-300 rounded-lg"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
                 />
-                <span>to</span>
+                <span className="dark:text-gray-400">to</span>
                 <input
                   type="date"
                   value={customDateRange.end}
@@ -339,7 +345,7 @@ export default function Dashboard() {
                       end: e.target.value,
                     })
                   }
-                  className="px-3 py-1 border border-gray-300 rounded-lg"
+                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
                 />
               </div>
             )}
@@ -352,12 +358,12 @@ export default function Dashboard() {
               ).map((metric) => (
                 <tr
                   key={metric.title}
-                  className="border-b last:border-b-0 border-gray-100"
+                  className="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
                 >
-                  <td className="py-3 text-base font-medium text-gray-600">
+                  <td className="py-3 text-base font-medium text-gray-600 dark:text-gray-400">
                     {metric.title}
                   </td>
-                  <td className="py-3 text-2xl font-bold text-gray-900 text-right">
+                  <td className="py-3 text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
                     {metric.value}
                   </td>
                 </tr>
@@ -366,8 +372,8 @@ export default function Dashboard() {
           </table>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
             {t("profitByServiceType")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -393,6 +399,10 @@ export default function Dashboard() {
                 formatter={(value: number) =>
                   `${value.toLocaleString()} ${t("mad")}`
                 }
+                contentStyle={{
+                  backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
+                  borderColor: theme === "dark" ? "#4b5563" : "#e5e7eb",
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -405,7 +415,9 @@ export default function Dashboard() {
                   }`}
                   style={{ backgroundColor: COLORS[index % COLORS.length] }}
                 ></div>
-                <span className="text-sm text-gray-600">{item.name}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {item.name}
+                </span>
               </div>
             ))}
           </div>
@@ -413,48 +425,48 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             {t("quickActions")}
           </h3>
           <div className="space-y-3">
             <Link
               to="/booking"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+              className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
                 document.documentElement.dir === "rtl"
                   ? "text-right"
                   : "text-left"
               }`}
             >
               <Calendar className="w-5 h-5 text-blue-500 mx-3" />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t("newBooking")}
               </span>
             </Link>
             <Link
               to="/programs"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+              className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
                 document.documentElement.dir === "rtl"
                   ? "text-right"
                   : "text-left"
               }`}
             >
               <Package className="w-5 h-5 text-emerald-500 mx-3" />
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {t("addProgram")}
               </span>
             </Link>
             {(userRole === "admin" || userRole === "manager") && (
               <Link
                 to="/profit-report"
-                className={`w-full flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors ${
+                className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
                 }`}
               >
                 <TrendingUp className="w-5 h-5 text-orange-500 mx-3" />
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {t("viewReports")}
                 </span>
               </Link>
@@ -462,8 +474,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             {t("paymentStatus")}
           </h3>
           <div className="space-y-4">
@@ -474,9 +486,11 @@ export default function Dashboard() {
                     document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                   }`}
                 />
-                <span className="text-sm text-gray-600">{t("fullyPaid")}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {t("fullyPaid")}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {fullyPaidBookings}
               </span>
             </div>
@@ -487,30 +501,32 @@ export default function Dashboard() {
                     document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                   }`}
                 />
-                <span className="text-sm text-gray-600">{t("pending")}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {t("pending")}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                 {pendingPayments}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
             {t("recentBookings")}
           </h3>
           <div className="space-y-3">
             {recentBookings.map((booking: Booking) => (
               <div
                 key={booking.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {`${booking.clientNameFr.lastName} ${booking.clientNameFr.firstName} `.trim()}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {booking.passportNumber}
                   </p>
                 </div>
@@ -521,14 +537,14 @@ export default function Dashboard() {
                       : "text-right"
                   }`}
                 >
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
                   </p>
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
                       booking.isFullyPaid
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-orange-100 text-orange-700"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
                     }`}
                   >
                     {booking.isFullyPaid ? t("paid") : t("pending")}

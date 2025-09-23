@@ -38,7 +38,7 @@ const EmployeeForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {t("username")}
         </label>
         <input
@@ -47,12 +47,12 @@ const EmployeeForm = ({
           onChange={(e) =>
             setFormData({ ...formData, username: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
           required
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Password {employee ? "(leave blank to keep unchanged)" : ""}
         </label>
         <input
@@ -61,11 +61,11 @@ const EmployeeForm = ({
           onChange={(e) =>
             setFormData({ ...formData, password: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {t("role")}
         </label>
         <select
@@ -76,7 +76,7 @@ const EmployeeForm = ({
               role: e.target.value as "manager" | "employee",
             })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
         >
           <option value="employee">{t("employee")}</option>
           <option value="manager">{t("manager")}</option>
@@ -86,7 +86,7 @@ const EmployeeForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 rounded-lg"
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
         >
           {t("cancel")}
         </button>
@@ -206,8 +206,10 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t("employees")}</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {t("employees")}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             {t("manageStaff")}{" "}
             {t("employeeLimitReached", { limit: employeeLimit })}
           </p>
@@ -231,12 +233,12 @@ export default function EmployeesPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -245,7 +247,7 @@ export default function EmployeesPage() {
                 {t("username")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -254,7 +256,7 @@ export default function EmployeesPage() {
                 {t("role")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -263,7 +265,7 @@ export default function EmployeesPage() {
                 {t("bookingsMade")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -272,7 +274,7 @@ export default function EmployeesPage() {
                 {t("status")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -282,7 +284,7 @@ export default function EmployeesPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {isLoadingEmployees ? (
               <tr>
                 <td colSpan={5} className="text-center p-4">
@@ -293,13 +295,13 @@ export default function EmployeesPage() {
               employees.map((emp) => (
                 <tr
                   key={emp.id}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                   onClick={() => navigate(`/employees/${emp.username}`)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Users className="w-5 h-5 text-gray-400 mx-3" />
-                      <span className="text-sm font-medium text-gray-900">
+                      <Users className="w-5 h-5 text-gray-400 dark:text-gray-500 mx-3" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {emp.username}
                       </span>
                     </div>
@@ -308,8 +310,8 @@ export default function EmployeesPage() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         emp.role === "manager"
-                          ? "bg-indigo-100 text-indigo-800"
-                          : "bg-green-100 text-green-800"
+                          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300"
+                          : "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
                       }`}
                     >
                       <Briefcase className="w-3 h-3 mr-1.5" />
@@ -319,13 +321,13 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Hash
-                        className={`w-4 h-4 text-gray-400 ${
+                        className={`w-4 h-4 text-gray-400 dark:text-gray-500 ${
                           document.documentElement.dir === "rtl"
                             ? "ml-2"
                             : "mr-2"
                         }`}
                       />
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
                         {emp.bookingCount || 0}
                       </span>
                     </div>
@@ -346,16 +348,18 @@ export default function EmployeesPage() {
                         />
                         <div
                           className={`block w-14 h-8 rounded-full ${
-                            emp.active ? "bg-green-500" : "bg-gray-300"
+                            emp.active
+                              ? "bg-green-500"
+                              : "bg-gray-300 dark:bg-gray-600"
                           }`}
                         ></div>
                         <div
-                          className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                          className={`dot absolute left-1 top-1 bg-white dark:bg-gray-300 w-6 h-6 rounded-full transition-transform ${
                             emp.active ? "translate-x-6" : ""
                           }`}
                         ></div>
                       </div>
-                      <div className="ml-3 text-gray-700 font-medium">
+                      <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
                         {emp.active ? t("active") : t("inactive")}
                       </div>
                     </label>
@@ -364,13 +368,13 @@ export default function EmployeesPage() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={(e) => openEditModal(e, emp)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, emp.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

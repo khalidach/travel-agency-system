@@ -43,29 +43,29 @@ export default function BookingTable({
 
   const getStatusColor = (isFullyPaid: boolean) =>
     isFullyPaid
-      ? "bg-emerald-100 text-emerald-700"
-      : "bg-orange-100 text-orange-700";
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+      : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
 
   const getStatusText = (isFullyPaid: boolean) =>
     t(isFullyPaid ? "fullyPaid" : "pending");
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
               <th className="px-4 py-4">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-100 dark:bg-gray-700"
                   checked={isSelectAllOnPage}
                   onChange={onSelectAllToggle}
                   aria-label="Select all bookings"
                 />
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -74,7 +74,7 @@ export default function BookingTable({
                 {t("client")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -83,7 +83,7 @@ export default function BookingTable({
                 {t("programAndHotels")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -92,7 +92,7 @@ export default function BookingTable({
                 {t("priceDetails")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -101,7 +101,7 @@ export default function BookingTable({
                 {t("paymentStatus")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -111,7 +111,7 @@ export default function BookingTable({
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {bookings.map((booking, index) => {
               const program = programs.find(
                 (p) => p.id.toString() === (booking.tripId || "").toString()
@@ -156,14 +156,18 @@ export default function BookingTable({
               return (
                 <React.Fragment key={booking.id}>
                   <tr
-                    className={`hover:bg-gray-50 transition-colors ${
-                      booking.isRelated ? "bg-blue-50" : ""
-                    } ${selectedIds.includes(booking.id) ? "bg-blue-100" : ""}`}
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                      booking.isRelated ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                    } ${
+                      selectedIds.includes(booking.id)
+                        ? "bg-blue-100 dark:bg-blue-900/30"
+                        : ""
+                    }`}
                   >
                     <td className="px-4 py-4">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:cursor-not-allowed bg-gray-100 dark:bg-gray-700"
                         checked={selectedIds.includes(booking.id)}
                         onChange={() => onSelectionChange(booking.id)}
                         disabled={!canSelect}
@@ -197,16 +201,16 @@ export default function BookingTable({
                               : "ml-4"
                           }
                         >
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {clientNameFr}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {booking.clientNameAr}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
                             {booking.passportNumber}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">
+                          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             <span className="font-medium">
                               {t("phoneNumber")}:
                             </span>{" "}
@@ -215,7 +219,7 @@ export default function BookingTable({
                           {(currentUser?.role === "admin" ||
                             currentUser?.role === "manager") &&
                             booking.employeeName && (
-                              <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 <Briefcase
                                   className={`w-3 h-3 text-gray-400 ${
                                     document.documentElement.dir === "rtl"
@@ -233,13 +237,13 @@ export default function BookingTable({
                     </td>
                     <td className="px-2 py-4 align-top">
                       <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {program?.name || t("unknownProgram")}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {booking.packageId} {t("package")}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {booking.variationName}
                         </div>
                         <div className="space-y-1 mt-2">
@@ -253,10 +257,10 @@ export default function BookingTable({
                               return (
                                 <div
                                   key={index}
-                                  className="flex items-center text-xs text-gray-600"
+                                  className="flex items-center text-xs text-gray-600 dark:text-gray-400"
                                 >
                                   <MapPin
-                                    className={`w-3 h-3 text-gray-400 ${
+                                    className={`w-3 h-3 text-gray-400 dark:text-gray-500 ${
                                       document.documentElement.dir === "rtl"
                                         ? "ml-1"
                                         : "mr-1"
@@ -268,7 +272,7 @@ export default function BookingTable({
                                       document.documentElement.dir === "rtl"
                                         ? "ml-1 mr-2"
                                         : "ml-2 mr-1"
-                                    }w-3 h-3 text-gray-400`}
+                                    }w-3 h-3 text-gray-400 dark:text-gray-500`}
                                   />
                                   <span>
                                     {hotelName} ({roomType})
@@ -281,7 +285,7 @@ export default function BookingTable({
                       </div>
                     </td>
                     <td className="px-2 py-4 align-top">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
                         {t("selling")}:{" "}
                         {Number(booking.sellingPrice).toLocaleString()}{" "}
                         {t("mad")}
@@ -289,12 +293,12 @@ export default function BookingTable({
                       {(currentUser?.role === "admin" ||
                         currentUser?.role === "manager") && (
                         <>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {t("base")}:{" "}
                             {Number(booking.basePrice).toLocaleString()}{" "}
                             {t("mad")}
                           </div>
-                          <div className="text-sm text-emerald-600 font-medium">
+                          <div className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
                             {t("profit")}:{" "}
                             {Number(booking.profit).toLocaleString()} {t("mad")}
                           </div>
@@ -310,10 +314,10 @@ export default function BookingTable({
                         >
                           {getStatusText(booking.isFullyPaid)}
                         </span>
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           {t("remainingBalance")}:{" "}
                           {Number(booking.remainingBalance).toLocaleString()}{" "}
                           {t("mad")}
@@ -368,16 +372,16 @@ export default function BookingTable({
                     </td>
                   </tr>
                   {isLastInFamilyGroup && familyLeader?.familySummary && (
-                    <tr className="bg-blue-50 hover:bg-blue-100 font-medium">
+                    <tr className="bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 font-medium">
                       <td></td>
                       <td
-                        className="px-6 py-2 text-right text-sm text-gray-700"
+                        className="px-6 py-2 text-right text-sm text-gray-700 dark:text-gray-300"
                         colSpan={2}
                       >
                         {t("familyTotal")}
                       </td>
                       <td className="px-2 py-2 text-sm">
-                        <div>
+                        <div className="dark:text-gray-100">
                           {t("selling")}:{" "}
                           {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
                           {t("mad")}
@@ -385,12 +389,12 @@ export default function BookingTable({
                       </td>
                       <td className="px-3 py-2 align-top">
                         <div className="space-y-1">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {t("paid")}:{" "}
                             {familyLeader.familySummary.totalPaid.toLocaleString()}{" "}
                             {t("mad")}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             {t("remainingBalance")}:{" "}
                             {familyLeader.familySummary.totalRemaining.toLocaleString()}{" "}
                             {t("mad")}
