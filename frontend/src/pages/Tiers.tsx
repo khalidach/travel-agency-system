@@ -119,13 +119,13 @@ const TierForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
         Set the limits for this tier. Use -1 for unlimited.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {limitFields.map((field) => (
           <div key={field}>
-            <label className="block text-sm font-medium text-gray-700 capitalize">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
               {field.replace(/([A-Z])/g, " $1").trim()}
             </label>
             <input
@@ -133,12 +133,12 @@ const TierForm = ({
               name={field}
               value={(formData.limits as TierLimits)?.[field] ?? 0}
               onChange={handleLimitChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
         ))}
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Program Costs Access
           </label>
           <select
@@ -147,28 +147,28 @@ const TierForm = ({
               (formData.limits as TierLimits)?.programCosts ?? false
             )}
             onChange={handleLimitChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Invoicing Access
           </label>
           <select
             name="invoicing"
             value={String((formData.limits as TierLimits)?.invoicing ?? false)}
             onChange={handleLimitChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Daily Services Access
           </label>
           <select
@@ -177,14 +177,14 @@ const TierForm = ({
               (formData.limits as TierLimits)?.dailyServices ?? false
             )}
             onChange={handleLimitChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Flight List Export
           </label>
           <select
@@ -193,7 +193,7 @@ const TierForm = ({
               (formData.limits as TierLimits)?.flightListExport ?? false
             )}
             onChange={handleLimitChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>
@@ -204,7 +204,7 @@ const TierForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 rounded-lg"
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
         >
           Cancel
         </button>
@@ -296,8 +296,10 @@ export default function TiersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manage Tiers</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Manage Tiers
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             Create, update, and delete subscription tiers.
           </p>
         </div>
@@ -310,22 +312,22 @@ export default function TiersPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Tier Name
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Limits
               </th>
-              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {isLoading ? (
               <tr>
                 <td colSpan={3} className="text-center p-4">
@@ -334,13 +336,16 @@ export default function TiersPage() {
               </tr>
             ) : (
               tiers.map((tier) => (
-                <tr key={tier.id} className="hover:bg-gray-50">
+                <tr
+                  key={tier.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {tier.name}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                       <span>Bookings/mo: {tier.limits.bookingsPerMonth}</span>
                       <span>Programs/mo: {tier.limits.programsPerMonth}</span>
@@ -378,14 +383,14 @@ export default function TiersPage() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openEditModal(tier)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       {tier.id > 3 && ( // Prevent deleting default tiers
                         <button
                           onClick={() => handleDelete(tier.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

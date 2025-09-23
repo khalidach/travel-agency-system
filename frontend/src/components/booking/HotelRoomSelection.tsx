@@ -58,7 +58,7 @@ export default function HotelRoomSelection({
 
   return (
     <div>
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
         {t("hotelAndRoomSelection")}
       </h3>
       <div className="space-y-4">
@@ -87,13 +87,16 @@ export default function HotelRoomSelection({
           }, [selectedHotelForCity, selectedPackage, cityIndex]);
 
           return (
-            <div key={city.name} className="p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-3">
+            <div
+              key={city.name}
+              className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+            >
+              <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
                 {city.name} ({t("nights_other", { count: city.nights })})
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t("selectHotel")}
                   </label>
                   <select
@@ -101,7 +104,7 @@ export default function HotelRoomSelection({
                     onChange={(e) =>
                       updateHotelSelection(cityIndex, e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="">{t("selectAHotel")}</option>
                     {(selectedPackage?.hotels[city.name] || []).map(
@@ -114,7 +117,7 @@ export default function HotelRoomSelection({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {t("roomType")}
                   </label>
                   <select
@@ -122,7 +125,7 @@ export default function HotelRoomSelection({
                     onChange={(e) =>
                       updateRoomTypeSelection(cityIndex, e.target.value)
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     disabled={!selectedHotelForCity}
                   >
                     <option value="">

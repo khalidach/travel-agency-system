@@ -33,21 +33,23 @@ export default function BookingPageHeader({
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate("/booking")}
-          className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+          className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
-          <ChevronLeft className="w-5 h-5 text-gray-700" />
+          <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("bookingsFor")} {program?.name || t("booking")}
           </h1>
-          <p className="text-gray-600 mt-1">{t("manageBookingsSubtitle")}</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            {t("manageBookingsSubtitle")}
+          </p>
         </div>
       </div>
       <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
         <button
           onClick={onExportTemplate}
-          className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+          className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm"
         >
           <Download
             className={`w-5 h-5 ${
@@ -79,7 +81,7 @@ export default function BookingPageHeader({
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
+            className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm"
           >
             <Upload
               className={`w-5 h-5 ${

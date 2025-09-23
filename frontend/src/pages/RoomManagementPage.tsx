@@ -82,14 +82,16 @@ export default function RoomManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("roomManagementTitle")}
           </h1>
-          <p className="text-gray-600 mt-2">{t("roomManagementSubtitle")}</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {t("roomManagementSubtitle")}
+          </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -98,13 +100,13 @@ export default function RoomManagementPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
@@ -125,11 +127,11 @@ export default function RoomManagementPage() {
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 bg-white rounded-2xl">
+        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft
               className={`w-4 h-4 ${
@@ -142,7 +144,10 @@ export default function RoomManagementPage() {
             {paginationRange.map((pageNumber, index) => {
               if (typeof pageNumber === "string") {
                 return (
-                  <span key={index} className="px-3 py-1 text-sm text-gray-400">
+                  <span
+                    key={index}
+                    className="px-3 py-1 text-sm text-gray-400 dark:text-gray-500"
+                  >
                     ...
                   </span>
                 );
@@ -154,7 +159,7 @@ export default function RoomManagementPage() {
                   className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                     currentPage === pageNumber
                       ? "bg-blue-600 text-white font-bold shadow-sm"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }`}
                 >
                   {pageNumber}
@@ -169,7 +174,7 @@ export default function RoomManagementPage() {
               )
             }
             disabled={currentPage === pagination.totalPages}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -178,14 +183,16 @@ export default function RoomManagementPage() {
       )}
 
       {programs.length === 0 && !isLoadingPrograms && (
-        <div className="col-span-full text-center py-12 bg-white rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BedDouble className="w-12 h-12 text-gray-400" />
+        <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-2xl">
+          <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BedDouble className="w-12 h-12 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             {t("noProgramsRoom")}
           </h3>
-          <p className="text-gray-500">{t("noProgramsLeadRoom")}</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            {t("noProgramsLeadRoom")}
+          </p>
         </div>
       )}
     </div>

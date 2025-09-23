@@ -43,7 +43,7 @@ const AdminForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Username
         </label>
         <input
@@ -52,12 +52,12 @@ const AdminForm = ({
           onChange={(e) =>
             setFormData({ ...formData, username: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Password {user ? "(leave blank to keep unchanged)" : ""}
         </label>
         <input
@@ -66,11 +66,11 @@ const AdminForm = ({
           onChange={(e) =>
             setFormData({ ...formData, password: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Agency Name
         </label>
         <input
@@ -79,13 +79,13 @@ const AdminForm = ({
           onChange={(e) =>
             setFormData({ ...formData, agencyName: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
       </div>
       {!user && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Tier
           </label>
           <select
@@ -93,7 +93,7 @@ const AdminForm = ({
             onChange={(e) =>
               setFormData({ ...formData, tierId: Number(e.target.value) })
             }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             {tiers.map((tier) => (
               <option key={tier.id} value={tier.id}>
@@ -107,7 +107,7 @@ const AdminForm = ({
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 rounded-lg"
+          className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
         >
           Cancel
         </button>
@@ -258,8 +258,12 @@ export default function OwnerPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage all admin accounts.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Owner Dashboard
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            Manage all admin accounts.
+          </p>
         </div>
         <button
           onClick={openAddModal}
@@ -274,12 +278,12 @@ export default function OwnerPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-700/50">
             <tr>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -288,7 +292,7 @@ export default function OwnerPage() {
                 Username
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -297,7 +301,7 @@ export default function OwnerPage() {
                 Agency Name
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -306,7 +310,7 @@ export default function OwnerPage() {
                 Tier
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -315,7 +319,7 @@ export default function OwnerPage() {
                 Status
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -325,7 +329,7 @@ export default function OwnerPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {isLoadingAdmins ? (
               <tr>
                 <td colSpan={5} className="text-center p-4">
@@ -334,13 +338,16 @@ export default function OwnerPage() {
               </tr>
             ) : (
               adminUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr
+                  key={user.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {user.username}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
                     {user.agencyName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -349,7 +356,7 @@ export default function OwnerPage() {
                       onChange={(e) =>
                         handleTierChange(user.id, Number(e.target.value))
                       }
-                      className="px-3 py-1 border border-gray-300 rounded-lg bg-white"
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       onClick={(e) => e.stopPropagation()}
                       disabled={isLoadingTiers}
                     >
@@ -375,7 +382,9 @@ export default function OwnerPage() {
                         />
                         <div
                           className={`block w-14 h-8 rounded-full ${
-                            user.activeUser ? "bg-green-500" : "bg-gray-300"
+                            user.activeUser
+                              ? "bg-green-500"
+                              : "bg-gray-300 dark:bg-gray-600"
                           }`}
                         ></div>
                         <div
@@ -384,7 +393,7 @@ export default function OwnerPage() {
                           }`}
                         ></div>
                       </div>
-                      <div className="ml-3 text-gray-700 font-medium">
+                      <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
                         {user.activeUser ? "Active" : "Inactive"}
                       </div>
                     </label>
@@ -393,20 +402,20 @@ export default function OwnerPage() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => openLimitsModal(user)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700 rounded-lg"
                         title="Manage Limits"
                       >
                         <SlidersHorizontal className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => openEditModal(user)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(user.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-gray-700 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

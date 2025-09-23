@@ -35,18 +35,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-sm p-8 space-y-8 bg-white rounded-2xl shadow-xl border border-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="w-full max-w-sm p-8 space-y-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
         <div className="text-center">
           <div className="inline-block p-4 bg-blue-600 rounded-2xl mb-4">
             <Plane className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">TravelPro Login</h1>
-          <p className="text-gray-500 mt-2">Access your agency dashboard</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            TravelPro Login
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Access your agency dashboard
+          </p>
         </div>
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="text-sm font-medium text-gray-700 sr-only">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
               Username
             </label>
             <div className="relative">
@@ -58,13 +62,13 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Username"
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 required
               />
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 sr-only">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
               Password
             </label>
             <div className="relative">
@@ -76,7 +80,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 required
               />
             </div>

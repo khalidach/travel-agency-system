@@ -98,26 +98,28 @@ export default function PaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("paymentAmount")}
         </label>
         <input
           type="number"
           value={formData.amount || ""}
           onChange={handleAmountChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           min="0"
           step="0.01"
           required
         />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-        <p className="mt-1 text-sm text-gray-500">
+        {error && (
+          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+        )}
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
           {t("mad")}
         </p>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("paymentMethod")}
         </label>
         <select
@@ -125,7 +127,7 @@ export default function PaymentForm({
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, method: e.target.value as any }))
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         >
           {paymentMethods.map((method) => (
@@ -136,7 +138,7 @@ export default function PaymentForm({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("paymentDate")}
         </label>
         <input
@@ -145,14 +147,14 @@ export default function PaymentForm({
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, date: e.target.value }))
           }
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
       </div>
       {formData.method === "cheque" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("chequeNumber")}
             </label>
             <input
@@ -164,12 +166,12 @@ export default function PaymentForm({
                   chequeNumber: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("bankName")}
             </label>
             <input
@@ -178,12 +180,12 @@ export default function PaymentForm({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, bankName: e.target.value }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("checkCashingDate")}
             </label>
             <input
@@ -195,17 +197,17 @@ export default function PaymentForm({
                   chequeCashingDate: e.target.value,
                 }))
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               required
             />
           </div>
         </>
       )}
-      <div className="flex justify-end space-x-4 pt-4 border-t">
+      <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-600">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
         >
           {t("cancel")}
         </button>

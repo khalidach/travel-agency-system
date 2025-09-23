@@ -70,13 +70,13 @@ export default function ProgramCostingList() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
       case "Umrah":
-        return "bg-emerald-100 text-emerald-700";
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
       case "Tourism":
-        return "bg-orange-100 text-orange-700";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
   };
 
@@ -88,16 +88,16 @@ export default function ProgramCostingList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("programCosting")}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
             {t("programCostingListSubtitle")}
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -106,13 +106,13 @@ export default function ProgramCostingList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
@@ -127,12 +127,12 @@ export default function ProgramCostingList() {
           <div
             key={program.id}
             onClick={() => handleProgramSelect(program.id)}
-            className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg hover:border-blue-300 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {program.name}
                   </h3>
                   <span
@@ -145,7 +145,7 @@ export default function ProgramCostingList() {
                 </div>
               </div>
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-end text-blue-600 font-medium">
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end text-blue-600 dark:text-blue-400 font-medium">
               {t("enterCosts")}
             </div>
           </div>
@@ -162,14 +162,16 @@ export default function ProgramCostingList() {
       )}
 
       {programs.length === 0 && !isLoadingPrograms && (
-        <div className="col-span-full text-center py-12 bg-white rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <DollarSign className="w-12 h-12 text-gray-400" />
+        <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-2xl">
+          <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <DollarSign className="w-12 h-12 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             {t("noProgramsCosting")}
           </h3>
-          <p className="text-gray-500">{t("noProgramsCostingLead")}</p>
+          <p className="text-gray-500 dark:text-gray-400">
+            {t("noProgramsCostingLead")}
+          </p>
         </div>
       )}
     </div>

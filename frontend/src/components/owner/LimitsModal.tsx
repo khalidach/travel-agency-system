@@ -110,7 +110,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
       title={`Manage Limits for ${user.username}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Set custom limits for this user. Leave a field blank to use the
           default limit from their tier (Tier {user.tierId}). Use -1 for
           unlimited.
@@ -118,7 +118,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
         {limitFields.map((field) => (
           <div key={field}>
-            <label className="block text-sm font-medium text-gray-700 capitalize">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
               {field.replace(/([A-Z])/g, " $1").trim()}
             </label>
             <input
@@ -128,13 +128,13 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
               value={limits[field] ?? ""}
               onChange={handleChange}
               placeholder={`Default: ${user.tierLimits?.[field] ?? "N/A"}`}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
           </div>
         ))}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Program Costs Access
           </label>
           <select
@@ -145,7 +145,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
                 : String(limits.programCosts)
             }
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">
               Use Tier Default (
@@ -157,7 +157,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Invoicing Access
           </label>
           <select
@@ -167,7 +167,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
               limits.invoicing === undefined ? "" : String(limits.invoicing)
             }
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">
               Use Tier Default (
@@ -179,7 +179,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Daily Services Access
           </label>
           <select
@@ -190,7 +190,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
                 : String(limits.dailyServices)
             }
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">
               Use Tier Default (
@@ -202,7 +202,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Flight List Export
           </label>
           <select
@@ -213,7 +213,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
                 : String(limits.flightListExport)
             }
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg mt-1"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="">
               Use Tier Default (
@@ -228,7 +228,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 bg-gray-100 rounded-lg"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
           >
             Cancel
           </button>
