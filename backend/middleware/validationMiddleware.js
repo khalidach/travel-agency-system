@@ -14,6 +14,23 @@ const handleValidationErrors = (req, res, next) => {
 
 // --- Validation Chains ---
 
+const signupValidation = [
+  body("ownerName").notEmpty().withMessage("Owner name is required."),
+  body("agencyName").notEmpty().withMessage("Agency name is required."),
+  body("phoneNumber").notEmpty().withMessage("Phone number is required."),
+  body("email").isEmail().withMessage("Please provide a valid email."),
+  body("username").notEmpty().withMessage("Username is required."),
+  body("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters long."),
+  body("confirmPassword").custom((value, { req }) => {
+    if (value !== req.body.password) {
+      throw new Error("Passwords do not match.");
+    }
+    return true;
+  }),
+];
+
 const loginValidation = [
   body("username").notEmpty().withMessage("Username is required."),
   body("password").notEmpty().withMessage("Password is required."),
@@ -259,6 +276,7 @@ const bookingFilterValidation = [
 
 module.exports = {
   handleValidationErrors,
+  signupValidation,
   loginValidation,
   accountSettingsValidation,
   programValidation,

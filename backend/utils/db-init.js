@@ -28,8 +28,32 @@ const applyDatabaseMigrations = async (client) => {
         "activeUser" BOOLEAN DEFAULT TRUE,
         "facturationSettings" JSONB,
         "tierId" INTEGER REFERENCES tiers(id) DEFAULT 1,
-        "limits" JSONB
+        "limits" JSONB,
+        "ownerName" VARCHAR(255),
+        phone VARCHAR(50),
+        email VARCHAR(255) UNIQUE,
+        "trialExpiresAt" TIMESTAMPTZ
       );
+    `);
+
+    // Add columns if they don't exist for existing installations
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='ownerName') THEN
+          ALTER TABLE users ADD COLUMN "ownerName" VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
+          ALTER TABLE users ADD COLUMN "phone" VARCHAR(50);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email') THEN
+          ALTER TABLE users ADD COLUMN "email" VARCHAR(255) UNIQUE;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='trialExpiresAt') THEN
+          ALTER TABLE users ADD COLUMN "trialExpiresAt" TIMESTAMPTZ;
+        END IF;
+      END;
+      $$;
     `);
 
     await client.query(`

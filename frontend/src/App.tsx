@@ -29,6 +29,7 @@ const ProgramCosting = lazy(() => import("./pages/ProgramCosting"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const SignUpPage = lazy(() => import("./pages/SignUpPage")); // Import SignUpPage
 const OwnerPage = lazy(() => import("./pages/Owner"));
 const TiersPage = lazy(() => import("./pages/Tiers"));
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
@@ -98,6 +99,7 @@ function AppRoutes() {
           <>
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </>
         ) : (

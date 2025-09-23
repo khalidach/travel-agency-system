@@ -24,6 +24,58 @@ const safeJsonParse = (data) => {
   return data;
 };
 
+const signupUser = async (req, res, next) => {
+  try {
+    const { ownerName, agencyName, phoneNumber, email, username, password } =
+      req.body;
+
+    // Check for existing user
+    const userCheck = await req.db.query(
+      "SELECT id FROM users WHERE username = $1 OR email = $2",
+      [username, email]
+    );
+    if (userCheck.rows.length > 0) {
+      return next(new AppError("Username or email already exists.", 409));
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const trialTierId = 10; // Trial tier ID
+
+    // Trial expiration logic for exactly 72 hours
+    const trialExpiresAt = new Date();
+    trialExpiresAt.setHours(trialExpiresAt.getHours() + 72);
+
+    const { rows } = await req.db.query(
+      `INSERT INTO users (username, password, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email, "trialExpiresAt") 
+         VALUES ($1, $2, $3, 'admin', TRUE, $4, $5, $6, $7, $8) 
+         RETURNING id, username, "agencyName"`,
+      [
+        username,
+        hashedPassword,
+        agencyName,
+        trialTierId,
+        ownerName,
+        phoneNumber,
+        email,
+        trialExpiresAt,
+      ]
+    );
+
+    res.status(201).json({
+      message: "Account created successfully! You can now log in.",
+      user: rows[0],
+    });
+  } catch (error) {
+    logger.error("Signup Error:", {
+      message: error.message,
+      stack: error.stack,
+      body: req.body,
+    });
+    next(new AppError("Failed to create account.", 500));
+  }
+};
+
 const loginUser = async (req, res, next) => {
   try {
     const { username, password } = req.body;
@@ -43,6 +95,24 @@ const loginUser = async (req, res, next) => {
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
+
+      // Check for expired trial
+      if (user.trialExpiresAt && new Date(user.trialExpiresAt) < new Date()) {
+        if (user.activeUser) {
+          // Deactivate the user if the trial has just expired
+          await req.db.query(
+            'UPDATE users SET "activeUser" = FALSE WHERE id = $1',
+            [user.id]
+          );
+        }
+        return next(
+          new AppError(
+            "Your 3-day trial has expired. Please contact support.",
+            401
+          )
+        );
+      }
+
       if (user.activeUser === false) {
         return next(new AppError("This account has been deactivated.", 401));
       }
@@ -85,7 +155,7 @@ const loginUser = async (req, res, next) => {
         );
       }
       const adminResult = await req.db.query(
-        `SELECT u."agencyName", u."activeUser", u."tierId", u.limits, t.limits as "tierLimits"
+        `SELECT u."agencyName", u."activeUser", u."tierId", u.limits, t.limits as "tierLimits", u."trialExpiresAt"
          FROM users u
          LEFT JOIN tiers t ON u."tierId" = t.id
          WHERE u.id = $1`,
@@ -93,6 +163,23 @@ const loginUser = async (req, res, next) => {
       );
 
       const adminData = adminResult.rows[0] || {};
+
+      // Check for expired trial on the parent admin account
+      if (
+        adminData.trialExpiresAt &&
+        new Date(adminData.trialExpiresAt) < new Date()
+      ) {
+        if (adminData.activeUser) {
+          await req.db.query(
+            'UPDATE users SET "activeUser" = FALSE WHERE id = $1',
+            [employee.adminId]
+          );
+        }
+        return next(
+          new AppError("The agency for this account has an expired trial.", 401)
+        );
+      }
+
       if (adminData.activeUser === false) {
         return next(
           new AppError("The agency for this account has been deactivated.", 401)
@@ -198,4 +285,4 @@ const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-module.exports = { loginUser, refreshToken, logoutUser };
+module.exports = { signupUser, loginUser, refreshToken, logoutUser };

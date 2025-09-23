@@ -78,7 +78,7 @@ const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
     if (state.isAuthenticated) {
       navigate("/dashboard");
     } else {
-      navigate("/login");
+      navigate("/signup");
     }
   };
 
@@ -135,6 +135,10 @@ const HomePage = () => {
     } else {
       navigate("/login");
     }
+  };
+
+  const handleSignUpClick = () => {
+    navigate("/signup");
   };
 
   const pricingPlans = {
@@ -230,10 +234,16 @@ const HomePage = () => {
             Planning, paiements, clients – tout est là. Essayez gratuitement !
           </p>
           <div className="mt-8 flex justify-center md:justify-start space-x-4">
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors">
+            <button
+              onClick={handleSignUpClick}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
+            >
               Commencez Gratuitement
             </button>
-            <button className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors">
+            <button
+              onClick={handleSignUpClick}
+              className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
+            >
               3 Jours d'essai gratuit
             </button>
           </div>
