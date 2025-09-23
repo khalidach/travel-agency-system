@@ -17,6 +17,7 @@ import { toast } from "react-hot-toast";
 import Modal from "../components/Modal";
 import OccupantSearchBox from "../components/room/OccupantSearchBox";
 import { useTranslation } from "react-i18next";
+import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 
 type MovePersonState = {
   occupant: Occupant;
@@ -336,20 +337,21 @@ export default function RoomManage() {
     }
   };
 
-  if (isLoadingProgram || isLoadingRooms) return <div>Loading...</div>;
+  if (isLoadingProgram || isLoadingRooms) return <BookingSkeleton />;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
+            type="button"
             onClick={() => navigate("/room-management")}
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
           >
-            <ChevronLeft />
+            <ChevronLeft className="dark:text-gray-200" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
               {program?.name} - {t("roomManagementTitle")}
             </h1>
           </div>
@@ -389,15 +391,15 @@ export default function RoomManage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg">
+      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
         {hotels.map((hotel, index) => (
           <button
             key={hotel}
             onClick={() => setCurrentHotelIndex(index)}
             className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
               currentHotelIndex === index
-                ? "bg-white text-blue-600 shadow-sm"
-                : "text-gray-600 hover:bg-gray-200"
+                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
           >
             <Hotel size={16} />
@@ -411,11 +413,13 @@ export default function RoomManage() {
           const roomsInType = groupedRooms[type] || [];
           return (
             <div key={type} className="col-span-1 space-y-4">
-              <h3 className="text-center font-bold text-xl">{type}</h3>
+              <h3 className="text-center font-bold text-xl dark:text-gray-100">
+                {type}
+              </h3>
               {roomsInType.map((room) => (
                 <div
                   key={`${room.name}-${room.type}`}
-                  className="bg-white p-4 rounded-lg shadow-sm"
+                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm"
                 >
                   <div className="flex justify-between items-center mb-2">
                     {editingRoom &&
@@ -435,12 +439,12 @@ export default function RoomManage() {
                             setEditingRoom(null);
                           }
                         }}
-                        className="font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent"
+                        className="font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent dark:text-gray-100"
                         autoFocus
                       />
                     ) : (
                       <h4
-                        className="font-semibold cursor-pointer hover:text-blue-600"
+                        className="font-semibold cursor-pointer hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
                         onClick={() => {
                           setEditingRoom({ name: room.name, type: room.type });
                           setTempRoomName(room.name);
@@ -449,7 +453,7 @@ export default function RoomManage() {
                         {room.name}
                       </h4>
                     )}
-                    <div className="flex items-center">
+                    <div className="flex items-center text-gray-500 dark:text-gray-400">
                       <Users
                         size={16}
                         className={`${
@@ -499,7 +503,7 @@ export default function RoomManage() {
                   });
                   setIsNewRoomModalOpen(true);
                 }}
-                className="w-full mt-2 p-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
+                className="w-full mt-2 p-2 bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded hover:bg-gray-300 flex items-center justify-center text-gray-800 dark:text-gray-200"
               >
                 <Plus
                   size={16}
@@ -521,7 +525,7 @@ export default function RoomManage() {
       >
         {movePersonState && (
           <div className="space-y-4">
-            <p>
+            <p className="dark:text-gray-300">
               {t("movePersonTo", {
                 personName: movePersonState.occupant.clientName,
               })}
@@ -534,7 +538,7 @@ export default function RoomManage() {
                   disabled={
                     room.occupants.filter((o) => o).length >= room.capacity
                   }
-                  className={`w-full p-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50 ${
+                  className={`w-full p-2 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 ${
                     document.documentElement.dir === "rtl"
                       ? "text-right"
                       : "text-left"
@@ -556,20 +560,20 @@ export default function RoomManage() {
       >
         <div className="space-y-4">
           <div>
-            <label>{t("roomName")}</label>
+            <label className="dark:text-gray-300">{t("roomName")}</label>
             <input
               type="text"
               value={newRoomDetails.name}
               onChange={(e) =>
                 setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
               }
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
             />
           </div>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setIsNewRoomModalOpen(false)}
-              className="p-2 bg-gray-200 rounded"
+              className="p-2 bg-gray-200 dark:bg-gray-600 rounded"
             >
               {t("cancel")}
             </button>

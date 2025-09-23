@@ -24,13 +24,13 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {t("cities")}
         </label>
         <button
           type="button"
           onClick={() => append({ name: "", nights: 0 })}
-          className="inline-flex items-center px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+          className="inline-flex items-center px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-500"
           disabled={areCitiesLocked}
         >
           <Plus
@@ -49,7 +49,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
         return (
           <div key={item.id}>
             <div className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4 text-gray-400" />
+              <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input
                 {...register(
                   `variations.${variationIndex}.cities.${cityIndex}.name`,
@@ -58,9 +58,11 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   }
                 )}
                 placeholder={t("enterCityName") as string}
-                className={`flex-1 px-3 py-2 border rounded-lg text-sm ${
-                  nameError ? "border-red-500" : "border-gray-300"
-                } disabled:bg-gray-100 disabled:text-gray-500`}
+                className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                  nameError
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                } disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400`}
                 disabled={areCitiesLocked}
               />
               <input
@@ -73,14 +75,14 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   }
                 )}
                 placeholder={t("nights") as string}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="0"
               />
               {fields.length > 1 && (
                 <button
                   type="button"
                   onClick={() => remove(cityIndex)}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:text-gray-400 disabled:hover:bg-transparent"
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:text-gray-400 dark:disabled:text-gray-500 disabled:hover:bg-transparent"
                   disabled={areCitiesLocked}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -173,7 +175,7 @@ export default function VariationManager() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Program Variations
         </label>
         <button
@@ -197,11 +199,11 @@ export default function VariationManager() {
               key={item.id}
               title={
                 <div className="flex items-center space-x-4">
-                  <h4 className="text-lg font-semibold text-gray-900">
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {watch(`variations.${index}.name`) ||
                       `Variation ${index + 1}`}
                   </h4>
-                  <div className="flex items-center text-sm text-gray-500">
+                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                     <Clock className="w-4 h-4 mr-1.5" />
                     <span>
                       {duration} {t("days")}
@@ -217,7 +219,7 @@ export default function VariationManager() {
                       e.stopPropagation();
                       handleDuplicateVariation(index);
                     }}
-                    className="p-2 text-blue-500 hover:bg-blue-100 rounded-lg"
+                    className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg"
                     title="Duplicate Variation"
                   >
                     <Copy className="w-4 h-4" />
@@ -228,7 +230,7 @@ export default function VariationManager() {
                       e.stopPropagation();
                       remove(index);
                     }}
-                    className="p-2 text-red-500 hover:bg-red-100 rounded-lg"
+                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -237,13 +239,13 @@ export default function VariationManager() {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Variation Name
                   </label>
                   <input
                     {...register(`variations.${index}.name`)}
                     placeholder="e.g., 15 Days, 20 Days"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     required
                   />
                 </div>

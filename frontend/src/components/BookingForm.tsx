@@ -611,7 +611,7 @@ export default function BookingForm({
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         {formState.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg">
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg dark:bg-red-900/20 dark:border-red-700 dark:text-red-300">
             {formState.error}
           </div>
         )}
@@ -622,7 +622,7 @@ export default function BookingForm({
               htmlFor="bulk-mode-toggle"
               className="flex items-center cursor-pointer"
             >
-              <span className="mr-3 text-sm font-medium text-gray-900">
+              <span className="mr-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                 Ajout groupé
               </span>
               <div className="relative">
@@ -633,9 +633,9 @@ export default function BookingForm({
                   checked={isBulkMode}
                   onChange={() => setIsBulkMode(!isBulkMode)}
                 />
-                <div className="block bg-gray-200 w-14 h-8 rounded-full"></div>
+                <div className="block bg-gray-200 dark:bg-gray-700 w-14 h-8 rounded-full"></div>
                 <div
-                  className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                  className={`dot absolute left-1 top-1 bg-white dark:bg-gray-400 w-6 h-6 rounded-full transition-transform ${
                     isBulkMode ? "translate-x-6 bg-blue-600" : ""
                   }`}
                 ></div>
@@ -652,7 +652,7 @@ export default function BookingForm({
             <button
               type="button"
               onClick={() => append(emptyClient)}
-              className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               <Plus className="w-4 h-4 mr-1" /> Ajouter une personne
             </button>
@@ -709,18 +709,18 @@ export default function BookingForm({
 
         <PricingFields handleSellingPriceChange={handleSellingPriceChange} />
 
-        <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+        <div className="flex justify-end space-x-3 pt-6 border-t dark:border-gray-600 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             {t("cancel")}
           </button>
           <button
             type="submit"
             disabled={!isValid}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
           >
             {booking ? t("update") : t("save")}
           </button>

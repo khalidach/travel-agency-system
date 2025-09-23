@@ -127,7 +127,7 @@ export default function ProgramForm({
       >
         <div className="grid  grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("programName")}
             </label>
             <input
@@ -136,20 +136,22 @@ export default function ProgramForm({
                 required: t("programNameRequired") as string,
               })}
               className={`w-full px-3 py-2 border rounded-lg ${
-                errors.name ? "border-red-500" : "border-gray-300"
-              }`}
+                errors.name
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
             />
             {errors.name && (
               <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("programType")}
             </label>
             <select
               {...methods.register("type")}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="Hajj">Hajj</option>
               <option value="Umrah">Umrah</option>
@@ -159,13 +161,13 @@ export default function ProgramForm({
         </div>
 
         {/* Commission Based Toggle */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
           <label
             htmlFor="isCommissionBased"
-            className="font-medium text-gray-700"
+            className="font-medium text-gray-700 dark:text-gray-200"
           >
             {t("commissionBasedProgram")}
-            <p className="text-xs text-gray-500 font-normal">
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
               {t("commissionBasedProgramDesc")}
             </p>
           </label>
@@ -178,7 +180,7 @@ export default function ProgramForm({
             />
             <label
               htmlFor="isCommissionBased"
-              className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+              className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
             ></label>
           </div>
         </div>
@@ -191,19 +193,19 @@ export default function ProgramForm({
 
         <PackageManager isCommissionBased={isCommissionBased ?? false} />
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+            className="px-6 py-2 text-gray-700 bg-gray-100 dark:bg-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50"
           >
             {t("cancel")}
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:bg-blue-400 disabled:cursor-not-allowed min-w-[100px]"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:bg-blue-400 dark:disabled:bg-blue-800 disabled:cursor-not-allowed min-w-[100px]"
           >
             {isSaving ? <LoadingSpinner /> : t("save")}
           </button>

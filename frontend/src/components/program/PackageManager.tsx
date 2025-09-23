@@ -96,7 +96,7 @@ const DebouncedHotelInput = ({
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       placeholder={t("hotelNamePlaceholder") as string}
-      className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
     />
   );
 };
@@ -118,7 +118,7 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
 
   return (
     <div className="mb-6">
-      <h5 className="text-sm font-medium text-gray-700 mb-3">
+      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
         {t("hotelsByCity")}
       </h5>
       <div className="space-y-4">
@@ -151,9 +151,9 @@ const HotelManager = ({
   });
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
+    <div className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-700 flex items-center">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center">
           <Hotel
             className={`w-4 h-4 ${
               document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
@@ -164,7 +164,7 @@ const HotelManager = ({
         <button
           type="button"
           onClick={() => append("")}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
         >
           {t("addHotel")}
         </button>
@@ -181,7 +181,7 @@ const HotelManager = ({
               <button
                 type="button"
                 onClick={() => remove(hotelIndex)}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
               >
                 <Trash2 className="w-[14px] h-[14px]" />
               </button>
@@ -266,7 +266,7 @@ export default function PackageManager({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {t("packages")}
         </label>
         <button
@@ -289,7 +289,7 @@ export default function PackageManager({
             <Accordion
               key={pkg.id}
               title={
-                <h4 className="text-lg font-semibold text-gray-900">
+                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {watch(`packages.${packageIndex}.name`) ||
                     `${t("packageLabel")} ${packageIndex + 1}`}
                 </h4>
@@ -301,20 +301,20 @@ export default function PackageManager({
                     e.stopPropagation();
                     removePackage(packageIndex);
                   }}
-                  className="p-2 text-red-500 hover:bg-red-100 rounded-lg"
+                  className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               }
             >
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   {t("packageName")}
                 </label>
                 <input
                   {...register(`packages.${packageIndex}.name`)}
                   placeholder={t("packageNamePlaceholder") as string}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -329,9 +329,11 @@ export default function PackageManager({
             </Accordion>
           ))
         ) : (
-          <div className="text-center py-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-300">
-            <p className="text-sm text-gray-500">{t("noPackagesAdded")}</p>
-            <p className="text-xs text-gray-400 mt-1">
+          <div className="text-center py-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-dashed border-2 border-gray-300 dark:border-gray-600">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("noPackagesAdded")}
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               {t("noPackagesLeadForm")}
             </p>
           </div>
@@ -371,7 +373,7 @@ const PriceStructureManager = ({
 
   return (
     <div>
-      <h5 className="text-sm font-medium text-gray-700 mb-3">
+      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
         {t("hotelCombinationsTitle")}
       </h5>
       <div className="mb-4">
@@ -393,10 +395,10 @@ const PriceStructureManager = ({
                   })
                 }
                 disabled={isAlreadyAdded}
-                className={`px-3 py-1 text-xs rounded-lg border  text-gray-700  transition-colors ${
+                className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
                   isAlreadyAdded
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300"
-                    : "bg-gray-100 border-gray-200 hover:bg-blue-50 hover:text-blue-700"
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 dark:bg-gray-600 dark:text-gray-500 dark:border-gray-500"
+                    : "bg-gray-100 border-gray-200 hover:bg-blue-50 hover:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
                 }`}
               >
                 + {hotelOption.replace(/_/g, " → ")}
@@ -413,10 +415,10 @@ const PriceStructureManager = ({
           return (
             <div
               key={price.id}
-              className="bg-white p-4 rounded-lg border border-gray-200"
+              className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
             >
               <div className="flex items-center justify-between mb-3">
-                <h6 className="text-sm font-medium text-gray-900 flex items-center">
+                <h6 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center">
                   <Users
                     className={`w-4 h-4 ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
@@ -427,7 +429,7 @@ const PriceStructureManager = ({
                 <button
                   type="button"
                   onClick={() => remove(priceIndex)}
-                  className="p-1 text-red-500 hover:bg-red-50 rounded"
+                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                 >
                   <Trash2 className="w-[16px] h-[16px]" />
                 </button>
@@ -469,21 +471,21 @@ const RoomTypeManager = ({
             key={room.id}
             className={`grid grid-cols-1 md:grid-cols-${
               isCommissionBased ? "4" : "3"
-            } gap-3 p-3 bg-gray-50 rounded-lg`}
+            } gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg`}
           >
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 {t("roomType")}
               </label>
               <input
                 {...register(
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.type`
                 )}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 {t("guests")}
               </label>
               <input
@@ -492,14 +494,14 @@ const RoomTypeManager = ({
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.guests`,
                   { valueAsNumber: true }
                 )}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="1"
                 required
               />
             </div>
             {isCommissionBased && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   {t("purchasePrice")}
                 </label>
                 <input
@@ -508,7 +510,7 @@ const RoomTypeManager = ({
                     `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
                     { valueAsNumber: true }
                   )}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   min="0"
                 />
               </div>
@@ -517,7 +519,7 @@ const RoomTypeManager = ({
               <button
                 type="button"
                 onClick={() => remove(roomIndex)}
-                className="p-2 text-red-500 hover:bg-red-100 rounded transition-colors ml-auto"
+                className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors ml-auto"
               >
                 <Trash2 className="w-[15px] h-[15px]" />
               </button>
@@ -528,7 +530,7 @@ const RoomTypeManager = ({
       <button
         type="button"
         onClick={() => append({ type: "Custom", guests: 1, purchasePrice: 0 })}
-        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
       >
         {t("addCustomRoomType")}
       </button>
