@@ -14,8 +14,7 @@ import {
 } from "lucide-react";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { useTranslation } from "react-i18next";
-import { t } from "i18next";
+import { useTranslation, Trans } from "react-i18next";
 
 const WhatsAppIcon = () => (
   <svg
@@ -67,7 +66,11 @@ const FeatureCard = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div className="bg-white dark:bg-gray-800/50 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 text-left">
+  <div
+    className={`bg-white dark:bg-gray-800/50 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ${
+      document.documentElement.dir === "rtl" ? "text-right" : "text-left"
+    }`}
+  >
     <div className="flex items-center mb-4">
       <Icon className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
       <h3 className="text-xl font-bold ml-4 text-gray-900 dark:text-white">
@@ -79,6 +82,7 @@ const FeatureCard = ({
 );
 
 const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { state } = useAuthContext();
   const handleChoosePlan = () => {
@@ -93,11 +97,11 @@ const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
     <div
       className={`relative bg-white dark:bg-gray-800 p-8 rounded-2xl border ${
         popular ? "border-indigo-500" : "border-gray-200 dark:border-gray-700"
-      }`}
+      } min-h-[600px] flex flex-col`}
     >
       {popular && (
         <div className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-sm font-semibold px-4 py-1 rounded-full">
-          Le plus populaire
+          {t("home.pricingSection.mostPopular")}
         </div>
       )}
       <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -106,25 +110,35 @@ const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
       <p className="text-gray-500 dark:text-gray-400 mt-2">{plan.subtitle}</p>
       <div className="mt-6 text-gray-900 dark:text-white">
         <span className="text-5xl font-extrabold">{plan.price}</span>
-        <span className="text-gray-500 dark:text-gray-400">DH/mois</span>
+        <span className="text-gray-500 dark:text-gray-400">
+          {t("currency.dh_per_month")}
+        </span>
       </div>
-      <ul className="mt-8 space-y-4 text-left">
+      <ul
+        className={`mt-8 gap-4 ${
+          document.documentElement.dir === "rtl" ? "text-right" : "text-left"
+        }`}
+      >
         {plan.features.map((feature: string, index: number) => (
-          <li key={index} className="flex items-center">
-            <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400 mr-3" />
+          <li key={index} className="flex mt-2 items-start">
+            <CheckCircle2
+              className={`flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400 mt-1 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              } `}
+            />
             <span className="text-gray-600 dark:text-gray-300">{feature}</span>
           </li>
         ))}
       </ul>
       <button
         onClick={handleChoosePlan}
-        className={`w-full mt-10 py-3 px-6 rounded-lg font-semibold transition-colors ${
+        className={`w-full mt-auto py-3 px-6 rounded-lg font-semibold transition-colors ${
           popular
             ? "bg-indigo-600 hover:bg-indigo-700 text-white"
             : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
         }`}
       >
-        Choisir ce plan
+        {t("home.pricingSection.choosePlan")}
       </button>
     </div>
   );
@@ -134,7 +148,7 @@ const HomePage = () => {
   const { state } = useAuthContext();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const changeLanguage = (lang: "en" | "ar" | "fr") => {
     i18n.changeLanguage(lang);
@@ -160,41 +174,41 @@ const HomePage = () => {
   const pricingPlans = {
     monthly: [
       {
-        title: "Plan Essentiel",
-        subtitle: "Idéal pour les petites agences",
-        price: "200",
+        title: t("home.pricingSection.essentialPlan.title"),
+        subtitle: t("home.pricingSection.essentialPlan.subtitle"),
+        price: t("home.pricingSection.essentialPlan.price"),
         features: [
-          "2 employés",
-          "Jusqu'à 100 réservations/mois",
-          "Jusqu'à 5 programmes/mois",
-          "Gestion de l'hébergement",
-          "Jusqu'à 20 factures/mois",
-          "5 exportations par programme/mois",
+          t("home.pricingSection.essentialPlan.features.f1"),
+          t("home.pricingSection.essentialPlan.features.f2"),
+          t("home.pricingSection.essentialPlan.features.f3"),
+          t("home.pricingSection.essentialPlan.features.f4"),
+          t("home.pricingSection.essentialPlan.features.f5"),
+          t("home.pricingSection.essentialPlan.features.f6"),
         ],
       },
       {
-        title: "Plan Professionnel",
-        subtitle: "Pour les agences en croissance",
-        price: "600",
+        title: t("home.pricingSection.proPlan.title"),
+        subtitle: t("home.pricingSection.proPlan.subtitle"),
+        price: t("home.pricingSection.proPlan.price"),
         features: [
-          "5 employés",
-          "Jusqu'à 500 réservations/mois",
-          "Jusqu'à 15 programmes/mois",
-          "Calcul des coûts de programme",
-          "Gestion de l'hébergement",
-          "Jusqu'à 100 factures/mois",
-          "Services journaliers (jusqu'à 50/mois)",
-          "Exportations illimitées",
+          t("home.pricingSection.proPlan.features.f1"),
+          t("home.pricingSection.proPlan.features.f2"),
+          t("home.pricingSection.proPlan.features.f3"),
+          t("home.pricingSection.proPlan.features.f4"),
+          t("home.pricingSection.proPlan.features.f5"),
+          t("home.pricingSection.proPlan.features.f6"),
+          t("home.pricingSection.proPlan.features.f7"),
+          t("home.pricingSection.proPlan.features.f8"),
         ],
       },
       {
-        title: "Plan Élite",
-        subtitle: "La solution complète pour les grandes agences",
-        price: "1200",
+        title: t("home.pricingSection.elitePlan.title"),
+        subtitle: t("home.pricingSection.elitePlan.subtitle"),
+        price: t("home.pricingSection.elitePlan.price"),
         features: [
-          "10 employés",
-          "Tout est illimité",
-          "Accès prioritaire aux nouvelles fonctionnalités",
+          t("home.pricingSection.elitePlan.features.f1"),
+          t("home.pricingSection.elitePlan.features.f2"),
+          t("home.pricingSection.elitePlan.features.f3"),
         ],
       },
     ],
@@ -207,29 +221,29 @@ const HomePage = () => {
       <header className="py-4 px-8 flex justify-between items-center border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md">
         <div className="flex items-center">
           <Plane className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
-          <h1 className="text-2xl font-bold ml-2">TravelPro</h1>
+          <h1 className="text-2xl font-bold ml-2">{t("home.header.brand")}</h1>
         </div>
-        <nav className="hidden md:flex items-center space-x-6 text-gray-600 dark:text-gray-300">
+        <nav className="hidden md:flex items-center gap-6 text-gray-600 dark:text-gray-300">
           <a
             href="#features"
             className="hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
           >
-            Fonctionnalités
+            {t("home.header.features")}
           </a>
           <a
             href="#pricing"
             className="hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
           >
-            Tarifs
+            {t("home.header.pricing")}
           </a>
           <a
             href="#faq"
             className="hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
           >
-            FAQ
+            {t("home.header.faq")}
           </a>
         </nav>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -244,42 +258,54 @@ const HomePage = () => {
             onClick={handleLoginClick}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
           >
-            {state.isAuthenticated ? "Tableau de bord" : "Se Connecter"}
+            {state.isAuthenticated
+              ? t("home.header.dashboard")
+              : t("home.header.login")}
           </button>
         </div>
       </header>
 
       {/* Hero Section */}
       <main className="container mx-auto px-8 py-16 md:py-24 flex flex-col md:flex-row items-center w-full">
-        <div className="md:w-1/2 text-center md:text-left">
+        <div
+          className={`md:w-1/2 text-center ${
+            document.documentElement.dir === "rtl"
+              ? "md:text-right"
+              : "md:text-left"
+          }`}
+        >
           <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-            Votre agence de voyage,{" "}
-            <span className="text-indigo-500 dark:text-indigo-400">
-              maîtrisée en un clic.
-            </span>
+            <Trans i18nKey="home.hero.title">
+              Votre agence de voyage,{" "}
+              <span className="text-indigo-500 dark:text-indigo-400">
+                maîtrisée en un clic.
+              </span>
+            </Trans>
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-4 text-lg">
-            Planning, paiements, clients – tout est là. Essayez gratuitement !
+            {t("home.hero.subtitle")}
           </p>
-          <div className="mt-8 flex justify-center md:justify-start space-x-4">
+          <div className="mt-8 flex justify-center md:justify-start gap-4">
             <button
               onClick={handleSignUpClick}
               className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
             >
-              Commencez Gratuitement
+              {t("home.hero.startFree")}
             </button>
             <button
               onClick={handleSignUpClick}
               className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
             >
-              3 Jours d'essai gratuit
+              {t("home.hero.trial")}
             </button>
           </div>
         </div>
         <div className="md:w-1/2 mt-12 md:mt-0 md:pl-12">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl transform hover:scale-105 transition-transform duration-300">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold">Tableau de bord</h3>
+              <h3 className="text-xl font-semibold">
+                {t("home.dashboardPreview.title")}
+              </h3>
               <div className="text-sm bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
                 07-2025
               </div>
@@ -287,31 +313,33 @@ const HomePage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <StatCard
                 icon={TrendingUp}
-                title="Total des Bénéfices"
+                title={t("home.dashboardPreview.totalProfit")}
                 value="176,140 DH"
                 color="bg-green-500"
               />
               <StatCard
                 icon={DollarSign}
-                title="Paiements"
+                title={t("home.dashboardPreview.payments")}
                 value="106,740 DH"
                 color="bg-blue-500"
               />
               <StatCard
                 icon={Users}
-                title="Clients Actifs"
+                title={t("home.dashboardPreview.activeClients")}
                 value="89"
                 color="bg-purple-500"
               />
               <StatCard
                 icon={Plane}
-                title="Voyages Actifs"
+                title={t("home.dashboardPreview.activeTrips")}
                 value="12"
                 color="bg-red-500"
               />
             </div>
             <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h4 className="text-lg font-semibold mb-2">Aperçu des Profits</h4>
+              <h4 className="text-lg font-semibold mb-2">
+                {t("home.dashboardPreview.profitOverview")}
+              </h4>
               <div className="h-48 flex items-end">
                 <div className="w-full flex justify-between items-end h-full px-2">
                   {[30, 50, 40, 70, 60, 80, 75, 90, 65, 55, 70, 85].map(
@@ -334,39 +362,47 @@ const HomePage = () => {
       <section id="features" className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Conçu pour la performance
+            {t("home.featuresSection.title")}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-12">
-            Tout ce dont votre agence a besoin pour optimiser ses opérations, de
-            la réservation à la facturation, en passant par l'analyse des
-            profits.
+            {t("home.featuresSection.subtitle")}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <FeatureCard icon={BarChart} title="Tableau de Bord Intuitif">
-              Visualisez vos revenus, vos réservations et vos profits en temps
-              réel. Prenez des décisions éclairées grâce à des données claires.
+            <FeatureCard
+              icon={BarChart}
+              title={t("home.featuresSection.intuitiveDashboard.title")}
+            >
+              {t("home.featuresSection.intuitiveDashboard.description")}
             </FeatureCard>
-            <FeatureCard icon={Plane} title="Gestion de Programmes">
-              Créez et personnalisez facilement des programmes de voyage, qu'il
-              s'agisse de Hajj, Omra ou de tourisme, avec une tarification
-              flexible.
+            <FeatureCard
+              icon={Plane}
+              title={t("home.featuresSection.programManagement.title")}
+            >
+              {t("home.featuresSection.programManagement.description")}
             </FeatureCard>
-            <FeatureCard icon={Users} title="Suivi des Clients">
-              Centralisez toutes les informations de vos clients, gérez les
-              paiements et suivez les soldes restants sans effort.
+            <FeatureCard
+              icon={Users}
+              title={t("home.featuresSection.clientTracking.title")}
+            >
+              {t("home.featuresSection.clientTracking.description")}
             </FeatureCard>
-            <FeatureCard icon={DollarSign} title="Facturation Simplifiée">
-              Générez des factures et des devis professionnels en quelques
-              clics, personnalisés avec les informations de votre agence.
+            <FeatureCard
+              icon={DollarSign}
+              title={t("home.featuresSection.simplifiedBilling.title")}
+            >
+              {t("home.featuresSection.simplifiedBilling.description")}
             </FeatureCard>
-            <FeatureCard icon={TrendingUp} title="Rapports de Rentabilité">
-              Analysez la performance de chaque programme et service pour
-              identifier vos offres les plus rentables et optimiser vos marges.
+            <FeatureCard
+              icon={TrendingUp}
+              title={t("home.featuresSection.profitabilityReports.title")}
+            >
+              {t("home.featuresSection.profitabilityReports.description")}
             </FeatureCard>
-            <FeatureCard icon={Zap} title="Services Journaliers">
-              Gérez facilement les services additionnels comme les visas, les
-              billets d'avion ou les réservations d'hôtel pour augmenter vos
-              revenus.
+            <FeatureCard
+              icon={Zap}
+              title={t("home.featuresSection.dailyServices.title")}
+            >
+              {t("home.featuresSection.dailyServices.description")}
             </FeatureCard>
           </div>
         </div>
@@ -376,11 +412,10 @@ const HomePage = () => {
       <section id="pricing" className="py-20">
         <div className="container mx-auto px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Un tarif simple et transparent
+            {t("home.pricingSection.title")}
           </h2>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-12">
-            Choisissez le plan qui correspond à la taille et aux ambitions de
-            votre agence. Pas de frais cachés.
+            {t("home.pricingSection.subtitle")}
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <PricingCard plan={pricingPlans.monthly[0]} />
@@ -394,48 +429,58 @@ const HomePage = () => {
       <section id="faq" className="py-20 bg-gray-50 dark:bg-gray-900">
         <div className="container mx-auto px-8 max-w-4xl">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
-            Questions Fréquemment Posées
+            {t("home.faqSection.title")}
           </h2>
-          <div className="space-y-6">
+          <div className="gap-6">
             <details className="bg-white dark:bg-gray-800 p-6 rounded-lg group">
               <summary className="font-semibold text-lg cursor-pointer flex justify-between items-center">
-                <span>Est-ce que je peux changer de plan plus tard ?</span>
+                <span>{t("home.faqSection.q1")}</span>
                 <span className="transform group-open:rotate-180 transition-transform">
                   ▼
                 </span>
               </summary>
-              <p className="text-gray-600 dark:text-gray-400 mt-4 text-left">
-                Oui, absolument. Vous pouvez faire évoluer votre abonnement vers
-                un plan supérieur à tout moment en nous contactant pour accéder
-                à plus de fonctionnalités et des limites plus élevées.
+              <p
+                className={`text-gray-600 dark:text-gray-400 mt-4 ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                {t("home.faqSection.a1")}
               </p>
             </details>
             <details className="bg-white dark:bg-gray-800 p-6 rounded-lg group">
               <summary className="font-semibold text-lg cursor-pointer flex justify-between items-center">
-                <span>La période d'essai est-elle vraiment gratuite ?</span>
+                <span>{t("home.faqSection.q2")}</span>
                 <span className="transform group-open:rotate-180 transition-transform">
                   ▼
                 </span>
               </summary>
-              <p className="text-gray-600 dark:text-gray-400 mt-4 text-left">
-                Oui, l'essai de 3 jours est 100% gratuit et sans engagement.
-                Vous n'avez pas besoin de fournir de carte de crédit pour
-                commencer. Explorez toutes les fonctionnalités et voyez comment
-                TravelPro peut transformer votre agence.
+              <p
+                className={`text-gray-600 dark:text-gray-400 mt-4 ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                {t("home.faqSection.a2")}
               </p>
             </details>
             <details className="bg-white dark:bg-gray-800 p-6 rounded-lg group">
               <summary className="font-semibold text-lg cursor-pointer flex justify-between items-center">
-                <span>Mes données sont-elles en sécurité ?</span>
+                <span>{t("home.faqSection.q3")}</span>
                 <span className="transform group-open:rotate-180 transition-transform">
                   ▼
                 </span>
               </summary>
-              <p className="text-gray-600 dark:text-gray-400 mt-4 text-left">
-                La sécurité de vos données est notre priorité absolue. Nous
-                utilisons des protocoles de cryptage de pointe et des serveurs
-                sécurisés pour garantir que les informations de votre agence et
-                de vos clients sont protégées en permanence.
+              <p
+                className={`text-gray-600 dark:text-gray-400 mt-4 ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                {t("home.faqSection.a3")}
               </p>
             </details>
           </div>
@@ -447,23 +492,25 @@ const HomePage = () => {
         <div className="container mx-auto px-8 py-8 flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center">
             <Plane className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
-            <span className="text-xl font-bold ml-2">TravelPro</span>
+            <span className="text-xl font-bold ml-2">
+              {t("home.header.brand")}
+            </span>
           </div>
           <p className="text-gray-500 dark:text-gray-500 mt-4 md:mt-0">
-            &copy; 2025 TravelPro. Tous droits réservés.
+            {t("home.footer.rights")}
           </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
+          <div className="flex gap-4 mt-4 md:mt-0">
             <a
               href="#"
               className="text-gray-500 dark:text-gray-500 hover:text-black dark:hover:text-white"
             >
-              Conditions
+              {t("home.footer.terms")}
             </a>
             <a
               href="#"
               className="text-gray-500 dark:text-gray-500 hover:text-black dark:hover:text-white"
             >
-              Confidentialité
+              {t("home.footer.privacy")}
             </a>
           </div>
         </div>
@@ -513,7 +560,7 @@ const HomePage = () => {
       >
         <WhatsAppIcon />
         <span className="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-auto min-w-max p-2 text-xs text-white bg-gray-800 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity">
-          Contactez-nous sur WhatsApp
+          {t("home.whatsappTooltip")}
         </span>
       </a>
     </div>
