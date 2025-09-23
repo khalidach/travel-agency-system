@@ -305,8 +305,22 @@ export default function BookingForm({
           dob_year: year,
         };
 
+        // FIX: Destructure client-specific fields from the booking object
+        // to prevent them from being spread into the top level of the form state.
+        const {
+          clientNameAr,
+          clientNameFr,
+          personType,
+          phoneNumber,
+          passportNumber,
+          gender,
+          dateOfBirth,
+          passportExpirationDate,
+          ...restOfBooking
+        } = booking;
+
         reset({
-          ...booking,
+          ...restOfBooking, // Spread only the non-client fields
           sellingPrice: Number(booking.sellingPrice),
           basePrice: Number(booking.basePrice),
           profit: Number(booking.sellingPrice) - Number(booking.basePrice),
