@@ -31,6 +31,12 @@ interface ProfitReportData {
   detailedPerformanceData: any[];
   monthlyTrend: any[];
   pagination: PaginatedResponse<any>["pagination"];
+  summary: {
+    totalBookings: number;
+    totalSales: number;
+    totalProfit: number;
+    totalCost: number;
+  };
 }
 
 export default function ProfitReport() {
@@ -54,26 +60,20 @@ export default function ProfitReport() {
   const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
   const pagination = reportData?.pagination;
+  const summary = reportData?.summary;
 
   const totals = useMemo(() => {
-    // Note: This calculates totals for the current page. If you need totals for all data,
-    // you would need another API endpoint or to fetch all data.
-    // For this implementation, we'll assume totals are based on the visible (paginated) data.
-    return detailedPerformanceData.reduce(
-      (acc, item) => ({
-        totalBookings: acc.totalBookings + item.bookings,
-        totalSales: acc.totalSales + item.totalSales,
-        totalProfit: acc.totalProfit + item.totalProfit,
-        totalCost: acc.totalCost + item.totalCost,
-      }),
-      {
-        totalBookings: 0,
-        totalSales: 0,
-        totalProfit: 0,
-        totalCost: 0,
-      }
-    );
-  }, [detailedPerformanceData]);
+    const totalSales = summary?.totalSales ?? 0;
+    const totalProfit = summary?.totalProfit ?? 0;
+    const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+
+    return {
+      totalBookings: summary?.totalBookings ?? 0,
+      totalSales,
+      totalProfit,
+      profitMargin,
+    };
+  }, [summary]);
 
   const paginationRange = usePagination({
     currentPage,
@@ -108,7 +108,7 @@ export default function ProfitReport() {
                 {t("totalBookings")}
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-2">
-                {pagination?.totalCount || 0}
+                {totals.totalBookings.toLocaleString()}
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -153,10 +153,7 @@ export default function ProfitReport() {
                 {t("profitMargin")}
               </p>
               <p className="text-2xl font-bold text-gray-900 mt-2">
-                {totals.totalSales > 0
-                  ? ((totals.totalProfit / totals.totalSales) * 100).toFixed(1)
-                  : 0}
-                %
+                {totals.profitMargin.toFixed(1)}%
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
