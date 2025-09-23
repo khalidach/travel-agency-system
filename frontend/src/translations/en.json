@@ -379,5 +379,119 @@
   "changePassword": "Change Password",
   "currentPasswordRequired": "Current password is required.",
   "passwordTooShort": "New password must be at least 6 characters.",
-  "passwordMismatch": "Passwords do not match."
+  "passwordMismatch": "Passwords do not match.",
+  "currency": {
+    "dh_per_month": "DH/month"
+  },
+  "home": {
+    "header": {
+      "brand": "TravelPro",
+      "features": "Features",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "dashboard": "Dashboard",
+      "login": "Login"
+    },
+    "hero": {
+      "title": "Your travel agency, <1>mastered in one click.</1>",
+      "subtitle": "Planning, payments, clients – it's all here. Try it for free!",
+      "startFree": "Start for Free",
+      "trial": "3-Day Free Trial"
+    },
+    "dashboardPreview": {
+      "title": "Dashboard",
+      "totalProfit": "Total Profit",
+      "payments": "Payments",
+      "activeClients": "Active Clients",
+      "activeTrips": "Active Trips",
+      "profitOverview": "Profit Overview"
+    },
+    "featuresSection": {
+      "title": "Designed for performance",
+      "subtitle": "Everything your agency needs to optimize operations, from booking to billing, and profit analysis.",
+      "intuitiveDashboard": {
+        "title": "Intuitive Dashboard",
+        "description": "Visualize your revenue, bookings, and profits in real-time. Make informed decisions with clear data."
+      },
+      "programManagement": {
+        "title": "Program Management",
+        "description": "Easily create and customize travel programs, whether for Hajj, Umrah, or tourism, with flexible pricing."
+      },
+      "clientTracking": {
+        "title": "Client Tracking",
+        "description": "Centralize all your client information, manage payments, and track remaining balances effortlessly."
+      },
+      "simplifiedBilling": {
+        "title": "Simplified Billing",
+        "description": "Generate professional invoices and quotes in a few clicks, customized with your agency's information."
+      },
+      "profitabilityReports": {
+        "title": "Profitability Reports",
+        "description": "Analyze the performance of each program and service to identify your most profitable offers and optimize your margins."
+      },
+      "dailyServices": {
+        "title": "Daily Services",
+        "description": "Easily manage additional services like visas, airline tickets, or hotel reservations to increase your revenue."
+      }
+    },
+    "pricingSection": {
+      "title": "Simple and transparent pricing",
+      "subtitle": "Choose the plan that fits the size and ambitions of your agency. No hidden fees.",
+      "mostPopular": "Most Popular",
+      "essentialPlan": {
+        "title": "Essential Plan",
+        "subtitle": "Ideal for small agencies",
+        "price": "200",
+        "features": {
+          "f1": "2 employees",
+          "f2": "Up to 100 bookings/month",
+          "f3": "Up to 5 programs/month",
+          "f4": "Accommodation management",
+          "f5": "Up to 20 invoices/month",
+          "f6": "5 exports per program/month"
+        }
+      },
+      "proPlan": {
+        "title": "Professional Plan",
+        "subtitle": "For growing agencies",
+        "price": "600",
+        "features": {
+          "f1": "5 employees",
+          "f2": "Up to 500 bookings/month",
+          "f3": "Up to 15 programs/month",
+          "f4": "Program cost calculation",
+          "f5": "Accommodation management",
+          "f6": "Up to 100 invoices/month",
+          "f7": "Daily services (up to 50/month)",
+          "f8": "Unlimited exports"
+        }
+      },
+      "elitePlan": {
+        "title": "Elite Plan",
+        "subtitle": "The complete solution for large agencies",
+        "price": "1200",
+        "features": {
+          "f1": "10 employees",
+          "f2": "Everything unlimited",
+          "f3": "Priority access to new features"
+        }
+      },
+      "choosePlan": "Choose this plan"
+    },
+    "faqSection": {
+      "title": "Frequently Asked Questions",
+      "q1": "Can I change my plan later?",
+      "a1": "Yes, absolutely. You can upgrade your subscription to a higher plan at any time by contacting us to access more features and higher limits.",
+      "q2": "Is the trial period really free?",
+      "a2": "Yes, the 3-day trial is 100% free and without obligation. You do not need to provide a credit card to get started. Explore all the features and see how TravelPro can transform your agency.",
+      "q3": "Is my data secure?",
+      "a3": "The security of your data is our top priority. We use state-of-the-art encryption protocols and secure servers to ensure that your agency's and your clients' information is protected at all times."
+    },
+    "footer": {
+      "rights": "© 2025 TravelPro. All rights reserved.",
+      "terms": "Terms",
+      "privacy": "Privacy"
+    },
+    "whatsappTooltip": "Contact us on WhatsApp"
+  }
 }

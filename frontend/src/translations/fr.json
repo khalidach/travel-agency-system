@@ -383,5 +383,119 @@
   "changePassword": "Changer le mot de passe",
   "currentPasswordRequired": "Le mot de passe actuel est requis.",
   "passwordTooShort": "Le nouveau mot de passe doit comporter au moins 6 caractères.",
-  "passwordMismatch": "Les mots de passe ne correspondent pas."
+  "passwordMismatch": "Les mots de passe ne correspondent pas.",
+  "currency": {
+    "dh_per_month": "DH/mois"
+  },
+  "home": {
+    "header": {
+      "brand": "TravelPro",
+      "features": "Fonctionnalités",
+      "pricing": "Tarifs",
+      "faq": "FAQ",
+      "dashboard": "Tableau de bord",
+      "login": "Se Connecter"
+    },
+    "hero": {
+      "title": "Votre agence de voyage, <1>maîtrisée en un clic.</1>",
+      "subtitle": "Planning, paiements, clients – tout est là. Essayez gratuitement !",
+      "startFree": "Commencez Gratuitement",
+      "trial": "3 Jours d'essai gratuit"
+    },
+    "dashboardPreview": {
+      "title": "Tableau de bord",
+      "totalProfit": "Total des Bénéfices",
+      "payments": "Paiements",
+      "activeClients": "Clients Actifs",
+      "activeTrips": "Voyages Actifs",
+      "profitOverview": "Aperçu des Profits"
+    },
+    "featuresSection": {
+      "title": "Conçu pour la performance",
+      "subtitle": "Tout ce dont votre agence a besoin pour optimiser ses opérations, de la réservation à la facturation, en passant par l'analyse des profits.",
+      "intuitiveDashboard": {
+        "title": "Tableau de Bord Intuitif",
+        "description": "Visualisez vos revenus, vos réservations et vos profits en temps réel. Prenez des décisions éclairées grâce à des données claires."
+      },
+      "programManagement": {
+        "title": "Gestion de Programmes",
+        "description": "Créez et personnalisez facilement des programmes de voyage, qu'il s'agisse de Hajj, Omra ou de tourisme, avec une tarification flexible."
+      },
+      "clientTracking": {
+        "title": "Suivi des Clients",
+        "description": "Centralisez toutes les informations de vos clients, gérez les paiements et suivez les soldes restants sans effort."
+      },
+      "simplifiedBilling": {
+        "title": "Facturation Simplifiée",
+        "description": "Générez des factures et des devis professionnels en quelques clics, personnalisés avec les informations de votre agence."
+      },
+      "profitabilityReports": {
+        "title": "Rapports de Rentabilité",
+        "description": "Analysez la performance de chaque programme et service pour identifier vos offres les plus rentables et optimiser vos marges."
+      },
+      "dailyServices": {
+        "title": "Services Journaliers",
+        "description": "Gérez facilement les services additionnels comme les visas, les billets d'avion ou les réservations d'hôtel pour augmenter vos revenus."
+      }
+    },
+    "pricingSection": {
+      "title": "Un tarif simple et transparent",
+      "subtitle": "Choisissez le plan qui correspond à la taille et aux ambitions de votre agence. Pas de frais cachés.",
+      "mostPopular": "Le plus populaire",
+      "essentialPlan": {
+        "title": "Plan Essentiel",
+        "subtitle": "Idéal pour les petites agences",
+        "price": "200",
+        "features": {
+          "f1": "2 employés",
+          "f2": "Jusqu'à 100 réservations/mois",
+          "f3": "Jusqu'à 5 programmes/mois",
+          "f4": "Gestion de l'hébergement",
+          "f5": "Jusqu'à 20 factures/mois",
+          "f6": "5 exportations par programme/mois"
+        }
+      },
+      "proPlan": {
+        "title": "Plan Professionnel",
+        "subtitle": "Pour les agences en croissance",
+        "price": "600",
+        "features": {
+          "f1": "5 employés",
+          "f2": "Jusqu'à 500 réservations/mois",
+          "f3": "Jusqu'à 15 programmes/mois",
+          "f4": "Calcul des coûts de programme",
+          "f5": "Gestion de l'hébergement",
+          "f6": "Jusqu'à 100 factures/mois",
+          "f7": "Services journaliers (jusqu'à 50/mois)",
+          "f8": "Exportations illimitées"
+        }
+      },
+      "elitePlan": {
+        "title": "Plan Élite",
+        "subtitle": "La solution complète pour les grandes agences",
+        "price": "1200",
+        "features": {
+          "f1": "10 employés",
+          "f2": "Tout est illimité",
+          "f3": "Accès prioritaire aux nouvelles fonctionnalités"
+        }
+      },
+      "choosePlan": "Choisir ce plan"
+    },
+    "faqSection": {
+      "title": "Questions Fréquemment Posées",
+      "q1": "Est-ce que je peux changer de plan plus tard ?",
+      "a1": "Oui, absolument. Vous pouvez faire évoluer votre abonnement vers un plan supérieur à tout moment en nous contactant pour accéder à plus de fonctionnalités et des limites plus élevées.",
+      "q2": "La période d'essai est-elle vraiment gratuite ?",
+      "a2": "Oui, l'essai de 3 jours est 100% gratuit et sans engagement. Vous n'avez pas besoin de fournir de carte de crédit pour commencer. Explorez toutes les fonctionnalités et voyez comment TravelPro peut transformer votre agence.",
+      "q3": "Mes données sont-elles en sécurité ?",
+      "a3": "La sécurité de vos données est notre priorité absolue. Nous utilisons des protocoles de cryptage de pointe et des serveurs sécurisés pour garantir que les informations de votre agence et de vos clients sont protégées en permanence."
+    },
+    "footer": {
+      "rights": "© 2025 TravelPro. Tous droits réservés.",
+      "terms": "Conditions",
+      "privacy": "Confidentialité"
+    },
+    "whatsappTooltip": "Contactez-nous sur WhatsApp"
+  }
 }
