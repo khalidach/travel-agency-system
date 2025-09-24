@@ -461,12 +461,12 @@
         "price": "600",
         "features": {
           "f1": "5 employés",
-          "f2": "Jusqu'à 500 réservations/mois",
+          "f2": "Jusqu'à 400 réservations/mois",
           "f3": "Jusqu'à 15 programmes/mois",
           "f4": "Calcul des coûts de programme",
           "f5": "Gestion de l'hébergement",
           "f6": "Jusqu'à 100 factures/mois",
-          "f7": "Services journaliers (jusqu'à 50/mois)",
+          "f7": "Services journaliers (jusqu'à 100/mois)",
           "f8": "Exportations illimitées"
         }
       },

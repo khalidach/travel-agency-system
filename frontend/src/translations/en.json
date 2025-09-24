@@ -457,12 +457,12 @@
         "price": "600",
         "features": {
           "f1": "5 employees",
-          "f2": "Up to 500 bookings/month",
+          "f2": "Up to 400 bookings/month",
           "f3": "Up to 15 programs/month",
           "f4": "Program cost calculation",
           "f5": "Accommodation management",
           "f6": "Up to 100 invoices/month",
-          "f7": "Daily services (up to 50/month)",
+          "f7": "Daily services (up to 100/month)",
           "f8": "Unlimited exports"
         }
       },
