@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
+  HelpCircle, // Import help icon
 } from "lucide-react";
 import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
 import * as api from "../services/api";
@@ -18,6 +19,7 @@ import type { Booking, DashboardStats } from "../context/models";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import VideoHelpModal from "../components/VideoHelpModal"; // Import the modal
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -25,6 +27,7 @@ export default function Dashboard() {
   const { theme } = useTheme();
   const userRole = state.user?.role;
 
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false); // State for the modal
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({
     start: "",
@@ -222,13 +225,22 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          {t("dashboard")}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          {t("dashboardSubtitle")}
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {t("dashboard")}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            {t("dashboardSubtitle")}
+          </p>
+        </div>
+        <button
+          onClick={() => setIsHelpModalOpen(true)}
+          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          aria-label="Help"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
       </div>
 
       <div
@@ -555,6 +567,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="qVEeJb4HqfA"
+        title="Dashboard & Profit Report Overview"
+      />
     </div>
   );
 }

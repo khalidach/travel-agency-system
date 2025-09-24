@@ -3,12 +3,13 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 
 // Components
 import ProgramCard from "../components/booking/ProgramCard";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
+import VideoHelpModal from "../components/VideoHelpModal";
 
 // Types and API
 import type { Program, PaginatedResponse } from "../context/models";
@@ -21,6 +22,7 @@ export default function Booking() {
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const programsPerPage = 6;
 
   // Reset page to 1 when a new search is submitted
@@ -80,7 +82,7 @@ export default function Booking() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("selectAProgram")}
@@ -89,6 +91,13 @@ export default function Booking() {
             {t("chooseProgramToViewBookings")}
           </p>
         </div>
+        <button
+          onClick={() => setIsHelpModalOpen(true)}
+          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 mt-4 sm:mt-0"
+          aria-label="Help"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -202,6 +211,12 @@ export default function Booking() {
           </button>
         </div>
       )}
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="gE4Ql_I-T-k"
+        title="Bookings Management"
+      />
     </div>
   );
 }

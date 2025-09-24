@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  HelpCircle,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import ProgramForm from "../components/ProgramForm";
@@ -21,6 +22,7 @@ import { toast } from "react-hot-toast";
 import { usePagination } from "../hooks/usePagination";
 import { useAuthContext } from "../context/AuthContext";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
+import VideoHelpModal from "../components/VideoHelpModal";
 
 export default function Programs() {
   const { t } = useTranslation();
@@ -35,6 +37,7 @@ export default function Programs() {
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [programToDelete, setProgramToDelete] = useState<number | null>(null);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   // Search and Filter States
   const [searchTerm, setSearchTerm] = useState("");
@@ -64,7 +67,7 @@ export default function Programs() {
   const pagination = programResponse?.pagination;
 
   const invalidateRelatedQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["programs"] });  
+    queryClient.invalidateQueries({ queryKey: ["programs"] });
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
     queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
     queryClient.invalidateQueries({ queryKey: ["programsWithPricing"] });
@@ -182,7 +185,7 @@ export default function Programs() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("programsTitle")}
@@ -191,17 +194,26 @@ export default function Programs() {
             {t("programsSubtitle")}
           </p>
         </div>
-        <button
-          onClick={handleAddProgram}
-          className="mt-4 sm:mt-0 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
-        >
-          <Plus
-            className={`w-5 h-5 ${
-              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-            }`}
-          />
-          {t("addProgram")}
-        </button>
+        <div className="flex items-center gap-4 mt-4 sm:mt-0">
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleAddProgram}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Plus
+              className={`w-5 h-5 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
+            {t("addProgram")}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -402,6 +414,12 @@ export default function Programs() {
         onConfirm={confirmDelete}
         title={t("deleteProgramTitle")}
         message={t("deleteProgramMessage")}
+      />
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="RzZ8a0b9ymY"
+        title="Programs Management"
       />
     </div>
   );

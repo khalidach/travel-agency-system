@@ -2,7 +2,14 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Download, Edit2, Trash2, FileText } from "lucide-react";
+import {
+  Plus,
+  Download,
+  Edit2,
+  Trash2,
+  FileText,
+  HelpCircle,
+} from "lucide-react";
 import * as api from "../services/api";
 import { Facture, PaginatedResponse } from "../context/models";
 import Modal from "../components/Modal";
@@ -14,6 +21,7 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { usePagination } from "../hooks/usePagination";
 import PaginationControls from "../components/booking/PaginationControls";
+import VideoHelpModal from "../components/VideoHelpModal";
 
 export default function Facturation() {
   const { t } = useTranslation();
@@ -25,6 +33,7 @@ export default function Facturation() {
     null
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const facturesPerPage = 10;
 
   const { data: facturesResponse, isLoading } = useQuery<
@@ -120,7 +129,7 @@ export default function Facturation() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("facturationTitle")}
@@ -129,17 +138,26 @@ export default function Facturation() {
             {t("facturationSubtitle")}
           </p>
         </div>
-        <button
-          onClick={handleNewDocumentClick}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
-        >
-          <Plus
-            className={`w-5 h-5 ${
-              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-            }`}
-          />
-          {t("newDocument")}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleNewDocumentClick}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
+          >
+            <Plus
+              className={`w-5 h-5 ${
+                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+              }`}
+            />
+            {t("newDocument")}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -281,6 +299,12 @@ export default function Facturation() {
           </div>
         </div>
       )}
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="S_kIsNdsGys"
+        title="Facturation Management"
+      />
     </div>
   );
 }

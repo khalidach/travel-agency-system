@@ -19,6 +19,7 @@ import {
   BedDouble,
   Bus,
   Users,
+  HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -28,6 +29,7 @@ import ConfirmationModal from "../components/modals/ConfirmationModal";
 import Modal from "../components/Modal";
 import ProgramPricingForm from "../components/ProgramPricingForm";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
+import VideoHelpModal from "../components/VideoHelpModal";
 
 export default function ProgramPricingPage() {
   const { t } = useTranslation();
@@ -44,6 +46,7 @@ export default function ProgramPricingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -185,12 +188,23 @@ export default function ProgramPricingPage() {
 
   return (
     <div className="mx-auto p-6 space-y-8">
-      <h1 className="text-2xl font-bold mb-6 dark:text-gray-100">
-        {t("programPricing")}
-      </h1>
-      <p className="text-gray-600 dark:text-gray-400 -mt-4 mb-4">
-        {t("programPricingSubtitle")}
-      </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold mb-6 dark:text-gray-100">
+            {t("programPricing")}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 -mt-4 mb-4">
+            {t("programPricingSubtitle")}
+          </p>
+        </div>
+        <button
+          onClick={() => setIsHelpModalOpen(true)}
+          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          aria-label="Help"
+        >
+          <HelpCircle className="w-6 h-6" />
+        </button>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
@@ -575,6 +589,13 @@ export default function ProgramPricingPage() {
         onConfirm={confirmDelete}
         title={t("deletePricingTitle")}
         message={t("deletePricingMessage")}
+      />
+
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="-c4xoeUa3a8"
+        title="Program Pricing Management"
       />
     </div>
   );

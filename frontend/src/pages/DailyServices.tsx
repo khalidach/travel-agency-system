@@ -2,7 +2,14 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2, ConciergeBell, Download } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  ConciergeBell,
+  Download,
+  HelpCircle,
+} from "lucide-react";
 import * as api from "../services/api";
 import {
   DailyService,
@@ -19,6 +26,7 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
 import { useAuthContext } from "../context/AuthContext";
+import VideoHelpModal from "../components/VideoHelpModal";
 
 // Form Component
 const DailyServiceForm = ({
@@ -208,6 +216,7 @@ export default function DailyServices() {
     null
   );
   const [currentPage, setCurrentPage] = useState(1);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const servicesPerPage = 10;
 
   const { data: servicesResponse, isLoading } = useQuery<
@@ -305,7 +314,7 @@ export default function DailyServices() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {t("dailyServicesTitle")}
@@ -314,16 +323,25 @@ export default function DailyServices() {
             {t("dailyServicesSubtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingService(null);
-            setIsModalOpen(true);
-          }}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          {t("newService")}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => {
+              setEditingService(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            {t("newService")}
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 overflow-hidden">
@@ -471,6 +489,12 @@ export default function DailyServices() {
           </div>
         </div>
       )}
+      <VideoHelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        videoId="xSwWyVLuGYY"
+        title="Daily Services Management"
+      />
     </div>
   );
 }
