@@ -7,6 +7,9 @@ import { toast } from "react-hot-toast";
 import * as api from "../services/api";
 import { useMutation } from "@tanstack/react-query";
 
+// Declare fbq to be accessible in this file
+declare const fbq: any;
+
 type SignUpFormData = {
   ownerName: string;
   agencyName: string;
@@ -30,6 +33,10 @@ export default function SignUpPage() {
     mutationFn: (data: SignUpFormData) => api.signup(data),
     onSuccess: (data) => {
       toast.success(data.message || "Account created successfully!");
+      // Add the Meta Pixel track event here
+      if (typeof fbq === "function") {
+        fbq("track", "Lead");
+      }
       navigate("/login");
     },
     onError: (error) => {
