@@ -21,9 +21,12 @@ const AdminForm = ({
   onCancel: () => void;
 }) => {
   const [formData, setFormData] = useState({
+    ownerName: user?.ownerName || "",
+    agencyName: user?.agencyName || "",
+    phoneNumber: user?.phone || "",
+    email: user?.email || "",
     username: user?.username || "",
     password: "",
-    agencyName: user?.agencyName || "",
     tierId: user?.tierId || (tiers.length > 0 ? tiers[0].id : 1),
   });
 
@@ -32,9 +35,12 @@ const AdminForm = ({
     if (
       !formData.username ||
       !formData.agencyName ||
+      !formData.ownerName ||
+      !formData.phoneNumber ||
+      !formData.email ||
       (!user && !formData.password)
     ) {
-      toast.error("Username, Agency Name, and Password are required.");
+      toast.error("All fields are required.");
       return;
     }
     onSave(formData);
@@ -42,6 +48,60 @@ const AdminForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Owner Name
+        </label>
+        <input
+          type="text"
+          value={formData.ownerName}
+          onChange={(e) =>
+            setFormData({ ...formData, ownerName: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Agency Name
+        </label>
+        <input
+          type="text"
+          value={formData.agencyName}
+          onChange={(e) =>
+            setFormData({ ...formData, agencyName: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Phone Number
+        </label>
+        <input
+          type="text"
+          value={formData.phoneNumber}
+          onChange={(e) =>
+            setFormData({ ...formData, phoneNumber: e.target.value })
+          }
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Email
+        </label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          required
+        />
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Username
@@ -67,20 +127,6 @@ const AdminForm = ({
             setFormData({ ...formData, password: e.target.value })
           }
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Agency Name
-        </label>
-        <input
-          type="text"
-          value={formData.agencyName}
-          onChange={(e) =>
-            setFormData({ ...formData, agencyName: e.target.value })
-          }
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          required
         />
       </div>
       {!user && (
@@ -289,7 +335,7 @@ export default function OwnerPage() {
                     : "text-left"
                 }`}
               >
-                Username
+                Owner Name
               </th>
               <th
                 className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
@@ -299,6 +345,33 @@ export default function OwnerPage() {
                 }`}
               >
                 Agency Name
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                Username
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                Phone
+              </th>
+              <th
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                  document.documentElement.dir === "rtl"
+                    ? "text-right"
+                    : "text-left"
+                }`}
+              >
+                Email
               </th>
               <th
                 className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
@@ -332,7 +405,7 @@ export default function OwnerPage() {
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {isLoadingAdmins ? (
               <tr>
-                <td colSpan={5} className="text-center p-4">
+                <td colSpan={8} className="text-center p-4">
                   Loading...
                 </td>
               </tr>
@@ -342,13 +415,20 @@ export default function OwnerPage() {
                   key={user.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {user.username}
-                    </span>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {user.ownerName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {user.agencyName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    {user.username}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    {user.phone}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                    {user.email}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <select

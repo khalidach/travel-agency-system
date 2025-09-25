@@ -15,7 +15,7 @@ const authorizeOwner = (req, res, next) => {
 const getAdminUsers = async (req, res, next) => {
   try {
     const { rows } = await req.db.query(
-      `SELECT u.id, u.username, u."agencyName", u.role, u."activeUser", u."tierId", u.limits, t.limits as "tierLimits" 
+      `SELECT u.id, u.username, u."agencyName", u.role, u."activeUser", u."tierId", u.limits, t.limits as "tierLimits", u."ownerName", u.phone, u.email 
        FROM users u 
        LEFT JOIN tiers t ON u."tierId" = t.id 
        WHERE u.role = 'admin' ORDER BY u.id ASC`
@@ -32,9 +32,17 @@ const getAdminUsers = async (req, res, next) => {
 
 const createAdminUser = async (req, res, next) => {
   try {
-    const { username, password, agencyName, tierId } = req.body;
+    const { username, password, agencyName, tierId, ownerName, phone, email } =
+      req.body;
 
-    if (!username || !password || !agencyName) {
+    if (
+      !username ||
+      !password ||
+      !agencyName ||
+      !ownerName ||
+      !phone ||
+      !email
+    ) {
       return next(new AppError("Please provide all required fields.", 400));
     }
 
@@ -43,8 +51,18 @@ const createAdminUser = async (req, res, next) => {
     const finalTierId = tierId || 1;
 
     const { rows } = await req.db.query(
-      'INSERT INTO users (username, password, "agencyName", role, "activeUser", "tierId") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, "agencyName", role, "activeUser", "tierId"',
-      [username, hashedPassword, agencyName, "admin", true, finalTierId]
+      'INSERT INTO users (username, password, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, username, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email',
+      [
+        username,
+        hashedPassword,
+        agencyName,
+        "admin",
+        true,
+        finalTierId,
+        ownerName,
+        phone,
+        email,
+      ]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -63,7 +81,8 @@ const createAdminUser = async (req, res, next) => {
 const updateAdminUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { username, password, agencyName } = req.body;
+    const { username, password, agencyName, ownerName, phone, email } =
+      req.body;
 
     let hashedPassword;
     if (password) {
@@ -75,9 +94,12 @@ const updateAdminUser = async (req, res, next) => {
       `UPDATE users SET 
         username = COALESCE($1, username), 
         password = COALESCE($2, password), 
-        "agencyName" = COALESCE($3, "agencyName")
-       WHERE id = $4 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
-      [username, hashedPassword, agencyName, id]
+        "agencyName" = COALESCE($3, "agencyName"),
+        "ownerName" = COALESCE($4, "ownerName"),
+        phone = COALESCE($5, phone),
+        email = COALESCE($6, email)
+       WHERE id = $7 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email`,
+      [username, hashedPassword, agencyName, ownerName, phone, email, id]
     );
 
     if (rows.length === 0) {
@@ -106,7 +128,7 @@ const toggleUserStatus = async (req, res, next) => {
     }
 
     const { rows } = await req.db.query(
-      `UPDATE users SET "activeUser" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
+      `UPDATE users SET "activeUser" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email`,
       [activeUser, id]
     );
 
@@ -159,7 +181,7 @@ const updateAdminTier = async (req, res, next) => {
     }
 
     const { rows } = await req.db.query(
-      `UPDATE users SET "tierId" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId"`,
+      `UPDATE users SET "tierId" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", "ownerName", phone, email`,
       [tierId, id]
     );
 
@@ -187,7 +209,7 @@ const updateAdminUserLimits = async (req, res, next) => {
     }
 
     const { rows } = await req.db.query(
-      `UPDATE users SET "limits" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", limits`,
+      `UPDATE users SET "limits" = $1 WHERE id = $2 AND role = 'admin' RETURNING id, username, "agencyName", role, "activeUser", "tierId", limits, "ownerName", phone, email`,
       [JSON.stringify(limits), id]
     );
 

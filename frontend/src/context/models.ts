@@ -34,6 +34,9 @@ export interface User {
   tierId?: number;
   limits?: Partial<TierLimits>;
   tierLimits?: TierLimits;
+  ownerName?: string;
+  phone?: string;
+  email?: string;
 }
 
 export interface FacturationSettings {
