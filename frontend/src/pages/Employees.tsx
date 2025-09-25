@@ -1,5 +1,5 @@
 // frontend/src/pages/Employees.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,6 +10,7 @@ import {
   Briefcase,
   Hash,
   HelpCircle,
+  Lock,
 } from "lucide-react";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
@@ -18,6 +19,7 @@ import { toast } from "react-hot-toast";
 import type { Employee } from "../context/models";
 import { useTranslation } from "react-i18next";
 import VideoHelpModal from "../components/VideoHelpModal";
+import { useAuthContext } from "../context/AuthContext";
 
 const EmployeeForm = ({
   employee,
@@ -119,6 +121,19 @@ export default function EmployeesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const { state } = useAuthContext();
+  const user = state.user;
+
+  const hasEmployeeAnalysisAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.employeeAnalysis === "boolean") {
+      return user.limits.employeeAnalysis;
+    }
+    if (typeof user.tierLimits?.employeeAnalysis === "boolean") {
+      return user.tierLimits.employeeAnalysis;
+    }
+    return false;
+  }, [user]);
 
   const { data, isLoading: isLoadingEmployees } = useQuery<{
     employees: (Employee & { bookingCount: number })[];
@@ -210,6 +225,16 @@ export default function EmployeesPage() {
     }
     setIsDeleteModalOpen(false);
     setEmployeeToDelete(null);
+  };
+
+  const handleRowClick = (emp: Employee) => {
+    if (hasEmployeeAnalysisAccess) {
+      navigate(`/employees/${emp.username}`);
+    } else {
+      toast.error(
+        "Employee analysis is not available on your current plan. Please upgrade."
+      );
+    }
   };
 
   return (
@@ -314,8 +339,10 @@ export default function EmployeesPage() {
               employees.map((emp) => (
                 <tr
                   key={emp.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() => navigate(`/employees/${emp.username}`)}
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                    hasEmployeeAnalysisAccess ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => handleRowClick(emp)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -323,6 +350,9 @@ export default function EmployeesPage() {
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {emp.username}
                       </span>
+                      {!hasEmployeeAnalysisAccess && (
+                        <Lock className="w-3 h-3 text-gray-400 ml-2" />
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

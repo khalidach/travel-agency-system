@@ -227,7 +227,7 @@ function AppRoutes() {
                             <Route
                               path="/employees"
                               element={
-                                hasEmployeeAnalysisAccess ? (
+                                userRole === "admin" ? (
                                   <EmployeesPage />
                                 ) : (
                                   <Navigate to="/dashboard" replace />
@@ -240,7 +240,7 @@ function AppRoutes() {
                                 hasEmployeeAnalysisAccess ? (
                                   <EmployeeAnalysisPage />
                                 ) : (
-                                  <Navigate to="/dashboard" replace />
+                                  <Navigate to="/employees" replace />
                                 )
                               }
                             />

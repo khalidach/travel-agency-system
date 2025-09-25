@@ -160,14 +160,6 @@ const allMenuItems: MenuItem[] = [
     path: "/employees",
     icon: Users,
     roles: ["admin"],
-    accessCheck: (user: any) => {
-      if (!user) return false;
-      if (typeof user.limits?.employeeAnalysis === "boolean")
-        return user.limits.employeeAnalysis;
-      if (typeof user.tierLimits?.employeeAnalysis === "boolean")
-        return user.tierLimits.employeeAnalysis;
-      return false;
-    },
   },
   {
     key: "settings",
