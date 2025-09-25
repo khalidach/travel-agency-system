@@ -97,7 +97,7 @@ const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
     <div
       className={`relative bg-white dark:bg-gray-800 p-8 rounded-2xl border ${
         popular ? "border-indigo-500" : "border-gray-200 dark:border-gray-700"
-      } min-h-[600px] flex flex-col`}
+      } min-h-[700px] min-[300px] flex flex-col`}
     >
       {popular && (
         <div className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-sm font-semibold px-4 py-1 rounded-full">
@@ -115,7 +115,7 @@ const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
         </span>
       </div>
       <ul
-        className={`mt-8 gap-4 ${
+        className={`mt-8 mb-8 gap-4 ${
           document.documentElement.dir === "rtl" ? "text-right" : "text-left"
         }`}
       >
@@ -199,6 +199,8 @@ const HomePage = () => {
           t("home.pricingSection.proPlan.features.f6"),
           t("home.pricingSection.proPlan.features.f7"),
           t("home.pricingSection.proPlan.features.f8"),
+          t("home.pricingSection.proPlan.features.f9"),
+          t("home.pricingSection.proPlan.features.f10"),
         ],
       },
       {
@@ -209,6 +211,9 @@ const HomePage = () => {
           t("home.pricingSection.elitePlan.features.f1"),
           t("home.pricingSection.elitePlan.features.f2"),
           t("home.pricingSection.elitePlan.features.f3"),
+          t("home.pricingSection.elitePlan.features.f4"),
+          t("home.pricingSection.elitePlan.features.f5"),
+          t("home.pricingSection.elitePlan.features.f6"),
         ],
       },
     ],

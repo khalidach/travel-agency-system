@@ -447,37 +447,48 @@
         "subtitle": "Idéal pour les petites agences",
         "price": "200",
         "features": {
-          "f1": "2 employés",
-          "f2": "Jusqu'à 100 réservations/mois",
-          "f3": "Jusqu'à 5 programmes/mois",
-          "f4": "Gestion de l'hébergement",
-          "f5": "Jusqu'à 20 factures/mois",
-          "f6": "5 exportations par programme/mois"
+          "f1": "2 employees",
+          "f2": "Up to 120 bookings/month",
+          "f3": "Up to 5 programs/month",
+          "f4": "Accommodation management",
+          "f5": "Up to 50 invoices/month",
+          "f6": "Up to 5 program data exports to Excel per program/month"
+        },
+        "notincludes": {
+          "f1": "Daily services management (tickets, visas)",
+          "f2": "Advanced reports",
+          "f3": "Professional program pricing",
+          "f4": "Employee performance reports and analysis"
         }
       },
       "proPlan": {
         "title": "Plan Professionnel",
         "subtitle": "Pour les agences en croissance",
-        "price": "600",
+        "price": "599",
         "features": {
-          "f1": "5 employés",
-          "f2": "Jusqu'à 400 réservations/mois",
-          "f3": "Jusqu'à 15 programmes/mois",
-          "f4": "Calcul des coûts de programme",
-          "f5": "Gestion de l'hébergement",
-          "f6": "Jusqu'à 100 factures/mois",
-          "f7": "Services journaliers (jusqu'à 100/mois)",
-          "f8": "Exportations illimitées"
+          "f1": "7 employés",
+          "f2": "Rapports et analyse de performance des employés",
+          "f3": "Jusqu'à 400 réservations/mois",
+          "f4": "Jusqu'à 15 programmes/mois",
+          "f5": "Calcul du coût du programme",
+          "f6": "Gestion de l’hébergement",
+          "f7": "Jusqu'à 200 factures/mois",
+          "f8": "Services quotidiens (jusqu'à 100/mois)",
+          "f9": "Exportation illimitée des données vers Excel",
+          "f10": "Assistance technique par téléphone et WhatsApp"
         }
       },
       "elitePlan": {
         "title": "Plan Élite",
         "subtitle": "La solution complète pour les grandes agences",
-        "price": "1200",
+        "price": "1199",
         "features": {
-          "f1": "10 employés",
-          "f2": "Tout est illimité",
-          "f3": "Accès prioritaire aux nouvelles fonctionnalités"
+          "f1": "25 employés",
+          "f2": "Ventes et factures illimitées",
+          "f3": "Programmes illimités",
+          "f4": "Tout ce qui est inclus dans le plan professionnel",
+          "f5": "Assistance technique avancée intégrée au système (bientôt)",
+          "f6": "Exportation des rapports de bénéfices (bientôt)"
         }
       },
       "choosePlan": "Choisir ce plan"
