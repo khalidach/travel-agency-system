@@ -82,6 +82,28 @@ function AppRoutes() {
     return false;
   }, [user]);
 
+  const hasProfitReportAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.profitReport === "boolean") {
+      return user.limits.profitReport;
+    }
+    if (typeof user.tierLimits?.profitReport === "boolean") {
+      return user.tierLimits.profitReport;
+    }
+    return false;
+  }, [user]);
+
+  const hasEmployeeAnalysisAccess = useMemo(() => {
+    if (!user) return false;
+    if (typeof user.limits?.employeeAnalysis === "boolean") {
+      return user.limits.employeeAnalysis;
+    }
+    if (typeof user.tierLimits?.employeeAnalysis === "boolean") {
+      return user.tierLimits.employeeAnalysis;
+    }
+    return false;
+  }, [user]);
+
   useIdleTimeout();
 
   if (state.loading) {
@@ -174,7 +196,13 @@ function AppRoutes() {
                           <>
                             <Route
                               path="/profit-report"
-                              element={<ProfitReport />}
+                              element={
+                                hasProfitReportAccess ? (
+                                  <ProfitReport />
+                                ) : (
+                                  <Navigate to="/dashboard" replace />
+                                )
+                              }
                             />
                             <Route
                               path="/program-costing"
@@ -198,11 +226,23 @@ function AppRoutes() {
                             />
                             <Route
                               path="/employees"
-                              element={<EmployeesPage />}
+                              element={
+                                hasEmployeeAnalysisAccess ? (
+                                  <EmployeesPage />
+                                ) : (
+                                  <Navigate to="/dashboard" replace />
+                                )
+                              }
                             />
                             <Route
                               path="/employees/:username"
-                              element={<EmployeeAnalysisPage />}
+                              element={
+                                hasEmployeeAnalysisAccess ? (
+                                  <EmployeeAnalysisPage />
+                                ) : (
+                                  <Navigate to="/dashboard" replace />
+                                )
+                              }
                             />
                             <Route path="/settings" element={<Settings />} />
                           </>

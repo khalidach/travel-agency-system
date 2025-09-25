@@ -25,7 +25,7 @@ const TierForm = ({
       bookingsPerMonth: 0,
       programsPerMonth: 0,
       programPricingsPerMonth: 0,
-      programCosts: false, // تم التغيير
+      programCosts: false,
       employees: 0,
       invoicing: false,
       facturesPerMonth: 0,
@@ -34,6 +34,8 @@ const TierForm = ({
       bookingExcelExportsPerMonth: 0,
       listExcelExportsPerMonth: 0,
       flightListExport: false,
+      profitReport: false,
+      employeeAnalysis: false,
     },
   });
 
@@ -44,7 +46,7 @@ const TierForm = ({
         bookingsPerMonth: 0,
         programsPerMonth: 0,
         programPricingsPerMonth: 0,
-        programCosts: false, // تم التغيير
+        programCosts: false,
         employees: 0,
         invoicing: false,
         facturesPerMonth: 0,
@@ -53,6 +55,8 @@ const TierForm = ({
         bookingExcelExportsPerMonth: 0,
         listExcelExportsPerMonth: 0,
         flightListExport: false,
+        profitReport: false,
+        employeeAnalysis: false,
       },
     });
   }, [tier]);
@@ -66,10 +70,14 @@ const TierForm = ({
     if (type === "number") {
       processedValue = value === "" ? 0 : Number(value);
     } else if (
-      name === "invoicing" ||
-      name === "dailyServices" ||
-      name === "flightListExport" ||
-      name === "programCosts"
+      [
+        "invoicing",
+        "dailyServices",
+        "flightListExport",
+        "programCosts",
+        "profitReport",
+        "employeeAnalysis",
+      ].includes(name)
     ) {
       processedValue = value === "true";
     }
@@ -88,11 +96,10 @@ const TierForm = ({
       return;
     }
 
-    // Frontend validation to check for duplicate names before sending to backend
     const isNameDuplicate = tiers.some(
       (existingTier) =>
         existingTier.name.toLowerCase() === trimmedName.toLowerCase() &&
-        existingTier.id !== tier?.id // Exclude the current tier when editing
+        existingTier.id !== tier?.id
     );
 
     if (isNameDuplicate) {
@@ -105,7 +112,12 @@ const TierForm = ({
 
   const limitFields: (keyof Omit<
     TierLimits,
-    "invoicing" | "dailyServices" | "flightListExport" | "programCosts"
+    | "invoicing"
+    | "dailyServices"
+    | "flightListExport"
+    | "programCosts"
+    | "profitReport"
+    | "employeeAnalysis"
   >)[] = [
     "bookingsPerMonth",
     "programsPerMonth",
@@ -122,6 +134,18 @@ const TierForm = ({
       <p className="text-sm text-gray-500 dark:text-gray-400">
         Set the limits for this tier. Use -1 for unlimited.
       </p>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Tier Name
+        </label>
+        <input
+          type="text"
+          value={formData.name || ""}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          required
+        />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {limitFields.map((field) => (
           <div key={field}>
@@ -191,6 +215,38 @@ const TierForm = ({
             name="flightListExport"
             value={String(
               (formData.limits as TierLimits)?.flightListExport ?? false
+            )}
+            onChange={handleLimitChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Profit Report Access
+          </label>
+          <select
+            name="profitReport"
+            value={String(
+              (formData.limits as TierLimits)?.profitReport ?? false
+            )}
+            onChange={handleLimitChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Employee Analysis Access
+          </label>
+          <select
+            name="employeeAnalysis"
+            value={String(
+              (formData.limits as TierLimits)?.employeeAnalysis ?? false
             )}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -376,6 +432,13 @@ export default function TiersPage() {
                       <span>
                         Flight List Export:{" "}
                         {tier.limits.flightListExport ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Profit Report: {tier.limits.profitReport ? "Yes" : "No"}
+                      </span>
+                      <span>
+                        Employee Analysis:{" "}
+                        {tier.limits.employeeAnalysis ? "Yes" : "No"}
                       </span>
                     </div>
                   </td>

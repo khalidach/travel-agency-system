@@ -3,7 +3,10 @@ const express = require("express");
 const router = express.Router();
 const employeeController = require("../controllers/employeeController");
 const { protect } = require("../middleware/authMiddleware");
-const { checkEmployeeLimit } = require("../middleware/tierMiddleware");
+const {
+  checkEmployeeLimit,
+  checkEmployeeAnalysisAccess,
+} = require("../middleware/tierMiddleware");
 const {
   idValidation,
   usernameValidation,
@@ -19,6 +22,7 @@ router.get(
   "/:username/analysis",
   usernameValidation,
   handleValidationErrors,
+  checkEmployeeAnalysisAccess, // This middleware is now correctly placed
   employeeController.getEmployeeAnalysis
 );
 router.get(

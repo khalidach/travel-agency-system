@@ -3,7 +3,7 @@ export interface TierLimits {
   bookingsPerMonth: number;
   programsPerMonth: number;
   programPricingsPerMonth: number;
-  programCosts: boolean; // تم التغيير من programCostsPerMonth
+  programCosts: boolean; // تم التغيير
   employees: number;
   invoicing: boolean;
   facturesPerMonth: number;
@@ -12,6 +12,8 @@ export interface TierLimits {
   bookingExcelExportsPerMonth: number;
   listExcelExportsPerMonth: number;
   flightListExport: boolean;
+  profitReport: boolean;
+  employeeAnalysis: boolean;
 }
 
 export interface Tier {

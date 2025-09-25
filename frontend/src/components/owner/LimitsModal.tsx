@@ -37,11 +37,14 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    const isBooleanField =
-      name === "invoicing" ||
-      name === "dailyServices" ||
-      name === "flightListExport" ||
-      name === "programCosts";
+    const isBooleanField = [
+      "invoicing",
+      "dailyServices",
+      "flightListExport",
+      "programCosts",
+      "profitReport",
+      "employeeAnalysis",
+    ].includes(name);
 
     let processedValue: string | number | boolean | undefined;
 
@@ -74,14 +77,18 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
       if (value !== undefined && value !== "") {
         // Based on the key, we can safely assert the type of the value.
         if (
-          key === "invoicing" ||
-          key === "dailyServices" ||
-          key === "flightListExport" ||
-          key === "programCosts"
+          [
+            "invoicing",
+            "dailyServices",
+            "flightListExport",
+            "programCosts",
+            "profitReport",
+            "employeeAnalysis",
+          ].includes(key as string)
         ) {
-          finalLimits[key] = value as boolean;
+          (finalLimits as any)[key] = value as boolean;
         } else {
-          finalLimits[key] = value as number;
+          (finalLimits as any)[key] = value as number;
         }
       }
     });
@@ -91,7 +98,12 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
 
   const limitFields: (keyof Omit<
     TierLimits,
-    "invoicing" | "dailyServices" | "flightListExport" | "programCosts"
+    | "invoicing"
+    | "dailyServices"
+    | "flightListExport"
+    | "programCosts"
+    | "profitReport"
+    | "employeeAnalysis"
   >)[] = [
     "bookingsPerMonth",
     "programsPerMonth",
@@ -218,6 +230,51 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <option value="">
               Use Tier Default (
               {user.tierLimits?.flightListExport ? "Enabled" : "Disabled"})
+            </option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Profit Report Access
+          </label>
+          <select
+            name="profitReport"
+            value={
+              limits.profitReport === undefined
+                ? ""
+                : String(limits.profitReport)
+            }
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="">
+              Use Tier Default (
+              {user.tierLimits?.profitReport ? "Enabled" : "Disabled"})
+            </option>
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Employee Analysis Access
+          </label>
+          <select
+            name="employeeAnalysis"
+            value={
+              limits.employeeAnalysis === undefined
+                ? ""
+                : String(limits.employeeAnalysis)
+            }
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="">
+              Use Tier Default (
+              {user.tierLimits?.employeeAnalysis ? "Enabled" : "Disabled"})
             </option>
             <option value="true">Enabled</option>
             <option value="false">Disabled</option>

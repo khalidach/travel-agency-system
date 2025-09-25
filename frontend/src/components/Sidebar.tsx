@@ -102,6 +102,14 @@ const allMenuItems: MenuItem[] = [
         path: "/profit-report",
         icon: TrendingUp,
         roles: ["admin"],
+        accessCheck: (user: any) => {
+          if (!user) return false;
+          if (typeof user.limits?.profitReport === "boolean")
+            return user.limits.profitReport;
+          if (typeof user.tierLimits?.profitReport === "boolean")
+            return user.tierLimits.profitReport;
+          return false;
+        },
       },
     ],
   },
@@ -147,7 +155,20 @@ const allMenuItems: MenuItem[] = [
       return false;
     },
   },
-  { key: "employees", path: "/employees", icon: Users, roles: ["admin"] },
+  {
+    key: "employees",
+    path: "/employees",
+    icon: Users,
+    roles: ["admin"],
+    accessCheck: (user: any) => {
+      if (!user) return false;
+      if (typeof user.limits?.employeeAnalysis === "boolean")
+        return user.limits.employeeAnalysis;
+      if (typeof user.tierLimits?.employeeAnalysis === "boolean")
+        return user.tierLimits.employeeAnalysis;
+      return false;
+    },
+  },
   {
     key: "settings",
     path: "/settings",

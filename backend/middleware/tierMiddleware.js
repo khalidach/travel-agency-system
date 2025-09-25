@@ -35,6 +35,8 @@ const getLimits = async (req) => {
         bookingExcelExportsPerMonth: 0,
         listExcelExportsPerMonth: 0,
         flightListExport: false,
+        profitReport: false,
+        employeeAnalysis: false,
       };
     }
     // Store the fetched limits in the cache for subsequent requests
@@ -215,6 +217,36 @@ const checkProgramCostAccess = async (req, res, next) => {
   }
 };
 
+const checkProfitReportAccess = async (req, res, next) => {
+  try {
+    const limits = await getLimits(req);
+    if (!limits.profitReport) {
+      return res.status(403).json({
+        message: "Profit Report is not available for your subscription.",
+      });
+    }
+    next();
+  } catch (error) {
+    console.error("Profit Report access check error:", error);
+    res.status(500).json({ message: "Server error during access check." });
+  }
+};
+
+const checkEmployeeAnalysisAccess = async (req, res, next) => {
+  try {
+    const limits = await getLimits(req);
+    if (!limits.employeeAnalysis) {
+      return res.status(403).json({
+        message: "Employee Analysis is not available for your subscription.",
+      });
+    }
+    next();
+  } catch (error) {
+    console.error("Employee Analysis access check error:", error);
+    res.status(500).json({ message: "Server error during access check." });
+  }
+};
+
 module.exports = {
   getLimits,
   checkBookingLimit: (req, res, next) =>
@@ -259,6 +291,8 @@ module.exports = {
     checkExportLimit(req, res, next, "list"),
   checkInvoicingAccess,
   checkDailyServiceAccess,
-  checkProgramCostAccess, // تمت الإضافة
+  checkProgramCostAccess,
+  checkProfitReportAccess,
+  checkEmployeeAnalysisAccess,
   tierLimitsCache, // Export the cache to be used in other modules
 };
