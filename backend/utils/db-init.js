@@ -258,7 +258,6 @@ const applyDatabaseMigrations = async (client) => {
         "advancePayments" JSONB DEFAULT '[]'::jsonb,
         "remainingBalance" NUMERIC(10, 2) DEFAULT 0,
         "isFullyPaid" BOOLEAN DEFAULT FALSE,
-        commission NUMERIC(10, 2) NOT NULL,
         profit NUMERIC(10, 2) NOT NULL,
         date DATE NOT NULL,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),

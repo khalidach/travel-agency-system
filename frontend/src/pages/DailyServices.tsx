@@ -49,14 +49,14 @@ const DailyServiceForm = ({
       | "employeeId"
       | "vatPaid"
       | "totalPaid"
+      // REMOVED 'commission'
       // Added fields that are calculated based on the form's data
-      | "commission"
       | "profit"
       | "advancePayments"
       | "remainingBalance"
       | "isFullyPaid"
     > & {
-      commission: number;
+      // NOTE: profit is included here to match the payload sent to the backend
       profit: number;
       advancePayments: Payment[];
     }
@@ -86,11 +86,11 @@ const DailyServiceForm = ({
     }
   }, [service]);
 
-  const { commission, profit } = useMemo(() => {
+  const profit = useMemo(() => {
     const original = Number(formData.originalPrice) || 0;
     const total = Number(formData.totalPrice) || 0;
-    const comm = total - original;
-    return { commission: comm, profit: comm };
+    // Profit is the difference between total price and original price
+    return total - original;
   }, [formData.originalPrice, formData.totalPrice]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,10 +102,7 @@ const DailyServiceForm = ({
     // We pass payments from the state if they exist, otherwise an empty array.
     onSave({
       ...formData,
-      commission,
       profit,
-      // FIX: The error in the image is solved by explicitly passing the payments array,
-      // which is expected by the updated DTO/interface.
       advancePayments: service?.advancePayments || [],
     });
   };
@@ -196,6 +193,7 @@ const DailyServiceForm = ({
         </div>
       </div>
       <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
+        {/* REMOVED Commission line from UI */}
         <div className="flex justify-between font-bold text-lg text-emerald-600 dark:text-emerald-400">
           <span>{t("profit")}:</span>{" "}
           <span>
@@ -734,6 +732,7 @@ export default function DailyServices() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {/* Display profit, which is the same value that used to be commission */}
                     {service.profit.toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
