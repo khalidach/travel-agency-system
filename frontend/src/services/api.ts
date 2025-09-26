@@ -124,6 +124,31 @@ export const getDailyServiceReport = (startDate?: string, endDate?: string) => {
   return request(endpoint);
 };
 
+// New Payment APIs for Daily Service
+export const addDailyServicePayment = (serviceId: number, payment: any) =>
+  request(`/daily-services/${serviceId}/payments`, {
+    method: "POST",
+    body: JSON.stringify(payment),
+  });
+
+export const updateDailyServicePayment = (
+  serviceId: number,
+  paymentId: string,
+  payment: any
+) =>
+  request(`/daily-services/${serviceId}/payments/${paymentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payment),
+  });
+
+export const deleteDailyServicePayment = (
+  serviceId: number,
+  paymentId: string
+) =>
+  request(`/daily-services/${serviceId}/payments/${paymentId}`, {
+    method: "DELETE",
+  });
+
 // --- Dashboard API ---
 export const getDashboardStats = (startDate?: string, endDate?: string) => {
   let endpoint = "/dashboard/stats";

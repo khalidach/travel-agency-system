@@ -255,12 +255,43 @@ const applyDatabaseMigrations = async (client) => {
         "serviceName" VARCHAR(255) NOT NULL,
         "originalPrice" NUMERIC(10, 2) NOT NULL,
         "totalPrice" NUMERIC(10, 2) NOT NULL,
+        "advancePayments" JSONB DEFAULT '[]'::jsonb,
+        "remainingBalance" NUMERIC(10, 2) DEFAULT 0,
+        "isFullyPaid" BOOLEAN DEFAULT FALSE,
         commission NUMERIC(10, 2) NOT NULL,
         profit NUMERIC(10, 2) NOT NULL,
         date DATE NOT NULL,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // Add and migrate new columns for Daily Services
+    await client.query(`
+      DO $$
+      BEGIN
+        -- Add new columns if they don't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='advancePayments') THEN
+          ALTER TABLE daily_services ADD COLUMN "advancePayments" JSONB DEFAULT '[]'::jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='remainingBalance') THEN
+          ALTER TABLE daily_services ADD COLUMN "remainingBalance" NUMERIC(10, 2) DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='isFullyPaid') THEN
+          ALTER TABLE daily_services ADD COLUMN "isFullyPaid" BOOLEAN DEFAULT FALSE;
+        END IF;
+
+        -- Migrate old data: Set initial remaining balance to totalPrice and advancePayments to empty.
+        UPDATE daily_services
+        SET "remainingBalance" = "totalPrice"
+        WHERE "remainingBalance" = 0;
+
+        -- Migrate old data: Set initial isFullyPaid based on remainingBalance
+        UPDATE daily_services
+        SET "isFullyPaid" = ("remainingBalance" <= 0);
+
+      END;
+      $$;
     `);
 
     await client.query(`

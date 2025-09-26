@@ -9,6 +9,7 @@ import {
   ConciergeBell,
   Download,
   HelpCircle,
+  CreditCard,
 } from "lucide-react";
 import * as api from "../services/api";
 import {
@@ -16,6 +17,7 @@ import {
   PaginatedResponse,
   FacturationSettings,
   User,
+  Payment,
 } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
@@ -27,6 +29,7 @@ import html2canvas from "html2canvas";
 import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
 import { useAuthContext } from "../context/AuthContext";
 import VideoHelpModal from "../components/VideoHelpModal";
+import PaymentForm from "../components/PaymentForm";
 
 // Form Component
 const DailyServiceForm = ({
@@ -38,7 +41,16 @@ const DailyServiceForm = ({
   onSave: (
     data: Omit<
       DailyService,
-      "id" | "createdAt" | "updatedAt" | "userId" | "employeeId" | "vatPaid"
+      | "id"
+      | "createdAt"
+      | "updatedAt"
+      | "userId"
+      | "employeeId"
+      | "vatPaid"
+      | "totalPaid"
+      | "advancePayments"
+      | "remainingBalance"
+      | "isFullyPaid"
     >
   ) => void;
   onCancel: () => void;
@@ -76,10 +88,16 @@ const DailyServiceForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.totalPrice < formData.originalPrice) {
-      toast.error("Total price cannot be less than the original price.");
+      toast.error(t("totalPriceCannotBeLessThanOriginal"));
       return;
     }
-    onSave({ ...formData, commission, profit });
+    // We pass payments from the state if they exist, otherwise an empty array.
+    onSave({
+      ...formData,
+      commission,
+      profit,
+      advancePayments: service?.advancePayments || [],
+    });
   };
 
   return (
@@ -202,6 +220,200 @@ const DailyServiceForm = ({
   );
 };
 
+// Payment Management Modal for Daily Service
+const ServicePaymentManagementModal = ({
+  service,
+  isOpen,
+  onClose,
+  onSavePayment,
+  onUpdatePayment,
+  onDeletePayment,
+}: {
+  service: DailyService | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSavePayment: (payment: Omit<Payment, "_id" | "id">) => void;
+  onUpdatePayment: (
+    paymentId: string,
+    payment: Omit<Payment, "_id" | "id">
+  ) => void;
+  onDeletePayment: (paymentId: string) => void;
+}) => {
+  const { t } = useTranslation();
+  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+
+  if (!isOpen || !service) return null;
+
+  const handleAddPaymentClick = () => {
+    setEditingPayment(null);
+    setIsPaymentFormOpen(true);
+  };
+
+  const handleEditPaymentClick = (payment: Payment) => {
+    setEditingPayment(payment);
+    setIsPaymentFormOpen(true);
+  };
+
+  const handleSavePaymentForm = (paymentData: Omit<Payment, "_id" | "id">) => {
+    if (editingPayment) {
+      onUpdatePayment(editingPayment._id, paymentData);
+    } else {
+      onSavePayment(paymentData);
+    }
+    setIsPaymentFormOpen(false);
+    setEditingPayment(null);
+  };
+
+  const handleDeletePaymentClick = (paymentId: string) => {
+    setPaymentToDelete(paymentId);
+  };
+
+  const confirmDeletePayment = () => {
+    if (paymentToDelete) {
+      onDeletePayment(paymentToDelete);
+      setPaymentToDelete(null);
+    }
+  };
+
+  return (
+    <>
+      <Modal
+        isOpen={isOpen && !isPaymentFormOpen}
+        onClose={onClose}
+        title={t("managePayments")}
+        size="xl"
+        level={0}
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              {t("paymentsForService")}
+            </h3>
+            <button
+              onClick={handleAddPaymentClick}
+              className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <CreditCard
+                className={`w-4 h-4 ${
+                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                }`}
+              />
+              {t("addPayment")}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {(service.advancePayments || []).map((payment, index) => (
+              <div
+                key={payment._id}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+              >
+                <div>
+                  <div className="flex items-center">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                      {Number(payment.amount).toLocaleString()} {t("mad")}
+                    </span>
+                    <span className="mx-2 text-gray-400 dark:text-gray-500">
+                      •
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
+                      {t(payment.method)}
+                    </span>
+                    <span className="mx-2 text-gray-400 dark:text-gray-500">
+                      •
+                    </span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      {new Date(payment.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {payment.method === "cheque" && payment.chequeNumber && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <span className="font-medium">
+                        {t("chequeNumber")} #{payment.chequeNumber}
+                      </span>
+                      {payment.bankName && <span> • {payment.bankName}</span>}
+                      {payment.chequeCashingDate && (
+                        <span>
+                          {" "}
+                          • {t("checkCashingDate")}:{" "}
+                          {new Date(
+                            payment.chequeCashingDate
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {payment.method === "transfer" &&
+                    payment.transferPayerName && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <span className="font-medium">
+                          {t("transferPayerName")}: {payment.transferPayerName}
+                        </span>
+                        {payment.transferReference && (
+                          <span>
+                            {" "}
+                            • {t("transferReference")}:{" "}
+                            {payment.transferReference}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEditPaymentClick(payment)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePaymentClick(payment._id)}
+                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+            {(!service.advancePayments ||
+              service.advancePayments.length === 0) && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                {t("noPaymentsRecorded")}
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isPaymentFormOpen}
+        onClose={() => setIsPaymentFormOpen(false)}
+        title={editingPayment ? t("editPayment") : t("addPayment")}
+        size="md"
+        level={1}
+      >
+        <PaymentForm
+          payment={editingPayment || undefined}
+          onSave={handleSavePaymentForm}
+          onCancel={() => setIsPaymentFormOpen(false)}
+          remainingBalance={service?.remainingBalance || 0}
+        />
+      </Modal>
+
+      {paymentToDelete && (
+        <ConfirmationModal
+          isOpen={!!paymentToDelete}
+          onClose={() => setPaymentToDelete(null)}
+          onConfirm={confirmDeletePayment}
+          title={t("deletePaymentTitle")}
+          message={t("deletePaymentMessage")}
+        />
+      )}
+    </>
+  );
+};
+
 // Main Page Component
 export default function DailyServices() {
   const { t, i18n } = useTranslation();
@@ -215,6 +427,8 @@ export default function DailyServices() {
   const [serviceToPreview, setServiceToPreview] = useState<DailyService | null>(
     null
   );
+  const [serviceToManagePayments, setServiceToManagePayments] =
+    useState<DailyService | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const servicesPerPage = 10;
@@ -242,14 +456,18 @@ export default function DailyServices() {
     pageSize: servicesPerPage,
   });
 
+  const invalidateQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+    queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
+  };
+
   const { mutate: createService } = useMutation({
     mutationFn: (data: any) => api.createDailyService(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
-      toast.success("Service created successfully!");
+      invalidateQueries();
+      toast.success(t("serviceCreatedSuccessfully"));
       setIsModalOpen(false);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -258,12 +476,10 @@ export default function DailyServices() {
   const { mutate: updateService } = useMutation({
     mutationFn: (data: DailyService) => api.updateDailyService(data.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
-      toast.success("Service updated successfully!");
+      invalidateQueries();
+      toast.success(t("serviceUpdatedSuccessfully"));
       setIsModalOpen(false);
+      setEditingService(null);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -271,14 +487,57 @@ export default function DailyServices() {
   const { mutate: deleteService } = useMutation({
     mutationFn: (id: number) => api.deleteDailyService(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["dailyServices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
-      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
-      toast.success("Service deleted successfully!");
+      invalidateQueries();
+      toast.success(t("serviceDeletedSuccessfully"));
       setServiceToDelete(null);
     },
     onError: (error: Error) => toast.error(error.message),
+  });
+
+  const { mutate: addPayment } = useMutation({
+    mutationFn: (data: {
+      serviceId: number;
+      payment: Omit<Payment, "_id" | "id">;
+    }) => api.addDailyServicePayment(data.serviceId, data.payment),
+    onSuccess: (updatedService) => {
+      invalidateQueries();
+      setServiceToManagePayments(updatedService);
+      toast.success(t("paymentAdded"));
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || t("failedToAddPayment")),
+  });
+
+  const { mutate: updatePayment } = useMutation({
+    mutationFn: (data: {
+      serviceId: number;
+      paymentId: string;
+      payment: Omit<Payment, "_id" | "id">;
+    }) =>
+      api.updateDailyServicePayment(
+        data.serviceId,
+        data.paymentId,
+        data.payment
+      ),
+    onSuccess: (updatedService) => {
+      invalidateQueries();
+      setServiceToManagePayments(updatedService);
+      toast.success(t("paymentUpdated"));
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || t("failedToUpdatePayment")),
+  });
+
+  const { mutate: deletePayment } = useMutation({
+    mutationFn: (data: { serviceId: number; paymentId: string }) =>
+      api.deleteDailyServicePayment(data.serviceId, data.paymentId),
+    onSuccess: (updatedService) => {
+      invalidateQueries();
+      setServiceToManagePayments(updatedService);
+      toast.success(t("paymentDeleted"));
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || t("failedToDeletePayment")),
   });
 
   const handleSave = (data: any) => {
@@ -296,7 +555,7 @@ export default function DailyServices() {
 
     const input = document.getElementById("service-receipt-pdf-preview");
     if (input) {
-      const receiptFilename = `Receipt_${service.serviceName.replace(
+      const receiptFilename = `${t("receipt")}_${service.serviceName.replace(
         /\s/g,
         "_"
       )}.pdf`;
@@ -350,11 +609,11 @@ export default function DailyServices() {
             <tr>
               {[
                 "date",
-                "serviceType",
                 "serviceName",
-                "originalPrice",
                 "totalPrice",
-                "commission",
+                "totalPaid",
+                "remainingBalance",
+                "status",
                 "profit",
                 "actions",
               ].map((h) => (
@@ -397,26 +656,42 @@ export default function DailyServices() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                     {new Date(service.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {t(service.type)}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     {service.serviceName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {service.originalPrice.toLocaleString()}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {service.totalPrice.toLocaleString()}
+                    {service.totalPrice.toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {service.commission.toLocaleString()}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
+                    {Number(service.totalPaid).toLocaleString()} {t("mad")}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 dark:text-orange-400">
+                    {Number(service.remainingBalance).toLocaleString()}{" "}
+                    {t("mad")}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        service.isFullyPaid
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+                          : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                      }`}
+                    >
+                      {t(service.isFullyPaid ? "fullyPaid" : "pending")}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {service.profit.toLocaleString()}
+                    {service.profit.toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setServiceToManagePayments(service)}
+                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors"
+                        title={t("managePayments") as string}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleDownloadReceipt(service)}
                         className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
@@ -469,6 +744,25 @@ export default function DailyServices() {
           onCancel={() => setIsModalOpen(false)}
         />
       </Modal>
+
+      <ServicePaymentManagementModal
+        service={serviceToManagePayments}
+        isOpen={!!serviceToManagePayments}
+        onClose={() => setServiceToManagePayments(null)}
+        onSavePayment={(payment) =>
+          addPayment({ serviceId: serviceToManagePayments!.id, payment })
+        }
+        onUpdatePayment={(paymentId, payment) =>
+          updatePayment({
+            serviceId: serviceToManagePayments!.id,
+            paymentId,
+            payment,
+          })
+        }
+        onDeletePayment={(paymentId) =>
+          deletePayment({ serviceId: serviceToManagePayments!.id, paymentId })
+        }
+      />
 
       <ConfirmationModal
         isOpen={!!serviceToDelete}

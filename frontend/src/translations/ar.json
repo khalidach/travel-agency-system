@@ -508,5 +508,19 @@
       "privacy": "الخصوصية"
     },
     "whatsappTooltip": "تواصل معنا على واتساب"
-  }
+  },
+  "serviceCreatedSuccessfully": "تم إنشاء الخدمة بنجاح!",
+  "serviceUpdatedSuccessfully": "تم تحديث الخدمة بنجاح!",
+  "serviceDeletedSuccessfully": "تم حذف الخدمة بنجاح!",
+  "failedToAddPayment": "فشل في إضافة الدفعة.",
+  "paymentAdded": "تمت إضافة الدفعة بنجاح!",
+  "failedToUpdatePayment": "فشل في تحديث الدفعة.",
+  "paymentUpdated": "تم تحديث الدفعة بنجاح!",
+  "failedToDeletePayment": "فشل في حذف الدفعة.",
+  "paymentDeleted": "تم حذف الدفعة بنجاح!",
+  "paymentsForService": "دفعات الخدمة",
+  "status": "الحالة",
+  "totalPriceCannotBeLessThanOriginal": "لا يمكن أن يكون السعر الإجمالي أقل من السعر الأصلي.",
+  "transferPayerName": "اسم المحول",
+  "transferReference": "رقم التحويل"
 }

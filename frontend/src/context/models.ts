@@ -200,6 +200,8 @@ export interface Payment {
   chequeNumber?: string;
   bankName?: string;
   chequeCashingDate?: string;
+  transferPayerName?: string;
+  transferReference?: string;
 }
 
 export interface HotelPrice {
@@ -277,6 +279,10 @@ export interface DailyService {
   date: string;
   createdAt: string;
   updatedAt: string;
+  advancePayments?: Payment[];
+  remainingBalance: number;
+  isFullyPaid: boolean;
+  totalPaid?: number; // Calculated on the fly by the backend
 }
 
 export interface DashboardStats {

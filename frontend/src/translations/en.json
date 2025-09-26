@@ -504,5 +504,19 @@
       "privacy": "Privacy"
     },
     "whatsappTooltip": "Contact us on WhatsApp"
-  }
+  },
+  "serviceCreatedSuccessfully": "Service created successfully!",
+  "serviceUpdatedSuccessfully": "Service updated successfully!",
+  "serviceDeletedSuccessfully": "Service deleted successfully!",
+  "failedToAddPayment": "Failed to add payment.",
+  "paymentAdded": "Payment added successfully!",
+  "failedToUpdatePayment": "Failed to update payment.",
+  "paymentUpdated": "Payment updated successfully!",
+  "failedToDeletePayment": "Failed to delete payment.",
+  "paymentDeleted": "Payment deleted successfully!",
+  "paymentsForService": "Payments for the service",
+  "status": "Status",
+  "totalPriceCannotBeLessThanOriginal": "The total price cannot be less than the original price.",
+  "transferPayerName": "Payer's name",
+  "transferReference": "Transfer reference"
 }

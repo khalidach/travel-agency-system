@@ -508,5 +508,19 @@
       "privacy": "Confidentialité"
     },
     "whatsappTooltip": "Contactez-nous sur WhatsApp"
-  }
+  },
+  "serviceCreatedSuccessfully": "Service créé avec succès !",
+  "serviceUpdatedSuccessfully": "Service mis à jour avec succès !",
+  "serviceDeletedSuccessfully": "Service supprimé avec succès !",
+  "failedToAddPayment": "Échec de l'ajout du paiement.",
+  "paymentAdded": "Paiement ajouté avec succès !",
+  "failedToUpdatePayment": "Échec de la mise à jour du paiement.",
+  "paymentUpdated": "Paiement mis à jour avec succès !",
+  "failedToDeletePayment": "Échec de la suppression du paiement.",
+  "paymentDeleted": "Paiement supprimé avec succès !",
+  "paymentsForService": "Paiements du service",
+  "status": "Statut",
+  "totalPriceCannotBeLessThanOriginal": "Le prix total ne peut pas être inférieur au prix original.",
+  "transferPayerName": "Nom du payeur",
+  "transferReference": "Référence du virement"
 }

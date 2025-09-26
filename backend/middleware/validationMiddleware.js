@@ -212,6 +212,15 @@ const paymentValidation = [
     .isIn(["cash", "cheque", "transfer", "card"])
     .withMessage("Invalid payment method."),
   body("date").isISO8601().toDate().withMessage("Invalid payment date."),
+  body("chequeNumber").optional({ checkFalsy: true }).trim().escape(),
+  body("bankName").optional({ checkFalsy: true }).trim().escape(),
+  body("chequeCashingDate")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .toDate()
+    .withMessage("Invalid cheque cashing date."),
+  body("transferReference").optional({ checkFalsy: true }).trim().escape(),
+  body("transferPayerName").optional({ checkFalsy: true }).trim().escape(),
 ];
 
 const dailyServiceValidation = [
@@ -235,6 +244,10 @@ const dailyServiceValidation = [
       return true;
     }),
   body("date").isISO8601().toDate().withMessage("Invalid service date."),
+  body("advancePayments")
+    .optional()
+    .isArray()
+    .withMessage("Payments must be an array."),
 ];
 
 const idValidation = [

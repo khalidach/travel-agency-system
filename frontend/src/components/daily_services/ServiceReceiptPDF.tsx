@@ -1,6 +1,11 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { DailyService, FacturationSettings, User } from "../../context/models";
+import {
+  DailyService,
+  FacturationSettings,
+  User,
+  Payment,
+} from "../../context/models";
 import { numberToWordsFr } from "../../services/numberToWords";
 
 interface ServiceReceiptPDFProps {
@@ -17,6 +22,10 @@ export default function ServiceReceiptPDF({
   const { t } = useTranslation();
 
   const totalInWords = numberToWordsFr(service.totalPrice);
+  const totalPaid = (service.advancePayments || []).reduce(
+    (sum, p) => sum + p.amount,
+    0
+  );
 
   return (
     <div
@@ -92,22 +101,52 @@ export default function ServiceReceiptPDF({
           </p>
         </div>
         <div className="flex justify-between items-center">
-          <p className="text-lg font-bold text-cyan-800">دفع:</p>
+          <p className="text-lg font-bold text-cyan-800">المبلغ المدفوع:</p>
           <p className="text-lg font-bold">
-            {service.totalPrice.toLocaleString()} {t("mad")}
+            {totalPaid.toLocaleString()} {t("mad")}
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
-            Payé:
+            Montant Payé:
           </p>
         </div>
         <div className="flex justify-between items-center">
-          <p className="text-lg font-bold text-cyan-800">الباقي:</p>
+          <p className="text-lg font-bold text-cyan-800"> الباقي :</p>
           <p className="text-lg font-bold">
-            {(service.totalPrice - service.totalPrice).toLocaleString()}{" "}
+            {service.remainingBalance.toLocaleString()} {t("mad")}
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
-            Reste:
+            {" "}
+            Montant Resté :
           </p>
+        </div>
+        <div className="flex justify-between items-start">
+          <p className="text-lg font-bold text-cyan-800">طرق الدفع:</p>
+          <div className="flex flex-col text-lg font-bold text-right space-y-1">
+            {(service.advancePayments || []).map((p: Payment) => (
+              <div key={p.id}>
+                {p.amount.toLocaleString()} د.م ({t(p.method)})
+                {p.method === "cheque" && (
+                  <div className="text-sm text-blue-800 mt-1" dir="rtl">
+                    <p>رقم الشيك: {p.chequeNumber}</p>
+                    <p>البنك: {p.bankName}</p>
+                    <p>
+                      تاريخ الصرف:{" "}
+                      {new Date(p.chequeCashingDate!).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                {p.method === "transfer" && (
+                  <div className="text-sm text-blue-800 mt-1" dir="rtl">
+                    <p>اسم المحول: {p.transferPayerName}</p>
+                    <p>المرجع: {p.transferReference}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div dir="ltr" className="text-lg font-bold text-cyan-800">
+            Modes de paiement:
+          </div>
         </div>
       </div>
 
