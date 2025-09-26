@@ -1,4 +1,3 @@
-// frontend/src/pages/DailyServices.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -228,6 +227,7 @@ const ServicePaymentManagementModal = ({
   onSavePayment,
   onUpdatePayment,
   onDeletePayment,
+  onDownloadReceipt, // New prop for receipt download
 }: {
   service: DailyService | null;
   isOpen: boolean;
@@ -238,6 +238,7 @@ const ServicePaymentManagementModal = ({
     payment: Omit<Payment, "_id" | "id">
   ) => void;
   onDeletePayment: (paymentId: string) => void;
+  onDownloadReceipt: (payment: Payment) => void; // New prop interface
 }) => {
   const { t } = useTranslation();
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
@@ -361,6 +362,14 @@ const ServicePaymentManagementModal = ({
                     )}
                 </div>
                 <div className="flex space-x-2">
+                  {/* ADDED DOWNLOAD BUTTON HERE */}
+                  <button
+                    onClick={() => onDownloadReceipt(payment)}
+                    className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
+                    title={t("downloadReceipt") as string}
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleEditPaymentClick(payment)}
                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -424,9 +433,11 @@ export default function DailyServices() {
     null
   );
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
-  const [serviceToPreview, setServiceToPreview] = useState<DailyService | null>(
-    null
-  );
+  const [receiptToPreview, setReceiptToPreview] = useState<{
+    service: DailyService;
+    payment: Payment;
+    paymentsBeforeThis: Payment[];
+  } | null>(null); // UPDATED State for Receipt Data
   const [serviceToManagePayments, setServiceToManagePayments] =
     useState<DailyService | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -548,17 +559,44 @@ export default function DailyServices() {
     }
   };
 
-  const handleDownloadReceipt = async (service: DailyService) => {
-    setServiceToPreview(service);
+  // UPDATED: Function to handle downloading the receipt for a specific payment
+  const handleDownloadReceipt = async (
+    service: DailyService,
+    payment: Payment
+  ) => {
+    if (!service || !payment) {
+      toast.error("Service or payment data not available.");
+      return;
+    }
 
+    // 1. Filter payments before the current one (using the logic from ServiceReceiptPDF for consistency)
+    const allPayments = (service.advancePayments || []).sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // Find the index of the current payment using its unique _id
+    const currentPaymentIndex = allPayments.findIndex(
+      (p) => p._id === payment._id
+    );
+
+    // Get the array of all payments that occurred before the current one.
+    const paymentsBeforeThis = allPayments.slice(0, currentPaymentIndex);
+
+    // 2. Set the data to trigger the hidden PDF component render
+    setReceiptToPreview({ service, payment, paymentsBeforeThis });
+
+    // 3. Wait for the DOM to render the receipt component
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const input = document.getElementById("service-receipt-pdf-preview");
     if (input) {
+      // Calculate the sequential number for the receipt filename
+      const sequentialNumber = currentPaymentIndex + 1;
       const receiptFilename = `${t("receipt")}_${service.serviceName.replace(
         /\s/g,
         "_"
-      )}.pdf`;
+      )}_SRV${service.id}_${sequentialNumber}.pdf`;
+
       html2canvas(input, { scale: 2 }).then((canvas) => {
         const imgData = canvas.toDataURL("image/png");
         const pdf = new jsPDF("p", "mm", "a5");
@@ -566,9 +604,17 @@ export default function DailyServices() {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
         pdf.save(receiptFilename);
-        setServiceToPreview(null);
+        setReceiptToPreview(null);
       });
     }
+  };
+
+  // UPDATED: Logic for handling download icon click in the table, now redirects to payment modal
+  const handleDownloadIconClick = (service: DailyService) => {
+    if ((service.advancePayments || []).length === 0) {
+      toast.error("No payments recorded to generate a receipt.");
+    }
+    setServiceToManagePayments(service);
   };
 
   return (
@@ -693,7 +739,7 @@ export default function DailyServices() {
                         <CreditCard className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDownloadReceipt(service)}
+                        onClick={() => handleDownloadIconClick(service)}
                         className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
                         title={t("downloadReceipt") as string}
                       >
@@ -762,6 +808,9 @@ export default function DailyServices() {
         onDeletePayment={(paymentId) =>
           deletePayment({ serviceId: serviceToManagePayments!.id, paymentId })
         }
+        onDownloadReceipt={(payment) =>
+          handleDownloadReceipt(serviceToManagePayments!, payment)
+        }
       />
 
       <ConfirmationModal
@@ -772,11 +821,17 @@ export default function DailyServices() {
         message={t("deleteServiceMessage")}
       />
 
-      {serviceToPreview && (
+      {/* Hidden container for PDF generation */}
+      {receiptToPreview && (
         <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
-          <div id="service-receipt-pdf-preview">
+          <div
+            id="service-receipt-pdf-preview"
+            style={{ width: "210mm", height: "297mm" }}
+          >
             <ServiceReceiptPDF
-              service={serviceToPreview}
+              service={receiptToPreview.service}
+              payment={receiptToPreview.payment}
+              paymentsBeforeThis={receiptToPreview.paymentsBeforeThis}
               settings={settings}
               user={authState.user}
             />
