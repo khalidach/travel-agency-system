@@ -1,3 +1,4 @@
+// frontend/src/pages/DailyServices.tsx
 import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ const DailyServiceForm = ({
   onSave: (
     data: Omit<
       DailyService,
+      // REMOVED 'advancePayments' and other calculated fields from the Omit list
       | "id"
       | "createdAt"
       | "updatedAt"
@@ -47,10 +49,17 @@ const DailyServiceForm = ({
       | "employeeId"
       | "vatPaid"
       | "totalPaid"
+      // Added fields that are calculated based on the form's data
+      | "commission"
+      | "profit"
       | "advancePayments"
       | "remainingBalance"
       | "isFullyPaid"
-    >
+    > & {
+      commission: number;
+      profit: number;
+      advancePayments: Payment[];
+    }
   ) => void;
   onCancel: () => void;
 }) => {
@@ -95,6 +104,8 @@ const DailyServiceForm = ({
       ...formData,
       commission,
       profit,
+      // FIX: The error in the image is solved by explicitly passing the payments array,
+      // which is expected by the updated DTO/interface.
       advancePayments: service?.advancePayments || [],
     });
   };
@@ -185,14 +196,6 @@ const DailyServiceForm = ({
         </div>
       </div>
       <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-        <div className="flex justify-between">
-          <span className="text-gray-600 dark:text-gray-300">
-            {t("commission")}:
-          </span>{" "}
-          <span className="dark:text-gray-100">
-            {commission.toLocaleString()} {t("mad")}
-          </span>
-        </div>
         <div className="flex justify-between font-bold text-lg text-emerald-600 dark:text-emerald-400">
           <span>{t("profit")}:</span>{" "}
           <span>
@@ -553,8 +556,10 @@ export default function DailyServices() {
 
   const handleSave = (data: any) => {
     if (editingService) {
+      // For updates, we send the new core data (including payments)
       updateService({ ...editingService, ...data });
     } else {
+      // For creation, we send the new core data (payments array should be empty in the backend logic)
       createService(data);
     }
   };
@@ -612,7 +617,9 @@ export default function DailyServices() {
   // UPDATED: Logic for handling download icon click in the table, now redirects to payment modal
   const handleDownloadIconClick = (service: DailyService) => {
     if ((service.advancePayments || []).length === 0) {
-      toast.error("No payments recorded to generate a receipt.");
+      toast.error("No payments recorded to generate a receipt. Add a payment.");
+      setServiceToManagePayments(service);
+      return;
     }
     setServiceToManagePayments(service);
   };

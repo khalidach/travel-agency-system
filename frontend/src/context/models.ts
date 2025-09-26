@@ -274,7 +274,6 @@ export interface DailyService {
   serviceName: string;
   originalPrice: number;
   totalPrice: number;
-  commission: number;
   profit: number;
   date: string;
   createdAt: string;
