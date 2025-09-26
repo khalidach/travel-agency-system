@@ -56,9 +56,9 @@ const createDailyService = async (req, res, next) => {
       advancePayments,
     } = req.body;
 
-    // Calculate profit and balance based on new fields
-    const commission = totalPrice - originalPrice;
-    const profit = commission;
+    // Calculate profit (replaces commission logic)
+    const profit = totalPrice - originalPrice;
+
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
       0
@@ -67,8 +67,9 @@ const createDailyService = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      `INSERT INTO daily_services ("userId", "employeeId", type, "serviceName", "originalPrice", "totalPrice", commission, profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+      // REMOVED 'commission' COLUMN FROM INSERT QUERY
+      `INSERT INTO daily_services ("userId", "employeeId", type, "serviceName", "originalPrice", "totalPrice", profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -76,8 +77,7 @@ const createDailyService = async (req, res, next) => {
         serviceName,
         originalPrice,
         totalPrice,
-        commission,
-        profit,
+        profit, // Using profit instead of commission
         date,
         JSON.stringify(advancePayments || []),
         remainingBalance,
@@ -108,9 +108,9 @@ const updateDailyService = async (req, res, next) => {
       advancePayments,
     } = req.body;
 
-    // Recalculate profit and balance on update
-    const commission = totalPrice - originalPrice;
-    const profit = commission;
+    // Recalculate profit (replaces commission logic)
+    const profit = totalPrice - originalPrice;
+
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
       0
@@ -119,16 +119,16 @@ const updateDailyService = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
+      // REMOVED 'commission' COLUMN FROM UPDATE QUERY
       `UPDATE daily_services 
-       SET type = $1, "serviceName" = $2, "originalPrice" = $3, "totalPrice" = $4, commission = $5, profit = $6, date = $7, "advancePayments" = $8, "remainingBalance" = $9, "isFullyPaid" = $10, "updatedAt" = NOW()
-       WHERE id = $11 AND "userId" = $12 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+       SET type = $1, "serviceName" = $2, "originalPrice" = $3, "totalPrice" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "updatedAt" = NOW()
+       WHERE id = $10 AND "userId" = $11 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
       [
         type,
         serviceName,
         originalPrice,
         totalPrice,
-        commission,
-        profit,
+        profit, // Using profit instead of commission
         date,
         JSON.stringify(advancePayments || []),
         remainingBalance,
@@ -235,7 +235,6 @@ const getDailyServiceReport = async (req, res, next) => {
             COUNT(*) as "count",
             COALESCE(SUM("originalPrice"), 0) as "totalOriginalPrice",
             COALESCE(SUM("totalPrice"), 0) as "totalSalePrice",
-            COALESCE(SUM("totalPrice" - "originalPrice"), 0) as "totalCommission",
             COALESCE(SUM(profit), 0) as "totalProfit"
           FROM FilteredServices
           GROUP BY type
