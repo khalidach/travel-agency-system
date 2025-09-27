@@ -20,6 +20,7 @@ import {
   ConciergeBell,
   DollarSign,
   Lock,
+  BarChart2, // أيقونة جديدة لـ Agency Reports
 } from "lucide-react";
 import NewBadge from "./ui/NewBadge"; // استيراد الشارة الجديدة
 
@@ -39,6 +40,12 @@ const allMenuItems: MenuItem[] = [
     key: "owner",
     path: "/owner",
     icon: Crown,
+    roles: ["owner"],
+  },
+  {
+    key: "agencyReports", // مفتاح جديد لتقارير الوكالات
+    path: "/owner/reports",
+    icon: BarChart2,
     roles: ["owner"],
   },
   {

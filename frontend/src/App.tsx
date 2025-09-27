@@ -40,6 +40,10 @@ const DailyServices = lazy(() => import("./pages/DailyServices"));
 const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings")); // New Page
 
+// NEW IMPORTS FOR AGENCY REPORTS
+const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
+const AgencyDetailedReport = lazy(() => import("./pages/AgencyDetailedReport"));
+
 // A wrapper component to decide which view to show based on auth state
 function AppRoutes() {
   const { state } = useAuthContext();
@@ -135,6 +139,14 @@ function AppRoutes() {
                     {userRole === "owner" ? (
                       <>
                         <Route path="/owner" element={<OwnerPage />} />
+                        <Route
+                          path="/owner/reports"
+                          element={<AgencyReportsList />}
+                        />
+                        <Route
+                          path="/owner/reports/:adminId"
+                          element={<AgencyDetailedReport />}
+                        />
                         <Route path="/tiers" element={<TiersPage />} />
                         <Route
                           path="/account-settings"

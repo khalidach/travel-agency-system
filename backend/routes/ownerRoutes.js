@@ -11,15 +11,18 @@ const {
   updateAdminTier,
   updateAdminUserLimits,
 } = require("../controllers/ownerController");
+const agencyReportController = require("../controllers/agencyReportController");
 const { protect } = require("../middleware/authMiddleware");
 const {
   idValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
+const { param, query } = require("express-validator");
 
 // All owner routes are protected and require the 'owner' role
 router.use(protect, authorizeOwner);
 
+// --- Admin User (Agency) Management Routes ---
 router.get("/admins", getAdminUsers);
 router.post("/admins", createAdminUser);
 router.put(
@@ -51,6 +54,19 @@ router.delete(
   idValidation,
   handleValidationErrors,
   deleteAdminUser
+);
+
+// --- Agency Reporting Routes (New Feature) ---
+router.get("/reports/summary", agencyReportController.getAgenciesSummaryReport);
+router.get(
+  "/reports/detailed/:adminId",
+  [
+    param("adminId").isInt().withMessage("Admin ID must be an integer."),
+    query("startDate").optional().isISO8601().toDate(),
+    query("endDate").optional().isISO8601().toDate(),
+    handleValidationErrors,
+  ],
+  agencyReportController.getAgencyDetailedReport
 );
 
 module.exports = router;

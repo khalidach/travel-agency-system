@@ -410,6 +410,25 @@ export const updateAdminUserLimits = (id: number, limits: any) =>
     body: JSON.stringify({ limits }),
   });
 
+// --- NEW Agency Reports API ---
+export const getAgenciesSummaryReport = () => request("/owner/reports/summary");
+
+export const getAgencyDetailedReport = (
+  adminId: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  let endpoint = `/owner/reports/detailed/${adminId}`;
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const queryString = params.toString();
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  return request(endpoint);
+};
+
 // --- Tier Management API (New) ---
 export const getTiers = () => request("/tiers");
 export const createTier = (tierData: any) =>
