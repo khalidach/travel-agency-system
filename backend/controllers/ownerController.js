@@ -30,6 +30,77 @@ const getAdminUsers = async (req, res, next) => {
   }
 };
 
+// NEW FUNCTION: Get Report for a specific Admin user (Agency)
+const getAdminUserReport = async (req, res, next) => {
+  try {
+    const { id } = req.params; // Admin ID
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
+    let dateFilterClause = "";
+    const queryParams = [id]; // Parameter 1: Admin ID (userId)
+    let paramIndex = 2;
+
+    // Build WHERE clause for date filtering
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      dateFilterClause = `AND "createdAt"::date BETWEEN $${paramIndex++} AND $${paramIndex++}`;
+      queryParams.push(startDate, endDate);
+    }
+
+    // 1. Get Agency Details
+    const agencyRes = await req.db.query(
+      "SELECT \"agencyName\" FROM users WHERE id = $1 AND role = 'admin'",
+      [id]
+    );
+    if (agencyRes.rows.length === 0) {
+      return next(new AppError("Agency not found.", 404));
+    }
+    const agencyName = agencyRes.rows[0].agencyName;
+
+    // 2. Get Counts and Program Names (using the main userId parameter which is $1)
+    const statsQuery = `
+      SELECT
+        (SELECT COUNT(*) FROM programs p WHERE p."userId" = $1 AND p."createdAt" IS NOT NULL ${dateFilterClause}) as "totalPrograms",
+        (SELECT COUNT(*) FROM bookings b WHERE b."userId" = $1 AND b."createdAt" IS NOT NULL ${dateFilterClause}) as "totalBookings",
+        (SELECT COUNT(*) FROM daily_services ds WHERE ds."userId" = $1 AND ds."createdAt" IS NOT NULL ${dateFilterClause.replace(
+          'b."createdAt"',
+          'ds."createdAt"'
+        )}) as "totalDailyServices",
+        (SELECT COUNT(*) FROM factures f WHERE f."userId" = $1 AND f."createdAt" IS NOT NULL ${dateFilterClause}) as "totalFactures",
+        (
+          SELECT COALESCE(json_agg(p.name ORDER BY p."createdAt" DESC), '[]'::jsonb)
+          FROM programs p
+          WHERE p."userId" = $1 AND p."createdAt" IS NOT NULL ${dateFilterClause}
+        ) as "programNames"
+    `;
+
+    // Execute the query using the base parameters (excluding the extra date params for the inner selects)
+    // Note: Because all tables use the same column name "createdAt", we can reuse the parameter indices.
+    // The dateFilterClause template handles the correct parameter placeholders ($2, $3).
+    const statsResult = await req.db.query(statsQuery, queryParams);
+
+    const stats = statsResult.rows[0];
+
+    res.status(200).json({
+      agencyName,
+      totalPrograms: parseInt(stats.totalPrograms, 10) || 0,
+      totalBookings: parseInt(stats.totalBookings, 10) || 0,
+      totalDailyServices: parseInt(stats.totalDailyServices, 10) || 0,
+      totalFactures: parseInt(stats.totalFactures, 10) || 0,
+      programNames: stats.programNames || [],
+    });
+  } catch (error) {
+    logger.error("Get Admin User Report Error:", {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.id,
+    });
+    next(new AppError("Failed to retrieve agency report.", 500));
+  }
+};
+
 const createAdminUser = async (req, res, next) => {
   try {
     const { username, password, agencyName, tierId, ownerName, phone, email } =
@@ -230,6 +301,7 @@ const updateAdminUserLimits = async (req, res, next) => {
 module.exports = {
   authorizeOwner,
   getAdminUsers,
+  getAdminUserReport, // EXPORT NEW FUNCTION
   createAdminUser,
   updateAdminUser,
   deleteAdminUser,

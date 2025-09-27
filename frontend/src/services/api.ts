@@ -385,6 +385,24 @@ export const getEmployeeServicePerformance = (
 
 // --- Owner API ---
 export const getAdminUsers = () => request("/owner/admins");
+
+// NEW API FUNCTION: Get Agency Report
+export const getAgencyReport = (
+  id: number,
+  startDate?: string,
+  endDate?: string
+) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const queryString = params.toString();
+  let endpoint = `/owner/admins/${id}/report`;
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  return request(endpoint);
+};
+
 export const createAdminUser = (userData: any) =>
   request("/owner/admins", { method: "POST", body: JSON.stringify(userData) });
 export const updateAdminUser = (id: number, userData: any) =>

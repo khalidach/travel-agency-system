@@ -40,12 +40,28 @@ const allMenuItems: MenuItem[] = [
     path: "/owner",
     icon: Crown,
     roles: ["owner"],
-  },
-  {
-    key: "tiers",
-    path: "/tiers",
-    icon: Layers,
-    roles: ["owner"],
+    children: [
+      // إضافة قائمة منسدلة خاصة بالمالك
+      {
+        key: "adminUsers",
+        path: "/owner",
+        icon: Users,
+        roles: ["owner"],
+      },
+      {
+        key: "agencyReports",
+        path: "/owner/reports",
+        icon: BarChart3,
+        roles: ["owner"],
+        new: true, // ميزة جديدة
+      },
+      {
+        key: "tiers",
+        path: "/tiers",
+        icon: Layers,
+        roles: ["owner"],
+      },
+    ],
   },
   {
     key: "dashboard",
@@ -239,8 +255,19 @@ export default function Sidebar() {
     );
     if (activeParent) {
       setOpenMenu(activeParent.key);
+    } else if (userRole === "owner") {
+      // Logic to keep the main owner menu expanded if the route is /owner or /tiers
+      const isOwnerRoute =
+        location.pathname.startsWith("/owner") ||
+        location.pathname.startsWith("/tiers");
+      if (isOwnerRoute) {
+        const ownerMenu = menuItems.find((item) => item.key === "owner");
+        if (ownerMenu && ownerMenu.children) {
+          setOpenMenu(ownerMenu.key);
+        }
+      }
     }
-  }, [location.pathname, menuItems]);
+  }, [location.pathname, menuItems, userRole]);
 
   const handleMenuClick = (item: MenuItem) => {
     if (item.isDisabled) return;
