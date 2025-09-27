@@ -156,6 +156,8 @@ export default function ProgramForm({
               <option value="Hajj">Hajj</option>
               <option value="Umrah">Umrah</option>
               <option value="Tourism">Tourism</option>
+              <option value="Ramadan">Ramadan</option>{" "}
+              {/* إضافة "Ramadan" هنا */}
             </select>
           </div>
         </div>

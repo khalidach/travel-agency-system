@@ -195,6 +195,7 @@ export default function ProfitReport() {
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
+            <option value="Ramadan">Ramadan</option>
           </select>
         </div>
       </div>

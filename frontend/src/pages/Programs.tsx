@@ -170,6 +170,8 @@ export default function Programs() {
         return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
       case "Tourism":
         return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
+      case "Ramadan": // إضافة لون لـ "Ramadan"
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300";
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
@@ -237,6 +239,7 @@ export default function Programs() {
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
+            <option value="Ramadan">Ramadan</option> {/* إضافة "Ramadan" هنا */}
           </select>
         </div>
       </div>

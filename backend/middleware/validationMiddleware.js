@@ -59,7 +59,7 @@ const accountSettingsValidation = [
 const programValidation = [
   body("name").notEmpty().trim().withMessage("Program name is required."),
   body("type")
-    .isIn(["Hajj", "Umrah", "Tourism"])
+    .isIn(["Hajj", "Umrah", "Tourism", "Ramadan"]) // تم إضافة "Ramadan" هنا
     .withMessage("Invalid program type."),
   body("variations")
     .isArray({ min: 1 })

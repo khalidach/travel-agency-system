@@ -111,10 +111,12 @@ export interface HotelRoomCount {
   roomCount: number;
 }
 
+export type ProgramType = "Hajj" | "Umrah" | "Tourism" | "Ramadan"; // تم إضافة "Ramadan" هنا
+
 export interface Program {
   id: number;
   name: string;
-  type: "Hajj" | "Umrah" | "Tourism";
+  type: ProgramType; // استخدام النوع الجديد
   variations: ProgramVariation[];
   packages: Package[];
   roomTypes: RoomTypeDefinition[];
