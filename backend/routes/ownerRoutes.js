@@ -10,29 +10,15 @@ const {
   toggleUserStatus,
   updateAdminTier,
   updateAdminUserLimits,
-  getAdminUserReport, // تم استيراد الدالة الجديدة
 } = require("../controllers/ownerController");
 const { protect } = require("../middleware/authMiddleware");
 const {
   idValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
-const { query } = require("express-validator"); // استيراد query للتحقق من صحة فلاتر التاريخ
 
 // All owner routes are protected and require the 'owner' role
 router.use(protect, authorizeOwner);
-
-// مسار جديد لتقارير الوكالة
-router.get(
-  "/admins/:id/report",
-  [
-    idValidation,
-    query("startDate").optional().isISO8601().toDate(),
-    query("endDate").optional().isISO8601().toDate(),
-    handleValidationErrors,
-  ],
-  getAdminUserReport
-);
 
 router.get("/admins", getAdminUsers);
 router.post("/admins", createAdminUser);

@@ -32,7 +32,6 @@ const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SignUpPage = lazy(() => import("./pages/SignUpPage")); // Import SignUpPage
 const OwnerPage = lazy(() => import("./pages/Owner"));
 const TiersPage = lazy(() => import("./pages/Tiers"));
-const AgencyReportPage = lazy(() => import("./pages/AgencyReport")); // New Page Import
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
 const RoomManage = lazy(() => import("./pages/RoomManage"));
 const Facturation = lazy(() => import("./pages/Facturation"));
@@ -137,11 +136,6 @@ function AppRoutes() {
                       <>
                         <Route path="/owner" element={<OwnerPage />} />
                         <Route path="/tiers" element={<TiersPage />} />
-                        <Route
-                          path="/owner/reports"
-                          element={<AgencyReportPage />}
-                        />{" "}
-                        {/* New Route */}
                         <Route
                           path="/account-settings"
                           element={<AccountSettings />}
