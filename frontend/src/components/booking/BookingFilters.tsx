@@ -14,6 +14,9 @@ interface BookingFiltersProps {
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   selectedCount: number;
   onDeleteSelected: () => void;
+  // <NEW CODE>
+  programVariations: { name: string }[];
+  // </NEW CODE>
 }
 
 export default function BookingFilters({
@@ -24,7 +27,10 @@ export default function BookingFilters({
   onSearchKeyDown,
   selectedCount,
   onDeleteSelected,
-}: BookingFiltersProps) {
+  // <NEW CODE>
+  programVariations,
+}: // </NEW CODE>
+BookingFiltersProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
@@ -41,6 +47,21 @@ export default function BookingFilters({
             className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </div>
+
+        {/* <NEW CODE> */}
+        <select
+          {...register("variationFilter")}
+          className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          <option value="all">التنويع (الكل)</option>
+          {programVariations.map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+        {/* </NEW CODE> */}
+
         <select
           {...register("sortOrder")}
           className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"

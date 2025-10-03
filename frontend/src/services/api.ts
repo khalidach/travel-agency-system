@@ -6,6 +6,7 @@ export interface BookingFilters {
   searchTerm: string;
   statusFilter: string;
   employeeFilter: string;
+  variationFilter?: string;
 }
 
 // --- Auth API ---
@@ -249,6 +250,7 @@ export const getBookingsByProgram = (
     sortOrder: string;
     statusFilter: string;
     employeeFilter: string;
+    variationFilter?: string;
   }
 ) => {
   const queryParams = new URLSearchParams({
@@ -258,6 +260,7 @@ export const getBookingsByProgram = (
     sortOrder: params.sortOrder,
     statusFilter: params.statusFilter,
     employeeFilter: params.employeeFilter,
+    variationFilter: params.variationFilter || "all",
   }).toString();
   return request(`/bookings/program/${programId}?${queryParams}`);
 };
@@ -268,12 +271,14 @@ export const getBookingIdsByProgram = (
     searchTerm: string;
     statusFilter: string;
     employeeFilter: string;
+    variationFilter?: string;
   }
 ) => {
   const queryParams = new URLSearchParams({
     searchTerm: params.searchTerm,
     statusFilter: params.statusFilter,
     employeeFilter: params.employeeFilter,
+    variationFilter: params.variationFilter || "all",
   }).toString();
   return request(`/bookings/program/${programId}/ids?${queryParams}`);
 };
@@ -290,6 +295,7 @@ export const searchBookingsInProgram = async (
     sortOrder: "newest",
     statusFilter: "all",
     employeeFilter: "all",
+    variationFilter: "all",
   });
   const result = await request(
     `/bookings/program/${programId}?${params.toString()}`

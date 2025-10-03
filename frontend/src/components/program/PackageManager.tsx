@@ -169,7 +169,11 @@ const HotelManager = ({
           {t("addHotel")}
         </button>
       </div>
-      <div className="space-y-2">
+      {/*
+        FIX: Added max-h-40 and overflow-y-auto classes here 
+        to enable vertical scrolling if the list of hotels gets too long.
+      */}
+      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
         {fields.map((field, hotelIndex) => {
           return (
             <div key={field.id} className="flex items-center space-x-2">

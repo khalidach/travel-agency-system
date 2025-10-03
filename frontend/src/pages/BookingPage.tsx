@@ -38,6 +38,9 @@ interface FilterFormData {
   sortOrder: string;
   statusFilter: string;
   employeeFilter: string;
+  // <NEW CODE>
+  variationFilter: string;
+  // </NEW CODE>
 }
 
 interface BookingResponse {
@@ -95,6 +98,9 @@ export default function BookingPage() {
       sortOrder: "newest",
       statusFilter: "all",
       employeeFilter: "all",
+      // <NEW CODE>
+      variationFilter: "all",
+      // </NEW CODE>
     },
   });
 
@@ -103,6 +109,9 @@ export default function BookingPage() {
   const sortOrder = watch("sortOrder");
   const statusFilter = watch("statusFilter");
   const employeeFilter = watch("employeeFilter");
+  // <NEW CODE>
+  const variationFilter = watch("variationFilter");
+  // </NEW CODE>
 
   const hasFlightListExportAccess = useMemo(() => {
     if (!user) return false;
@@ -123,6 +132,9 @@ export default function BookingPage() {
     sortOrder,
     statusFilter,
     employeeFilter,
+    // <NEW CODE>
+    variationFilter,
+    // </NEW CODE>
     setCurrentPage,
     clearSelection,
   ]);
@@ -137,6 +149,9 @@ export default function BookingPage() {
         sortOrder,
         statusFilter,
         employeeFilter,
+        // <NEW CODE>
+        variationFilter,
+        // </NEW CODE>
       ],
       queryFn: () =>
         api.getBookingsByProgram(programId!, {
@@ -146,6 +161,9 @@ export default function BookingPage() {
           sortOrder,
           statusFilter,
           employeeFilter,
+          // <NEW CODE>
+          variationFilter,
+          // </NEW CODE>
         }),
       enabled: !!programId,
       placeholderData: (prev) => prev,
@@ -162,6 +180,9 @@ export default function BookingPage() {
     staleTime: 10 * 60 * 1000,
   });
   const programs = program ? [program] : [];
+  // <NEW CODE>
+  const programVariations = program?.variations || [];
+  // </NEW CODE>
 
   const { data: employeesData, isLoading: isLoadingEmployees } = useQuery<{
     employees: Employee[];
@@ -462,6 +483,9 @@ export default function BookingPage() {
       debouncedSearchTerm,
       statusFilter,
       employeeFilter,
+      // <NEW CODE>
+      variationFilter,
+      // </NEW CODE>
     ];
     try {
       const data = await queryClient.fetchQuery<{ ids: number[] }>({
@@ -471,6 +495,9 @@ export default function BookingPage() {
             searchTerm: debouncedSearchTerm,
             statusFilter,
             employeeFilter,
+            // <NEW CODE>
+            variationFilter,
+            // </NEW CODE>
           }),
         staleTime: 1000 * 60 * 5, // Cache for 5 minutes
       });
@@ -523,6 +550,9 @@ export default function BookingPage() {
           searchTerm: debouncedSearchTerm,
           statusFilter,
           employeeFilter,
+          // <NEW CODE>
+          variationFilter,
+          // </NEW CODE>
         },
       });
     } else if (selectedBookingIds.length > 0) {
@@ -581,6 +611,9 @@ export default function BookingPage() {
         onSearchKeyDown={() => {}}
         selectedCount={selectedCount}
         onDeleteSelected={handleDeleteSelected}
+        // <NEW CODE>
+        programVariations={programVariations}
+        // </NEW CODE>
       />
 
       {(showSelectAllBar || isSelectAllAcrossPages) && pagination ? (

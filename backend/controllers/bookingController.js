@@ -51,6 +51,9 @@ exports.getBookingsByProgram = async (req, res, next) => {
       sortOrder = "newest",
       statusFilter = "all",
       employeeFilter = "all",
+      // <NEW CODE>
+      variationFilter = "all",
+      // </NEW CODE>
     } = req.query;
     const { adminId, role, id: userId } = req.user;
 
@@ -78,6 +81,14 @@ exports.getBookingsByProgram = async (req, res, next) => {
         'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0'
       );
     }
+
+    // <NEW CODE>
+    if (variationFilter && variationFilter !== "all") {
+      whereConditions.push(`b."variationName" = $${paramIndex}`);
+      queryParams.push(variationFilter);
+      paramIndex++;
+    }
+    // </NEW CODE>
 
     if (role === "admin" || role === "manager") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
@@ -187,7 +198,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
                 COALESCE(SUM(profit), 0) as "totalProfit",
                 COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) as "totalPaid"
             FROM bookings b
-            ${whereClause}
+            ${whereClause.replace(/b\."/g, '"')}
         `;
       const statsResult = await req.db.query(statsQuery, queryParams);
       const summaryStats = statsResult.rows[0];
@@ -290,6 +301,9 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
       searchTerm = "",
       statusFilter = "all",
       employeeFilter = "all",
+      // <NEW CODE>
+      variationFilter = "all",
+      // </NEW CODE>
     } = req.query;
     const { adminId, role, id: userId } = req.user;
 
@@ -316,6 +330,14 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
         '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0'
       );
     }
+
+    // <NEW CODE>
+    if (variationFilter && variationFilter !== "all") {
+      whereConditions.push(`"variationName" = $${paramIndex}`);
+      queryParams.push(variationFilter);
+      paramIndex++;
+    }
+    // </NEW CODE>
 
     if (role === "admin") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
