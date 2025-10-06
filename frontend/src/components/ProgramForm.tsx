@@ -34,6 +34,7 @@ export default function ProgramForm({
           name: "",
           type: "Umrah",
           isCommissionBased: false,
+          maxBookings: null, // NEW: Default to null (unlimited)
           variations: [
             {
               name: "Default Variation",
@@ -56,6 +57,7 @@ export default function ProgramForm({
   } = methods;
 
   const isCommissionBased = watch("isCommissionBased");
+  const maxBookings = watch("maxBookings");
 
   // Watch for changes in cities to auto-calculate duration for each variation.
   useEffect(() => {
@@ -156,10 +158,77 @@ export default function ProgramForm({
               <option value="Hajj">Hajj</option>
               <option value="Umrah">Umrah</option>
               <option value="Tourism">Tourism</option>
-              <option value="Ramadan">Ramadan</option>{" "}
-              {/* إضافة "Ramadan" هنا */}
+              <option value="Ramadan">Ramadan</option>
             </select>
           </div>
+          {/* NEW: Max Bookings Toggle and Input */}
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              عدد المقاعد القصوى (الحجوزات)
+            </label>
+            <div className="flex items-center space-x-3">
+              <input
+                type="number"
+                {...methods.register("maxBookings", {
+                  valueAsNumber: true,
+                  min: 0,
+                })}
+                value={maxBookings === null ? "" : maxBookings}
+                onChange={(e) => {
+                  const value =
+                    e.target.value === "" ? null : Number(e.target.value);
+                  setValue("maxBookings", value);
+                }}
+                placeholder={t("Unlimited") as string}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                disabled={maxBookings === null} // Disabled if set to null (unlimited)
+              />
+              <label className="flex items-center cursor-pointer">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 mr-2">
+                  غير محدود
+                </span>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={maxBookings === null}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setValue("maxBookings", null); // Set to null for unlimited
+                      } else {
+                        setValue("maxBookings", 0); // Set to 0 to enable input (user can change to desired number)
+                      }
+                    }}
+                    className="sr-only toggle-checkbox"
+                  />
+                  <div
+                    className={`block w-14 h-8 rounded-full ${
+                      maxBookings === null
+                        ? "bg-green-500"
+                        : "bg-gray-300 dark:bg-gray-600"
+                    }`}
+                  ></div>
+                  <div
+                    className={`dot absolute left-1 top-1 bg-white dark:bg-gray-300 w-6 h-6 rounded-full transition-transform ${
+                      maxBookings === null ? "translate-x-6" : ""
+                    }`}
+                  ></div>
+                </div>
+              </label>
+            </div>
+            {maxBookings !== null &&
+              maxBookings !== undefined &&
+              maxBookings < 0 && (
+                <p className="text-red-500 text-xs mt-1">
+                  يجب أن يكون العدد موجباً.
+                </p>
+              )}
+            {maxBookings === null && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                (محدد كحجوزات غير محدودة)
+              </p>
+            )}
+          </div>
+          {/* End of NEW: Max Bookings Toggle and Input */}
         </div>
 
         {/* Commission Based Toggle */}

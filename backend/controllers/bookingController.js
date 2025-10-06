@@ -110,10 +110,10 @@ exports.getBookingsByProgram = async (req, res, next) => {
     // --- Logic for Family Sort ---
     if (sortOrder === "family") {
       const allBookingsQuery = `
-            SELECT b.*, e.username as "employeeName"
-            FROM bookings b
-            LEFT JOIN employees e ON b."employeeId" = e.id
-            ${whereClause}
+          SELECT b.*, e.username as "employeeName"
+          FROM bookings b
+          LEFT JOIN employees e ON b."employeeId" = e.id
+          ${whereClause}
         `;
       const allBookingsResult = await req.db.query(
         allBookingsQuery,
@@ -388,6 +388,14 @@ exports.createBooking = async (req, res, next) => {
     if (error.message.includes("already booked")) {
       return next(new AppError(error.message, 409)); // 409 Conflict
     }
+    // Check for capacity error from service
+    if (
+      error instanceof AppError &&
+      error.message.includes("لقد اكتمل هذا البرنامج")
+    ) {
+      return next(error);
+    }
+
     next(new AppError("Failed to create booking(s).", 400));
   }
 };
@@ -414,6 +422,13 @@ exports.updateBooking = async (req, res, next) => {
     }
     if (error.message.includes("not found")) {
       return next(new AppError(error.message, 404));
+    }
+    // Check for capacity error from service
+    if (
+      error instanceof AppError &&
+      error.message.includes("لا يمكن نقل الحجز")
+    ) {
+      return next(error);
     }
     next(new AppError("Failed to update booking.", 400));
   }
@@ -723,24 +738,97 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
   }
 };
 
+// --- MODIFIED: Renaming and integrating capacity check for Excel Import ---
 exports.importBookingsFromExcel = async (req, res, next) => {
   if (!req.file) return next(new AppError("No file uploaded.", 400));
   const { programId } = req.params;
   if (!programId) return next(new AppError("Program ID is required.", 400));
 
+  const { adminId, id: employeeId } = req.user;
+  const client = await req.db.connect();
+
   try {
-    const result = await ExcelService.parseBookingsFromExcel(
-      req.file,
+    await client.query("BEGIN");
+
+    // 1. Process the Excel file and get raw data (ExcelService.parseBookingsFromExcel)
+    const excelData = await ExcelService.parseBookingsFromExcelRaw(
+      req.file.buffer,
       req.user,
-      req.db,
+      client,
       programId
     );
-    res.status(201).json(result);
+
+    if (excelData.length === 0) {
+      throw new AppError("No valid bookings found in the Excel file.", 400);
+    }
+
+    // 2. Check Capacity before processing
+    const newBookingsCount = excelData.length;
+    const capacity = await BookingService.checkProgramCapacity(
+      client,
+      programId,
+      newBookingsCount
+    );
+
+    if (capacity.isFull) {
+      throw new AppError(
+        `الحجوزات (عددها ${newBookingsCount}) أكبر من العدد المتبقي في البرنامج. الحجوزات الحالية: ${capacity.currentBookings}، الحد الأقصى: ${capacity.maxBookings}.`,
+        400
+      );
+    }
+
+    // 3. Create bookings (similar to the logic inside ExcelService.parseBookingsFromExcel)
+    const createdBookings = [];
+    const tripId = programId; // programId is tripId here
+
+    // The original parseBookingsFromExcel had the logic to create bookings inside.
+    // We will mimic that process here to ensure all checks (like passport duplication) and logic run inside the transaction.
+
+    for (const data of excelData) {
+      // This relies on the BookingService.createBookings logic, but since Excel import
+      // sends data one-by-one or handles bulk differently, we call a dedicated
+      // service function or refactor BookingService.createBookings to handle this easily.
+
+      // Since the current BookingService uses a 'clients' array structure for bulk,
+      // we will adapt the data structure here and call the service function.
+
+      // We will call the logic from BookingService's createBookings, adapted for Excel structure.
+      const bulkData = {
+        clients: [data], // Wrap the single client data into the expected 'clients' array
+        ...data, // Include shared data (like tripId, selectedHotel, etc.)
+      };
+
+      const result = await BookingService.createBookings(
+        client, // Pass the transaction client
+        req.user,
+        bulkData,
+        true // Flag indicating this is an Excel import, needs special handling if required
+      );
+      createdBookings.push(...result.bookings);
+    }
+
+    // NOTE: The update of totalBookings is now handled inside BookingService.createBookings
+    // We only need to commit the transaction.
+    await client.query("COMMIT");
+
+    res.status(201).json({
+      message: `${createdBookings.length} bookings imported successfully.`,
+      bookings: createdBookings,
+    });
   } catch (error) {
+    await client.query("ROLLBACK");
     logger.error("Excel import error:", {
       message: error.message,
       stack: error.stack,
     });
-    next(new AppError(error.message || "Error importing Excel file.", 500));
+    // Forward the specific capacity or passport duplication error message
+    next(
+      error instanceof AppError
+        ? error
+        : new AppError(error.message || "Error importing Excel file.", 400)
+    );
+  } finally {
+    client.release();
   }
 };
+// --- END MODIFIED: Renaming and integrating capacity check for Excel Import ---

@@ -2,16 +2,52 @@
 const RoomManagementService = require("./RoomManagementService");
 const isEqual = require("fast-deep-equal");
 const logger = require("../utils/logger");
+const AppError = require("../utils/appError"); // Import AppError for custom errors
+
+/**
+ * Checks if a program has reached its maximum booking capacity.
+ * @param {object} client - pg client object.
+ * @param {number} programId - The ID of the program (tripId).
+ * @param {number} newBookingsCount - The number of new bookings being added.
+ * @returns {Promise<{isFull: boolean, maxBookings: number | null, currentBookings: number}>}
+ */
+const checkProgramCapacity = async (client, programId, newBookingsCount) => {
+  const programResult = await client.query(
+    'SELECT "maxBookings" FROM programs WHERE id = $1',
+    [programId]
+  );
+
+  if (programResult.rows.length === 0) {
+    throw new AppError("Program not found.", 404);
+  }
+
+  const { maxBookings } = programResult.rows[0];
+
+  // If maxBookings is NULL (unlimited), capacity check is skipped.
+  if (maxBookings === null) {
+    return { isFull: false, maxBookings: null, currentBookings: 0 };
+  }
+
+  // Count existing bookings for the program
+  const countResult = await client.query(
+    'SELECT COUNT(*) FROM bookings WHERE "tripId" = $1',
+    [programId]
+  );
+  const currentBookings = parseInt(countResult.rows[0].count, 10);
+
+  const totalAfterNew = currentBookings + newBookingsCount;
+
+  return {
+    isFull: totalAfterNew > maxBookings,
+    maxBookings: parseInt(maxBookings, 10), // Ensure it's number
+    currentBookings,
+  };
+};
 
 /**
  * Recalculates base price and profit for all bookings related to a program.
  * @param {object} client - The database client for the transaction.
- * @param {number} userId - The ID of the admin user.
- * @param {number} programId - The ID of the program whose bookings need updating.
- * @param {string} packageId - The package name.
- * @param {object} selectedHotel - The selected hotel and room types.
- * @param {string} personType - The person type.
- * @param {string} variationName - The variation name.
+ * ... (rest of params)
  * @returns {Promise<number>} The calculated base price.
  */
 const calculateBasePrice = async (
@@ -178,7 +214,7 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   const relatedPersonIdentifier = JSON.stringify([{ ID: bookingId }]);
   const { rows: referencingBookings } = await client.query(
     `SELECT id, "relatedPersons" FROM bookings 
-     WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
+      WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
     [userId, tripId, relatedPersonIdentifier]
   );
 
@@ -243,6 +279,22 @@ const createBookings = async (db, user, bulkData) => {
       variationName,
       relatedPersons,
     } = sharedData;
+
+    // --- NEW: Capacity Check before creating any bookings ---
+    const newBookingsCount = clients.length;
+    const capacity = await checkProgramCapacity(
+      client,
+      tripId,
+      newBookingsCount
+    );
+
+    if (capacity.isFull) {
+      throw new AppError(
+        `لقد اكتمل هذا البرنامج. الحجوزات الحالية: ${capacity.currentBookings}، الحد الأقصى: ${capacity.maxBookings}. لا يمكن إضافة ${newBookingsCount} حجز جديد.`,
+        400 // Use 400 Bad Request or 409 Conflict if appropriate
+      );
+    }
+    // --- END NEW: Capacity Check ---
 
     const programRes = await client.query(
       'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
@@ -340,6 +392,7 @@ const createBookings = async (db, user, bulkData) => {
       );
     }
 
+    // Since we've created the bookings, increment totalBookings
     await client.query(
       'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
       [clients.length, tripId]
@@ -396,6 +449,21 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       advancePayments,
       relatedPersons,
     } = bookingData;
+
+    // --- NEW: Capacity Check for TripId change (If tripId changes, we check new program capacity) ---
+    if (oldBooking.tripId !== tripId) {
+      // Since we are moving one booking, newBookingsCount is 1
+      const capacity = await checkProgramCapacity(client, tripId, 1);
+
+      if (capacity.isFull) {
+        throw new AppError(
+          `لا يمكن نقل الحجز إلى هذا البرنامج. البرنامج ممتلئ: ${capacity.currentBookings}/${capacity.maxBookings}.`,
+          400
+        );
+      }
+      // If successful, we will handle the program totalBookings count at the end of the transaction
+    }
+    // --- END NEW: Capacity Check ---
 
     const processedClientNameFr = {
       lastName: clientNameFr.lastName
@@ -494,7 +562,8 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       oldBooking.personType !== updatedBooking.personType ||
       oldBooking.variationName !== updatedBooking.variationName ||
       !isEqual(oldBooking.relatedPersons, updatedBooking.relatedPersons) ||
-      !isEqual(oldBooking.selectedHotel, updatedBooking.selectedHotel);
+      !isEqual(oldBooking.selectedHotel, updatedBooking.selectedHotel) ||
+      oldBooking.tripId !== updatedBooking.tripId; // Check if tripId changed
 
     if (!isFullyAssigned || keyFieldsChanged) {
       let reason = [];
@@ -506,7 +575,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         )}.`
       );
 
-      // First, remove all existing assignments for this family across the entire program to avoid duplicates or conflicts.
+      // 1. Remove from OLD program/rooms (important if tripId changed)
       await RoomManagementService.removeOccupantFromRooms(
         client,
         user.adminId,
@@ -514,10 +583,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         oldBooking.id
       );
 
-      // If the tripId changed, the previous call already cleaned the old program.
-      // The autoAssignToRoom will handle assignment to the new program.
-
-      // Now, auto-assign to the correct rooms based on the new booking data.
+      // 2. Auto-assign to the correct rooms in the NEW program
       await RoomManagementService.autoAssignToRoom(
         client,
         user.adminId,
@@ -529,6 +595,21 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       );
     }
     // --- END OF MODIFIED LOGIC ---
+
+    // --- NEW: Update program totalBookings if tripId changed ---
+    if (oldBooking.tripId !== tripId) {
+      // Decrement old program count
+      await client.query(
+        'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1 AND "totalBookings" > 0',
+        [oldBooking.tripId]
+      );
+      // Increment new program count
+      await client.query(
+        'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
+        [tripId]
+      );
+    }
+    // --- END NEW: Update program totalBookings ---
 
     await client.query("COMMIT");
     return updatedBooking;
@@ -544,11 +625,11 @@ const getAllBookings = async (db, id, page, limit, idColumn) => {
   const offset = (page - 1) * limit;
   const bookingsPromise = db.query(
     `SELECT b.*, e.username as "employeeName"
-     FROM bookings b
-     LEFT JOIN employees e ON b."employeeId" = e.id
-     WHERE b."${idColumn}" = $1
-     ORDER BY b."createdAt" DESC
-     LIMIT $2 OFFSET $3`,
+      FROM bookings b
+      LEFT JOIN employees e ON b."employeeId" = e.id
+      WHERE b."${idColumn}" = $1
+      ORDER BY b."createdAt" DESC
+      LIMIT $2 OFFSET $3`,
     [id, limit, offset]
   );
   const totalCountPromise = db.query(
@@ -597,7 +678,7 @@ const deleteBooking = async (db, user, bookingId) => {
     ]);
     const { rows: referencingBookings } = await client.query(
       `SELECT id, "relatedPersons" FROM bookings
-       WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
+        WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
       [adminId, tripId, relatedPersonIdentifier]
     );
 
@@ -673,13 +754,21 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
         whereConditions.push('"isFullyPaid" = true');
       } else if (filters.statusFilter === "pending") {
         whereConditions.push(
-          'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) > 0'
+          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0'
         );
       } else if (filters.statusFilter === "notPaid") {
         whereConditions.push(
-          'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0'
+          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0'
         );
       }
+
+      // <NEW CODE>
+      if (filters.variationFilter && filters.variationFilter !== "all") {
+        whereConditions.push(`"variationName" = $${paramIndex}`);
+        queryParams.push(filters.variationFilter);
+        paramIndex++;
+      }
+      // </NEW CODE>
 
       if (role === "admin") {
         if (
@@ -718,12 +807,12 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
     if (tripId) {
       await client.query(
         `UPDATE bookings
-         SET "relatedPersons" = (
-             SELECT jsonb_agg(elem)
-             FROM jsonb_array_elements("relatedPersons") AS elem
-             WHERE NOT ((elem->>'ID')::int = ANY($1::int[]))
-         )
-         WHERE "userId" = $2 AND "tripId" = $3 AND "relatedPersons" IS NOT NULL AND "relatedPersons" != '[]'::jsonb`,
+          SET "relatedPersons" = (
+              SELECT jsonb_agg(elem)
+              FROM jsonb_array_elements("relatedPersons") AS elem
+              WHERE NOT ((elem->>'ID')::int = ANY($1::int[]))
+          )
+          WHERE "userId" = $2 AND "tripId" = $3 AND "relatedPersons" IS NOT NULL AND "relatedPersons" != '[]'::jsonb`,
         [idsToDelete, adminId, tripId]
       );
     }
@@ -864,4 +953,6 @@ module.exports = {
   addPayment,
   updatePayment,
   deletePayment,
+  // NEW: Export capacity check function for Excel import controller
+  checkProgramCapacity,
 };

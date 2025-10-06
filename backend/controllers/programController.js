@@ -151,7 +151,8 @@ exports.getProgramById = async (req, res, next) => {
 
 exports.createProgram = async (req, res, next) => {
   try {
-    const { name, type, variations, packages, isCommissionBased } = req.body;
+    const { name, type, variations, packages, isCommissionBased, maxBookings } =
+      req.body;
     const userId = req.user.adminId;
     const employeeId = req.user.role !== "admin" ? req.user.id : null;
 
@@ -161,8 +162,14 @@ exports.createProgram = async (req, res, next) => {
     const duration = firstVariation.duration || 0;
     const cities = firstVariation.cities || [];
 
+    // Ensure maxBookings is either a non-negative integer or null
+    const finalMaxBookings =
+      maxBookings === null || maxBookings === undefined || maxBookings < 0
+        ? null
+        : parseInt(maxBookings, 10);
+
     const { rows } = await req.db.query(
-      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities, "isCommissionBased") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities, "isCommissionBased", "maxBookings") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
       [
         userId,
         employeeId,
@@ -173,6 +180,7 @@ exports.createProgram = async (req, res, next) => {
         duration,
         JSON.stringify(cities),
         isCommissionBased || false,
+        finalMaxBookings, // NEW: Insert maxBookings
       ]
     );
     res.status(201).json(rows[0]);
@@ -188,7 +196,8 @@ exports.createProgram = async (req, res, next) => {
 
 exports.updateProgram = async (req, res, next) => {
   const { id } = req.params;
-  const { name, type, variations, packages, isCommissionBased } = req.body;
+  const { name, type, variations, packages, isCommissionBased, maxBookings } =
+    req.body;
   const client = await req.db.connect();
 
   try {
@@ -217,8 +226,14 @@ exports.updateProgram = async (req, res, next) => {
     const duration = firstVariation.duration || 0;
     const cities = firstVariation.cities || [];
 
+    // Ensure maxBookings is either a non-negative integer or null
+    const finalMaxBookings =
+      maxBookings === null || maxBookings === undefined || maxBookings < 0
+        ? null
+        : parseInt(maxBookings, 10);
+
     const { rows: updatedProgramRows } = await client.query(
-      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "isCommissionBased" = $7, "updatedAt" = NOW() WHERE id = $8 RETURNING *',
+      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "isCommissionBased" = $7, "maxBookings" = $8, "updatedAt" = NOW() WHERE id = $9 RETURNING *',
       [
         name,
         type,
@@ -227,6 +242,7 @@ exports.updateProgram = async (req, res, next) => {
         duration,
         JSON.stringify(cities),
         isCommissionBased || false,
+        finalMaxBookings, // NEW: Update maxBookings
         id,
       ]
     );

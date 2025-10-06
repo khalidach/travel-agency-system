@@ -90,27 +90,26 @@ const applyDatabaseMigrations = async (client) => {
           packages JSONB,
           "totalBookings" INTEGER DEFAULT 0,
           "isCommissionBased" BOOLEAN DEFAULT FALSE, -- New field for commission-based programs
+          "maxBookings" INTEGER DEFAULT NULL, -- NEW: Max number of bookings (NULL for unlimited)
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
-    // Add 'isCommissionBased' column if it doesn't exist for existing installations
+    // Add columns if they don't exist for existing installations
     await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='isCommissionBased') THEN
           ALTER TABLE programs ADD COLUMN "isCommissionBased" BOOLEAN DEFAULT FALSE;
         END IF;
-      END;
-      $$;
-    `);
+        
+        -- NEW: Add maxBookings column if it doesn't exist
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='maxBookings') THEN
+          ALTER TABLE programs ADD COLUMN "maxBookings" INTEGER DEFAULT NULL;
+        END IF;
 
-    // Add 'variations' column, migrate old data, and then drop old columns safely.
-    await client.query(`
-      DO $$
-      BEGIN
-        -- Add the new 'variations' column if it doesn't exist
+        -- Add the new 'variations' column if it doesn't exist (legacy migration handling)
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='variations') THEN
           ALTER TABLE programs ADD COLUMN "variations" JSONB;
         END IF;

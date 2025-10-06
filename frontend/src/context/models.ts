@@ -128,6 +128,7 @@ export interface Program {
   hotelRoomCounts?: HotelRoomCount[];
   totalOccupants?: number;
   isCommissionBased?: boolean;
+  maxBookings?: number | null; // NEW: Maximum number of bookings allowed. Null/0 means unlimited.
 }
 
 export interface Package {
