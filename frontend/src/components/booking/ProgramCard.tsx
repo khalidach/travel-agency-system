@@ -74,7 +74,14 @@ const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
               }`}
             />
             <span>
-              {program.totalBookings || 0} {t("bookings")}
+              <span>
+                {t("totalBookings")}: {program.totalBookings || 0}
+                {program.maxBookings !== undefined && (
+                  <span className="ml-1">
+                    / {program.maxBookings || t("unlimited")}
+                  </span>
+                )}
+              </span>
             </span>
           </div>
         </div>

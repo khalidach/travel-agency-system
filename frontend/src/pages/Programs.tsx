@@ -317,6 +317,11 @@ export default function Programs() {
                   />
                   <span>
                     {t("totalBookings")}: {program.totalBookings || 0}
+                    {program.maxBookings !== undefined && (
+                      <span className="ml-1">
+                        / {program.maxBookings || t("unlimited")}
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
