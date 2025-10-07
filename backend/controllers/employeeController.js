@@ -177,6 +177,7 @@ exports.getEmployeeProgramPerformance = async (req, res, next) => {
 
     const performanceQuery = `
         SELECT
+            p.id as "programId",
             p.name as "programName",
             p.type,
             COUNT(b.id) as "bookingCount",
@@ -211,6 +212,7 @@ exports.getEmployeeProgramPerformance = async (req, res, next) => {
     res.status(200).json({
       programPerformance: performanceResult.rows.map((r) => ({
         ...r,
+        programId: parseInt(r.programId, 10),
         bookingCount: parseInt(r.bookingCount, 10),
         totalSales: parseFloat(r.totalSales),
         totalCost: parseFloat(r.totalCost),
@@ -230,6 +232,81 @@ exports.getEmployeeProgramPerformance = async (req, res, next) => {
       username: req.params.username,
     });
     next(new AppError("Failed to retrieve employee program performance.", 500));
+  }
+};
+
+/**
+ * NEW: Retrieves a detailed list of bookings for a specific program made by a specific employee,
+ * applying optional date filtering.
+ */
+exports.getEmployeeProgramBookings = async (req, res, next) => {
+  try {
+    const { username, programId } = req.params;
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
+    const employeeRes = await req.db.query(
+      'SELECT id FROM employees WHERE username = $1 AND "adminId" = $2',
+      [username, adminId]
+    );
+    if (employeeRes.rows.length === 0) {
+      return next(new AppError("Employee not found.", 404));
+    }
+    const employee = employeeRes.rows[0];
+
+    let queryConditions = [
+      `b."employeeId" = $1`,
+      `b."tripId" = $2`,
+      `b."userId" = $3`,
+    ];
+    const queryParams = [employee.id, programId, adminId];
+    let paramIndex = 4;
+
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      queryConditions.push(
+        `b."createdAt"::date BETWEEN $${paramIndex++} AND $${paramIndex++}`
+      );
+      queryParams.push(startDate, endDate);
+    }
+
+    const whereClause =
+      queryConditions.length > 0
+        ? `WHERE ${queryConditions.join(" AND ")}`
+        : "";
+
+    const bookingsQuery = `
+        SELECT
+            b.id,
+            b."clientNameFr" ->> 'lastName' as "lastName",
+            b."clientNameFr" ->> 'firstName' as "firstName",
+            b."sellingPrice",
+            b."createdAt"
+        FROM bookings b
+        ${whereClause}
+        ORDER BY b."createdAt" DESC;
+    `;
+
+    const { rows } = await req.db.query(bookingsQuery, queryParams);
+
+    res.status(200).json(
+      rows.map((row) => ({
+        ...row,
+        sellingPrice: parseFloat(row.sellingPrice),
+        fullName: `${row.lastName} ${row.firstName}`.trim(),
+      }))
+    );
+  } catch (error) {
+    logger.error("Employee Program Bookings Error:", {
+      message: error.message,
+      stack: error.stack,
+      username: req.params.username,
+    });
+    next(
+      new AppError("Failed to retrieve program bookings for employee.", 500)
+    );
   }
 };
 
@@ -321,7 +398,7 @@ exports.getEmployeeServicePerformance = async (req, res, next) => {
     next(new AppError("Failed to retrieve employee service performance.", 500));
   }
 };
-
+// --- Original functions below, left in place for completeness of other updates ---
 exports.updateEmployee = async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {

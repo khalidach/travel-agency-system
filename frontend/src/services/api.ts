@@ -196,6 +196,15 @@ export const getPrograms = (
 };
 
 export const searchProgramsForBooking = (searchTerm = "", limit = 10) => {
+  if (!searchTerm) {
+    // If search term is empty, we still need to send the request to get all programs
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      searchTerm,
+      filterType: "all",
+    });
+    return request(`/programs?${params.toString()}`);
+  }
   const params = new URLSearchParams({
     limit: limit.toString(),
     searchTerm,
@@ -367,6 +376,24 @@ export const getEmployeeProgramPerformance = (
   if (endDate) params.append("endDate", endDate);
   const queryString = params.toString();
   let endpoint = `/employees/${username}/program-performance`;
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  return request(endpoint);
+};
+
+// NEW: API call to get detailed bookings list for a specific program/employee
+export const getEmployeeProgramBookings = (
+  username: string,
+  programId: number,
+  startDate?: string,
+  endDate?: string
+) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const queryString = params.toString();
+  let endpoint = `/employees/${username}/programs/${programId}/bookings`;
   if (queryString) {
     endpoint += `?${queryString}`;
   }

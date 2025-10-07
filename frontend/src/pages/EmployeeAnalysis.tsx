@@ -12,6 +12,7 @@ import type {
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { subDays, startOfDay, endOfDay, format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import ProgramBookingsModal from "../components/employee/ProgramBookingsModal"; // NEW IMPORT
 
 type DateFilter = "today" | "7days" | "month" | "custom";
 
@@ -133,6 +134,14 @@ export default function EmployeeAnalysisPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // --- NEW MODAL STATE ---
+  const [isBookingsModalOpen, setIsBookingsModalOpen] = useState(false);
+  const [modalProgram, setModalProgram] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  // --- END NEW MODAL STATE ---
+
   // State for Program filters
   const [programDateFilter, setProgramDateFilter] =
     useState<DateFilter>("month");
@@ -157,6 +166,9 @@ export default function EmployeeAnalysisPage() {
     switch (programDateFilter) {
       case "today":
         startDate = startOfDay(now);
+        break;
+      case "7days":
+        startDate = startOfDay(subDays(now, 7));
         break;
       case "month":
         startDate = startOfDay(subDays(now, 30));
@@ -185,6 +197,9 @@ export default function EmployeeAnalysisPage() {
     switch (serviceDateFilter) {
       case "today":
         startDate = startOfDay(now);
+        break;
+      case "7days":
+        startDate = startOfDay(subDays(now, 7));
         break;
       case "month":
         startDate = startOfDay(subDays(now, 30));
@@ -255,6 +270,11 @@ export default function EmployeeAnalysisPage() {
       </div>
     );
   }
+
+  const handleProgramClick = (programId: number, programName: string) => {
+    setModalProgram({ id: programId, name: programName });
+    setIsBookingsModalOpen(true);
+  };
 
   const {
     employee,
@@ -489,7 +509,13 @@ export default function EmployeeAnalysisPage() {
                 </tr>
               ) : (
                 programData?.programPerformance.map((item, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
+                  <tr
+                    key={index}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors" // Make rows clickable
+                    onClick={() =>
+                      handleProgramClick(item.programId, item.programName)
+                    }
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {item.programName}
@@ -614,6 +640,18 @@ export default function EmployeeAnalysisPage() {
           </table>
         </div>
       </div>
+
+      {modalProgram && (
+        <ProgramBookingsModal
+          isOpen={isBookingsModalOpen}
+          onClose={() => setIsBookingsModalOpen(false)}
+          username={employee.username}
+          programId={modalProgram.id}
+          programName={modalProgram.name}
+          startDate={programDateParams.startDate}
+          endDate={programDateParams.endDate}
+        />
+      )}
     </div>
   );
 }
