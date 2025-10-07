@@ -102,7 +102,7 @@ const allMenuItems: MenuItem[] = [
         key: "roomManagement",
         path: "/room-management",
         icon: BedDouble,
-        roles: ["admin", "manager"],
+        roles: ["admin", "manager", "employee"],
       },
       {
         key: "profitReport",

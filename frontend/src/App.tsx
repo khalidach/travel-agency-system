@@ -161,6 +161,14 @@ function AppRoutes() {
                       <>
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/programs" element={<Programs />} />
+                        <Route
+                          path="/room-management"
+                          element={<RoomManagementPage />}
+                        />
+                        <Route
+                          path="/room-management/program/:programId"
+                          element={<RoomManage />}
+                        />
                         {hasDailyServiceAccess && (
                           <>
                             <Route
@@ -188,14 +196,6 @@ function AppRoutes() {
                             <Route
                               path="/program-pricing"
                               element={<ProgramPricing />}
-                            />
-                            <Route
-                              path="/room-management"
-                              element={<RoomManagementPage />}
-                            />
-                            <Route
-                              path="/room-management/program/:programId"
-                              element={<RoomManage />}
                             />
                           </>
                         )}
