@@ -382,14 +382,19 @@ export const getEmployeeProgramPerformance = (
   return request(endpoint);
 };
 
-// NEW: API call to get detailed bookings list for a specific program/employee
+// UPDATED: API call to get detailed bookings list (with pagination) for a specific program/employee
 export const getEmployeeProgramBookings = (
   username: string,
   programId: number,
+  page: number = 1, // New parameter
+  limit: number = 10, // New parameter
   startDate?: string,
   endDate?: string
 ) => {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({
+    page: String(page), // Add to params
+    limit: String(limit), // Add to params
+  });
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
   const queryString = params.toString();

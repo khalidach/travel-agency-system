@@ -236,14 +236,17 @@ exports.getEmployeeProgramPerformance = async (req, res, next) => {
 };
 
 /**
- * NEW: Retrieves a detailed list of bookings for a specific program made by a specific employee,
- * applying optional date filtering.
+ * UPDATED: Retrieves a paginated list of detailed bookings for a specific program
+ * made by a specific employee, applying optional date filtering.
  */
 exports.getEmployeeProgramBookings = async (req, res, next) => {
   try {
     const { username, programId } = req.params;
+    const { page = 1, limit = 10, startDate, endDate } = req.query; // Extract pagination params
     const { adminId } = req.user;
-    const { startDate, endDate } = req.query;
+
+    const limitInt = parseInt(limit, 10);
+    const offset = (parseInt(page, 10) - 1) * limitInt;
 
     const isValidDate = (dateString) =>
       dateString && !isNaN(new Date(dateString));
@@ -257,6 +260,7 @@ exports.getEmployeeProgramBookings = async (req, res, next) => {
     }
     const employee = employeeRes.rows[0];
 
+    // Base conditions
     let queryConditions = [
       `b."employeeId" = $1`,
       `b."tripId" = $2`,
@@ -277,6 +281,16 @@ exports.getEmployeeProgramBookings = async (req, res, next) => {
         ? `WHERE ${queryConditions.join(" AND ")}`
         : "";
 
+    // 1. Get Total Count
+    const countQuery = `
+      SELECT COUNT(b.id) AS "totalCount"
+      FROM bookings b
+      ${whereClause};
+    `;
+    const countResult = await req.db.query(countQuery, queryParams);
+    const totalCount = parseInt(countResult.rows[0].totalCount, 10);
+
+    // 2. Get Paginated Data
     const bookingsQuery = `
         SELECT
             b.id,
@@ -286,18 +300,28 @@ exports.getEmployeeProgramBookings = async (req, res, next) => {
             b."createdAt"
         FROM bookings b
         ${whereClause}
-        ORDER BY b."createdAt" DESC;
+        ORDER BY b."createdAt" DESC
+        LIMIT $${paramIndex++} OFFSET $${paramIndex++};
     `;
+
+    // Add LIMIT and OFFSET to params
+    queryParams.push(limitInt, offset);
 
     const { rows } = await req.db.query(bookingsQuery, queryParams);
 
-    res.status(200).json(
-      rows.map((row) => ({
-        ...row,
-        sellingPrice: parseFloat(row.sellingPrice),
-        fullName: `${row.lastName} ${row.firstName}`.trim(),
-      }))
-    );
+    const bookings = rows.map((row) => ({
+      ...row,
+      sellingPrice: parseFloat(row.sellingPrice),
+      fullName: `${row.lastName} ${row.firstName}`.trim(),
+    }));
+
+    res.status(200).json({
+      bookings,
+      totalCount,
+      currentPage: parseInt(page, 10),
+      limit: limitInt,
+      totalPages: Math.ceil(totalCount / limitInt),
+    });
   } catch (error) {
     logger.error("Employee Program Bookings Error:", {
       message: error.message,

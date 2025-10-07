@@ -12,7 +12,7 @@ const {
   usernameValidation,
   handleValidationErrors,
 } = require("../middleware/validationMiddleware");
-const { param, query } = require("express-validator"); // Import query for date validation
+const { param, query } = require("express-validator"); // Import query for date and pagination validation
 
 // All employee routes are protected and can only be accessed by an admin
 router.use(protect);
@@ -41,7 +41,7 @@ router.get(
   employeeController.getEmployeeProgramPerformance
 );
 
-// NEW Route for detailed bookings list for a specific program
+// UPDATED Route for detailed bookings list (with pagination)
 router.get(
   "/:username/programs/:programId/bookings",
   [
@@ -49,6 +49,14 @@ router.get(
     param("programId").isInt().withMessage("Program ID must be an integer."),
     query("startDate").optional().isISO8601().toDate(),
     query("endDate").optional().isISO8601().toDate(),
+    query("page")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Page must be a positive integer."),
+    query("limit")
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage("Limit must be an integer between 1 and 100."),
   ],
   handleValidationErrors,
   employeeController.getEmployeeProgramBookings
