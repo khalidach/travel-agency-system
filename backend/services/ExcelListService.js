@@ -8,26 +8,28 @@ const excel = require("exceljs");
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
 exports.generateFlightListExcel = async (bookings, program) => {
+  // Sort bookings by variation name first, handling potential null/undefined values.
+  bookings.sort((a, b) =>
+    (a.variationName || "").localeCompare(b.variationName || "")
+  );
+
   const workbook = new excel.Workbook();
   const worksheet = workbook.addWorksheet("Flight List", {
     views: [{ state: "frozen", ySplit: 7 }], // Freezes the top 7 rows
-  });
+  }); // Add static headers from the image to the top of the sheet
 
-  // Add static headers from the image to the top of the sheet
   worksheet.getCell("A1").value = "Agence de Voyages";
   worksheet.getCell("B1").value = program.agencyName || "Discovery";
   worksheet.getCell("A2").value = "Date de depart";
   worksheet.getCell("A3").value = "Date de Retour";
   worksheet.getCell("A4").value = "Nombre de passager";
-  worksheet.getCell("B4").value = bookings.length;
+  worksheet.getCell("B4").value = bookings.length; // Merge cells for the top static headers as requested
 
-  // Merge cells for the top static headers as requested
   worksheet.mergeCells("B1:D1");
   worksheet.mergeCells("B2:D2");
   worksheet.mergeCells("B3:D3");
-  worksheet.mergeCells("B4:D4");
+  worksheet.mergeCells("B4:D4"); // Add borders to the top header section
 
-  // Add borders to the top header section
   ["A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4"].forEach((cellRef) => {
     worksheet.getCell(cellRef).border = {
       top: { style: "thin" },
@@ -35,9 +37,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
       bottom: { style: "thin" },
       right: { style: "thin" },
     };
-  });
+  }); // Define and style the main data table headers on Row 7
 
-  // Define and style the main data table headers on Row 7
   const headers = [
     "Rec",
     "Title",
@@ -70,9 +71,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
       right: { style: "thin" },
     };
     cell.alignment = { vertical: "middle", horizontal: "center" };
-  });
+  }); // Correctly re-order bookings to group families together.
 
-  // Correctly re-order bookings to group families together.
   const bookingMap = new Map(bookings.map((b) => [b.id, b]));
   const memberIds = new Set();
   bookings.forEach((booking) => {
@@ -101,16 +101,14 @@ exports.generateFlightListExcel = async (bookings, program) => {
         }
       }
     }
-  }
+  } // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
 
-  // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
   for (const booking of bookings) {
     if (!processedIds.has(booking.id)) {
       orderedBookings.push(booking);
     }
-  }
+  } // Helper function to map personType to PassengerType
 
-  // Helper function to map personType to PassengerType
   const getPassengerType = (type) => {
     if (!type) return "ADT"; // Default to Adult if not specified
     switch (type.toLowerCase()) {
@@ -123,9 +121,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
       default:
         return type.toUpperCase().substring(0, 3);
     }
-  };
+  }; // Add booking data rows starting from row 8
 
-  // Add booking data rows starting from row 8
   orderedBookings.forEach((booking, index) => {
     const { firstName, lastName } = booking.clientNameFr || {
       firstName: "",
@@ -140,9 +137,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
     } else if (booking.gender && booking.gender.toLowerCase() === "female") {
       title = "MS";
       genderChar = "F";
-    }
+    } // Format Date of Birth
 
-    // Format Date of Birth
     let formattedDob = "";
     const dob = booking.dateOfBirth || "";
     if (dob) {
@@ -160,8 +156,7 @@ exports.generateFlightListExcel = async (bookings, program) => {
           const year = date.getUTCFullYear().toString().slice(-2);
           formattedDob = `${day}${month}${year}`;
         }
-      }
-      // Case 2: Only year is available (e.g., "XX/XX/1995" or "1995")
+      } // Case 2: Only year is available (e.g., "XX/XX/1995" or "1995")
       else if (/^(?:XX\/XX\/)?(\d{4})$/.test(dob)) {
         const yearMatch = dob.match(/(\d{4})$/);
         if (yearMatch) {
@@ -169,9 +164,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
           formattedDob = `01JAN${year}`;
         }
       }
-    }
+    } // Format Passport Expiration Date
 
-    // Format Passport Expiration Date
     let expirationDate = booking.passportExpirationDate || "";
     if (expirationDate) {
       const d = new Date(expirationDate);
@@ -180,10 +174,8 @@ exports.generateFlightListExcel = async (bookings, program) => {
         // avoiding the automatic shift to UTC that toISOString() or similar methods cause.
         const year = d.getFullYear();
         const month = d.getMonth(); // 0-indexed, so January is 0
-        const day = d.getDate();
+        const day = d.getDate(); // Re-create a new date object explicitly in UTC from the extracted components. // This makes formatting consistent regardless of server timezone.
 
-        // Re-create a new date object explicitly in UTC from the extracted components.
-        // This makes formatting consistent regardless of server timezone.
         const utcDate = new Date(Date.UTC(year, month, day));
 
         const formattedDay = utcDate.getUTCDate().toString().padStart(2, "0");
@@ -210,26 +202,23 @@ exports.generateFlightListExcel = async (bookings, program) => {
       "MA", // Fixed value
       "MA", // Fixed value
     ];
-    const row = worksheet.addRow(rowData);
+    const row = worksheet.addRow(rowData); // Add borders and conditional coloring to the data row
 
-    // Add borders and conditional coloring to the data row
     row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
       cell.border = {
         top: { style: "thin" },
         left: { style: "thin" },
         bottom: { style: "thin" },
         right: { style: "thin" },
-      };
+      }; // Column numbers are 1-based. E=5, G=7, L=12, M=13
 
-      // Column numbers are 1-based. E=5, G=7, L=12, M=13
       const redColorColumns = [5, 7, 12, 13];
       if (redColorColumns.includes(colNumber)) {
         cell.font = { color: { argb: "FFFF0000" } }; // Red color
       }
     });
-  });
+  }); // Auto-fit columns based on content with added padding
 
-  // Auto-fit columns based on content with added padding
   worksheet.columns.forEach((column) => {
     let maxLength = 0;
     column.eachCell({ includeEmpty: true }, (cell) => {

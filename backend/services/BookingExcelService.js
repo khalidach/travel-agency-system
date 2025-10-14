@@ -23,17 +23,19 @@ const sanitizeName = (name) => {
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
 exports.generateBookingsExcel = async (bookings, program, userRole) => {
+  // Sort bookings by variation name first, handling potential null/undefined values.
+  bookings.sort((a, b) =>
+    (a.variationName || "").localeCompare(b.variationName || "")
+  );
+
   const workbook = new excel.Workbook();
   const worksheet = workbook.addWorksheet("Bookings", {
     views: [{ rightToLeft: false }],
-  });
+  }); // Add an empty row that will become the title row
 
-  // Add an empty row that will become the title row
-  worksheet.addRow([]);
-  // An empty row for spacing
-  worksheet.addRow([]);
+  worksheet.addRow([]); // An empty row for spacing
+  worksheet.addRow([]); // Base columns
 
-  // Base columns
   let allColumns = [
     { header: "ID", key: "id" },
     { header: "Nom/Prénom", key: "clientNameFr" },
@@ -42,9 +44,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     { header: "Phone Number", key: "phoneNumber" },
     { header: "Variation", key: "variationName" },
     { header: "الباقة", key: "packageId" },
-  ];
+  ]; // Dynamically add hotel and room type columns based on program cities
 
-  // Dynamically add hotel and room type columns based on program cities
   const hasCities =
     program.variations &&
     program.variations[0] &&
@@ -68,27 +69,23 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       { header: "الفندق المختار", key: "hotels" },
       { header: "نوع الغرفة", key: "roomType" }
     );
-  }
+  } // Add pricing columns at the end
 
-  // Add pricing columns at the end
   allColumns.push(
     { header: "Prix Cost", key: "basePrice" },
     { header: "Prix Vente", key: "sellingPrice" },
     { header: "Bénéfice", key: "profit" },
     { header: "Payé", key: "paid" },
     { header: "Reste", key: "remaining" }
-  );
+  ); // Filter columns based on the user's role
 
-  // Filter columns based on the user's role
   worksheet.columns = allColumns.filter((col) => {
     if (userRole === "admin") {
       return true; // Admin sees all columns
-    }
-    // Non-admins do not see 'basePrice' or 'profit'
+    } // Non-admins do not see 'basePrice' or 'profit'
     return col.key !== "basePrice" && col.key !== "profit";
-  });
+  }); // Merge cells for the program name header now that we have columns
 
-  // Merge cells for the program name header now that we have columns
   if (worksheet.columns.length > 0) {
     worksheet.mergeCells(1, 1, 1, worksheet.columns.length);
     const programHeaderCell = worksheet.getCell(1, 1);
@@ -115,9 +112,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       bottom: { style: "thin" },
       right: { style: "thin" },
     };
-  });
+  }); // Correctly re-order bookings to group families together.
 
-  // Correctly re-order bookings to group families together.
   const bookingMap = new Map(bookings.map((b) => [b.id, b]));
   const memberIds = new Set();
   bookings.forEach((booking) => {
@@ -146,16 +142,14 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         }
       }
     }
-  }
+  } // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
 
-  // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
   for (const booking of bookings) {
     if (!processedIds.has(booking.id)) {
       orderedBookings.push(booking);
     }
-  }
+  } // Create a new array with final phone numbers resolved for family members
 
-  // Create a new array with final phone numbers resolved for family members
   const finalBookings = orderedBookings.map((b) => ({ ...b }));
   for (const booking of finalBookings) {
     if (booking.relatedPersons && booking.relatedPersons.length > 0) {
@@ -167,9 +161,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         }
       });
     }
-  }
+  } // Add rows from the final bookings list
 
-  // Add rows from the final bookings list
   finalBookings.forEach((booking, index) => {
     const totalPaid = (booking.advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
@@ -190,9 +183,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       sellingPrice: Number(booking.sellingPrice),
       paid: totalPaid,
       remaining: Number(booking.remainingBalance),
-    };
+    }; // Populate dynamic hotel/room columns
 
-    // Populate dynamic hotel/room columns
     if (hasCities) {
       (program.variations[0].cities || []).forEach((city) => {
         const cityIndex = (booking.selectedHotel.cities || []).indexOf(
@@ -246,30 +238,26 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         cell.numFmt = '#,##0.00 "MAD"';
       }
     });
-  });
+  }); // Merge phone number cells for family groups
 
-  // Merge phone number cells for family groups
   const phoneColumn = worksheet.columns.find((c) => c.key === "phoneNumber");
   if (phoneColumn) {
     const phoneColumnLetter = phoneColumn.letter;
     let i = 0;
     while (i < finalBookings.length) {
-      const leader = finalBookings[i];
-      // A family group is identified by the leader having related persons.
+      const leader = finalBookings[i]; // A family group is identified by the leader having related persons.
       const isFamilyLeader =
         leader.relatedPersons && leader.relatedPersons.length > 0;
 
       if (isFamilyLeader) {
         const familySize = 1 + leader.relatedPersons.length;
 
-        let subGroupStartIndex = i; // Index in finalBookings for the start of a mergeable subgroup
+        let subGroupStartIndex = i; // Index in finalBookings for the start of a mergeable subgroup // Iterate through the family members
 
-        // Iterate through the family members
         for (let j = 1; j < familySize; j++) {
           const currentIndex = i + j;
-          const prevIndex = currentIndex - 1;
+          const prevIndex = currentIndex - 1; // Check if we are at the end of the family or if the phone number changes
 
-          // Check if we are at the end of the family or if the phone number changes
           if (
             currentIndex >= i + familySize || // Should not happen with j < familySize, but for safety
             finalBookings[currentIndex].phoneNumber !==
@@ -290,13 +278,11 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
                 vertical: "middle",
                 horizontal: "center",
               };
-            }
-            // Start a new subgroup
+            } // Start a new subgroup
             subGroupStartIndex = currentIndex;
           }
-        }
+        } // After the loop, check the last subgroup of the family
 
-        // After the loop, check the last subgroup of the family
         const lastMergeCount = i + familySize - subGroupStartIndex;
         if (lastMergeCount > 1) {
           const startRow = subGroupStartIndex + 4;
@@ -319,9 +305,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         i++;
       }
     }
-  }
+  } // Add totals row
 
-  // Add totals row
   worksheet.addRow([]);
   const lastDataRowNumber = orderedBookings.length + 3; // Adjusted for new rows
   const totalsRow = worksheet.addRow({});
@@ -367,9 +352,8 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     }
   });
 
-  totalsRow.height = 30;
+  totalsRow.height = 30; // Iterate over all columns to set the width to the length of the longest cell value.
 
-  // Iterate over all columns to set the width to the length of the longest cell value.
   worksheet.columns.forEach((column) => {
     let maxLength = 0;
     column.eachCell({ includeEmpty: true }, (cell) => {
