@@ -745,17 +745,16 @@ exports.importBookingsFromExcel = async (req, res, next) => {
   const { programId } = req.params;
   if (!programId) return next(new AppError("Program ID is required.", 400));
 
-  const { adminId, id: employeeId } = req.user;
   const client = await req.db.connect();
 
   try {
     await client.query("BEGIN");
 
-    // 1. Process the Excel file and get raw data (ExcelService.parseBookingsFromExcel)
-    const excelData = await ExcelService.parseBookingsFromExcelRaw(
+    // Pass the client instead of req.db
+    const excelData = await ExcelService.parseBookingsFromExcel(
       req.file.buffer,
       req.user,
-      client,
+      client, // Pass client, not req.db
       programId
     );
 
@@ -763,7 +762,7 @@ exports.importBookingsFromExcel = async (req, res, next) => {
       throw new AppError("No valid bookings found in the Excel file.", 400);
     }
 
-    // 2. Check Capacity before processing
+    // Check capacity
     const newBookingsCount = excelData.length;
     const capacity = await BookingService.checkProgramCapacity(
       client,
@@ -778,38 +777,23 @@ exports.importBookingsFromExcel = async (req, res, next) => {
       );
     }
 
-    // 3. Create bookings (similar to the logic inside ExcelService.parseBookingsFromExcel)
+    // Create bookings
     const createdBookings = [];
-    const tripId = programId; // programId is tripId here
-
-    // The original parseBookingsFromExcel had the logic to create bookings inside.
-    // We will mimic that process here to ensure all checks (like passport duplication) and logic run inside the transaction.
-
     for (const data of excelData) {
-      // This relies on the BookingService.createBookings logic, but since Excel import
-      // sends data one-by-one or handles bulk differently, we call a dedicated
-      // service function or refactor BookingService.createBookings to handle this easily.
-
-      // Since the current BookingService uses a 'clients' array structure for bulk,
-      // we will adapt the data structure here and call the service function.
-
-      // We will call the logic from BookingService's createBookings, adapted for Excel structure.
       const bulkData = {
-        clients: [data], // Wrap the single client data into the expected 'clients' array
-        ...data, // Include shared data (like tripId, selectedHotel, etc.)
+        clients: [data],
+        ...data,
       };
 
       const result = await BookingService.createBookings(
-        client, // Pass the transaction client
+        client,
         req.user,
         bulkData,
-        true // Flag indicating this is an Excel import, needs special handling if required
+        true
       );
       createdBookings.push(...result.bookings);
     }
 
-    // NOTE: The update of totalBookings is now handled inside BookingService.createBookings
-    // We only need to commit the transaction.
     await client.query("COMMIT");
 
     res.status(201).json({
@@ -822,7 +806,6 @@ exports.importBookingsFromExcel = async (req, res, next) => {
       message: error.message,
       stack: error.stack,
     });
-    // Forward the specific capacity or passport duplication error message
     next(
       error instanceof AppError
         ? error
