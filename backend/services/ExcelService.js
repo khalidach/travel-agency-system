@@ -2,6 +2,7 @@
 const excel = require("exceljs");
 const { calculateBasePrice } = require("./BookingService");
 const RoomManagementService = require("./RoomManagementService"); // استيراد خدمة إدارة الغرف
+const BookingService = require("./BookingService");
 
 /**
  * Sanitizes a string to be used as a valid Excel named range.
@@ -269,225 +270,236 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
 };
 
 /**
- * Parses an Excel file to bulk import bookings for a specific program.
- * @param {object} file - The uploaded file object (from multer).
+ * Parses an Excel file from a file path to bulk import bookings for a specific program.
+ * This function operates within an existing database transaction managed by the controller.
+ * @param {object} client - The database client from an active transaction.
+ * @param {string} filePath - The path to the uploaded Excel file.
  * @param {object} user - The user object from the request.
- * @param {object} db - The database connection pool.
  * @param {string} programId - The ID of the program to import bookings for.
- * @returns {Promise<object>} A promise that resolves to a success message.
+ * @returns {Promise<Array>} A promise that resolves to an array of the created booking objects.
  */
-exports.parseBookingsFromExcel = async (file, user, db, programId) => {
-  const client = await db.connect();
+exports.importBookings = async (client, filePath, user, programId) => {
   const userId = user.adminId;
-  try {
-    await client.query("BEGIN");
-    const workbook = new excel.Workbook();
-    await workbook.xlsx.readFile(file.path);
-    const worksheet = workbook.getWorksheet(1);
 
-    const { rows: programs } = await client.query(
-      'SELECT * FROM programs WHERE "userId" = $1 AND id = $2',
-      [userId, programId]
-    );
+  const workbook = new excel.Workbook();
+  await workbook.xlsx.readFile(filePath);
+  const worksheet = workbook.getWorksheet(1);
 
-    if (programs.length === 0) {
-      throw new Error(
-        "Program not found or you are not authorized to access it."
-      );
-    }
-    const program = programs[0];
-
-    const { rows: existingBookings } = await client.query(
-      'SELECT "passportNumber" FROM bookings WHERE "userId" = $1 AND "tripId" = $2',
-      [userId, programId]
-    );
-    const existingPassportNumbers = new Set(
-      existingBookings.map((b) => b.passportNumber)
-    );
-
-    const headerRowValues = worksheet.getRow(1).values;
-    const headerMap = {};
-    if (Array.isArray(headerRowValues)) {
-      headerRowValues.forEach((header, index) => {
-        if (header) headerMap[header.toString()] = index;
-      });
-    }
-
-    const bookingsToCreate = [];
-    let newBookingsCount = 0;
-
-    for (let i = 2; i <= worksheet.rowCount; i++) {
-      const row = worksheet.getRow(i);
-      const rowData = {};
-      Object.keys(headerMap).forEach((header) => {
-        rowData[header] = row.getCell(headerMap[header]).value;
-      });
-
-      const passportNumber = rowData["Passport Number"]
-        ? String(rowData["Passport Number"]).toUpperCase()
-        : null;
-      if (!passportNumber || existingPassportNumbers.has(passportNumber))
-        continue;
-
-      const gender = rowData["Gender"]?.toString().toLowerCase();
-      const dateOfBirthValue = rowData["Date of Birth (YYYY-MM-DD or YYYY)"];
-      const passportExpirationDateValue =
-        rowData["Passport Expiration Date (YYYY-MM-DD)"];
-
-      if (!gender || (gender !== "male" && gender !== "female")) {
-        continue;
-      }
-
-      let dateOfBirth = null;
-      if (dateOfBirthValue) {
-        if (dateOfBirthValue instanceof Date) {
-          dateOfBirth = dateOfBirthValue.toISOString().split("T")[0];
-        } else if (
-          typeof dateOfBirthValue === "string" &&
-          /^\d{4}$/.test(dateOfBirthValue.trim())
-        ) {
-          dateOfBirth = `XX/XX/${dateOfBirthValue.trim()}`;
-        } else if (typeof dateOfBirthValue === "string") {
-          const parsedDate = new Date(dateOfBirthValue);
-          if (!isNaN(parsedDate.getTime())) {
-            dateOfBirth = parsedDate.toISOString().split("T")[0];
-          }
-        }
-      }
-
-      let passportExpirationDate = null;
-      if (passportExpirationDateValue) {
-        const parsedDate = new Date(passportExpirationDateValue);
-        if (!isNaN(parsedDate.getTime())) {
-          passportExpirationDate = parsedDate.toISOString().split("T")[0];
-        }
-      }
-
-      const variationName = rowData["Variation"];
-      const packageId = rowData["Package"];
-      const bookingPackage = (program.packages || []).find(
-        (p) => p.name === packageId
-      );
-      if (!bookingPackage && program.packages && program.packages.length > 0)
-        continue;
-
-      const selectedHotel = { cities: [], hotelNames: [], roomTypes: [] };
-      const variationForHotels =
-        (program.variations || []).find((v) => v.name === variationName) ||
-        program.variations[0];
-
-      (variationForHotels?.cities || []).forEach((city) => {
-        const hotelName = rowData[`${city.name} Hotel`];
-        if (hotelName) {
-          const roomType = rowData[`${city.name} Room Type`];
-          selectedHotel.cities.push(city.name);
-          selectedHotel.hotelNames.push(hotelName);
-          selectedHotel.roomTypes.push(roomType || null);
-        }
-      });
-
-      const sellingPrice = Number(rowData["Selling Price"]) || 0;
-      const personType = rowData["Person Type"] || "adult";
-
-      // Use the centralized base price calculation function
-      const basePrice = await calculateBasePrice(
-        client,
-        userId,
-        programId,
-        packageId,
-        selectedHotel,
-        personType,
-        variationName
-      );
-
-      const clientNameFr = {
-        lastName: rowData["Last Name (French)"]
-          ? String(rowData["Last Name (French)"]).toUpperCase()
-          : "",
-        firstName: rowData["First Name (French)"]
-          ? String(rowData["First Name (French)"]).toUpperCase()
-          : "",
-      };
-
-      bookingsToCreate.push({
-        userId: userId,
-        employeeId: user.role === "admin" ? null : user.id,
-        clientNameAr: rowData["Client Name (Arabic)"],
-        clientNameFr,
-        personType: personType,
-        phoneNumber: rowData["Phone Number"] || "",
-        passportNumber,
-        gender,
-        dateOfBirth,
-        passportExpirationDate,
-        tripId: program.id,
-        variationName,
-        packageId: rowData["Package"],
-        selectedHotel,
-        sellingPrice,
-        basePrice,
-        profit: sellingPrice - basePrice,
-        advancePayments: [],
-        remainingBalance: sellingPrice,
-        isFullyPaid: sellingPrice <= 0,
-      });
-      existingPassportNumbers.add(passportNumber);
-      newBookingsCount++;
-    }
-
-    for (const booking of bookingsToCreate) {
-      const { rows } = await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "gender", "dateOfBirth", "passportExpirationDate", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *',
-        [
-          booking.userId,
-          booking.employeeId,
-          booking.clientNameAr,
-          JSON.stringify(booking.clientNameFr),
-          booking.personType,
-          booking.phoneNumber,
-          booking.passportNumber,
-          booking.gender,
-          booking.dateOfBirth,
-          booking.passportExpirationDate,
-          booking.tripId,
-          booking.variationName,
-          booking.packageId,
-          JSON.stringify(booking.selectedHotel),
-          booking.sellingPrice,
-          booking.basePrice,
-          booking.profit,
-          "[]",
-          booking.remainingBalance,
-          booking.isFullyPaid,
-        ]
-      );
-      // **تفعيل التسكين التلقائي لكل حجز مستورد**
-      if (rows[0]) {
-        const newBooking = rows[0];
-        await RoomManagementService.autoAssignToRoom(
-          client,
-          user.adminId,
-          newBooking
-        );
-      }
-    }
-
-    if (newBookingsCount > 0) {
-      await client.query(
-        'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
-        [newBookingsCount, programId]
-      );
-    }
-
-    await client.query("COMMIT");
-    return {
-      message: `Import complete. ${newBookingsCount} new bookings added.`,
-    };
-  } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Excel import error:", error);
-    throw new Error("Error importing Excel file.");
-  } finally {
-    client.release();
+  if (!worksheet) {
+    throw new AppError("No worksheet found in the Excel file.", 400);
   }
+
+  const { rows: programs } = await client.query(
+    'SELECT * FROM programs WHERE "userId" = $1 AND id = $2',
+    [userId, programId]
+  );
+
+  if (programs.length === 0) {
+    throw new AppError(
+      "Program not found or you are not authorized to access it.",
+      404
+    );
+  }
+  const program = programs[0];
+
+  const { rows: existingBookings } = await client.query(
+    'SELECT "passportNumber" FROM bookings WHERE "userId" = $1 AND "tripId" = $2',
+    [userId, programId]
+  );
+  const existingPassportNumbers = new Set(
+    existingBookings.map((b) => b.passportNumber)
+  );
+
+  const headerRowValues = worksheet.getRow(1).values;
+  const headerMap = {};
+  if (Array.isArray(headerRowValues)) {
+    headerRowValues.forEach((header, index) => {
+      if (header) headerMap[header.toString().trim()] = index;
+    });
+  }
+
+  const bookingsToCreate = [];
+  for (let i = 2; i <= worksheet.rowCount; i++) {
+    const row = worksheet.getRow(i);
+    const rowData = {};
+    Object.keys(headerMap).forEach((header) => {
+      rowData[header] = row.getCell(headerMap[header]).value;
+    });
+
+    const passportNumber = rowData["Passport Number"]
+      ? String(rowData["Passport Number"]).toUpperCase()
+      : null;
+    if (!passportNumber || existingPassportNumbers.has(passportNumber))
+      continue;
+
+    const gender = rowData["Gender"]?.toString().toLowerCase();
+    const dateOfBirthValue = rowData["Date of Birth (YYYY-MM-DD or YYYY)"];
+    const passportExpirationDateValue =
+      rowData["Passport Expiration Date (YYYY-MM-DD)"];
+
+    if (!gender || (gender !== "male" && gender !== "female")) {
+      continue;
+    }
+
+    let dateOfBirth = null;
+    if (dateOfBirthValue) {
+      if (dateOfBirthValue instanceof Date) {
+        dateOfBirth = dateOfBirthValue.toISOString().split("T")[0];
+      } else if (
+        typeof dateOfBirthValue === "string" &&
+        /^\d{4}$/.test(dateOfBirthValue.trim())
+      ) {
+        dateOfBirth = `XX/XX/${dateOfBirthValue.trim()}`;
+      } else if (typeof dateOfBirthValue === "string") {
+        const parsedDate = new Date(dateOfBirthValue);
+        if (!isNaN(parsedDate.getTime())) {
+          dateOfBirth = parsedDate.toISOString().split("T")[0];
+        }
+      }
+    }
+
+    let passportExpirationDate = null;
+    if (passportExpirationDateValue) {
+      const parsedDate = new Date(passportExpirationDateValue);
+      if (!isNaN(parsedDate.getTime())) {
+        passportExpirationDate = parsedDate.toISOString().split("T")[0];
+      }
+    }
+
+    const variationName = rowData["Variation"];
+    const packageId = rowData["Package"];
+    const bookingPackage = (program.packages || []).find(
+      (p) => p.name === packageId
+    );
+    if (!bookingPackage && program.packages && program.packages.length > 0)
+      continue;
+
+    const selectedHotel = { cities: [], hotelNames: [], roomTypes: [] };
+    const variationForHotels =
+      (program.variations || []).find((v) => v.name === variationName) ||
+      program.variations[0];
+
+    (variationForHotels?.cities || []).forEach((city) => {
+      const hotelName = rowData[`${city.name} Hotel`];
+      if (hotelName) {
+        const roomType = rowData[`${city.name} Room Type`];
+        selectedHotel.cities.push(city.name);
+        selectedHotel.hotelNames.push(hotelName);
+        selectedHotel.roomTypes.push(roomType || null);
+      }
+    });
+
+    const sellingPrice = Number(rowData["Selling Price"]) || 0;
+    const personType = rowData["Person Type"] || "adult";
+
+    const basePrice = await calculateBasePrice(
+      client,
+      userId,
+      programId,
+      packageId,
+      selectedHotel,
+      personType,
+      variationName
+    );
+
+    const clientNameFr = {
+      lastName: rowData["Last Name (French)"]
+        ? String(rowData["Last Name (French)"]).toUpperCase()
+        : "",
+      firstName: rowData["First Name (French)"]
+        ? String(rowData["First Name (French)"]).toUpperCase()
+        : "",
+    };
+
+    bookingsToCreate.push({
+      userId: userId,
+      employeeId: user.role === "admin" ? null : user.id,
+      clientNameAr: rowData["Client Name (Arabic)"],
+      clientNameFr,
+      personType: personType,
+      phoneNumber: rowData["Phone Number"] || "",
+      passportNumber,
+      gender,
+      dateOfBirth,
+      passportExpirationDate,
+      tripId: program.id,
+      variationName,
+      packageId: rowData["Package"],
+      selectedHotel,
+      sellingPrice,
+      basePrice,
+      profit: sellingPrice - basePrice,
+      advancePayments: [],
+      remainingBalance: sellingPrice,
+      isFullyPaid: sellingPrice <= 0,
+    });
+    existingPassportNumbers.add(passportNumber);
+  }
+
+  if (bookingsToCreate.length === 0) {
+    throw new AppError("No valid new bookings found in the Excel file.", 400);
+  }
+
+  // Check capacity before inserting
+  const newBookingsCount = bookingsToCreate.length;
+  const capacity = await BookingService.checkProgramCapacity(
+    client,
+    programId,
+    newBookingsCount
+  );
+
+  if (capacity.isFull) {
+    throw new AppError(
+      `The number of new bookings (${newBookingsCount}) exceeds the remaining capacity for the program. Current bookings: ${capacity.currentBookings}, Max capacity: ${capacity.maxBookings}.`,
+      400
+    );
+  }
+
+  const createdBookings = [];
+  for (const booking of bookingsToCreate) {
+    const { rows } = await client.query(
+      'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "gender", "dateOfBirth", "passportExpirationDate", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20) RETURNING *',
+      [
+        booking.userId,
+        booking.employeeId,
+        booking.clientNameAr,
+        JSON.stringify(booking.clientNameFr),
+        booking.personType,
+        booking.phoneNumber,
+        booking.passportNumber,
+        booking.gender,
+        booking.dateOfBirth,
+        booking.passportExpirationDate,
+        booking.tripId,
+        booking.variationName,
+        booking.packageId,
+        JSON.stringify(booking.selectedHotel),
+        booking.sellingPrice,
+        booking.basePrice,
+        booking.profit,
+        "[]",
+        booking.remainingBalance,
+        booking.isFullyPaid,
+      ]
+    );
+
+    if (rows[0]) {
+      const newBooking = rows[0];
+      await RoomManagementService.autoAssignToRoom(
+        client,
+        user.adminId,
+        newBooking
+      );
+      createdBookings.push(newBooking);
+    }
+  }
+
+  if (createdBookings.length > 0) {
+    await client.query(
+      'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
+      [createdBookings.length, programId]
+    );
+  }
+
+  return createdBookings;
 };

@@ -741,70 +741,43 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
 
 // --- MODIFIED: Renaming and integrating capacity check for Excel Import ---
 exports.importBookingsFromExcel = async (req, res, next) => {
-  if (!req.file) return next(new AppError("No file uploaded.", 400));
+  if (!req.file) {
+    return next(new AppError("No file uploaded.", 400));
+  }
   const { programId } = req.params;
-  if (!programId) return next(new AppError("Program ID is required.", 400));
+  if (!programId) {
+    return next(new AppError("Program ID is required.", 400));
+  }
 
   const client = await req.db.connect();
 
   try {
     await client.query("BEGIN");
 
-    // Pass the client instead of req.db
-    const excelData = await ExcelService.parseBookingsFromExcel(
-      req.file.buffer,
+    // The service now handles the entire import logic, including parsing, validation, and insertion.
+    // We pass the connected client to ensure all operations occur within the same transaction.
+    const createdBookings = await ExcelService.importBookings(
+      client,
+      req.file.path,
       req.user,
-      client, // Pass client, not req.db
       programId
     );
-
-    if (excelData.length === 0) {
-      throw new AppError("No valid bookings found in the Excel file.", 400);
-    }
-
-    // Check capacity
-    const newBookingsCount = excelData.length;
-    const capacity = await BookingService.checkProgramCapacity(
-      client,
-      programId,
-      newBookingsCount
-    );
-
-    if (capacity.isFull) {
-      throw new AppError(
-        `الحجوزات (عددها ${newBookingsCount}) أكبر من العدد المتبقي في البرنامج. الحجوزات الحالية: ${capacity.currentBookings}، الحد الأقصى: ${capacity.maxBookings}.`,
-        400
-      );
-    }
-
-    // Create bookings
-    const createdBookings = [];
-    for (const data of excelData) {
-      const bulkData = {
-        clients: [data],
-        ...data,
-      };
-
-      const result = await BookingService.createBookings(
-        client,
-        req.user,
-        bulkData,
-        true
-      );
-      createdBookings.push(...result.bookings);
-    }
 
     await client.query("COMMIT");
 
     res.status(201).json({
+      status: "success",
       message: `${createdBookings.length} bookings imported successfully.`,
-      bookings: createdBookings,
+      data: {
+        bookings: createdBookings,
+      },
     });
   } catch (error) {
     await client.query("ROLLBACK");
-    logger.error("Excel import error:", {
+    logger.error("Excel import transaction failed:", {
       message: error.message,
       stack: error.stack,
+      ...error,
     });
     next(
       error instanceof AppError
