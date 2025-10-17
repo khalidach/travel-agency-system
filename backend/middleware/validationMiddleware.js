@@ -121,10 +121,7 @@ const bookingValidation = [
     .trim()
     .withMessage("Client last name (French) is required."),
   body("clients.*.clientNameFr.firstName").trim(),
-  body("clients.*.clientNameAr")
-    .notEmpty()
-    .trim()
-    .withMessage("Client name (Arabic) is required."),
+  body("clients.*.clientNameAr").trim(),
   body("clients.*.personType")
     .isIn(["adult", "child", "infant"])
     .withMessage("Invalid person type."),
