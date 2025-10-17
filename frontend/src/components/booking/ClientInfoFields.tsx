@@ -86,7 +86,6 @@ const ClientInfoFields = () => {
           <Controller
             name="clients.0.clientNameAr"
             control={control}
-            rules={{ required: t("clientNameArRequired") as string }}
             render={({ field }) => (
               <input
                 {...field}

@@ -75,7 +75,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.clientNameAr`}
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <input
                 {...field}
