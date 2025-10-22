@@ -31,8 +31,9 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
       </div>
 
       {/* Client Info */}
-      <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
+      {/* Updated to 4 columns to accommodate new fields */}
+      <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="md:col-span-2">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("clientNameFr")}
           </label>
@@ -126,6 +127,55 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             )}
           />
         </div>
+
+        {/* --- NEW FIELD: Date of Birth --- */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t("dateOfBirth")}
+          </label>
+          <Controller
+            name={`clients.${index}.dateOfBirth`}
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="date"
+                value={field.value ? field.value.split("T")[0] || "" : ""} // Format date for input
+                className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
+                  getError("dateOfBirth")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+              />
+            )}
+          />
+        </div>
+
+        {/* --- NEW FIELD: Passport Expiration Date --- */}
+        <div className="md:col-span-2">
+          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {t("passportExpirationDate")}
+          </label>
+          <Controller
+            name={`clients.${index}.passportExpirationDate`}
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="date"
+                value={field.value ? field.value.split("T")[0] || "" : ""} // Format date for input
+                className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
+                  getError("passportExpirationDate")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                }`}
+              />
+            )}
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("personType")}
