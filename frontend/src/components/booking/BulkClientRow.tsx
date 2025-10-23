@@ -136,7 +136,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.dateOfBirth`}
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <input
                 {...field}
@@ -160,7 +159,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.passportExpirationDate`}
             control={control}
-            rules={{ required: true }}
             render={({ field }) => (
               <input
                 {...field}
