@@ -48,6 +48,14 @@ exports.getAllPrograms = async (req, res, next) => {
         `;
     }
 
+    // --- MODIFICATION START: Add costs data when view is 'costing' ---
+    if (view === "costing" || view === "full") {
+      dataQueryFields += `,
+            (SELECT row_to_json(pc) FROM program_costs pc WHERE pc."programId" = p.id LIMIT 1) as costs
+        `;
+    }
+    // --- MODIFICATION END ---
+
     if (view === "rooms" || view === "full") {
       dataQueryFields += `,
             (

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign } from "lucide-react";
+import { DollarSign, ChevronRight } from "lucide-react"; // Import ChevronRight
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import type { Program, PaginatedResponse } from "../context/models";
@@ -144,9 +144,63 @@ export default function ProgramCostingList() {
                   </span>
                 </div>
               </div>
+
+              {/* --- NEW COST DETAILS SECTION --- */}
+              <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300 mb-4">
+                {program.costs && program.costs.totalCost > 0 ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {t("totalFlightTicketsCost")}:
+                      </span>
+                      <span className="font-medium">
+                        {program.costs.costs?.flightTickets?.toLocaleString() ||
+                          0}{" "}
+                        {t("mad")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {t("totalVisaCost")}:
+                      </span>
+                      <span className="font-medium">
+                        {program.costs.costs?.visa?.toLocaleString() || 0}{" "}
+                        {t("mad")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {t("transportFees")}:
+                      </span>
+                      <span className="font-medium">
+                        {program.costs.costs?.transport?.toLocaleString() || 0}{" "}
+                        {t("mad")}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t dark:border-gray-600 mt-2">
+                      <span className="font-semibold text-base text-gray-800 dark:text-gray-100">
+                        {t("totalProgramCost")}:
+                      </span>
+                      <span className="font-bold text-base text-blue-600 dark:text-blue-400">
+                        {program.costs.totalCost?.toLocaleString() || 0}{" "}
+                        {t("mad")}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <span className="text-gray-400 dark:text-gray-500 italic">
+                      {t("noPricingSet")}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {/* --- END NEW COST DETAILS SECTION --- */}
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end text-blue-600 dark:text-blue-400 font-medium">
+
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end text-blue-600 dark:text-blue-400 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
               {t("enterCosts")}
+              <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
             </div>
           </div>
         ))}
