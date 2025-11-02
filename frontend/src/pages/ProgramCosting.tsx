@@ -57,7 +57,7 @@ export default function ProgramCosting() {
     if (!program) return [];
     const hotelSet = new Set<string>();
     program.packages?.forEach((pkg) => {
-      Object.values(pkg.hotels).forEach((hotelList: string[]) => {
+      Object.values(pkg.hotels).forEach((hotelList) => {
         hotelList.forEach((hotelName) => {
           if (hotelName) hotelSet.add(hotelName);
         });
@@ -132,6 +132,10 @@ export default function ProgramCosting() {
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       queryClient.invalidateQueries({
         queryKey: ["bookingsByProgram", programId],
+      });
+      // NEW: Invalidate the program list used by the ProgramCostingList page
+      queryClient.invalidateQueries({
+        queryKey: ["programsForCosting"],
       });
     },
     onError: (error: Error) => {
