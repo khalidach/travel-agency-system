@@ -51,6 +51,7 @@ exports.saveProgramCosts = async (req, res, next) => {
       throw new AppError("Program not found or you are not authorized.", 404);
     }
 
+    // 1. Insert/Update the ProgramCost record immediately
     const { rows } = await client.query(
       `INSERT INTO program_costs ("programId", "userId", costs, "totalCost", "isEnabled")
              VALUES ($1, $2, $3, $4, $5)
@@ -60,31 +61,33 @@ exports.saveProgramCosts = async (req, res, next) => {
       [programId, adminId, JSON.stringify(costs), totalCost, isEnabled]
     );
 
-    if (isEnabled) {
-      await ProgramCostingService.applyFinalCostToBookings(
-        client,
+    // 2. Commit the fast transaction first to release the client and send the response immediately.
+    await client.query("COMMIT");
+    client.release(); // Release client back to pool
+
+    const savedCost = rows[0];
+
+    // 3. Offload the slow booking recalculation process using setImmediate.
+    // This allows the main request thread to finish and send the response now.
+    setImmediate(() => {
+      ProgramCostingService.runBookingRecalculation(
+        req.db, // Pass the pool, as the background task needs a new connection
         adminId,
         programId,
-        totalCost
+        totalCost,
+        isEnabled
       );
-    } else {
-      await ProgramCostingService.revertToDetailedPricing(
-        client,
-        adminId,
-        programId
-      );
-    }
+    });
 
-    await client.query("COMMIT");
-    res.status(200).json(rows[0]);
+    // Send success response back to the client immediately
+    res.status(200).json(savedCost);
   } catch (error) {
     await client.query("ROLLBACK");
+    client.release();
     logger.error("Save Program Costs Error:", {
       message: error.message,
       stack: error.stack,
     });
     next(new AppError("Failed to save program costs.", 500));
-  } finally {
-    client.release();
   }
 };

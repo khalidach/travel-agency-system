@@ -63,10 +63,7 @@ export default function Programs() {
       ),
   });
 
-  const programs = programResponse?.data ?? [];
-  const pagination = programResponse?.pagination;
-
-  const invalidateRelatedQueries = () => {
+  const invalidateRelatedQueries = (updatedProgramId?: number) => {
     queryClient.invalidateQueries({ queryKey: ["programs"] });
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
     queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
@@ -75,7 +72,17 @@ export default function Programs() {
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
     queryClient.invalidateQueries({ queryKey: ["rooms"] });
     queryClient.invalidateQueries({ queryKey: ["programsForRoomManagement"] });
+
+    if (updatedProgramId) {
+      // Invalidate the specific program's cache entry, used by BookingPage.tsx
+      queryClient.invalidateQueries({
+        queryKey: ["program", String(updatedProgramId)],
+      });
+    }
   };
+
+  const programs = programResponse?.data ?? [];
+  const pagination = programResponse?.pagination;
 
   const { mutate: createProgram, isPending: isCreating } = useMutation({
     mutationFn: (data: Program) => api.createProgram(data),
@@ -91,8 +98,9 @@ export default function Programs() {
 
   const { mutate: updateProgram, isPending: isUpdating } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
-    onSuccess: () => {
-      invalidateRelatedQueries();
+    onSuccess: (_, variables) => {
+      // Pass the updated program's ID to invalidate the single program cache
+      invalidateRelatedQueries(variables.id);
       toast.success("Program updated successfully!");
       setIsFormModalOpen(false);
       setEditingProgram(null);

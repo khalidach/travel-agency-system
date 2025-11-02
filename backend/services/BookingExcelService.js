@@ -223,10 +223,10 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     row.eachCell({ includeEmpty: true }, (cell) => {
       cell.alignment = { vertical: "middle", horizontal: "center" };
       cell.border = {
-        top: { style: "thin", color: { argb: "FFDDDDDD" } },
-        left: { style: "thin", color: { argb: "FFDDDDDD" } },
-        bottom: { style: "thin", color: { argb: "FFDDDDDD" } },
-        right: { style: "thin", color: { argb: "FFDDDDDD" } },
+        top: { style: "thick", color: { argb: "FF000000" } },
+        left: { style: "thick", color: { argb: "FF000000" } },
+        bottom: { style: "thick", color: { argb: "FF000000" } },
+        right: { style: "thick", color: { argb: "FF000000" } },
       };
       const columnKey = worksheet.getColumn(cell.col).key;
       const priceColumns = ["sellingPrice", "paid", "remaining"];
@@ -331,6 +331,13 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     totalLabelCell.value = "Total";
     totalLabelCell.font = { bold: true, size: 20 };
     totalLabelCell.alignment = { vertical: "middle", horizontal: "center" };
+    // Apply thick border to the merged label cell
+    totalLabelCell.border = {
+      top: { style: "thick", color: { argb: "FF000000" } },
+      left: { style: "thick", color: { argb: "FF000000" } },
+      bottom: { style: "thick", color: { argb: "FF000000" } },
+      right: { style: "thick", color: { argb: "FF000000" } },
+    };
   }
 
   totalColumnsKeys.forEach((key) => {
@@ -348,6 +355,13 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
         type: "pattern",
         pattern: "solid",
         fgColor: { argb: "FFD3D3D3" },
+      };
+      // Apply thick border to the sum cells
+      cell.border = {
+        top: { style: "thick", color: { argb: "FF000000" } },
+        left: { style: "thick", color: { argb: "FF000000" } },
+        bottom: { style: "thick", color: { argb: "FF000000" } },
+        right: { style: "thick", color: { argb: "FF000000" } },
       };
     }
   });
