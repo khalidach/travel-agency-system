@@ -318,6 +318,7 @@ const createBookings = async (db, user, bulkData) => {
         dateOfBirth,
         passportExpirationDate,
         gender,
+        noPassport, // <-- Added noPassport
       } = clientData;
 
       const processedClientNameFr = {
@@ -328,20 +329,24 @@ const createBookings = async (db, user, bulkData) => {
           ? clientNameFr.firstName.toUpperCase()
           : "",
       };
-      const processedPassportNumber = passportNumber
-        ? passportNumber.toUpperCase()
-        : "";
+      // --- FIX: Save NULL if no passport is provided ---
+      const processedPassportNumber =
+        noPassport || !passportNumber ? null : passportNumber.toUpperCase();
 
-      const existingBookingCheck = await client.query(
-        'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
-        [processedPassportNumber, tripId, adminId]
-      );
-
-      if (existingBookingCheck.rows.length > 0) {
-        throw new Error(
-          `Passport number ${processedPassportNumber} is already booked for this program.`
+      // --- FIX: Only check for duplicates if a passport number is provided ---
+      if (processedPassportNumber) {
+        const existingBookingCheck = await client.query(
+          'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
+          [processedPassportNumber, tripId, adminId]
         );
+
+        if (existingBookingCheck.rows.length > 0) {
+          throw new Error(
+            `Passport number ${processedPassportNumber} is already booked for this program.`
+          );
+        }
       }
+      // --- END FIX ---
 
       const basePrice = await calculateBasePrice(
         client,
@@ -366,7 +371,7 @@ const createBookings = async (db, user, bulkData) => {
           JSON.stringify(processedClientNameFr),
           personType,
           phoneNumber,
-          processedPassportNumber,
+          processedPassportNumber, // Passport is saved (empty or not)
           dateOfBirth || null,
           passportExpirationDate || null,
           gender,
@@ -448,6 +453,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       sellingPrice,
       advancePayments,
       relatedPersons,
+      noPassport, // <-- Added noPassport
     } = bookingData;
 
     // --- NEW: Capacity Check for TripId change (If tripId changes, we check new program capacity) ---
@@ -473,20 +479,24 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         ? clientNameFr.firstName.toUpperCase()
         : "",
     };
-    const processedPassportNumber = passportNumber
-      ? passportNumber.toUpperCase()
-      : "";
+    // --- FIX: Save NULL if no passport is provided ---
+    const processedPassportNumber =
+      noPassport || !passportNumber ? null : passportNumber.toUpperCase();
 
-    const existingBookingCheck = await client.query(
-      'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
-      [processedPassportNumber, tripId, user.adminId, bookingId]
-    );
-
-    if (existingBookingCheck.rows.length > 0) {
-      throw new Error(
-        "Another booking with this passport number already exists for this program."
+    // --- FIX: Only check for duplicates if a passport number is provided ---
+    if (processedPassportNumber) {
+      const existingBookingCheck = await client.query(
+        'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
+        [processedPassportNumber, tripId, user.adminId, bookingId]
       );
+
+      if (existingBookingCheck.rows.length > 0) {
+        throw new Error(
+          "Another booking with this passport number already exists for this program."
+        );
+      }
     }
+    // --- END FIX ---
 
     const programRes = await db.query(
       'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
@@ -524,7 +534,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         JSON.stringify(processedClientNameFr),
         personType,
         phoneNumber,
-        processedPassportNumber,
+        processedPassportNumber, // Passport is saved (empty or not)
         dateOfBirth || null,
         passportExpirationDate || null,
         gender,

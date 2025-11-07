@@ -1,5 +1,5 @@
-import React from "react";
-import { useFormContext, Controller } from "react-hook-form";
+import React, { useEffect } from "react";
+import { useFormContext, Controller, useWatch, get } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
 
@@ -13,25 +13,95 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
   const {
     control,
     formState: { errors },
+    getValues, // Need getValues for validation
+    trigger, // Need trigger for cross-field validation
+    setValue, // Need setValue to clear passport
   } = useFormContext();
+
+  // Watch for changes in specific fields for this row
+  const noPassport = useWatch({
+    control,
+    name: `clients.${index}.noPassport`,
+  });
+  const clientNameFrLastName = useWatch({
+    control,
+    name: `clients.${index}.clientNameFr.lastName`,
+  });
+  const clientNameAr = useWatch({
+    control,
+    name: `clients.${index}.clientNameAr`,
+  });
 
   // Helper to safely get nested errors
   const getError = (fieldName: string) => {
     const fieldErrors = errors.clients as any;
-    return fieldErrors?.[index]?.[fieldName];
+    try {
+      // Handle nested paths like 'clientNameFr.lastName'
+      const parts = fieldName.split(".");
+      let error = fieldErrors?.[index];
+      for (const part of parts) {
+        if (!error) return null;
+        error = error[part];
+      }
+      return error;
+    } catch (e) {
+      return null;
+    }
   };
+
+  // Effect to clear passport number if "No passport" is checked
+  useEffect(() => {
+    if (noPassport) {
+      setValue(`clients.${index}.passportNumber`, "");
+      trigger(`clients.${index}.passportNumber`); // Clear errors
+    } else {
+      trigger(`clients.${index}.passportNumber`); // Re-validate
+    }
+  }, [noPassport, setValue, trigger, index]);
+
+  // Validation rules
+  const nameFrRules = {
+    validate: (value: string) => {
+      const arName = getValues(`clients.${index}.clientNameAr`);
+      return (
+        (!!value && value.trim() !== "") ||
+        (!!arName && arName.trim() !== "") ||
+        (t("clientNameRequired") as string)
+      );
+    },
+  };
+
+  const nameArRules = {
+    validate: (value: string) => {
+      const frLastName = getValues(`clients.${index}.clientNameFr.lastName`);
+      return (
+        (!!value && value.trim() !== "") ||
+        (!!frLastName && frLastName.trim() !== "") ||
+        (t("clientNameRequired") as string)
+      );
+    },
+  };
+
+  const passportRules = {
+    required: !noPassport ? (t("passportNumberRequired") as string) : false,
+  };
+
+  // Check if either name field has an error, but only if both are empty
+  const showNameError =
+    (getError("clientNameFr.lastName") || getError("clientNameAr")) &&
+    !clientNameFrLastName &&
+    !clientNameAr;
 
   return (
     <div className="grid grid-cols-12 gap-3 items-start p-3 border-b dark:border-gray-700">
       {/* Index */}
-      <div className="col-span-12 md:col-span-1 flex items-center pt-2">
+      <div className="col-span-12 md:col-span-1 flex items-center pt-9">
         <span className="text-gray-500 dark:text-gray-400 font-semibold">
           {index + 1}.
         </span>
       </div>
 
       {/* Client Info */}
-      {/* Updated to 4 columns to accommodate new fields */}
       <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="md:col-span-2">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -41,17 +111,21 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             <Controller
               name={`clients.${index}.clientNameFr.lastName`}
               control={control}
-              rules={{ required: true }}
+              rules={nameFrRules} // Use new rules
               render={({ field }) => (
                 <input
                   {...field}
                   type="text"
                   placeholder="Last Name"
                   className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
-                    getError("clientNameFr.lastName")
+                    showNameError
                       ? "border-red-500"
                       : "border-gray-300 dark:border-gray-600"
                   }`}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    trigger(`clients.${index}.clientNameAr`); // Trigger validation
+                  }}
                 />
               )}
             />
@@ -68,6 +142,11 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               )}
             />
           </div>
+          {showNameError && (
+            <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+              {t("clientNameRequired")}
+            </p>
+          )}
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -76,36 +155,74 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.clientNameAr`}
             control={control}
+            rules={nameArRules} // Use new rules
             render={({ field }) => (
               <input
                 {...field}
                 type="text"
                 className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
-                  getError("clientNameAr")
+                  showNameError
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 }`}
                 dir="rtl"
+                onChange={(e) => {
+                  field.onChange(e);
+                  trigger(`clients.${index}.clientNameFr.lastName`); // Trigger validation
+                }}
               />
             )}
           />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("passportNumber")}
-          </label>
+        <div className="flex flex-col justify-start mb-auto">
+          {/* "No passport yet" checkbox */}
+          <div className="flex items-center">
+            <Controller
+              name={`clients.${index}.noPassport`}
+              control={control}
+              render={({ field }) => (
+                <input
+                  type="checkbox"
+                  id={`noPassport-${index}`}
+                  {...field}
+                  checked={!!field.value}
+                  className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600"
+                />
+              )}
+            />
+            <label
+              htmlFor={`noPassport-${index}`}
+              className="ml-1 text-xs text-gray-600 dark:text-gray-400"
+            >
+              {t("noPassportYet")}
+            </label>
+          </div>
+
+          {/* Passport Label */}
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+              {t("passportNumber")}
+            </label>
+          </div>
+
+          {/* Passport Input */}
           <Controller
             name={`clients.${index}.passportNumber`}
             control={control}
-            rules={{ required: true }}
+            rules={passportRules} // Use new conditional rules
             render={({ field }) => (
               <input
                 {...field}
                 type="text"
+                disabled={noPassport} // Disable input if checkbox is checked
                 className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
                   getError("passportNumber")
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
+                } ${
+                  noPassport
+                    ? "bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50"
+                    : ""
                 }`}
               />
             )}
@@ -216,7 +333,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
       </div>
 
       {/* Remove Button */}
-      <div className="col-span-12 md:col-span-1 flex items-center justify-end pt-2">
+      <div className="col-span-12 md:col-span-1 flex items-center justify-end pt-9">
         <button
           type="button"
           onClick={() => remove(index)}

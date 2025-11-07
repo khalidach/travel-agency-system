@@ -116,20 +116,56 @@ const bookingValidation = [
   body("clients")
     .isArray({ min: 1 })
     .withMessage("At least one client is required."),
+  // Updated Name Validation: Only one of Fr or Ar name is required
   body("clients.*.clientNameFr.lastName")
-    .notEmpty()
     .trim()
-    .withMessage("Client last name (French) is required."),
+    .custom((value, { req, path }) => {
+      const match = path.match(/clients\[(\d+)\]/); // <-- FIX: Extract index with regex
+      const index = match ? match[1] : null;
+      if (index === null) return false;
+      const clientNameAr = req.body.clients[index]?.clientNameAr;
+      if (!value && !clientNameAr) {
+        throw new Error("Client name (French or Arabic) is required.");
+      }
+      return true;
+    }),
   body("clients.*.clientNameFr.firstName").trim(),
-  body("clients.*.clientNameAr").trim(),
+  body("clients.*.clientNameAr")
+    .trim()
+    .custom((value, { req, path }) => {
+      const match = path.match(/clients\[(\d+)\]/); // <-- FIX: Extract index with regex
+      const index = match ? match[1] : null;
+      if (index === null) return false;
+      const clientNameFrLastName =
+        req.body.clients[index]?.clientNameFr?.lastName;
+      if (!value && !clientNameFrLastName) {
+        throw new Error("Client name (French or Arabic) is required.");
+      }
+      return true;
+    }),
   body("clients.*.personType")
     .isIn(["adult", "child", "infant"])
     .withMessage("Invalid person type."),
+  // Updated Passport Validation: Not required if noPassport is true
+  body("clients.*.noPassport").optional().isBoolean(),
   body("clients.*.passportNumber")
-    .notEmpty()
     .trim()
     .escape()
-    .withMessage("Passport number is required."),
+    .custom((value, { req, path }) => {
+      const match = path.match(/clients\[(\d+)\]/); // <-- FIX: Extract index with regex
+      const index = match ? match[1] : null;
+      if (index === null) return false;
+      const noPassport = req.body.clients[index]?.noPassport;
+      if (!noPassport && !value) {
+        throw new Error("Passport number is required.");
+      }
+      if (noPassport && value) {
+        throw new Error(
+          "Cannot provide a passport number when 'No Passport' is checked."
+        );
+      }
+      return true;
+    }),
   body("clients.*.gender")
     .isIn(["male", "female"])
     .withMessage("Invalid gender."),
@@ -159,23 +195,46 @@ const bookingValidation = [
 ];
 
 const bookingUpdateValidation = [
+  // Updated Name Validation: Only one of Fr or Ar name is required
   body("clientNameFr.lastName")
-    .notEmpty()
     .trim()
-    .withMessage("Client last name (French) is required."),
+    .custom((value, { req }) => {
+      const clientNameAr = req.body.clientNameAr;
+      if (!value && !clientNameAr) {
+        throw new Error("Client name (French or Arabic) is required.");
+      }
+      return true;
+    }),
   body("clientNameFr.firstName").trim(),
   body("clientNameAr")
-    .notEmpty()
     .trim()
-    .withMessage("Client name (Arabic) is required."),
+    .custom((value, { req }) => {
+      const clientNameFrLastName = req.body.clientNameFr?.lastName;
+      if (!value && !clientNameFrLastName) {
+        throw new Error("Client name (French or Arabic) is required.");
+      }
+      return true;
+    }),
   body("personType")
     .isIn(["adult", "child", "infant"])
     .withMessage("Invalid person type."),
+  // Updated Passport Validation: Not required if noPassport is true
+  body("noPassport").optional().isBoolean(),
   body("passportNumber")
-    .notEmpty()
     .trim()
     .escape()
-    .withMessage("Passport number is required."),
+    .custom((value, { req }) => {
+      const noPassport = req.body.noPassport;
+      if (!noPassport && !value) {
+        throw new Error("Passport number is required.");
+      }
+      if (noPassport && value) {
+        throw new Error(
+          "Cannot provide a passport number when 'No Passport' is checked."
+        );
+      }
+      return true;
+    }),
   body("gender").isIn(["male", "female"]).withMessage("Invalid gender."),
   body("phoneNumber").optional({ checkFalsy: true }).trim().escape(),
   body("dateOfBirth")

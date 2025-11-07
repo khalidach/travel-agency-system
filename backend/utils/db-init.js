@@ -177,11 +177,11 @@ const applyDatabaseMigrations = async (client) => {
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
-        "clientNameAr" VARCHAR(255) NOT NULL,
+        "clientNameAr" VARCHAR(255), -- REMOVED NOT NULL
         "clientNameFr" JSONB,
         "personType" VARCHAR(50) NOT NULL,
         "phoneNumber" VARCHAR(50),
-        "passportNumber" VARCHAR(255) NOT NULL,
+        "passportNumber" VARCHAR(255), -- REMOVED NOT NULL
         "dateOfBirth" VARCHAR(20),
         "passportExpirationDate" DATE,
         "gender" VARCHAR(10),
@@ -244,6 +244,24 @@ const applyDatabaseMigrations = async (client) => {
       END;
       $$;
     `);
+
+    // --- FIX: Alter columns to allow NULL for "No Passport" and "Name AR/FR" features ---
+    await client.query(`
+      DO $$
+      BEGIN
+        -- Alter passportNumber to allow NULL
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='passportNumber' AND is_nullable = 'NO') THEN
+          ALTER TABLE bookings ALTER COLUMN "passportNumber" DROP NOT NULL;
+        END IF;
+
+        -- Alter clientNameAr to allow NULL
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='clientNameAr' AND is_nullable = 'NO') THEN
+          ALTER TABLE bookings ALTER COLUMN "clientNameAr" DROP NOT NULL;
+        END IF;
+      END;
+      $$;
+    `);
+    // --- END FIX ---
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
@@ -411,6 +429,28 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");'
     );
+
+    // --- FIX: Drop old unique constraint and add partial unique constraint for passport ---
+    await client.query(`
+      DO $$
+      BEGIN
+        -- 1. Drop the old, problematic unique constraint if it exists
+        -- Note: 'bookings_passport_trip_unique' seems to be the name from your error
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'bookings_passport_trip_unique' AND contype = 'u'
+        ) THEN
+          ALTER TABLE bookings DROP CONSTRAINT bookings_passport_trip_unique;
+        END IF;
+
+        -- 2. Add a new partial unique index that only enforces uniqueness for non-empty passport numbers
+        CREATE UNIQUE INDEX IF NOT EXISTS bookings_passport_trip_unique_partial
+        ON bookings ("passportNumber", "tripId")
+        WHERE "passportNumber" IS NOT NULL AND "passportNumber" != '';
+      END;
+      $$;
+    `);
+    // --- END FIX ---
 
     console.log("Database indexes applied successfully.");
     console.log("Database initialization complete.");

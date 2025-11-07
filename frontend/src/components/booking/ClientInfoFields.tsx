@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { useFormContext, Controller, get } from "react-hook-form";
+import React, { useRef, useEffect } from "react";
+import { useFormContext, Controller, get, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 // Removed "react-datepicker/dist/react-datepicker.css" as it's no longer used
 
@@ -9,7 +9,17 @@ const ClientInfoFields = () => {
     control,
     formState: { errors },
     setValue,
+    trigger, // To trigger validation on the other name field
+    getValues, // To get the value of the other name field in validation
   } = useFormContext();
+
+  // Watch for changes in specific fields
+  const noPassport = useWatch({ control, name: "clients.0.noPassport" });
+  const clientNameFrLastName = useWatch({
+    control,
+    name: "clients.0.clientNameFr.lastName",
+  });
+  const clientNameAr = useWatch({ control, name: "clients.0.clientNameAr" });
 
   const monthRef = useRef<HTMLInputElement>(null);
   const yearRef = useRef<HTMLInputElement>(null);
@@ -30,7 +40,44 @@ const ClientInfoFields = () => {
     }
   };
 
-  // Removed handleInputChange function and refs
+  // Effect to clear passport number if "No passport" is checked
+  useEffect(() => {
+    if (noPassport) {
+      setValue("clients.0.passportNumber", "");
+      // Manually clear errors for passportNumber if it's now valid
+      trigger("clients.0.passportNumber");
+    } else {
+      // Re-trigger validation if the box is unchecked, in case it's now required and empty
+      trigger("clients.0.passportNumber");
+    }
+  }, [noPassport, setValue, trigger]);
+
+  // Validation rules
+  const nameFrRules = {
+    validate: (value: string) => {
+      const arName = getValues("clients.0.clientNameAr");
+      return (
+        (!!value && value.trim() !== "") ||
+        (!!arName && arName.trim() !== "") ||
+        (t("clientNameRequired") as string)
+      );
+    },
+  };
+
+  const nameArRules = {
+    validate: (value: string) => {
+      const frLastName = getValues("clients.0.clientNameFr.lastName");
+      return (
+        (!!value && value.trim() !== "") ||
+        (!!frLastName && frLastName.trim() !== "") ||
+        (t("clientNameRequired") as string)
+      );
+    },
+  };
+
+  const passportRules = {
+    required: !noPassport ? (t("passportNumberRequired") as string) : false,
+  };
 
   return (
     <>
@@ -43,17 +90,22 @@ const ClientInfoFields = () => {
             <Controller
               name="clients.0.clientNameFr.lastName"
               control={control}
-              rules={{ required: t("clientLastNameFrRequired") as string }}
+              rules={nameFrRules} // Use new rules
               render={({ field }) => (
                 <input
                   {...field}
                   type="text"
                   placeholder="Last Name"
                   className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.clientNameFr.lastName")
+                    get(errors, "clients.0.clientNameFr.lastName") &&
+                    !clientNameAr // Only show error if both are empty
                       ? "border-red-500"
                       : "border-gray-300 dark:border-gray-600"
                   }`}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    trigger("clients.0.clientNameAr"); // Trigger validation for the other field
+                  }}
                 />
               )}
             />
@@ -74,11 +126,17 @@ const ClientInfoFields = () => {
               )}
             />
           </div>
-          {get(errors, "clients.0.clientNameFr.lastName") && (
-            <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.clientNameFr.lastName") as any).message}
-            </p>
-          )}
+          {/* Show error if validation fired and both fields are still empty */}
+          {(get(errors, "clients.0.clientNameFr.lastName") ||
+            get(errors, "clients.0.clientNameAr")) &&
+            !clientNameFrLastName &&
+            !clientNameAr && (
+              <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                {(get(errors, "clients.0.clientNameFr.lastName") as any)
+                  ?.message ||
+                  (get(errors, "clients.0.clientNameAr") as any)?.message}
+              </p>
+            )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -87,24 +145,25 @@ const ClientInfoFields = () => {
           <Controller
             name="clients.0.clientNameAr"
             control={control}
+            rules={nameArRules} // Use new rules
             render={({ field }) => (
               <input
                 {...field}
                 type="text"
                 className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                  get(errors, "clients.0.clientNameAr")
+                  get(errors, "clients.0.clientNameAr") && !clientNameFrLastName // Only show error if both are empty
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 }`}
                 dir="rtl"
+                onChange={(e) => {
+                  field.onChange(e);
+                  trigger("clients.0.clientNameFr.lastName"); // Trigger validation for the other field
+                }}
               />
             )}
           />
-          {get(errors, "clients.0.clientNameAr") && (
-            <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.clientNameAr") as any).message}
-            </p>
-          )}
+          {/* Error message is now handled under the Fr name block to avoid duplication */}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -134,21 +193,50 @@ const ClientInfoFields = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t("passportNumber")}
-          </label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t("passportNumber")}
+            </label>
+            {/* "No passport yet" checkbox */}
+            <div className="flex items-center">
+              <Controller
+                name="clients.0.noPassport"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="checkbox"
+                    id="noPassport"
+                    {...field}
+                    checked={!!field.value}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600"
+                  />
+                )}
+              />
+              <label
+                htmlFor="noPassport"
+                className="ml-2 text-sm text-gray-600 dark:text-gray-400"
+              >
+                {t("noPassportYet")}
+              </label>
+            </div>
+          </div>
           <Controller
             name="clients.0.passportNumber"
             control={control}
-            rules={{ required: t("passportNumberRequired") as string }}
+            rules={passportRules} // Use new conditional rules
             render={({ field }) => (
               <input
                 {...field}
                 type="text"
+                disabled={noPassport} // Disable input if checkbox is checked
                 className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
                   get(errors, "clients.0.passportNumber")
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
+                } ${
+                  noPassport
+                    ? "bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50"
+                    : ""
                 }`}
               />
             )}
@@ -293,7 +381,7 @@ const ClientInfoFields = () => {
             <Controller
               name="clients.0.passportExpirationDate"
               control={control}
-               // Added required rule
+              // Added required rule
               render={({ field }) => (
                 <input
                   type="date"
