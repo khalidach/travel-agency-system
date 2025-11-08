@@ -1,3 +1,4 @@
+// frontend/src/pages/Dashboard.tsx
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +12,8 @@ import {
   Clock,
   CheckCircle2,
   HelpCircle, // Import help icon
+  FileText, // ADDED: Import FileText for Factures
+  ConciergeBell, // ADDED: Import ConciergeBell for Services
 } from "lucide-react";
 import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
 import * as api from "../services/api";
@@ -95,6 +98,8 @@ export default function Dashboard() {
         },
         dateFilteredStats: {
           totalBookings: 0,
+          totalDailyServices: 0, // ADDED default
+          totalFactures: 0, // ADDED default
           totalRevenue: 0,
           totalCost: 0,
           totalProfit: 0,
@@ -153,44 +158,67 @@ export default function Dashboard() {
 
   const adminManagerMetrics = useMemo(
     () => [
-      { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+      // Kept: Total Reservations
+      {
+        title: t("totalBookings"),
+        value: dateFilteredStats.totalBookings,
+        icon: Users,
+      },
+      // Kept: Total Services
+      {
+        title: t("totalServicesPerformed"),
+        value: dateFilteredStats.totalDailyServices,
+        icon: ConciergeBell,
+      },
+      // Kept: Total Factures
+      {
+        title: t("facturationTitle"),
+        value: dateFilteredStats.totalFactures,
+        icon: FileText,
+      },
+      // Kept: Total Revenue (Combined)
       {
         title: t("totalRevenue"),
         value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
           "mad"
         )}`,
+        icon: DollarSign,
       },
-      {
-        title: t("totalCosts"),
-        value: `${(dateFilteredStats.totalCost || 0).toLocaleString()} ${t(
-          "mad"
-        )}`,
-      },
-      {
-        title: t("totalProfit"),
-        value: `${(dateFilteredStats.totalProfit || 0).toLocaleString()} ${t(
-          "mad"
-        )}`,
-      },
+      // REMOVED: Total Costs (dateFilteredStats.totalCost)
+      // REMOVED: Total Profit (dateFilteredStats.totalProfit)
     ],
     [dateFilteredStats, t]
   );
 
   const employeeMetrics = useMemo(
     () => [
-      { title: t("totalBookings"), value: dateFilteredStats.totalBookings },
+      // Kept: Total Reservations
       {
-        title: t("totalPaid"),
-        value: `${(dateFilteredStats.totalPaid || 0).toLocaleString()} ${t(
+        title: t("totalBookings"),
+        value: dateFilteredStats.totalBookings,
+        icon: Users,
+      },
+      // Kept: Total Services
+      {
+        title: t("totalServicesPerformed"),
+        value: dateFilteredStats.totalDailyServices,
+        icon: ConciergeBell,
+      },
+      // Kept: Total Factures
+      {
+        title: t("facturationTitle"),
+        value: dateFilteredStats.totalFactures,
+        icon: FileText,
+      },
+      // Kept: Total Revenue (Combined)
+      {
+        title: t("totalRevenue"),
+        value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
           "mad"
         )}`,
+        icon: DollarSign,
       },
-      {
-        title: t("totalRemaining"),
-        value: `${(dateFilteredStats.totalRemaining || 0).toLocaleString()} ${t(
-          "mad"
-        )}`,
-      },
+      // REMOVED: Total Paid and Total Remaining (from the original list) and Cost/Profit
     ],
     [dateFilteredStats, t]
   );

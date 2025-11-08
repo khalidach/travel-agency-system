@@ -192,6 +192,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
         offset + parseInt(limit, 10)
       );
 
+      // POINT 1 & 4: Ensure summary stats include cost and profit for overall reports
       const statsQuery = `
             SELECT
                 COALESCE(SUM("sellingPrice"), 0) as "totalRevenue",
@@ -250,6 +251,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
               LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
             ) t) as bookings,
             (SELECT COUNT(*) FROM FilteredBookings) as "totalCount",
+            -- POINT 1 & 4: Ensure summary stats include cost and profit for overall reports
             (SELECT COALESCE(SUM("sellingPrice"), 0) FROM FilteredBookings) as "totalRevenue",
             (SELECT COALESCE(SUM("basePrice"), 0) FROM FilteredBookings) as "totalCost",
             (SELECT COALESCE(SUM(profit), 0) FROM FilteredBookings) as "totalProfit",
@@ -404,6 +406,7 @@ exports.createBooking = async (req, res, next) => {
 exports.updateBooking = async (req, res, next) => {
   const { id } = req.params;
   try {
+    // Note: The service handles recalculating basePrice and profit based on current data
     const updatedBooking = await BookingService.updateBooking(
       req.db,
       req.user,

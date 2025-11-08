@@ -1,4 +1,5 @@
 // backend/controllers/dashboardController.js
+
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 
@@ -16,6 +17,8 @@ const getDashboardStats = async (req, res, next) => {
       queryParams.push(startDate, endDate);
       dateFilterClause = `AND b."createdAt"::date BETWEEN $2 AND $3`;
     }
+    const servicesFilteredDateParams = [...queryParams];
+    const facturesFilteredDateParams = [...queryParams];
 
     const statsQuery = `
       SELECT
@@ -26,8 +29,8 @@ const getDashboardStats = async (req, res, next) => {
         COALESCE(SUM(b.profit), 0) as "allTimeProfit",
         
         COUNT(*) FILTER (WHERE 1=1 ${dateFilterClause}) as "filteredBookingsCount",
-        COALESCE(SUM(b."sellingPrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredRevenue",
-        COALESCE(SUM(b.profit) FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredProfit",
+        COALESCE(SUM(b."sellingPrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingRevenue",
+        COALESCE(SUM(b.profit) FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingProfit",
         COALESCE(SUM(b."basePrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredCost",
         COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredPaid",
 
@@ -38,6 +41,39 @@ const getDashboardStats = async (req, res, next) => {
     `;
 
     const statsPromise = req.db.query(statsQuery, queryParams);
+
+    // NEW: Query for Daily Services Stats (Count and Revenue)
+    let dailyServiceDateFilterClause = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      dailyServiceDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
+    }
+    const dailyServiceStatsQuery = `
+      SELECT 
+        COUNT(*) AS "filteredServicesCount",
+        COALESCE(SUM("totalPrice"), 0) AS "filteredServiceRevenue"
+      FROM daily_services
+      WHERE "userId" = $1 ${dailyServiceDateFilterClause}
+    `;
+    const dailyServiceStatsPromise = req.db.query(
+      dailyServiceStatsQuery,
+      servicesFilteredDateParams
+    );
+
+    // NEW: Query for Factures Count
+    let factureDateFilterClause = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      factureDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
+    }
+    const facturesCountQuery = `
+      SELECT 
+        COUNT(*) AS "filteredFacturesCount"
+      FROM factures
+      WHERE "userId" = $1 ${factureDateFilterClause}
+    `;
+    const facturesCountPromise = req.db.query(
+      facturesCountQuery,
+      facturesFilteredDateParams
+    );
 
     const programTypePromise = req.db.query(
       `SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type`,
@@ -60,22 +96,32 @@ const getDashboardStats = async (req, res, next) => {
 
     const [
       statsResult,
+      dailyServiceStatsResult,
+      facturesCountResult,
       programTypeResult,
       recentBookingsResult,
       dailyServiceProfitResult,
     ] = await Promise.all([
       statsPromise,
+      dailyServiceStatsPromise,
+      facturesCountPromise,
       programTypePromise,
       recentBookingsPromise,
       dailyServiceProfitPromise,
     ]);
 
     const stats = statsResult.rows[0];
+    const dailyServiceStats = dailyServiceStatsResult.rows[0];
+    const facturesCount = facturesCountResult.rows[0];
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows;
     const dailyServiceProfits = dailyServiceProfitResult.rows;
 
-    const filteredRevenue = parseFloat(stats.filteredRevenue);
+    const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
+    const filteredServiceRevenue = parseFloat(
+      dailyServiceStats.filteredServiceRevenue
+    );
+    const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue; // Combined Revenue
     const filteredPaid = parseFloat(stats.filteredPaid);
 
     const formattedResponse = {
@@ -87,11 +133,12 @@ const getDashboardStats = async (req, res, next) => {
       },
       dateFilteredStats: {
         totalBookings: parseInt(stats.filteredBookingsCount, 10),
+        totalDailyServices: parseInt(
+          dailyServiceStats.filteredServicesCount,
+          10
+        ),
+        totalFactures: parseInt(facturesCount.filteredFacturesCount, 10),
         totalRevenue: filteredRevenue,
-        totalProfit: parseFloat(stats.filteredProfit),
-        totalCost: parseFloat(stats.filteredCost),
-        totalPaid: filteredPaid,
-        totalRemaining: filteredRevenue - filteredPaid,
       },
       programTypeData: {
         Hajj:
@@ -144,19 +191,9 @@ const getProfitReport = async (req, res, next) => {
       ${programWhereClause}
     `;
 
-    // --- Query for the bar chart (top 6 programs by profit) ---
-    const topProgramsQuery = `
-      SELECT
-          p.id,
-          p.name as "programName",
-          p.type,
-          COUNT(b.id) as bookings,
-          COALESCE(SUM(b.profit), 0) as "totalProfit"
-      ${baseFromClause}
-      GROUP BY p.id ORDER BY "totalProfit" DESC LIMIT 6`;
-    const topProgramsPromise = req.db.query(topProgramsQuery, programParams);
+    // --- REMOVED: Query for the bar chart (top 6 programs by profit) ---
 
-    // --- Paginated query for the detailed table ---
+    // --- Paginated query for the detailed table (unchanged) ---
     let detailedParams = [...programParams];
     detailedParams.push(limit, offset);
     const detailedPerformanceQuery = `
@@ -177,7 +214,7 @@ const getProfitReport = async (req, res, next) => {
       detailedParams
     );
 
-    // --- Query for summary stats (Total Bookings, Revenue, etc.) ---
+    // --- Query for summary stats (Total Bookings, Revenue, etc.) (unchanged) ---
     let summaryWhereClause = `WHERE b."userId" = $1`;
     const summaryParams = [adminId];
     if (programType && programType !== "all") {
@@ -196,7 +233,7 @@ const getProfitReport = async (req, res, next) => {
     `;
     const summaryPromise = req.db.query(summaryQuery, summaryParams);
 
-    // --- Count query for pagination (counts programs) ---
+    // --- Count query for pagination (counts programs) (unchanged) ---
     const programCountQuery = `
         SELECT COUNT(*)
         FROM programs p
@@ -204,11 +241,11 @@ const getProfitReport = async (req, res, next) => {
     `;
     const programCountPromise = req.db.query(programCountQuery, programParams);
 
-    // --- Monthly trend query ---
+    // --- Monthly trend query (MODIFIED: Count bookings instead of sum profit) ---
     const monthlyTrendQuery = `
         SELECT
             TO_CHAR(b."createdAt", 'YYYY-MM') as month,
-            SUM(b.profit) as profit
+            COUNT(b.id) as "bookingsCount" 
         FROM bookings b
         WHERE b."userId" = $1 AND b."createdAt" >= NOW() - INTERVAL '12 months'
         GROUP BY month
@@ -217,25 +254,18 @@ const getProfitReport = async (req, res, next) => {
     const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
 
     const [
-      topProgramsResult,
       detailedPerformanceResult,
       summaryResult,
       programCountResult,
       monthlyTrendResult,
     ] = await Promise.all([
-      topProgramsPromise,
       detailedPerformancePromise,
       summaryPromise,
       programCountPromise,
       monthlyTrendPromise,
     ]);
 
-    const topProgramsData = topProgramsResult.rows.map((row) => ({
-      ...row,
-      totalProfit: parseFloat(row.totalProfit),
-      bookings: parseInt(row.bookings, 10),
-    }));
-
+    // --- REMOVED: topProgramsData logic ---
     const detailedPerformanceData = detailedPerformanceResult.rows.map(
       (row) => ({
         ...row,
@@ -254,11 +284,11 @@ const getProfitReport = async (req, res, next) => {
     const summaryData = summaryResult.rows[0];
 
     res.status(200).json({
-      topProgramsData,
+      // REMOVED: topProgramsData
       detailedPerformanceData,
       monthlyTrend: monthlyTrendResult.rows.map((row) => ({
         ...row,
-        profit: parseFloat(row.profit),
+        bookings: parseInt(row.bookingsCount, 10), // Updated key
       })),
       pagination: {
         page: parseInt(page, 10),

@@ -1,4 +1,3 @@
-// frontend/src/components/booking/BookingTable.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
@@ -285,25 +284,14 @@ export default function BookingTable({
                       </div>
                     </td>
                     <td className="px-2 py-4 align-top">
+                      {/* Only show Selling Price. Base Price and Profit removed. */}
                       <div className="text-sm text-gray-900 dark:text-gray-100">
                         {t("selling")}:{" "}
                         {Number(booking.sellingPrice).toLocaleString()}{" "}
                         {t("mad")}
                       </div>
-                      {(currentUser?.role === "admin" ||
-                        currentUser?.role === "manager") && (
-                        <>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {t("base")}:{" "}
-                            {Number(booking.basePrice).toLocaleString()}{" "}
-                            {t("mad")}
-                          </div>
-                          <div className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">
-                            {t("profit")}:{" "}
-                            {Number(booking.profit).toLocaleString()} {t("mad")}
-                          </div>
-                        </>
-                      )}
+
+                      {/* REMOVED: Profit display block */}
                     </td>
                     <td className="px-3 py-4 align-top">
                       <div className="space-y-2">

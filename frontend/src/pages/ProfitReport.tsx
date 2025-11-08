@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -29,9 +27,9 @@ import { PaginatedResponse } from "../context/models";
 import VideoHelpModal from "../components/VideoHelpModal"; // Import the modal
 
 interface ProfitReportData {
-  topProgramsData: any[];
+  // REMOVED topProgramsData
   detailedPerformanceData: any[];
-  monthlyTrend: any[];
+  monthlyTrend: any[]; // Now contains 'bookings' count
   pagination: PaginatedResponse<any>["pagination"];
   summary: {
     totalBookings: number;
@@ -59,7 +57,7 @@ export default function ProfitReport() {
     queryFn: () => api.getProfitReport(filterType, currentPage, itemsPerPage),
   });
 
-  const topProgramsData = reportData?.topProgramsData ?? [];
+  // REMOVED topProgramsData
   const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
   const pagination = reportData?.pagination;
@@ -75,6 +73,7 @@ export default function ProfitReport() {
       totalSales,
       totalProfit,
       profitMargin,
+      totalCost: summary?.totalCost ?? 0, // Keep total cost for the metrics block
     };
   }, [summary]);
 
@@ -200,36 +199,13 @@ export default function ProfitReport() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+        {" "}
+        {/* Adjusted grid layout to a single column */}
+        {/* REMOVED: Profit by Program Bar Chart (Point 3) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-            {t("profitByProgram")}
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={topProgramsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="programName"
-                stroke="#6b7280"
-                tick={{ fontSize: 12 }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis stroke="#6b7280" />
-              <Tooltip
-                formatter={(value: number) => [
-                  `${value.toLocaleString()} MAD`,
-                  t("totalProfit"),
-                ]}
-              />
-              <Bar dataKey="totalProfit" fill="#059669" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-            {t("monthlyProfitTrend")}
+            {t("monthlyBookingsTrend")} {/* UPDATED TITLE (Point 3) */}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrend}>
@@ -238,13 +214,13 @@ export default function ProfitReport() {
               <YAxis stroke="#6b7280" />
               <Tooltip
                 formatter={(value: number) => [
-                  `${value.toLocaleString()} MAD`,
-                  t("totalProfit"),
+                  `${value.toLocaleString()} ${t("bookings")}`, // UPDATED TOOLTIP
+                  t("totalBookings"),
                 ]}
               />
               <Line
                 type="monotone"
-                dataKey="profit"
+                dataKey="bookings" // UPDATED DATA KEY (Point 3)
                 stroke="#3b82f6"
                 strokeWidth={3}
                 dot={{ fill: "#3b82f6", strokeWidth: 2, r: 6 }}

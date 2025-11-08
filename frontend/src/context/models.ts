@@ -296,11 +296,9 @@ export interface DashboardStats {
   };
   dateFilteredStats: {
     totalBookings: number;
-    totalRevenue: number;
-    totalCost: number;
-    totalProfit: number;
-    totalPaid: number;
-    totalRemaining: number;
+    totalDailyServices: number; // ADDED
+    totalFactures: number; // ADDED
+    totalRevenue: number; // UPDATED definition (now combined)
   };
   programTypeData: {
     Hajj: number;
