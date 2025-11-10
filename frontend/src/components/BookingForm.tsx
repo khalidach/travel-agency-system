@@ -43,6 +43,7 @@ export type ClientFormData = {
   dob_day?: number | string;
   dob_month?: number | string;
   dob_year?: number | string;
+  noPassport?: boolean;
 };
 
 export type BookingFormData = Omit<
@@ -93,6 +94,7 @@ const emptyClient: ClientFormData = {
   dob_day: "",
   dob_month: "",
   dob_year: "",
+  noPassport: false, // Default to false for new bookings
 };
 
 export default function BookingForm({
@@ -291,6 +293,10 @@ export default function BookingForm({
           }
         }
 
+        // Determine the initial state of the 'noPassport' checkbox:
+        // It should be checked if passportNumber is falsy (null or empty string).
+        const initialNoPassport = !booking.passportNumber; // <-- NEW LOGIC
+
         const clientData: ClientFormData = {
           clientNameAr: booking.clientNameAr,
           clientNameFr: booking.clientNameFr || { lastName: "", firstName: "" },
@@ -303,10 +309,10 @@ export default function BookingForm({
           dob_day: day,
           dob_month: month,
           dob_year: year,
+          noPassport: initialNoPassport, // <-- ASSIGN NEW LOGIC
         };
 
         // FIX: Destructure client-specific fields from the booking object
-        // to prevent them from being spread into the top level of the form state.
         const {
           clientNameAr,
           clientNameFr,
@@ -666,8 +672,8 @@ export default function BookingForm({
           hasPackages={hasPackages}
           selectedProgram={formState.selectedProgram}
           handleProgramChange={handleProgramChange}
-          handlePackageChange={handlePackageChange}
           handleVariationChange={handleVariationChange}
+          handlePackageChange={handlePackageChange}
           programId={programId}
           booking={booking}
         />

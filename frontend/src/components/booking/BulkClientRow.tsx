@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useFormContext, Controller, useWatch, get } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
+import { ClientFormData } from "../BookingForm"; // Assuming ClientFormData is exported from BookingForm
 
 interface BulkClientRowProps {
   index: number;
@@ -16,6 +17,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     getValues, // Need getValues for validation
     trigger, // Need trigger for cross-field validation
     setValue, // Need setValue to clear passport
+    watch, // Watch for changes
   } = useFormContext();
 
   // Watch for changes in specific fields for this row
@@ -31,6 +33,19 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     control,
     name: `clients.${index}.clientNameAr`,
   });
+
+  // --- NEW: Initialize noPassport based on existing passportNumber ---
+  useEffect(() => {
+    const existingClientData = watch(`clients.${index}`) as ClientFormData;
+    // Only apply this logic if it's an existing, populated row (e.g. after a bulk import/API data load)
+    if (existingClientData.passportNumber !== undefined) {
+      const isExistingBookingWithNoPassport =
+        !existingClientData.passportNumber ||
+        existingClientData.passportNumber === "";
+      setValue(`clients.${index}.noPassport`, isExistingBookingWithNoPassport);
+    }
+  }, [index, setValue, watch]);
+  // --- END NEW ---
 
   // Helper to safely get nested errors
   const getError = (fieldName: string) => {
