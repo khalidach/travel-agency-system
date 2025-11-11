@@ -100,12 +100,9 @@ const calculateBasePrice = async (
     const roomTypeDef = priceStructure.roomTypes.find(
       (rt) => rt.type === roomTypeName
     );
-    if (!roomTypeDef) return 0;
-
-    const purchasePrice = Number(roomTypeDef.purchasePrice || 0);
-
-    // The purchase price is the total base price per person for this package/hotel combo.
-    return Math.round(purchasePrice);
+    if (!roomTypeDef || typeof roomTypeDef.purchasePrice === "undefined")
+      return 0;
+    return Math.round(Number(roomTypeDef.purchasePrice || 0));
   }
 
   // Existing logic for regular (non-commission) programs
@@ -908,7 +905,16 @@ const findBookingForUser = async (
 
 const addPayment = async (db, user, bookingId, paymentData) => {
   const booking = await findBookingForUser(db, user, bookingId, true);
-  const newPayment = { ...paymentData, _id: new Date().getTime().toString() };
+  // MODIFIED: Extract labelPaper
+  const { labelPaper, ...restOfPaymentData } = paymentData;
+
+  // MODIFIED: Include labelPaper in newPayment
+  const newPayment = {
+    ...restOfPaymentData,
+    _id: new Date().getTime().toString(),
+    labelPaper: labelPaper || "",
+  };
+
   const advancePayments = [...(booking.advancePayments || []), newPayment];
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
   const remainingBalance = booking.sellingPrice - totalPaid;
@@ -923,8 +929,13 @@ const addPayment = async (db, user, bookingId, paymentData) => {
 
 const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
   const booking = await findBookingForUser(db, user, bookingId, true);
+  // MODIFIED: Extract labelPaper
+  const { labelPaper, ...restOfPaymentData } = paymentData;
+
   const advancePayments = (booking.advancePayments || []).map((p) =>
-    p._id === paymentId ? { ...p, ...paymentData, _id: p._id } : p
+    p._id === paymentId
+      ? { ...p, ...restOfPaymentData, _id: p._id, labelPaper: labelPaper || "" } // MODIFIED: Update labelPaper
+      : p
   );
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
   const remainingBalance = booking.sellingPrice - totalPaid;

@@ -95,9 +95,19 @@ export default function ReceiptPDF({
           )}
         </div>
       </div>
-      <div className="mt-6 pb-4 flex justify-center items-center">
+      <div className="mt-6 pb-1 flex justify-center items-center">
         <p className="text-xl mt-2 font-bold">
           N°: {booking.id}-{payment._id.substring(0, 5).toUpperCase()}
+        </p>
+      </div>
+      <div className="pb-4 flex justify-center items-center">
+        <p className="text-xl font-bold">
+          {/* NEW: Display labelPaper here */}
+          {payment.labelPaper && (
+            <p className="text-lg font-bold mt-1">
+              Label Papier N°: {payment.labelPaper}
+            </p>
+          )}
         </p>
       </div>
       <div className="mt-6 pb-4 flex justify-between items-center">

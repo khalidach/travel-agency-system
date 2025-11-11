@@ -522,5 +522,7 @@
   "status": "Statut",
   "totalPriceCannotBeLessThanOriginal": "Le prix total ne peut pas être inférieur au prix original.",
   "transferPayerName": "Nom du payeur",
-  "transferReference": "Référence du virement"
+  "transferReference": "Référence du virement",
+  "labelPaper": "Étiquette papier",
+  "labelPaperPlaceholder": "Saisir l'étiquette papier optionnelle"
 }

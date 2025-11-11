@@ -518,5 +518,7 @@
   "status": "Status",
   "totalPriceCannotBeLessThanOriginal": "The total price cannot be less than the original price.",
   "transferPayerName": "Payer's name",
-  "transferReference": "Transfer reference"
+  "transferReference": "Transfer reference",
+  "labelPaper": "Label Paper",
+  "labelPaperPlaceholder": "Enter optional paper label"
 }

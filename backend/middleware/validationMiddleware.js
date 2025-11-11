@@ -268,6 +268,8 @@ const paymentValidation = [
     .isIn(["cash", "cheque", "transfer", "card"])
     .withMessage("Invalid payment method."),
   body("date").isISO8601().toDate().withMessage("Invalid payment date."),
+  // NEW: Optional field for labelPaper
+  body("labelPaper").optional({ checkFalsy: true }).trim().escape(),
   body("chequeNumber").optional({ checkFalsy: true }).trim().escape(),
   body("bankName").optional({ checkFalsy: true }).trim().escape(),
   body("chequeCashingDate")

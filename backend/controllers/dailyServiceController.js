@@ -299,11 +299,17 @@ const addDailyServicePayment = async (req, res, next) => {
   try {
     const { serviceId } = req.params;
     const { adminId } = req.user;
-    const paymentData = req.body;
+    // MODIFIED: Extract labelPaper
+    const { labelPaper, ...paymentData } = req.body;
 
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
 
-    const newPayment = { ...paymentData, _id: new Date().getTime().toString() };
+    // MODIFIED: Include labelPaper in newPayment
+    const newPayment = {
+      ...paymentData,
+      _id: new Date().getTime().toString(),
+      labelPaper: labelPaper || "",
+    };
     const advancePayments = [...(service.advancePayments || []), newPayment];
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + Number(p.amount),
@@ -338,12 +344,16 @@ const updateDailyServicePayment = async (req, res, next) => {
   try {
     const { serviceId, paymentId } = req.params;
     const { adminId } = req.user;
-    const paymentData = req.body;
+    // MODIFIED: Extract labelPaper
+    const { labelPaper, ...paymentData } = req.body;
 
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
 
-    const advancePayments = (service.advancePayments || []).map((p) =>
-      p._id === paymentId ? { ...p, ...paymentData, _id: p._id } : p
+    const advancePayments = (service.advancePayments || []).map(
+      (p) =>
+        p._id === paymentId
+          ? { ...p, ...paymentData, _id: p._id, labelPaper: labelPaper || "" }
+          : p // MODIFIED: Update labelPaper
     );
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + Number(p.amount),

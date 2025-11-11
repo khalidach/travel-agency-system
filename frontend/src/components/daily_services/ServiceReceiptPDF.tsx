@@ -88,14 +88,25 @@ export default function ServiceReceiptPDF({
           )}
         </div>
       </div>
-
+      <div
+        className="text-xl font-bold text-gray-800 mt-6 pb-1 flex justify-center items-center"
+        style={{ direction: "ltr" }}
+      >
+        N°: <span className="text-blue-600">{receiptNumber}</span>
+      </div>
       {/* Receipt Details */}
       <div className="flex justify-between items-center mb-6">
         <div
           className="text-xl font-bold text-gray-800"
           style={{ direction: "rtl" }}
         >
-          N°: <span className="text-blue-600">{receiptNumber}</span>
+          {/* NEW: Display labelPaper here */}
+          {payment.labelPaper && (
+            <div className="text-xl font-bold text-gray-800">
+              رقم الوصل الورقي:{" "}
+              <span className="text-blue-600">{payment.labelPaper}</span>
+            </div>
+          )}
         </div>
         <div className="text-xl font-bold text-gray-800">
           التاريخ:{" "}

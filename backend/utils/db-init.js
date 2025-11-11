@@ -310,6 +310,52 @@ const applyDatabaseMigrations = async (client) => {
       $$;
     `);
 
+    // --- NEW: Migration to add labelPaper to advancePayments JSONB in bookings and daily_services ---
+    const updatePaymentJsonb = (tableName) => `
+      DO $$
+      DECLARE
+        r record;
+        payment_record jsonb;
+        has_new_field boolean := FALSE;
+      BEGIN
+        -- Check if any record in advancePayments lacks the labelPaper field
+        IF EXISTS (
+            SELECT 1 FROM ${tableName}
+            WHERE "advancePayments" IS NOT NULL
+            AND jsonb_typeof("advancePayments") = 'array'
+            AND EXISTS (
+                SELECT 1 FROM jsonb_array_elements("advancePayments") AS payment
+                WHERE payment ->> 'labelPaper' IS NULL
+            )
+        ) THEN
+            FOR r IN SELECT id, "advancePayments" FROM ${tableName} WHERE "advancePayments" IS NOT NULL AND jsonb_typeof("advancePayments") = 'array'
+            LOOP
+                has_new_field := FALSE;
+                payment_record := '[]'::jsonb;
+
+                SELECT jsonb_agg(
+                    CASE 
+                        WHEN elem ->> 'labelPaper' IS NULL THEN elem || jsonb_build_object('labelPaper', '')
+                        ELSE elem
+                    END
+                ) INTO payment_record
+                FROM jsonb_array_elements(r."advancePayments") AS elem;
+
+                IF payment_record IS DISTINCT FROM r."advancePayments" THEN
+                    UPDATE ${tableName} SET "advancePayments" = payment_record WHERE id = r.id;
+                END IF;
+            END LOOP;
+        END IF;
+      END;
+      $$;
+    `;
+
+    // Apply the JSONB structure update to both tables
+    await client.query(updatePaymentJsonb("bookings"));
+    await client.query(updatePaymentJsonb("daily_services"));
+
+    // --- END NEW: Migration ---
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_managements (
         id SERIAL PRIMARY KEY,

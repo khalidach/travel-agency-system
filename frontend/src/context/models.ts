@@ -200,6 +200,7 @@ export interface Payment {
   amount: number;
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
+  labelPaper?: string; // NEW: Optional Label Paper field
   chequeNumber?: string;
   bankName?: string;
   chequeCashingDate?: string;

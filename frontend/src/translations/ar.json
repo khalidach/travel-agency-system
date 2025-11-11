@@ -522,5 +522,7 @@
   "status": "الحالة",
   "totalPriceCannotBeLessThanOriginal": "لا يمكن أن يكون السعر الإجمالي أقل من السعر الأصلي.",
   "transferPayerName": "اسم المحول",
-  "transferReference": "رقم التحويل"
+  "transferReference": "رقم التحويل",
+  "labelPaper": "الوصل الورقي",
+  "labelPaperPlaceholder": "مثال: 12345"
 }

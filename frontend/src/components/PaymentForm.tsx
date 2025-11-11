@@ -25,6 +25,7 @@ export default function PaymentForm({
         date: payment.date
           ? new Date(payment.date).toISOString().split("T")[0]
           : "",
+        labelPaper: payment.labelPaper || "", // NEW: Initialize labelPaper
         chequeNumber: payment.chequeNumber || "",
         bankName: payment.bankName || "",
         chequeCashingDate: payment.chequeCashingDate
@@ -38,6 +39,7 @@ export default function PaymentForm({
       amount: 0,
       method: "cash",
       date: new Date().toISOString().split("T")[0],
+      labelPaper: "", // NEW: Default for new payment
       chequeNumber: "",
       bankName: "",
       chequeCashingDate: "",
@@ -141,6 +143,30 @@ export default function PaymentForm({
           ))}
         </select>
       </div>
+
+      {/* NEW: Optional Label Paper Input */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t("labelPaper")}
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">
+            ({t("optional")})
+          </span>
+        </label>
+        <input
+          type="text"
+          value={formData.labelPaper}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              labelPaper: e.target.value,
+            }))
+          }
+          placeholder={t("labelPaperPlaceholder") as string}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        />
+      </div>
+      {/* END NEW INPUT */}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("paymentDate")}
