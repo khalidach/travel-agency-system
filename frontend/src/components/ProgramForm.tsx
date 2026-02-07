@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-import type { Program, ProgramVariation } from "../context/models";
+// Added CityData to imports
+import type { Program, ProgramVariation, CityData } from "../context/models";
 
 // Import the refactored child components
 import PackageManager from "./program/PackageManager";
@@ -74,12 +75,12 @@ export default function ProgramForm({
           variations.forEach((_: ProgramVariation, varIndex: number) => {
             if (varIndex > 0) {
               const currentCityName = getValues(
-                `variations.${varIndex}.cities.${changedCityIndex}.name`
+                `variations.${varIndex}.cities.${changedCityIndex}.name`,
               );
               if (currentCityName !== newCityName) {
                 setValue(
                   `variations.${varIndex}.cities.${changedCityIndex}.name`,
-                  newCityName
+                  newCityName,
                 );
               }
             }
@@ -93,8 +94,9 @@ export default function ProgramForm({
         variations.forEach((variation: ProgramVariation, index: number) => {
           const cities = variation.cities || [];
           const totalDuration = cities.reduce(
-            (sum: number, city: any) => sum + (Number(city.nights) || 0),
-            0
+            // Replaced 'any' with 'CityData'
+            (sum: number, city: CityData) => sum + (Number(city.nights) || 0),
+            0,
           );
 
           // Only update the value if it has actually changed.
