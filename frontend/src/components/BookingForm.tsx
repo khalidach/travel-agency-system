@@ -65,10 +65,16 @@ export type BookingFormData = Omit<
   clients: ClientFormData[];
 };
 
+// Define the shape of data passed to onSave when in single-client/edit mode
+export type FlatBookingData = Omit<BookingFormData, "clients"> &
+  Partial<ClientFormData>;
+
+export type BookingSaveData = BookingFormData | FlatBookingData;
+
 interface BookingFormProps {
   booking?: Booking | null;
   programs: Program[];
-  onSave: (bookingData: any, initialPayments: Payment[]) => void;
+  onSave: (bookingData: BookingSaveData, initialPayments: Payment[]) => void;
   onCancel: () => void;
   programId?: string;
 }
@@ -285,7 +291,7 @@ export default function BookingForm({
                 month = date.getUTCMonth() + 1;
                 year = date.getUTCFullYear();
               }
-            } catch (e) {
+            } catch (_) {
               // Invalid date format
             }
           }
@@ -293,7 +299,7 @@ export default function BookingForm({
 
         // Determine the initial state of the 'noPassport' checkbox:
         // It should be checked if passportNumber is falsy (null or empty string).
-        const initialNoPassport = !booking.passportNumber; // <-- NEW LOGIC
+        const initialNoPassport = !booking.passportNumber;
 
         const clientData: ClientFormData = {
           clientNameAr: booking.clientNameAr,
@@ -307,10 +313,9 @@ export default function BookingForm({
           dob_day: day,
           dob_month: month,
           dob_year: year,
-          noPassport: initialNoPassport, // <-- ASSIGN NEW LOGIC
+          noPassport: initialNoPassport,
         };
 
-        // FIX: Destructure client-specific fields from the booking object
         const {
           clientNameAr: _clientNameAr,
           clientNameFr: _clientNameFr,
@@ -324,7 +329,7 @@ export default function BookingForm({
         } = booking;
 
         reset({
-          ...restOfBooking, // Spread only the non-client fields
+          ...restOfBooking,
           sellingPrice: Number(booking.sellingPrice),
           basePrice: Number(booking.basePrice),
           profit: Number(booking.sellingPrice) - Number(booking.basePrice),
@@ -493,7 +498,7 @@ export default function BookingForm({
     [setValue, basePrice],
   );
 
-  const onInvalid = useCallback((errors: FieldErrors) => {
+  const onInvalid = useCallback((errors: FieldErrors<BookingFormData>) => {
     console.log("Form Errors:", errors);
     toast.error("Please correct the errors before saving.");
   }, []);
