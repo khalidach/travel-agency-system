@@ -23,12 +23,12 @@ import type {
 import { emptyClient } from "./booking_form/types";
 
 // UI Components
-import HotelRoomSelection from "./booking/HotelRoomSelection";
-import ClientInfoFields from "./booking/ClientInfoFields";
-import ProgramPackageSelection from "./booking/ProgramPackageSelection";
-import RelatedPeopleManager from "./booking/RelatedPeopleManager";
-import PricingFields from "./booking/PricingFields";
-import BulkClientRow from "./booking/BulkClientRow";
+import HotelRoomSelection from "./booking_form/HotelRoomSelection";
+import ClientInfoFields from "./booking_form/ClientInfoFields";
+import ProgramPackageSelection from "./booking_form/ProgramPackageSelection";
+import RelatedPeopleManager from "./booking_form/RelatedPeopleManager";
+import PricingFields from "./booking_form/PricingFields";
+import BulkClientRow from "./booking_form/BulkClientRow";
 import { BookingSourceInput } from "./booking_form/BookingSourceInput";
 import { BulkModeToggle } from "./booking_form/BulkModeToggle";
 import { FormActions } from "./booking_form/FormActions";

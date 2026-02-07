@@ -280,7 +280,7 @@ export const useBookingOperations = ({
       window.URL.revokeObjectURL(url);
       toast.dismiss();
       toast.success("Template downloaded!");
-    } catch (error) {
+    } catch (_error) {
       toast.dismiss();
       toast.error("Failed to download template.");
     }
