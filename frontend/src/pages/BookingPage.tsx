@@ -340,7 +340,7 @@ export default function BookingPage() {
 
   const handleUpdatePayment = (
     paymentId: string,
-    payment: Omit<Payment, "_id" | "id">
+    payment: Omit<Payment, "_id" | "id">,
   ) => {
     if (selectedBookingForPayment) {
       updatePayment({
@@ -466,7 +466,7 @@ export default function BookingPage() {
       return false;
     }
     return selectableBookingIdsOnPage.every((id) =>
-      selectedBookingIds.includes(id)
+      selectedBookingIds.includes(id),
     );
   }, [selectableBookingIdsOnPage, selectedBookingIds]);
 
