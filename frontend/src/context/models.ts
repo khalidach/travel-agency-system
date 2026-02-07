@@ -192,6 +192,7 @@ export interface Booking {
   userId: number;
   employeeId?: number;
   employeeName?: string;
+  bookingSource?: string; // NEW: Field for source of booking
 }
 
 export interface Payment {

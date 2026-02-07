@@ -161,7 +161,7 @@ const bookingValidation = [
       }
       if (noPassport && value) {
         throw new Error(
-          "Cannot provide a passport number when 'No Passport' is checked."
+          "Cannot provide a passport number when 'No Passport' is checked.",
         );
       }
       return true;
@@ -178,7 +178,7 @@ const bookingValidation = [
         return true;
       }
       throw new Error(
-        "Invalid date of birth format. Use YYYY-MM-DD or XX/XX/YYYY."
+        "Invalid date of birth format. Use YYYY-MM-DD or XX/XX/YYYY.",
       );
     }),
   body("clients.*.passportExpirationDate")
@@ -192,6 +192,7 @@ const bookingValidation = [
     .isFloat({ gte: 0 })
     .withMessage("Selling price must be a positive number."),
   body("packageId").optional({ checkFalsy: true }).trim(),
+  body("bookingSource").optional().trim().escape(), // NEW: Validation for bookingSource
 ];
 
 const bookingUpdateValidation = [
@@ -230,7 +231,7 @@ const bookingUpdateValidation = [
       }
       if (noPassport && value) {
         throw new Error(
-          "Cannot provide a passport number when 'No Passport' is checked."
+          "Cannot provide a passport number when 'No Passport' is checked.",
         );
       }
       return true;
@@ -245,7 +246,7 @@ const bookingUpdateValidation = [
         return true;
       }
       throw new Error(
-        "Invalid date of birth format. Use YYYY-MM-DD or XX/XX/YYYY."
+        "Invalid date of birth format. Use YYYY-MM-DD or XX/XX/YYYY.",
       );
     }),
   body("passportExpirationDate")
@@ -258,6 +259,7 @@ const bookingUpdateValidation = [
     .isFloat({ gte: 0 })
     .withMessage("Selling price must be a positive number."),
   body("packageId").optional({ checkFalsy: true }).trim(),
+  body("bookingSource").optional().trim().escape(), // NEW: Validation for bookingSource
 ];
 
 const paymentValidation = [

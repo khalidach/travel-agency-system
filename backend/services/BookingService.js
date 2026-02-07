@@ -14,7 +14,7 @@ const AppError = require("../utils/appError"); // Import AppError for custom err
 const checkProgramCapacity = async (client, programId, newBookingsCount) => {
   const programResult = await client.query(
     'SELECT "maxBookings" FROM programs WHERE id = $1',
-    [programId]
+    [programId],
   );
 
   if (programResult.rows.length === 0) {
@@ -31,7 +31,7 @@ const checkProgramCapacity = async (client, programId, newBookingsCount) => {
   // Count existing bookings for the program
   const countResult = await client.query(
     'SELECT COUNT(*) FROM bookings WHERE "tripId" = $1',
-    [programId]
+    [programId],
   );
   const currentBookings = parseInt(countResult.rows[0].count, 10);
 
@@ -57,18 +57,18 @@ const calculateBasePrice = async (
   packageId,
   selectedHotel,
   personType,
-  variationName
+  variationName,
 ) => {
   const { rows: programs } = await db.query(
     'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
-    [tripId, userId]
+    [tripId, userId],
   );
   if (programs.length === 0)
     throw new Error("Program not found for base price calculation.");
   const program = programs[0];
 
   let variation = (program.variations || []).find(
-    (v) => v.name === variationName
+    (v) => v.name === variationName,
   );
 
   if (!variation) {
@@ -82,13 +82,13 @@ const calculateBasePrice = async (
   // New logic for commission-based programs
   if (program.isCommissionBased) {
     const bookingPackage = (program.packages || []).find(
-      (p) => p.name === packageId
+      (p) => p.name === packageId,
     );
     if (!bookingPackage) return 0;
 
     const hotelCombination = (selectedHotel.hotelNames || []).join("_");
     const priceStructure = (bookingPackage.prices || []).find(
-      (p) => p.hotelCombination === hotelCombination
+      (p) => p.hotelCombination === hotelCombination,
     );
     if (!priceStructure) return 0;
 
@@ -98,7 +98,7 @@ const calculateBasePrice = async (
     if (!roomTypeName) return 0;
 
     const roomTypeDef = priceStructure.roomTypes.find(
-      (rt) => rt.type === roomTypeName
+      (rt) => rt.type === roomTypeName,
     );
     if (!roomTypeDef || typeof roomTypeDef.purchasePrice === "undefined")
       return 0;
@@ -108,7 +108,7 @@ const calculateBasePrice = async (
   // Existing logic for regular (non-commission) programs
   const { rows: pricings } = await db.query(
     'SELECT * FROM program_pricing WHERE "programId" = $1 AND "userId" = $2',
-    [tripId, userId]
+    [tripId, userId],
   );
   if (pricings.length === 0) return 0;
   const pricing = pricings[0];
@@ -119,12 +119,12 @@ const calculateBasePrice = async (
     pricing.ticketPricesByVariation[variationName]
   ) {
     ticketPriceForVariation = Number(
-      pricing.ticketPricesByVariation[variationName]
+      pricing.ticketPricesByVariation[variationName],
     );
   }
 
   const personTypeInfo = (pricing.personTypes || []).find(
-    (p) => p.type === personType
+    (p) => p.type === personType,
   );
   const ticketPercentage = personTypeInfo
     ? personTypeInfo.ticketPercentage / 100
@@ -139,7 +139,7 @@ const calculateBasePrice = async (
 
   let hotelCosts = 0;
   const bookingPackage = (program.packages || []).find(
-    (p) => p.name === packageId
+    (p) => p.name === packageId,
   );
 
   if (
@@ -150,25 +150,25 @@ const calculateBasePrice = async (
   ) {
     const hotelCombination = (selectedHotel.hotelNames || []).join("_");
     const priceStructure = (bookingPackage.prices || []).find(
-      (p) => p.hotelCombination === hotelCombination
+      (p) => p.hotelCombination === hotelCombination,
     );
 
     if (priceStructure) {
       const guestMap = new Map(
-        priceStructure.roomTypes.map((rt) => [rt.type, rt.guests])
+        priceStructure.roomTypes.map((rt) => [rt.type, rt.guests]),
       );
 
       hotelCosts = (selectedHotel.cities || []).reduce((total, city, index) => {
         const hotelName = selectedHotel.hotelNames[index];
         const roomTypeName = selectedHotel.roomTypes[index];
         const hotelPricingInfo = (pricing.allHotels || []).find(
-          (h) => h.name === hotelName && h.city === city
+          (h) => h.name === hotelName && h.city === city,
         );
         const cityInfo = (variation.cities || []).find((c) => c.name === city);
 
         if (hotelPricingInfo && cityInfo && roomTypeName) {
           const pricePerNight = Number(
-            hotelPricingInfo.PricePerNights?.[roomTypeName] || 0
+            hotelPricingInfo.PricePerNights?.[roomTypeName] || 0,
           );
           const nights = Number(cityInfo.nights || 0);
           const guests = Number(guestMap.get(roomTypeName) || 1);
@@ -193,7 +193,7 @@ const calculateBasePrice = async (
 async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   const nameChanged = !isEqual(
     oldBooking.clientNameFr,
-    updatedBooking.clientNameFr
+    updatedBooking.clientNameFr,
   );
 
   if (!nameChanged) {
@@ -212,7 +212,7 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   const { rows: referencingBookings } = await client.query(
     `SELECT id, "relatedPersons" FROM bookings 
       WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
-    [userId, tripId, relatedPersonIdentifier]
+    [userId, tripId, relatedPersonIdentifier],
   );
 
   for (const booking of referencingBookings) {
@@ -224,14 +224,14 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
     });
     await client.query(
       'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
-      [JSON.stringify(updatedRelatedPersons), booking.id]
+      [JSON.stringify(updatedRelatedPersons), booking.id],
     );
   }
 
   // 2. Update the name in `room_managements`.
   const { rows: roomManagements } = await client.query(
     'SELECT id, rooms FROM room_managements WHERE "userId" = $1 AND "programId" = $2',
-    [userId, tripId]
+    [userId, tripId],
   );
 
   for (const management of roomManagements) {
@@ -250,7 +250,7 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
     if (roomsChanged) {
       await client.query(
         "UPDATE room_managements SET rooms = $1 WHERE id = $2",
-        [JSON.stringify(updatedRooms), management.id]
+        [JSON.stringify(updatedRooms), management.id],
       );
     }
   }
@@ -275,6 +275,7 @@ const createBookings = async (db, user, bulkData) => {
       sellingPrice,
       variationName,
       relatedPersons,
+      bookingSource, // NEW: Extract booking source
     } = sharedData;
 
     // --- NEW: Capacity Check before creating any bookings ---
@@ -282,20 +283,20 @@ const createBookings = async (db, user, bulkData) => {
     const capacity = await checkProgramCapacity(
       client,
       tripId,
-      newBookingsCount
+      newBookingsCount,
     );
 
     if (capacity.isFull) {
       throw new AppError(
         `لقد اكتمل هذا البرنامج. الحجوزات الحالية: ${capacity.currentBookings}، الحد الأقصى: ${capacity.maxBookings}. لا يمكن إضافة ${newBookingsCount} حجز جديد.`,
-        400 // Use 400 Bad Request or 409 Conflict if appropriate
+        400, // Use 400 Bad Request or 409 Conflict if appropriate
       );
     }
     // --- END NEW: Capacity Check ---
 
     const programRes = await client.query(
       'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
-      [tripId, adminId]
+      [tripId, adminId],
     );
     if (programRes.rows.length === 0) {
       throw new Error("Program not found.");
@@ -334,12 +335,12 @@ const createBookings = async (db, user, bulkData) => {
       if (processedPassportNumber) {
         const existingBookingCheck = await client.query(
           'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3',
-          [processedPassportNumber, tripId, adminId]
+          [processedPassportNumber, tripId, adminId],
         );
 
         if (existingBookingCheck.rows.length > 0) {
           throw new Error(
-            `Passport number ${processedPassportNumber} is already booked for this program.`
+            `Passport number ${processedPassportNumber} is already booked for this program.`,
           );
         }
       }
@@ -352,15 +353,16 @@ const createBookings = async (db, user, bulkData) => {
         packageId,
         selectedHotel,
         personType,
-        variationName
+        variationName,
       );
       const profit = sellingPrice - basePrice;
       const remainingBalance = sellingPrice;
       const isFullyPaid = remainingBalance <= 0;
       const employeeId = role === "admin" ? null : id;
 
+      // NEW: Added "bookingSource" to INSERT
       const { rows } = await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, NOW()) RETURNING *',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "bookingSource", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW()) RETURNING *',
         [
           adminId,
           employeeId,
@@ -383,21 +385,22 @@ const createBookings = async (db, user, bulkData) => {
           remainingBalance,
           isFullyPaid,
           JSON.stringify(relatedPersons || []),
-        ]
+          bookingSource || null, // NEW: $22
+        ],
       );
       const newBooking = rows[0];
       createdBookings.push(newBooking);
       await RoomManagementService.autoAssignToRoom(
         client,
         user.adminId,
-        newBooking
+        newBooking,
       );
     }
 
     // Since we've created the bookings, increment totalBookings
     await client.query(
       'UPDATE programs SET "totalBookings" = "totalBookings" + $1 WHERE id = $2',
-      [clients.length, tripId]
+      [clients.length, tripId],
     );
 
     await client.query("COMMIT");
@@ -421,7 +424,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     // Get the old booking data before the update
     const oldBookingResult = await client.query(
       'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
-      [bookingId, user.adminId]
+      [bookingId, user.adminId],
     );
 
     if (oldBookingResult.rows.length === 0) {
@@ -451,6 +454,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       advancePayments,
       relatedPersons,
       noPassport, // <-- Added noPassport
+      bookingSource, // NEW: Extract booking source
     } = bookingData;
 
     // --- NEW: Capacity Check for TripId change (If tripId changes, we check new program capacity) ---
@@ -461,7 +465,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       if (capacity.isFull) {
         throw new AppError(
           `لا يمكن نقل الحجز إلى هذا البرنامج. البرنامج ممتلئ: ${capacity.currentBookings}/${capacity.maxBookings}.`,
-          400
+          400,
         );
       }
       // If successful, we will handle the program totalBookings count at the end of the transaction
@@ -484,12 +488,12 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     if (processedPassportNumber) {
       const existingBookingCheck = await client.query(
         'SELECT id FROM bookings WHERE "passportNumber" = $1 AND "tripId" = $2 AND "userId" = $3 AND id != $4',
-        [processedPassportNumber, tripId, user.adminId, bookingId]
+        [processedPassportNumber, tripId, user.adminId, bookingId],
       );
 
       if (existingBookingCheck.rows.length > 0) {
         throw new Error(
-          "Another booking with this passport number already exists for this program."
+          "Another booking with this passport number already exists for this program.",
         );
       }
     }
@@ -497,7 +501,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const programRes = await db.query(
       'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
-      [tripId, user.adminId]
+      [tripId, user.adminId],
     );
     if (programRes.rows.length === 0) {
       throw new Error("Program not found.");
@@ -514,18 +518,19 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       packageId,
       selectedHotel,
       personType,
-      variationName
+      variationName,
     );
     const profit = sellingPrice - basePrice;
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
-      0
+      0,
     );
     const remainingBalance = sellingPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
+    // NEW: Added "bookingSource" to UPDATE
     const { rows } = await client.query(
-      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19 WHERE id = $20 RETURNING *',
+      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19, "bookingSource" = $20 WHERE id = $21 RETURNING *',
       [
         clientNameAr,
         JSON.stringify(processedClientNameFr),
@@ -546,8 +551,9 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         remainingBalance,
         isFullyPaid,
         JSON.stringify(relatedPersons || []),
-        bookingId,
-      ]
+        bookingSource || null, // NEW: $20
+        bookingId, // NEW: $21 (shifted from $20)
+      ],
     );
 
     const updatedBooking = rows[0];
@@ -560,7 +566,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       client,
       user.adminId,
       updatedBooking.tripId,
-      updatedBooking
+      updatedBooking,
     );
 
     const keyFieldsChanged =
@@ -578,8 +584,8 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       if (keyFieldsChanged) reason.push("key fields changed");
       logger.info(
         `Re-assignment triggered for booking ID ${bookingId}. Reason: ${reason.join(
-          " and "
-        )}.`
+          " and ",
+        )}.`,
       );
 
       // 1. Remove from OLD program/rooms (important if tripId changed)
@@ -587,18 +593,18 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         client,
         user.adminId,
         oldBooking.tripId,
-        oldBooking.id
+        oldBooking.id,
       );
 
       // 2. Auto-assign to the correct rooms in the NEW program
       await RoomManagementService.autoAssignToRoom(
         client,
         user.adminId,
-        updatedBooking
+        updatedBooking,
       );
     } else {
       logger.info(
-        `Booking ID ${bookingId} is fully assigned and no key fields changed. Skipping room re-assignment.`
+        `Booking ID ${bookingId} is fully assigned and no key fields changed. Skipping room re-assignment.`,
       );
     }
     // --- END OF MODIFIED LOGIC ---
@@ -608,12 +614,12 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       // Decrement old program count
       await client.query(
         'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1 AND "totalBookings" > 0',
-        [oldBooking.tripId]
+        [oldBooking.tripId],
       );
       // Increment new program count
       await client.query(
         'UPDATE programs SET "totalBookings" = "totalBookings" + 1 WHERE id = $1',
-        [tripId]
+        [tripId],
       );
     }
     // --- END NEW: Update program totalBookings ---
@@ -637,11 +643,11 @@ const getAllBookings = async (db, id, page, limit, idColumn) => {
       WHERE b."${idColumn}" = $1
       ORDER BY b."createdAt" DESC
       LIMIT $2 OFFSET $3`,
-    [id, limit, offset]
+    [id, limit, offset],
   );
   const totalCountPromise = db.query(
     `SELECT COUNT(*) FROM bookings WHERE "${idColumn}" = $1`,
-    [id]
+    [id],
   );
   const [bookingsResult, totalCountResult] = await Promise.all([
     bookingsPromise,
@@ -659,13 +665,13 @@ const deleteBooking = async (db, user, bookingId) => {
 
     if (role === "manager") {
       throw new Error(
-        "Managers are not authorized to delete individual bookings."
+        "Managers are not authorized to delete individual bookings.",
       );
     }
 
     const bookingRes = await client.query(
       'SELECT "tripId", "employeeId" FROM bookings WHERE id = $1 AND "userId" = $2',
-      [bookingId, adminId]
+      [bookingId, adminId],
     );
 
     if (bookingRes.rows.length === 0) {
@@ -686,16 +692,16 @@ const deleteBooking = async (db, user, bookingId) => {
     const { rows: referencingBookings } = await client.query(
       `SELECT id, "relatedPersons" FROM bookings
         WHERE "userId" = $1 AND "tripId" = $2 AND "relatedPersons" @> $3::jsonb`,
-      [adminId, tripId, relatedPersonIdentifier]
+      [adminId, tripId, relatedPersonIdentifier],
     );
 
     for (const referencingBooking of referencingBookings) {
       const updatedRelatedPersons = referencingBooking.relatedPersons.filter(
-        (person) => person.ID !== parseInt(bookingId, 10)
+        (person) => person.ID !== parseInt(bookingId, 10),
       );
       await client.query(
         'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
-        [JSON.stringify(updatedRelatedPersons), referencingBooking.id]
+        [JSON.stringify(updatedRelatedPersons), referencingBooking.id],
       );
     }
 
@@ -703,7 +709,7 @@ const deleteBooking = async (db, user, bookingId) => {
       client,
       adminId,
       booking.tripId,
-      bookingId
+      bookingId,
     );
 
     const deleteRes = await client.query("DELETE FROM bookings WHERE id = $1", [
@@ -717,7 +723,7 @@ const deleteBooking = async (db, user, bookingId) => {
     if (tripId) {
       await client.query(
         'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1 AND "totalBookings" > 0',
-        [tripId]
+        [tripId],
       );
     }
 
@@ -752,7 +758,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
 
       if (filters.searchTerm) {
         whereConditions.push(
-          `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+          `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`,
         );
         queryParams.push(`%${filters.searchTerm}%`);
         paramIndex++;
@@ -761,11 +767,11 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
         whereConditions.push('"isFullyPaid" = true');
       } else if (filters.statusFilter === "pending") {
         whereConditions.push(
-          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0'
+          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0',
         );
       } else if (filters.statusFilter === "notPaid") {
         whereConditions.push(
-          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0'
+          '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0',
         );
       }
 
@@ -799,7 +805,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
 
     const bookingsToDeleteRes = await client.query(
       `SELECT id, "tripId", "employeeId" FROM bookings ${whereClause}`,
-      queryParams
+      queryParams,
     );
 
     const bookingsToDelete = bookingsToDeleteRes.rows;
@@ -820,7 +826,7 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
               WHERE NOT ((elem->>'ID')::int = ANY($1::int[]))
           )
           WHERE "userId" = $2 AND "tripId" = $3 AND "relatedPersons" IS NOT NULL AND "relatedPersons" != '[]'::jsonb`,
-        [idsToDelete, adminId, tripId]
+        [idsToDelete, adminId, tripId],
       );
     }
 
@@ -829,24 +835,24 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
         client,
         user.adminId,
         booking.tripId,
-        booking.id
+        booking.id,
       );
     }
 
     if (user.role !== "admin") {
       const isAuthorized = bookingsToDelete.every(
-        (b) => b.employeeId === user.id
+        (b) => b.employeeId === user.id,
       );
       if (!isAuthorized) {
         throw new Error(
-          "You are not authorized to delete one or more of the selected bookings."
+          "You are not authorized to delete one or more of the selected bookings.",
         );
       }
     }
 
     const deleteRes = await client.query(
       "DELETE FROM bookings WHERE id = ANY($1::int[])",
-      [idsToDelete]
+      [idsToDelete],
     );
 
     const tripIdCounts = bookingsToDelete.reduce((acc, booking) => {
@@ -860,9 +866,9 @@ const deleteMultipleBookings = async (db, user, bookingIds, filters) => {
       ([tripId, count]) => {
         return client.query(
           'UPDATE programs SET "totalBookings" = "totalBookings" - $1 WHERE id = $2 AND "totalBookings" >= $1',
-          [count, tripId]
+          [count, tripId],
         );
-      }
+      },
     );
 
     await Promise.all(updatePromises);
@@ -881,11 +887,11 @@ const findBookingForUser = async (
   db,
   user,
   bookingId,
-  checkOwnership = false
+  checkOwnership = false,
 ) => {
   const { rows } = await db.query(
     'SELECT * FROM bookings WHERE id = $1 AND "userId" = $2',
-    [bookingId, user.adminId]
+    [bookingId, user.adminId],
   );
   if (rows.length === 0) throw new Error("Booking not found or not authorized");
 
@@ -896,7 +902,7 @@ const findBookingForUser = async (
     }
     if (user.role === "employee" && booking.employeeId !== user.id) {
       throw new Error(
-        "You are not authorized to modify payments for this booking."
+        "You are not authorized to modify payments for this booking.",
       );
     }
   }
@@ -922,7 +928,7 @@ const addPayment = async (db, user, bookingId, paymentData) => {
 
   const { rows: updatedRows } = await db.query(
     'UPDATE bookings SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 RETURNING *',
-    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId]
+    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId],
   );
   return updatedRows[0];
 };
@@ -935,7 +941,7 @@ const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
   const advancePayments = (booking.advancePayments || []).map((p) =>
     p._id === paymentId
       ? { ...p, ...restOfPaymentData, _id: p._id, labelPaper: labelPaper || "" } // MODIFIED: Update labelPaper
-      : p
+      : p,
   );
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
   const remainingBalance = booking.sellingPrice - totalPaid;
@@ -943,7 +949,7 @@ const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
 
   const { rows: updatedRows } = await db.query(
     'UPDATE bookings SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 RETURNING *',
-    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId]
+    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId],
   );
   return updatedRows[0];
 };
@@ -951,7 +957,7 @@ const updatePayment = async (db, user, bookingId, paymentId, paymentData) => {
 const deletePayment = async (db, user, bookingId, paymentId) => {
   const booking = await findBookingForUser(db, user, bookingId, true);
   const advancePayments = (booking.advancePayments || []).filter(
-    (p) => p._id !== paymentId
+    (p) => p._id !== paymentId,
   );
   const totalPaid = advancePayments.reduce((sum, p) => sum + p.amount, 0);
   const remainingBalance = booking.sellingPrice - totalPaid;
@@ -959,7 +965,7 @@ const deletePayment = async (db, user, bookingId, paymentId) => {
 
   const { rows: updatedRows } = await db.query(
     'UPDATE bookings SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 RETURNING *',
-    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId]
+    [JSON.stringify(advancePayments), remainingBalance, isFullyPaid, bookingId],
   );
   return updatedRows[0];
 };

@@ -196,6 +196,7 @@ const applyDatabaseMigrations = async (client) => {
         "remainingBalance" NUMERIC(10, 2) NOT NULL,
         "isFullyPaid" BOOLEAN NOT NULL,
         "relatedPersons" JSONB,
+        "bookingSource" TEXT, -- NEW: Source of the booking
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -244,6 +245,18 @@ const applyDatabaseMigrations = async (client) => {
       END;
       $$;
     `);
+
+    // --- NEW: Add 'bookingSource' column to bookings if it doesn't exist ---
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='bookingSource') THEN
+          ALTER TABLE bookings ADD COLUMN "bookingSource" TEXT;
+        END IF;
+      END;
+      $$;
+    `);
+    // --- END NEW ---
 
     // --- FIX: Alter columns to allow NULL for "No Passport" and "Name AR/FR" features ---
     await client.query(`
@@ -428,52 +441,52 @@ const applyDatabaseMigrations = async (client) => {
     console.log("Applying database indexes for performance...");
     await client.query("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_employee ON bookings("employeeId");'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_employee ON bookings("employeeId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings("createdAt" DESC);'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings("createdAt" DESC);',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_passport ON bookings("passportNumber");'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_passport ON bookings("passportNumber");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_programs_user_type ON programs("userId", "type");'
+      'CREATE INDEX IF NOT EXISTS idx_programs_user_type ON programs("userId", "type");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_program_pricing_program ON program_pricing("programId");'
+      'CREATE INDEX IF NOT EXISTS idx_program_pricing_program ON program_pricing("programId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_factures_user ON factures("userId");'
+      'CREATE INDEX IF NOT EXISTS idx_factures_user ON factures("userId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_daily_services_user ON daily_services("userId");'
+      'CREATE INDEX IF NOT EXISTS idx_daily_services_user ON daily_services("userId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");'
+      'CREATE INDEX IF NOT EXISTS idx_employees_admin ON employees("adminId");',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "isFullyPaid");'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_composite_filters ON bookings("userId", "tripId", "isFullyPaid");',
     );
     await client.query(
-      `CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN (("clientNameFr" ->> 'lastName') gin_trgm_ops, ("clientNameFr" ->> 'firstName') gin_trgm_ops);`
+      `CREATE INDEX IF NOT EXISTS idx_bookings_client_name_fr_gin ON bookings USING GIN (("clientNameFr" ->> 'lastName') gin_trgm_ops, ("clientNameFr" ->> 'firstName') gin_trgm_ops);`,
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_ar_gin ON bookings USING GIN ("clientNameAr" gin_trgm_ops);'
+      'CREATE INDEX IF NOT EXISTS idx_bookings_client_name_ar_gin ON bookings USING GIN ("clientNameAr" gin_trgm_ops);',
     );
     await client.query(
-      "CREATE INDEX IF NOT EXISTS idx_programs_name_gin ON programs USING GIN (name gin_trgm_ops);"
+      "CREATE INDEX IF NOT EXISTS idx_programs_name_gin ON programs USING GIN (name gin_trgm_ops);",
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_daily_services_user_date ON daily_services("userId", date DESC);'
+      'CREATE INDEX IF NOT EXISTS idx_daily_services_user_date ON daily_services("userId", date DESC);',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_factures_user_created_at ON factures("userId", "createdAt" DESC);'
+      'CREATE INDEX IF NOT EXISTS idx_factures_user_created_at ON factures("userId", "createdAt" DESC);',
     );
     await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");'
+      'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");',
     );
 
     // --- FIX: Drop old unique constraint and add partial unique constraint for passport ---
