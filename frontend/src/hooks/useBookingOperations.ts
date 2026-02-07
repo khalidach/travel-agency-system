@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import * as api from "../services/api";
-import { Payment, Program } from "../context/models";
+import { Payment, Program, Booking } from "../context/models";
 import { useBookingStore } from "../store/bookingStore";
 
 interface UseBookingOperationsProps {
@@ -13,6 +13,13 @@ interface UseBookingOperationsProps {
     employeeFilter: string;
     variationFilter: string;
   };
+}
+
+// Define a type for the data coming from the form
+// This replaces 'any' and accommodates the flexible structure of the form state
+interface BookingSubmissionData extends Partial<Booking> {
+  clients?: Partial<Booking>[];
+  [key: string]: unknown; // Allow for other potential form fields
 }
 
 export const useBookingOperations = ({
@@ -38,7 +45,7 @@ export const useBookingOperations = ({
   // --- Booking Mutations ---
 
   const { mutate: createBooking } = useMutation({
-    mutationFn: (data: any) => api.createBooking(data),
+    mutationFn: (data: BookingSubmissionData) => api.createBooking(data),
     onSuccess: (result) => {
       invalidateAllQueries();
       toast.success(result.message || "Booking created!");
@@ -51,7 +58,7 @@ export const useBookingOperations = ({
   const { mutate: updateBooking } = useMutation({
     mutationFn: (data: {
       bookingId: number;
-      bookingData: any;
+      bookingData: BookingSubmissionData;
       initialPayments: Payment[];
     }) =>
       api.updateBooking(data.bookingId, {
@@ -152,10 +159,15 @@ export const useBookingOperations = ({
 
   // --- Handlers ---
 
-  const handleSaveBooking = (bookingData: any, initialPayments: Payment[]) => {
+  const handleSaveBooking = (
+    bookingData: BookingSubmissionData,
+    initialPayments: Payment[],
+  ) => {
     if (store.editingBooking) {
       const { clients, ...restOfData } = bookingData;
+      // Ensure we extract a single client data object if clients array exists
       const singleClientData = clients && clients.length > 0 ? clients[0] : {};
+
       updateBooking({
         bookingId: store.editingBooking.id,
         bookingData: { ...singleClientData, ...restOfData },
