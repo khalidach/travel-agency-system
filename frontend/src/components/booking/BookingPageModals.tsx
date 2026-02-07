@@ -7,11 +7,17 @@ import BookingForm from "../BookingForm";
 import PaymentManagementModal from "./PaymentManagementModal";
 import { useBookingStore } from "../../store/bookingStore";
 import { Payment, Program } from "../../context/models";
+// Import the specific type for booking data
+import type { BookingSaveData } from "../booking_form/types";
 
 interface BookingPageModalsProps {
   programs: Program[];
   programId?: string;
-  onSaveBooking: (bookingData: any, initialPayments: Payment[]) => void;
+  // Replaced 'any' with the strictly typed 'BookingSaveData'
+  onSaveBooking: (
+    bookingData: BookingSaveData,
+    initialPayments: Payment[],
+  ) => void;
   onSavePayment: (payment: Omit<Payment, "_id" | "id">) => void;
   onUpdatePayment: (
     paymentId: string,
