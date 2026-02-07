@@ -28,7 +28,7 @@ import ProgramPackageSelection from "./booking/ProgramPackageSelection";
 import RelatedPeopleManager from "./booking/RelatedPeopleManager";
 import PricingFields from "./booking/PricingFields";
 import BulkClientRow from "./booking/BulkClientRow";
-import { Plus, Users } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export type ClientFormData = {
   clientNameAr: string;
@@ -315,14 +315,14 @@ export default function BookingForm({
 
         // FIX: Destructure client-specific fields from the booking object
         const {
-          clientNameAr,
-          clientNameFr,
-          personType,
-          phoneNumber,
-          passportNumber,
-          gender,
-          dateOfBirth,
-          passportExpirationDate,
+          clientNameAr: _clientNameAr,
+          clientNameFr: _clientNameFr,
+          personType: _personType,
+          phoneNumber: _phoneNumber,
+          passportNumber: _passportNumber,
+          gender: _gender,
+          dateOfBirth: _dateOfBirth,
+          passportExpirationDate: _passportExpirationDate,
           ...restOfBooking
         } = booking;
 
