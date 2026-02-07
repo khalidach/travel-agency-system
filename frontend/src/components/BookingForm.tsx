@@ -21,7 +21,6 @@ import type {
   ClientNameFr,
 } from "../context/models";
 import * as api from "../services/api";
-import { useAuthContext } from "../context/AuthContext";
 import HotelRoomSelection from "./booking/HotelRoomSelection";
 import ClientInfoFields from "./booking/ClientInfoFields";
 import ProgramPackageSelection from "./booking/ProgramPackageSelection";
@@ -105,8 +104,6 @@ export default function BookingForm({
   programId,
 }: BookingFormProps) {
   const { t } = useTranslation();
-  const { state: authState } = useAuthContext();
-  const userRole = authState.user?.role;
   const [isBulkMode, setIsBulkMode] = useState(false);
 
   const methods = useForm<BookingFormData>({
