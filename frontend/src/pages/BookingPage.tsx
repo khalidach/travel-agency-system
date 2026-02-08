@@ -1,9 +1,10 @@
+// frontend/src/pages/BookingPage.tsx
 import React, { useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next"; // Added
+import { useTranslation } from "react-i18next";
 
 // Components
 import BookingSummary from "../components/booking/BookingSummary";
@@ -52,7 +53,7 @@ interface BookingResponse {
 }
 
 export default function BookingPage() {
-  const { t } = useTranslation(); // Added
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId: string }>();
   const { state: authState } = useAuthContext();
@@ -222,16 +223,39 @@ export default function BookingPage() {
     }
   };
 
-  // --- NEW: Handle Status Update ---
+  // --- NEW: Handle Status Update (Approve / Reject) ---
   const handleUpdateStatus = async (
     id: number,
     status: "confirmed" | "cancelled",
   ) => {
     try {
-      await api.updateBookingStatus(id, status);
-      toast.success(t("statusUpdated") || "Status updated successfully");
+      if (status === "cancelled") {
+        // REJECT LOGIC: Delete the booking entirely
+        // Adding a confirmation to prevent accidental clicks
+        const confirmReject = window.confirm(
+          t("confirmRejectBooking") ||
+            "Are you sure you want to reject this booking? This will permanently delete it.",
+        );
+
+        if (!confirmReject) return;
+
+        await api.deleteBooking(id);
+        toast.success(
+          t("bookingRejectedAndDeleted") || "Booking rejected and deleted",
+        );
+      } else {
+        // APPROVE LOGIC: Update status to confirmed
+        await api.updateBookingStatus(id, status);
+        toast.success(t("statusUpdated") || "Status updated successfully");
+      }
+
+      // Refresh both the booking list and program (for capacity/stats)
       queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries({ queryKey: ["program", programId] });
+      // Also refresh notifications to keep them in sync
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
+      console.error(error);
       toast.error(t("errorUpdatingStatus") || "Failed to update status");
     }
   };
@@ -390,7 +414,7 @@ export default function BookingPage() {
             onEditBooking={(booking) => openBookingModal(booking)}
             onDeleteBooking={(id) => setBookingToDelete(id)}
             onManagePayments={(booking) => setSelectedForPayment(booking)}
-            onUpdateStatus={handleUpdateStatus} // Passed here
+            onUpdateStatus={handleUpdateStatus} // Logic updated above
           />
 
           {pagination && pagination.totalPages > 1 && (
