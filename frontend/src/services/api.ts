@@ -545,3 +545,11 @@ export const markNotificationRead = (id: number) =>
 
 export const markAllNotificationsRead = () =>
   request("/notifications/mark-all-read", { method: "PATCH" });
+
+// <NEW CODE>
+export const deleteNotification = (id: number) =>
+  request(`/notifications/${id}`, { method: "DELETE" });
+
+export const deleteAllNotifications = () =>
+  request("/notifications/clear-all", { method: "DELETE" });
+// </NEW CODE>

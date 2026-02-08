@@ -13,7 +13,8 @@ import {
   Bell,
   Check,
   X,
-} from "lucide-react"; // Added Check, X
+  Trash2,
+} from "lucide-react"; // Added Trash2
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -76,20 +77,75 @@ export default function Header() {
     },
   });
 
+  // <NEW CODE>
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await api.deleteNotification(id);
+    },
+    onSuccess: () => {
+      toast.success(t("notificationDeleted") || "Notification deleted");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      await api.deleteAllNotifications();
+    },
+    onSuccess: () => {
+      toast.success(t("notificationsCleared") || "Notifications cleared");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const rejectBookingMutation = useMutation({
+    mutationFn: async ({
+      bookingId,
+      notificationId,
+    }: {
+      bookingId: number;
+      notificationId: number;
+    }) => {
+      await api.deleteBooking(bookingId); // Delete the booking directly
+      await api.deleteNotification(notificationId); // Delete the notification
+    },
+    onSuccess: () => {
+      toast.success(
+        t("bookingRejectedAndDeleted") || "Booking rejected and deleted",
+      );
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      // Invalidate total bookings count/capacity queries if they exist
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
+    },
+    onError: (error: any) => {
+      toast.error(
+        t("errorRejectingBooking") ||
+          error.message ||
+          "Failed to reject booking",
+      );
+    },
+  });
+  // </NEW CODE>
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({
       id,
       status,
+      notificationId,
     }: {
       id: number;
       status: "confirmed" | "cancelled";
+      notificationId: number;
     }) => {
       await api.updateBookingStatus(id, status);
+      await api.markNotificationRead(notificationId);
     },
     onSuccess: () => {
       toast.success(t("statusUpdated") || "Status updated");
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+      queryClient.invalidateQueries({ queryKey: ["programs"] });
     },
     onError: () => {
       toast.error(t("errorUpdatingStatus") || "Failed to update status");
@@ -186,14 +242,24 @@ export default function Header() {
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                       {t("notifications") || "Notifications"}
                     </h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={() => markAllReadMutation.mutate()}
-                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                      >
-                        {t("markAllRead") || "Mark all read"}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={() => markAllReadMutation.mutate()}
+                          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                        >
+                          {t("markAllRead") || "Mark all read"}
+                        </button>
+                      )}
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={() => clearAllNotificationsMutation.mutate()}
+                          className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          {t("clearAll") || "Clear All"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
@@ -204,7 +270,7 @@ export default function Header() {
                       notifications.map((notif) => (
                         <div
                           key={notif.id}
-                          className={`p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                          className={`p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group relative ${
                             !notif.isRead
                               ? "bg-blue-50/50 dark:bg-blue-900/10"
                               : ""
@@ -213,12 +279,24 @@ export default function Header() {
                             !notif.isRead && markReadMutation.mutate(notif.id)
                           }
                         >
-                          <div className="flex justify-between items-start mb-1">
+                          {/* Trash Icon for Deleting Single Notification */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotificationMutation.mutate(notif.id);
+                            }}
+                            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title={t("deleteNotification") || "Delete"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <div className="flex justify-between items-start mb-1 pr-6">
                             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                               {notif.title}
                             </p>
                             {!notif.isRead && (
-                              <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></span>
+                              <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
                             )}
                           </div>
                           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -232,11 +310,10 @@ export default function Header() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    updateStatusMutation.mutate({
-                                      id: notif.referenceId,
-                                      status: "cancelled",
+                                    rejectBookingMutation.mutate({
+                                      bookingId: notif.referenceId,
+                                      notificationId: notif.id,
                                     });
-                                    markReadMutation.mutate(notif.id);
                                   }}
                                   className="flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200"
                                 >
@@ -249,8 +326,8 @@ export default function Header() {
                                     updateStatusMutation.mutate({
                                       id: notif.referenceId,
                                       status: "confirmed",
+                                      notificationId: notif.id,
                                     });
-                                    markReadMutation.mutate(notif.id);
                                   }}
                                   className="flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-md border border-green-200"
                                 >

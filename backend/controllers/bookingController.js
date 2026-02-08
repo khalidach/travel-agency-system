@@ -52,9 +52,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
       sortOrder = "newest",
       statusFilter = "all",
       employeeFilter = "all",
-      // <NEW CODE>
       variationFilter = "all",
-      // </NEW CODE>
     } = req.query;
     const { adminId, role, id: userId } = req.user;
 
@@ -83,13 +81,11 @@ exports.getBookingsByProgram = async (req, res, next) => {
       );
     }
 
-    // <NEW CODE>
     if (variationFilter && variationFilter !== "all") {
       whereConditions.push(`b."variationName" = $${paramIndex}`);
       queryParams.push(variationFilter);
       paramIndex++;
     }
-    // </NEW CODE>
 
     if (role === "admin" || role === "manager") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
@@ -193,15 +189,17 @@ exports.getBookingsByProgram = async (req, res, next) => {
       );
 
       // POINT 1 & 4: Ensure summary stats include cost and profit for overall reports
+      // <UPDATED>: Filter stats to ONLY count confirmed bookings
       const statsQuery = `
             SELECT
-                COALESCE(SUM("sellingPrice"), 0) as "totalRevenue",
-                COALESCE(SUM("basePrice"), 0) as "totalCost",
-                COALESCE(SUM(profit), 0) as "totalProfit",
-                COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) as "totalPaid"
+                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "sellingPrice" ELSE 0 END), 0) as "totalRevenue",
+                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "basePrice" ELSE 0 END), 0) as "totalCost",
+                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN profit ELSE 0 END), 0) as "totalProfit",
+                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN ("sellingPrice" - "remainingBalance") ELSE 0 END), 0) as "totalPaid"
             FROM bookings b
             ${whereClause.replace(/b\."/g, '"')}
         `;
+      // </UPDATED>
       const statsResult = await req.db.query(statsQuery, queryParams);
       const summaryStats = statsResult.rows[0];
       const totalRevenue = parseFloat(summaryStats.totalRevenue);
@@ -236,6 +234,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
           break;
       }
 
+      // <UPDATED>: Filter stats to ONLY count confirmed bookings
       const combinedQuery = `
           WITH FilteredBookings AS (
             SELECT b.*
@@ -251,12 +250,12 @@ exports.getBookingsByProgram = async (req, res, next) => {
               LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
             ) t) as bookings,
             (SELECT COUNT(*) FROM FilteredBookings) as "totalCount",
-            -- POINT 1 & 4: Ensure summary stats include cost and profit for overall reports
-            (SELECT COALESCE(SUM("sellingPrice"), 0) FROM FilteredBookings) as "totalRevenue",
-            (SELECT COALESCE(SUM("basePrice"), 0) FROM FilteredBookings) as "totalCost",
-            (SELECT COALESCE(SUM(profit), 0) FROM FilteredBookings) as "totalProfit",
-            (SELECT COALESCE(SUM("sellingPrice" - "remainingBalance"), 0) FROM FilteredBookings) as "totalPaid"
+            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "sellingPrice" ELSE 0 END), 0) FROM FilteredBookings) as "totalRevenue",
+            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "basePrice" ELSE 0 END), 0) FROM FilteredBookings) as "totalCost",
+            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN profit ELSE 0 END), 0) FROM FilteredBookings) as "totalProfit",
+            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN ("sellingPrice" - "remainingBalance") ELSE 0 END), 0) FROM FilteredBookings) as "totalPaid"
         `;
+      // </UPDATED>
 
       queryParams.push(limit, (page - 1) * limit);
 
@@ -304,9 +303,7 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
       searchTerm = "",
       statusFilter = "all",
       employeeFilter = "all",
-      // <NEW CODE>
       variationFilter = "all",
-      // </NEW CODE>
     } = req.query;
     const { adminId, role, id: userId } = req.user;
 
@@ -334,13 +331,11 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
       );
     }
 
-    // <NEW CODE>
     if (variationFilter && variationFilter !== "all") {
       whereConditions.push(`"variationName" = $${paramIndex}`);
       queryParams.push(variationFilter);
       paramIndex++;
     }
-    // </NEW CODE>
 
     if (role === "admin") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
@@ -779,7 +774,6 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
   }
 };
 
-// --- MODIFIED: Renaming and integrating capacity check for Excel Import ---
 exports.importBookingsFromExcel = async (req, res, next) => {
   if (!req.file) {
     return next(new AppError("No file uploaded.", 400));
@@ -794,8 +788,6 @@ exports.importBookingsFromExcel = async (req, res, next) => {
   try {
     await client.query("BEGIN");
 
-    // The service now handles the entire import logic, including parsing, validation, and insertion.
-    // We pass the connected client to ensure all operations occur within the same transaction.
     const createdBookings = await ExcelService.importBookings(
       client,
       req.file.path,
@@ -828,4 +820,3 @@ exports.importBookingsFromExcel = async (req, res, next) => {
     client.release();
   }
 };
-// --- END MODIFIED: Renaming and integrating capacity check for Excel Import ---

@@ -31,3 +31,27 @@ exports.markAllAsRead = async (req, res, next) => {
     next(new AppError("Failed to update notifications.", 500));
   }
 };
+
+// <NEW CODE>
+exports.deleteNotification = async (req, res, next) => {
+  try {
+    await NotificationService.deleteNotification(
+      req.db,
+      req.params.id,
+      req.user.id,
+    );
+    res.status(204).send();
+  } catch (error) {
+    next(new AppError("Failed to delete notification.", 500));
+  }
+};
+
+exports.deleteAllNotifications = async (req, res, next) => {
+  try {
+    await NotificationService.deleteAllNotifications(req.db, req.user.id);
+    res.status(204).send();
+  } catch (error) {
+    next(new AppError("Failed to delete notifications.", 500));
+  }
+};
+// </NEW CODE>

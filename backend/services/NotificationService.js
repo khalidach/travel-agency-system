@@ -68,10 +68,27 @@ const markAllAsRead = async (db, userId) => {
   );
 };
 
+// <NEW CODE>
+const deleteNotification = async (db, notificationId, userId) => {
+  await db.query(
+    `DELETE FROM notifications WHERE id = $1 AND "recipientId" = $2`,
+    [notificationId, userId],
+  );
+};
+
+const deleteAllNotifications = async (db, userId) => {
+  await db.query(`DELETE FROM notifications WHERE "recipientId" = $1`, [
+    userId,
+  ]);
+};
+// </NEW CODE>
+
 module.exports = {
   createNotification,
   notifyAdminsAndManagers,
   getUserNotifications,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
+  deleteAllNotifications,
 };
