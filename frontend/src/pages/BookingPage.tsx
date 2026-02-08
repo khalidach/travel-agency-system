@@ -1,5 +1,5 @@
 // frontend/src/pages/BookingPage.tsx
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
@@ -16,6 +16,7 @@ import PaginationControls from "../components/booking/PaginationControls";
 import BookingPageModals from "../components/booking/BookingPageModals";
 import BookingSelectionBanner from "../components/booking/BookingSelectionBanner";
 import BookingEmptyState from "../components/booking/BookingEmptyState";
+import ConfirmationModal from "../components/modals/ConfirmationModal"; // Imported ConfirmationModal
 
 // Hooks
 import { usePagination } from "../hooks/usePagination";
@@ -60,6 +61,10 @@ export default function BookingPage() {
   const userRole = authState.user?.role;
   const userId = authState.user?.id;
   const user = authState.user;
+
+  // Local State for Reject Modal
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [bookingToReject, setBookingToReject] = useState<number | null>(null);
 
   // Zustand Store
   const {
@@ -223,40 +228,49 @@ export default function BookingPage() {
     }
   };
 
-  // --- NEW: Handle Status Update (Approve / Reject) ---
+  // --- UPDATED: Handle Status Update (Approve / Reject) ---
   const handleUpdateStatus = async (
     id: number,
     status: "confirmed" | "cancelled",
   ) => {
-    try {
-      if (status === "cancelled") {
-        // REJECT LOGIC: Delete the booking entirely
-        // Adding a confirmation to prevent accidental clicks
-        const confirmReject = window.confirm(
-          t("confirmRejectBooking") ||
-            "Are you sure you want to reject this booking? This will permanently delete it.",
-        );
-
-        if (!confirmReject) return;
-
-        await api.deleteBooking(id);
-        toast.success(
-          t("bookingRejectedAndDeleted") || "Booking rejected and deleted",
-        );
-      } else {
-        // APPROVE LOGIC: Update status to confirmed
+    if (status === "cancelled") {
+      // Open the custom confirmation modal for rejection
+      setBookingToReject(id);
+      setIsRejectModalOpen(true);
+    } else {
+      // APPROVE LOGIC: Update status to confirmed immediately
+      try {
         await api.updateBookingStatus(id, status);
         toast.success(t("statusUpdated") || "Status updated successfully");
+        queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+        queryClient.invalidateQueries({ queryKey: ["program", programId] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      } catch (error) {
+        console.error(error);
+        toast.error(t("errorUpdatingStatus") || "Failed to update status");
       }
+    }
+  };
 
+  // --- NEW: Actual Reject Action called by Modal ---
+  const handleConfirmReject = async () => {
+    if (!bookingToReject) return;
+
+    try {
+      await api.deleteBooking(bookingToReject);
+      toast.success(
+        t("bookingRejectedAndDeleted") || "Booking rejected and deleted",
+      );
       // Refresh both the booking list and program (for capacity/stats)
       queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       queryClient.invalidateQueries({ queryKey: ["program", programId] });
-      // Also refresh notifications to keep them in sync
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
       console.error(error);
-      toast.error(t("errorUpdatingStatus") || "Failed to update status");
+      toast.error(t("errorRejectingBooking") || "Failed to reject booking");
+    } finally {
+      setIsRejectModalOpen(false);
+      setBookingToReject(null);
     }
   };
 
@@ -414,7 +428,7 @@ export default function BookingPage() {
             onEditBooking={(booking) => openBookingModal(booking)}
             onDeleteBooking={(id) => setBookingToDelete(id)}
             onManagePayments={(booking) => setSelectedForPayment(booking)}
-            onUpdateStatus={handleUpdateStatus} // Logic updated above
+            onUpdateStatus={handleUpdateStatus}
           />
 
           {pagination && pagination.totalPages > 1 && (
@@ -430,6 +444,7 @@ export default function BookingPage() {
         </>
       )}
 
+      {/* Booking Page Modals */}
       <BookingPageModals
         programs={programs}
         programId={programId}
@@ -440,6 +455,20 @@ export default function BookingPage() {
         onConfirmDelete={confirmDeleteAction}
         onExportFlightList={handleFlightListExport}
         onExportNormalList={handleNormalExport}
+      />
+
+      {/* Reject Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isRejectModalOpen}
+        onClose={() => setIsRejectModalOpen(false)}
+        onConfirm={handleConfirmReject}
+        title={t("rejectBookingTitle") || "Reject Booking"}
+        message={
+          t("confirmRejectBooking") ||
+          "Are you sure you want to reject this booking? This action will permanently delete the booking and cannot be undone."
+        }
+        confirmText={t("reject") || "Reject"}
+        cancelText={t("cancel") || "Cancel"}
       />
     </div>
   );
