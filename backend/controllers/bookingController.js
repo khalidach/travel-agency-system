@@ -21,7 +21,7 @@ exports.getAllBookings = async (req, res, next) => {
       queryUserId,
       page,
       limit,
-      idColumn
+      idColumn,
     );
 
     res.status(200).json({
@@ -65,7 +65,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
 
     if (searchTerm) {
       whereConditions.push(
-        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`
+        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR b."clientNameAr" ILIKE $${paramIndex} OR b."passportNumber" ILIKE $${paramIndex})`,
       );
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;
@@ -75,11 +75,11 @@ exports.getBookingsByProgram = async (req, res, next) => {
       whereConditions.push('b."isFullyPaid" = true');
     } else if (statusFilter === "pending") {
       whereConditions.push(
-        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) > 0'
+        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) > 0',
       );
     } else if (statusFilter === "notPaid") {
       whereConditions.push(
-        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0'
+        'b."isFullyPaid" = false AND COALESCE(jsonb_array_length(b."advancePayments"), 0) = 0',
       );
     }
 
@@ -118,7 +118,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
         `;
       const allBookingsResult = await req.db.query(
         allBookingsQuery,
-        queryParams
+        queryParams,
       );
       const allBookings = allBookingsResult.rows;
 
@@ -162,7 +162,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
               summary.totalRemaining += remainingBalance;
               return summary;
             },
-            { totalPrice: 0, totalPaid: 0, totalRemaining: 0 }
+            { totalPrice: 0, totalPaid: 0, totalRemaining: 0 },
           );
 
           const leaderWithSummary = {
@@ -189,7 +189,7 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const offset = (page - 1) * limit;
       const paginatedBookings = sortedBookings.slice(
         offset,
-        offset + parseInt(limit, 10)
+        offset + parseInt(limit, 10),
       );
 
       // POINT 1 & 4: Ensure summary stats include cost and profit for overall reports
@@ -316,7 +316,7 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
 
     if (searchTerm) {
       whereConditions.push(
-        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`
+        `("clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex} OR "passportNumber" ILIKE $${paramIndex})`,
       );
       queryParams.push(`%${searchTerm}%`);
       paramIndex++;
@@ -326,11 +326,11 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
       whereConditions.push('"isFullyPaid" = true');
     } else if (statusFilter === "pending") {
       whereConditions.push(
-        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0'
+        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) > 0',
       );
     } else if (statusFilter === "notPaid") {
       whereConditions.push(
-        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0'
+        '"isFullyPaid" = false AND COALESCE(jsonb_array_length("advancePayments"), 0) = 0',
       );
     }
 
@@ -379,7 +379,7 @@ exports.createBooking = async (req, res, next) => {
     const result = await BookingService.createBookings(
       req.db,
       req.user,
-      req.body
+      req.body,
     );
     res.status(201).json(result);
   } catch (error) {
@@ -411,7 +411,7 @@ exports.updateBooking = async (req, res, next) => {
       req.db,
       req.user,
       id,
-      req.body
+      req.body,
     );
     res.status(200).json(updatedBooking);
   } catch (error) {
@@ -435,6 +435,44 @@ exports.updateBooking = async (req, res, next) => {
       return next(error);
     }
     next(new AppError("Failed to update booking.", 400));
+  }
+};
+
+/**
+ * Updates the status of a booking (confirmed/cancelled)
+ */
+exports.updateBookingStatus = async (req, res, next) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    if (!["confirmed", "cancelled"].includes(status)) {
+      return next(new AppError("Invalid status provided.", 400));
+    }
+
+    const updatedBooking = await BookingService.updateBookingStatus(
+      req.db,
+      req.user,
+      id,
+      status,
+    );
+
+    res.status(200).json(updatedBooking);
+  } catch (error) {
+    logger.error("Update Booking Status Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: id,
+    });
+
+    if (error.message.includes("Unauthorized")) {
+      return next(new AppError(error.message, 403));
+    }
+    if (error.message.includes("not found")) {
+      return next(new AppError(error.message, 404));
+    }
+
+    next(new AppError("Failed to update booking status.", 500));
   }
 };
 
@@ -463,7 +501,7 @@ exports.deleteMultipleBookings = async (req, res, next) => {
       req.db,
       req.user,
       bookingIds,
-      filters
+      filters,
     );
     res.status(200).json(result);
   } catch (error) {
@@ -482,7 +520,7 @@ exports.addPayment = async (req, res, next) => {
       req.db,
       req.user,
       req.params.bookingId,
-      req.body
+      req.body,
     );
     res.status(200).json(updatedBooking);
   } catch (error) {
@@ -502,7 +540,7 @@ exports.updatePayment = async (req, res, next) => {
       req.user,
       req.params.bookingId,
       req.params.paymentId,
-      req.body
+      req.body,
     );
     res.status(200).json(updatedBooking);
   } catch (error) {
@@ -522,7 +560,7 @@ exports.deletePayment = async (req, res, next) => {
       req.db,
       req.user,
       req.params.bookingId,
-      req.params.paymentId
+      req.params.paymentId,
     );
     res.status(200).json(updatedBooking);
   } catch (error) {
@@ -549,7 +587,7 @@ exports.exportBookingsToExcel = async (req, res, next) => {
 
     const { rows: programs } = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
-      [programId, adminId]
+      [programId, adminId],
     );
 
     if (programs.length === 0) {
@@ -558,7 +596,7 @@ exports.exportBookingsToExcel = async (req, res, next) => {
 
     const { rows: bookings } = await client.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-      [programId, adminId]
+      [programId, adminId],
     );
 
     if (bookings.length === 0) {
@@ -579,24 +617,24 @@ exports.exportBookingsToExcel = async (req, res, next) => {
 
     await client.query(
       'UPDATE programs SET "exportCounts" = $1 WHERE id = $2',
-      [JSON.stringify(exportCounts), programId]
+      [JSON.stringify(exportCounts), programId],
     );
 
     const workbook = await BookingExcelService.generateBookingsExcel(
       bookings,
       program,
-      role
+      role,
     );
 
     await client.query("COMMIT");
 
     const fileName = `${(program.name || "Untitled_Program").replace(
       /[\s\W]/g,
-      "_"
+      "_",
     )}_bookings.xlsx`;
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
@@ -629,7 +667,7 @@ exports.exportFlightListToExcel = async (req, res, next) => {
 
     const { rows: programs } = await client.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
-      [programId, adminId]
+      [programId, adminId],
     );
 
     if (programs.length === 0) {
@@ -640,7 +678,7 @@ exports.exportFlightListToExcel = async (req, res, next) => {
 
     const { rows: bookings } = await client.query(
       'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-      [programId, adminId]
+      [programId, adminId],
     );
 
     if (bookings.length === 0) {
@@ -660,23 +698,23 @@ exports.exportFlightListToExcel = async (req, res, next) => {
 
     await client.query(
       'UPDATE programs SET "exportCounts" = $1 WHERE id = $2',
-      [JSON.stringify(exportCounts), programId]
+      [JSON.stringify(exportCounts), programId],
     );
 
     const workbook = await ExcelListService.generateFlightListExcel(
       bookings,
-      programData
+      programData,
     );
 
     await client.query("COMMIT");
 
     const fileName = `${(programData.name || "Untitled_Program").replace(
       /[\s\W]/g,
-      "_"
+      "_",
     )}_flight_list.xlsx`;
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
@@ -706,7 +744,7 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
 
     const { rows: programs } = await req.db.query(
       'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
-      [programId, req.user.adminId]
+      [programId, req.user.adminId],
     );
 
     if (programs.length === 0) {
@@ -714,18 +752,17 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
     }
 
     const program = programs[0];
-    const workbook = await ExcelService.generateBookingTemplateForProgramExcel(
-      program
-    );
+    const workbook =
+      await ExcelService.generateBookingTemplateForProgramExcel(program);
 
     const fileName = `${(program.name || "Untitled_Program").replace(
       /[\s\W]/g,
-      "_"
+      "_",
     )}_Template.xlsx`;
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
@@ -763,7 +800,7 @@ exports.importBookingsFromExcel = async (req, res, next) => {
       client,
       req.file.path,
       req.user,
-      programId
+      programId,
     );
 
     await client.query("COMMIT");
@@ -785,7 +822,7 @@ exports.importBookingsFromExcel = async (req, res, next) => {
     next(
       error instanceof AppError
         ? error
-        : new AppError(error.message || "Error importing Excel file.", 400)
+        : new AppError(error.message || "Error importing Excel file.", 400),
     );
   } finally {
     client.release();

@@ -327,6 +327,16 @@ export const deleteMultipleBookings = (data: {
     body: JSON.stringify(data),
   });
 
+// --- NEW: Update Booking Status ---
+export const updateBookingStatus = (
+  id: number,
+  status: "confirmed" | "cancelled",
+) =>
+  request(`/bookings/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+
 // --- Payment API ---
 export const addPayment = (bookingId: number, payment: any) =>
   request(`/bookings/${bookingId}/payments`, {

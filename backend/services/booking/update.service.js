@@ -275,6 +275,60 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
   }
 };
 
+/**
+ * Updates the status of a booking (confirmed/cancelled) by Admin/Manager
+ */
+const updateBookingStatus = async (db, user, bookingId, status) => {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Only Admins or Managers can change status via this method
+    if (user.role === "employee") {
+      throw new AppError(
+        "Unauthorized: Only Admins or Managers can approve/reject bookings.",
+        403,
+      );
+    }
+
+    const { rows } = await client.query(
+      'UPDATE bookings SET status = $1 WHERE id = $2 AND "userId" = $3 RETURNING *',
+      [status, bookingId, user.adminId],
+    );
+
+    if (rows.length === 0) {
+      throw new AppError("Booking not found.", 404);
+    }
+
+    const updatedBooking = rows[0];
+
+    // If confirmed, trigger auto room assignment
+    if (status === "confirmed") {
+      await RoomManagementService.autoAssignToRoom(
+        client,
+        user.adminId,
+        updatedBooking,
+      );
+    }
+    // If cancelled, decrement the program booking count
+    else if (status === "cancelled") {
+      await client.query(
+        'UPDATE programs SET "totalBookings" = "totalBookings" - 1 WHERE id = $1',
+        [updatedBooking.tripId],
+      );
+    }
+
+    await client.query("COMMIT");
+    return updatedBooking;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   updateBooking,
+  updateBookingStatus,
 };

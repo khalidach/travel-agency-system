@@ -10,7 +10,10 @@ const {
   findBookingForUser,
 } = require("./booking/retrieval.service");
 const { createBookings } = require("./booking/creation.service");
-const { updateBooking } = require("./booking/update.service");
+const {
+  updateBooking,
+  updateBookingStatus,
+} = require("./booking/update.service"); // Updated import
 const {
   deleteBooking,
   deleteMultipleBookings,
@@ -38,6 +41,7 @@ module.exports = {
 
   // Update
   updateBooking,
+  updateBookingStatus, // Exported
 
   // Deletion
   deleteBooking,

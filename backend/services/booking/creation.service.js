@@ -57,29 +57,24 @@ const createBookings = async (db, user, bulkData) => {
       throw new Error("A package must be selected for this program.");
     }
 
-    // 3. Price Validation Logic for Employees
+    // 3. Determine Status (Price Validation)
     let status = "confirmed";
-    if (role === "employee") {
-      const minSellingPrice = getProgramConfiguredPrice(
-        program,
-        packageId,
-        selectedHotel,
-      );
+    const minSellingPrice = getProgramConfiguredPrice(
+      program,
+      packageId,
+      selectedHotel,
+    );
 
-      if (minSellingPrice > 0 && Number(sellingPrice) < minSellingPrice) {
-        status = "pending_approval";
-
-        await NotificationService.notifyAdminsAndManagers(client, adminId, {
-          senderId: null,
-          senderName: user.username,
-          title: "محاولة حجز بسعر منخفض",
-          message: `الموظف ${user.username} قام بإنشاء حجز بسعر ${sellingPrice} (الحد الأدنى: ${minSellingPrice}) لبرنامج ${program.name}. يرجى الموافقة أو الرفض.`,
-          type: "booking_approval",
-          referenceId: null,
-        });
-      }
+    // Check if price is too low for employees
+    if (
+      role === "employee" &&
+      minSellingPrice > 0 &&
+      Number(sellingPrice) < minSellingPrice
+    ) {
+      status = "pending_approval";
     }
 
+    // 4. Create Bookings
     for (const clientData of clients) {
       const {
         clientNameAr,
@@ -170,6 +165,23 @@ const createBookings = async (db, user, bulkData) => {
           newBooking,
         );
       }
+    }
+
+    // 5. Send Notification if Pending Approval (AFTER bookings are created to get the ID)
+    if (status === "pending_approval" && createdBookings.length > 0) {
+      await NotificationService.notifyAdminsAndManagers(client, adminId, {
+        // FIX: If user is employee, send null to avoid FK violation. If admin, send ID.
+        senderId: role === "admin" ? user.id : null,
+        senderName: user.username,
+        title: "محاولة حجز بسعر منخفض",
+        message: `الموظف ${user.username} قام بإنشاء ${
+          createdBookings.length
+        } حجز بسعر ${sellingPrice} (الحد الأدنى: ${minSellingPrice}) لبرنامج ${
+          program.name
+        }. يرجى الموافقة أو الرفض.`,
+        type: "booking_approval",
+        referenceId: createdBookings[0].id, // Link to the first booking for approval action
+      });
     }
 
     await client.query(

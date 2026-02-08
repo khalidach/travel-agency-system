@@ -11,6 +11,8 @@ import {
   MapPin,
   Hotel,
   Briefcase,
+  Check, // Added
+  X, // Added
 } from "lucide-react";
 
 interface BookingTableProps {
@@ -23,6 +25,7 @@ interface BookingTableProps {
   onEditBooking: (booking: Booking) => void;
   onDeleteBooking: (bookingId: number) => void;
   onManagePayments: (booking: Booking) => void;
+  onUpdateStatus: (id: number, status: "confirmed" | "cancelled") => void; // Added prop
 }
 
 export default function BookingTable({
@@ -35,6 +38,7 @@ export default function BookingTable({
   onEditBooking,
   onDeleteBooking,
   onManagePayments,
+  onUpdateStatus,
 }: BookingTableProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
@@ -113,11 +117,11 @@ export default function BookingTable({
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {bookings.map((booking, index) => {
               const program = programs.find(
-                (p) => p.id.toString() === (booking.tripId || "").toString()
+                (p) => p.id.toString() === (booking.tripId || "").toString(),
               );
               const totalPaid = (booking.advancePayments || []).reduce(
                 (sum, payment) => sum + Number(payment.amount),
-                0
+                0,
               );
 
               const canModify =
@@ -278,7 +282,7 @@ export default function BookingTable({
                                   </span>
                                 </div>
                               );
-                            }
+                            },
                           )}
                         </div>
                       </div>
@@ -290,14 +294,18 @@ export default function BookingTable({
                         {Number(booking.sellingPrice).toLocaleString()}{" "}
                         {t("mad")}
                       </div>
-
-                      {/* REMOVED: Profit display block */}
                     </td>
                     <td className="px-3 py-4 align-top">
                       <div className="space-y-2">
+                        {/* PENDING APPROVAL BADGE */}
+                        {booking.status === "pending_approval" && (
+                          <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            {t("pendingApproval") || "Pending Approval"}
+                          </div>
+                        )}
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            booking.isFullyPaid
+                            booking.isFullyPaid,
                           )}`}
                         >
                           {getStatusText(booking.isFullyPaid)}
@@ -314,6 +322,32 @@ export default function BookingTable({
                     </td>
                     <td className="px-3 py-4 align-top">
                       <div className="flex flex-col space-y-2">
+                        {/* APPROVAL ACTIONS FOR ADMIN/MANAGER */}
+                        {booking.status === "pending_approval" &&
+                          (currentUser?.role === "admin" ||
+                            currentUser?.role === "manager") && (
+                            <div className="flex flex-col gap-1 mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+                              <button
+                                onClick={() =>
+                                  onUpdateStatus(booking.id, "confirmed")
+                                }
+                                className="inline-flex items-center justify-center px-3 py-1 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                              >
+                                <Check className="w-3 h-3 mr-1" />{" "}
+                                {t("approve") || "Approve"}
+                              </button>
+                              <button
+                                onClick={() =>
+                                  onUpdateStatus(booking.id, "cancelled")
+                                }
+                                className="inline-flex items-center justify-center px-3 py-1 text-xs bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                              >
+                                <X className="w-3 h-3 mr-1" />{" "}
+                                {t("reject") || "Reject"}
+                              </button>
+                            </div>
+                          )}
+
                         <button
                           onClick={() => onManagePayments(booking)}
                           disabled={!canModify}

@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next"; // Added
 
 // Components
 import BookingSummary from "../components/booking/BookingSummary";
@@ -51,6 +52,7 @@ interface BookingResponse {
 }
 
 export default function BookingPage() {
+  const { t } = useTranslation(); // Added
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId: string }>();
   const { state: authState } = useAuthContext();
@@ -220,6 +222,20 @@ export default function BookingPage() {
     }
   };
 
+  // --- NEW: Handle Status Update ---
+  const handleUpdateStatus = async (
+    id: number,
+    status: "confirmed" | "cancelled",
+  ) => {
+    try {
+      await api.updateBookingStatus(id, status);
+      toast.success(t("statusUpdated") || "Status updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    } catch (error) {
+      toast.error(t("errorUpdatingStatus") || "Failed to update status");
+    }
+  };
+
   // Selection Logic
   const selectableBookingIdsOnPage = useMemo(() => {
     if (userRole === "admin") {
@@ -263,7 +279,6 @@ export default function BookingPage() {
         setIsSelectAllAcrossPages(true);
       }
     } catch (_error) {
-      // ESLint: 'error' renamed to '_error' to indicate it is unused
       toast.error("Could not fetch all bookings.");
     }
   };
@@ -375,6 +390,7 @@ export default function BookingPage() {
             onEditBooking={(booking) => openBookingModal(booking)}
             onDeleteBooking={(id) => setBookingToDelete(id)}
             onManagePayments={(booking) => setSelectedForPayment(booking)}
+            onUpdateStatus={handleUpdateStatus} // Passed here
           />
 
           {pagination && pagination.totalPages > 1 && (

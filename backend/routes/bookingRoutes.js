@@ -8,6 +8,7 @@ const {
   getBookingIdsByProgram,
   createBooking,
   updateBooking,
+  updateBookingStatus, // Imported
   deleteBooking,
   deleteMultipleBookings,
   addPayment,
@@ -16,7 +17,7 @@ const {
   exportBookingsToExcel,
   exportBookingTemplateForProgram,
   importBookingsFromExcel,
-  exportFlightListToExcel, // Import the new controller function
+  exportFlightListToExcel,
 } = require("../controllers/bookingController");
 const {
   bookingValidation,
@@ -39,57 +40,64 @@ router.get(
   "/",
   bookingFilterValidation,
   handleValidationErrors,
-  getAllBookings
+  getAllBookings,
 );
 router.get(
   "/program/:programId",
   bookingFilterValidation,
   handleValidationErrors,
-  getBookingsByProgram
+  getBookingsByProgram,
 );
 router.get(
   "/program/:programId/ids",
   bookingFilterValidation,
   handleValidationErrors,
-  getBookingIdsByProgram
+  getBookingIdsByProgram,
 );
 router.post(
   "/",
   bookingValidation,
   handleValidationErrors,
   checkBookingLimit,
-  createBooking
+  createBooking,
 );
 router.put(
   "/:id",
   idValidation,
   bookingUpdateValidation,
   handleValidationErrors,
-  updateBooking
+  updateBooking,
 );
+// NEW ROUTE
+router.patch(
+  "/:id/status",
+  idValidation,
+  handleValidationErrors,
+  updateBookingStatus,
+);
+
 router.delete("/", deleteMultipleBookings);
 router.delete("/:id", idValidation, handleValidationErrors, deleteBooking);
 
 // Excel and Template routes
 router.get(
   "/export-template/program/:programId",
-  exportBookingTemplateForProgram
+  exportBookingTemplateForProgram,
 );
 router.post(
   "/import-excel/program/:programId",
   upload.single("file"),
-  importBookingsFromExcel
+  importBookingsFromExcel,
 );
 router.get(
   "/export-excel/program/:programId",
   checkBookingExportLimit,
-  exportBookingsToExcel
+  exportBookingsToExcel,
 );
-// Add the new route for the flight list
 router.get(
   "/export-flight-list/program/:programId",
   checkListExportLimit,
-  exportFlightListToExcel
+  exportFlightListToExcel,
 );
 
 // Payment routes (nested under bookings)
@@ -97,13 +105,13 @@ router.post(
   "/:bookingId/payments",
   paymentValidation,
   handleValidationErrors,
-  addPayment
+  addPayment,
 );
 router.put(
   "/:bookingId/payments/:paymentId",
   paymentValidation,
   handleValidationErrors,
-  updatePayment
+  updatePayment,
 );
 router.delete("/:bookingId/payments/:paymentId", deletePayment);
 

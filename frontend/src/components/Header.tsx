@@ -4,7 +4,16 @@ import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import { User, LogOut, Settings, Sun, Moon, Bell } from "lucide-react";
+import {
+  User,
+  LogOut,
+  Settings,
+  Sun,
+  Moon,
+  Bell,
+  Check,
+  X,
+} from "lucide-react"; // Added Check, X
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -43,16 +52,14 @@ export default function Header() {
   const { data: notifications = [] } = useQuery<any[]>({
     queryKey: ["notifications"],
     queryFn: async () => {
-      // Use the named export here
       return await api.getNotifications();
     },
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 30000,
     enabled: state.isAuthenticated,
   });
 
   const markReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      // Use the named export here
       await api.markNotificationRead(id);
     },
     onSuccess: () => {
@@ -62,11 +69,30 @@ export default function Header() {
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
-      // Use the named export here
       await api.markAllNotificationsRead();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: number;
+      status: "confirmed" | "cancelled";
+    }) => {
+      await api.updateBookingStatus(id, status);
+    },
+    onSuccess: () => {
+      toast.success(t("statusUpdated") || "Status updated");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    },
+    onError: () => {
+      toast.error(t("errorUpdatingStatus") || "Failed to update status");
     },
   });
 
@@ -80,7 +106,6 @@ export default function Header() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(false);
-        // Also close notifications if clicking outside
         if (
           !event.target ||
           !(event.target as Element).closest(".notification-area")
@@ -109,7 +134,6 @@ export default function Header() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Language Selector */}
             <div className="relative">
               <div className="flex items-center gap-x-3 bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
                 <button
@@ -145,7 +169,6 @@ export default function Header() {
               </div>
             </div>
 
-            {/* Notification Bell */}
             <div className="relative notification-area">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -201,6 +224,42 @@ export default function Header() {
                           <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
                             {notif.message}
                           </p>
+
+                          {/* APPROVAL BUTTONS IN NOTIFICATION */}
+                          {notif.type === "booking_approval" &&
+                            notif.referenceId && (
+                              <div className="flex gap-2 mt-3 justify-end">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStatusMutation.mutate({
+                                      id: notif.referenceId,
+                                      status: "cancelled",
+                                    });
+                                    markReadMutation.mutate(notif.id);
+                                  }}
+                                  className="flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200"
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  {t("reject") || "Reject"}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStatusMutation.mutate({
+                                      id: notif.referenceId,
+                                      status: "confirmed",
+                                    });
+                                    markReadMutation.mutate(notif.id);
+                                  }}
+                                  className="flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-md border border-green-200"
+                                >
+                                  <Check className="w-3 h-3 mr-1" />
+                                  {t("approve") || "Approve"}
+                                </button>
+                              </div>
+                            )}
+
                           <p className="text-[10px] text-gray-400 mt-2 text-right">
                             {new Date(notif.createdAt).toLocaleString(
                               i18n.language,
@@ -214,7 +273,6 @@ export default function Header() {
               )}
             </div>
 
-            {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
