@@ -8,6 +8,7 @@ import type {
   ProgramVariation,
   RoomPrice,
 } from "../../context/models";
+import { useAuthContext } from "../../context/AuthContext"; // Import Auth Context
 import { useDebounce } from "../../hooks/useDebounce";
 import Accordion from "../ui/Accordion"; // Import the Accordion component
 
@@ -42,7 +43,7 @@ const DebouncedHotelInput = ({
   const fieldName = `packages.${packageIndex}.hotels.${city.name}.${hotelIndex}`;
 
   const [localValue, setLocalValue] = useState(
-    () => getValues(fieldName) || ""
+    () => getValues(fieldName) || "",
   );
   const debouncedValue = useDebounce(localValue, 0);
   const lastUpdatedValueRef = useRef(getValues(fieldName));
@@ -69,7 +70,7 @@ const DebouncedHotelInput = ({
           const combinationParts = price.hotelCombination.split("_");
 
           const cityIndexToUpdate = allCities.findIndex(
-            (c: any) => c.name === city.name
+            (c: any) => c.name === city.name,
           );
 
           if (
@@ -113,7 +114,7 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
       (city, index, self) =>
         city &&
         city.name &&
-        self.findIndex((c) => c.name === city.name) === index
+        self.findIndex((c) => c.name === city.name) === index,
     );
 
   return (
@@ -225,12 +226,12 @@ export default function PackageManager({
 
     variations.forEach((variation) => {
       const validCities = (variation.cities || []).filter((city: any) =>
-        city.name.trim()
+        city.name.trim(),
       );
 
       const generateCombinations = (
         cityIndex: number,
-        currentCombination: string[]
+        currentCombination: string[],
       ) => {
         if (cityIndex === validCities.length) {
           if (currentCombination.length > 0) {
@@ -371,7 +372,7 @@ const PriceStructureManager = ({
   const currentPrices = watch(`packages.${packageIndex}.prices`, []);
   const hotelOptions = generateAllHotelOptions(packageIndex);
   const existingCombinations = new Set(
-    currentPrices.map((field: any) => field.hotelCombination)
+    currentPrices.map((field: any) => field.hotelCombination),
   );
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
@@ -462,10 +463,15 @@ const RoomTypeManager = ({
 }) => {
   const { t } = useTranslation();
   const { control, register } = useFormContext();
+  const { state } = useAuthContext(); // Get auth state
   const { fields, append, remove } = useFieldArray({
     control,
     name: `packages.${packageIndex}.prices.${priceIndex}.roomTypes`,
   });
+
+  // Check if user is Admin or Manager
+  const canManagePrices =
+    state.user?.role === "admin" || state.user?.role === "manager";
 
   return (
     <div className="space-y-3">
@@ -474,16 +480,18 @@ const RoomTypeManager = ({
           <div
             key={room.id}
             className={`grid grid-cols-1 md:grid-cols-${
-              isCommissionBased ? "4" : "3"
+              // Adjust grid columns based on visibility
+              (isCommissionBased ? 1 : 0) + (canManagePrices ? 1 : 0) + 3
             } gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg`}
           >
+            {/* Room Type and Guests Inputs (Keep existing) */}
             <div>
               <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                 {t("roomType")}
               </label>
               <input
                 {...register(
-                  `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.type`
+                  `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.type`,
                 )}
                 className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
@@ -496,13 +504,40 @@ const RoomTypeManager = ({
                 type="number"
                 {...register(
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.guests`,
-                  { valueAsNumber: true }
+                  { valueAsNumber: true },
                 )}
                 className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="1"
                 required
               />
             </div>
+
+            {/* NEW: Selling Price Input (Admin/Manager Only) */}
+            {canManagePrices && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
+                  {t("sellingPrice")}
+                  <span className="text-[10px] text-gray-400">
+                    ({t("minLimit")})
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    {...register(
+                      `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.sellingPrice`,
+                      { valueAsNumber: true },
+                    )}
+                    placeholder="0.00"
+                    className="w-full pl-6 px-2 py-1 text-sm border border-orange-200 dark:border-orange-900/50 rounded bg-orange-50 dark:bg-orange-900/10 text-gray-900 dark:text-gray-100 focus:ring-orange-500 focus:border-orange-500"
+                    min="0"
+                  />
+                  <DollarSign className="w-3 h-3 absolute left-1.5 top-2 text-gray-400" />
+                </div>
+              </div>
+            )}
+
+            {/* Purchase Price (Commission Based Only) */}
             {isCommissionBased && (
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -512,13 +547,14 @@ const RoomTypeManager = ({
                   type="number"
                   {...register(
                     `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
-                    { valueAsNumber: true }
+                    { valueAsNumber: true },
                   )}
                   className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   min="0"
                 />
               </div>
             )}
+
             <div className="flex items-end">
               <button
                 type="button"
@@ -531,9 +567,17 @@ const RoomTypeManager = ({
           </div>
         );
       })}
+      {/* ... Add button ... */}
       <button
         type="button"
-        onClick={() => append({ type: "Custom", guests: 1, purchasePrice: 0 })}
+        onClick={() =>
+          append({
+            type: "Custom",
+            guests: 1,
+            purchasePrice: 0,
+            sellingPrice: 0,
+          })
+        }
         className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
       >
         {t("addCustomRoomType")}

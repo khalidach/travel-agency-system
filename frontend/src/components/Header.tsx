@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { useQueryClient } from "@tanstack/react-query";
-import { User, LogOut, Settings, Sun, Moon } from "lucide-react";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import { User, LogOut, Settings, Sun, Moon, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
@@ -15,6 +15,7 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const changeLanguage = (lang: "en" | "ar" | "fr") => {
@@ -38,6 +39,40 @@ export default function Header() {
     }
   };
 
+  // --- Notification Logic ---
+  const { data: notifications = [] } = useQuery<any[]>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      // Use the named export here
+      return await api.getNotifications();
+    },
+    refetchInterval: 30000, // Poll every 30 seconds
+    enabled: state.isAuthenticated,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      // Use the named export here
+      await api.markNotificationRead(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      // Use the named export here
+      await api.markAllNotificationsRead();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  // --------------------------
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -45,6 +80,13 @@ export default function Header() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(false);
+        // Also close notifications if clicking outside
+        if (
+          !event.target ||
+          !(event.target as Element).closest(".notification-area")
+        ) {
+          setShowNotifications(false);
+        }
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -103,6 +145,75 @@ export default function Header() {
               </div>
             </div>
 
+            {/* Notification Bell */}
+            <div className="relative notification-area">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 relative transition-colors"
+              >
+                <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
+                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {t("notifications") || "Notifications"}
+                    </h3>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAllReadMutation.mutate()}
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                      >
+                        {t("markAllRead") || "Mark all read"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                        {t("noNotifications") || "No new notifications"}
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          className={`p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+                            !notif.isRead
+                              ? "bg-blue-50/50 dark:bg-blue-900/10"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            !notif.isRead && markReadMutation.mutate(notif.id)
+                          }
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {notif.title}
+                            </p>
+                            {!notif.isRead && (
+                              <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5"></span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                            {notif.message}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-2 text-right">
+                            {new Date(notif.createdAt).toLocaleString(
+                              i18n.language,
+                            )}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
@@ -123,7 +234,7 @@ export default function Header() {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none py-2">
+                <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none py-2 z-50">
                   <Link
                     to="/account-settings"
                     onClick={() => setDropdownOpen(false)}

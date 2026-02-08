@@ -148,6 +148,7 @@ export interface RoomPrice {
   type: string;
   guests: number;
   purchasePrice?: number;
+  sellingPrice?: number; // NEW: Admin defined min selling price
 }
 
 export interface RelatedPerson {
@@ -193,6 +194,7 @@ export interface Booking {
   employeeId?: number;
   employeeName?: string;
   bookingSource?: string; // NEW: Field for source of booking
+  status?: "confirmed" | "pending_approval" | "cancelled"; // NEW
 }
 
 export interface Payment {
@@ -359,4 +361,14 @@ export interface ProgramCost {
   costs: ProgramCostDetails;
   isEnabled: boolean;
   totalCost: number;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+  senderName?: string;
 }

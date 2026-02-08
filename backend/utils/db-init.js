@@ -276,6 +276,47 @@ const applyDatabaseMigrations = async (client) => {
     `);
     // --- END FIX ---
 
+    // --- UPDATE: Add status column to bookings ---
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
+          ALTER TABLE bookings ADD COLUMN status VARCHAR(50) DEFAULT 'confirmed';
+        END IF;
+      END;
+      $$;
+    `);
+
+    // --- NEW: Create Notifications Table ---
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        "recipientId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "senderId" INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        "referenceId" INTEGER,
+        "isRead" BOOLEAN DEFAULT FALSE,
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // --- FIX: Add senderName column to notifications to allow non-User senders (Employees) ---
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='senderName') THEN
+          ALTER TABLE notifications ADD COLUMN "senderName" VARCHAR(255);
+        END IF;
+      END;
+      $$;
+    `);
+
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications("recipientId", "isRead");',
+    );
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
         id SERIAL PRIMARY KEY,

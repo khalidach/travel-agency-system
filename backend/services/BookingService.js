@@ -1,5 +1,6 @@
 // backend/services/BookingService.js
 const RoomManagementService = require("./RoomManagementService");
+const NotificationService = require("./NotificationService"); // Import NotificationService
 const isEqual = require("fast-deep-equal");
 const logger = require("../utils/logger");
 const AppError = require("../utils/appError"); // Import AppError for custom errors
@@ -256,6 +257,33 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
   }
 }
 
+// Helper to find configured selling price for a specific room type in a package
+const getProgramConfiguredPrice = (program, packageId, selectedHotel) => {
+  if (!program.packages || !packageId || !selectedHotel) return 0;
+
+  const pkg = program.packages.find((p) => p.name === packageId);
+  if (!pkg) return 0;
+
+  // Build hotel combination key (e.g., "HotelA_HotelB")
+  const hotelCombination = (selectedHotel.hotelNames || []).join("_");
+
+  const priceStructure = pkg.prices.find(
+    (p) => p.hotelCombination === hotelCombination,
+  );
+  if (!priceStructure) return 0;
+
+  // Get the selected room type (assuming first room type dictates the price check for simplicity)
+  const roomTypeName = selectedHotel.roomTypes?.[0];
+  if (!roomTypeName) return 0;
+
+  const roomConfig = priceStructure.roomTypes.find(
+    (rt) => rt.type === roomTypeName,
+  );
+
+  // Return the configured "sellingPrice" (min price) if it exists, otherwise 0
+  return Number(roomConfig?.sellingPrice || 0);
+};
+
 const createBookings = async (db, user, bulkData) => {
   const client = await db.connect();
   try {
@@ -272,13 +300,13 @@ const createBookings = async (db, user, bulkData) => {
       tripId,
       packageId,
       selectedHotel,
-      sellingPrice,
+      sellingPrice, // This is the price entered by the employee
       variationName,
       relatedPersons,
-      bookingSource, // NEW: Extract booking source
+      bookingSource,
     } = sharedData;
 
-    // --- NEW: Capacity Check before creating any bookings ---
+    // 1. Capacity Check
     const newBookingsCount = clients.length;
     const capacity = await checkProgramCapacity(
       client,
@@ -292,10 +320,10 @@ const createBookings = async (db, user, bulkData) => {
         400, // Use 400 Bad Request or 409 Conflict if appropriate
       );
     }
-    // --- END NEW: Capacity Check ---
 
+    // 2. Fetch Program Data
     const programRes = await client.query(
-      'SELECT packages FROM programs WHERE id = $1 AND "userId" = $2',
+      'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
       [tripId, adminId],
     );
     if (programRes.rows.length === 0) {
@@ -304,6 +332,32 @@ const createBookings = async (db, user, bulkData) => {
     const program = programRes.rows[0];
     if (program.packages && program.packages.length > 0 && !packageId) {
       throw new Error("A package must be selected for this program.");
+    }
+
+    // 3. Price Validation Logic for Employees
+    let status = "confirmed";
+    if (role === "employee") {
+      const minSellingPrice = getProgramConfiguredPrice(
+        program,
+        packageId,
+        selectedHotel,
+      );
+
+      // If a minimum price is set and the entered price is lower
+      if (minSellingPrice > 0 && Number(sellingPrice) < minSellingPrice) {
+        status = "pending_approval";
+
+        // Trigger Notification
+        // FIX: Pass senderId as null for employees, and provide senderName
+        await NotificationService.notifyAdminsAndManagers(client, adminId, {
+          senderId: null, // Employees are not in 'users' table, so we must set this to null
+          senderName: user.username, // We store the name explicitly
+          title: "محاولة حجز بسعر منخفض",
+          message: `الموظف ${user.username} قام بإنشاء حجز بسعر ${sellingPrice} (الحد الأدنى: ${minSellingPrice}) لبرنامج ${program.name}. يرجى الموافقة أو الرفض.`,
+          type: "booking_approval",
+          referenceId: null, // Booking ID not available yet
+        });
+      }
     }
 
     for (const clientData of clients) {
@@ -362,7 +416,7 @@ const createBookings = async (db, user, bulkData) => {
 
       // NEW: Added "bookingSource" to INSERT
       const { rows } = await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "bookingSource", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW()) RETURNING *',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "bookingSource", status, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW()) RETURNING *',
         [
           adminId,
           employeeId,
@@ -386,15 +440,20 @@ const createBookings = async (db, user, bulkData) => {
           isFullyPaid,
           JSON.stringify(relatedPersons || []),
           bookingSource || null, // NEW: $22
+          status, // NEW: $23
         ],
       );
       const newBooking = rows[0];
       createdBookings.push(newBooking);
-      await RoomManagementService.autoAssignToRoom(
-        client,
-        user.adminId,
-        newBooking,
-      );
+
+      // Only auto-assign to room if status is confirmed
+      if (status === "confirmed") {
+        await RoomManagementService.autoAssignToRoom(
+          client,
+          user.adminId,
+          newBooking,
+        );
+      }
     }
 
     // Since we've created the bookings, increment totalBookings
@@ -405,8 +464,12 @@ const createBookings = async (db, user, bulkData) => {
 
     await client.query("COMMIT");
     return {
-      message: `${clients.length} booking(s) created successfully.`,
+      message:
+        status === "pending_approval"
+          ? "تم إنشاء الحجز بنجاح ولكنه في انتظار الموافقة بسبب انخفاض السعر."
+          : `${clients.length} booking(s) created successfully.`,
       bookings: createdBookings,
+      status: status,
     };
   } catch (error) {
     await client.query("ROLLBACK");

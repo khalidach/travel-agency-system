@@ -41,7 +41,7 @@ export const login = async (username: string, password: string) => {
 async function request(
   endpoint: string,
   options: RequestInit = {},
-  returnsBlob = false
+  returnsBlob = false,
 ) {
   const headers = {
     "Content-Type": "application/json",
@@ -135,7 +135,7 @@ export const addDailyServicePayment = (serviceId: number, payment: any) =>
 export const updateDailyServicePayment = (
   serviceId: number,
   paymentId: string,
-  payment: any
+  payment: any,
 ) =>
   request(`/daily-services/${serviceId}/payments/${paymentId}`, {
     method: "PUT",
@@ -144,7 +144,7 @@ export const updateDailyServicePayment = (
 
 export const deleteDailyServicePayment = (
   serviceId: number,
-  paymentId: string
+  paymentId: string,
 ) =>
   request(`/daily-services/${serviceId}/payments/${paymentId}`, {
     method: "DELETE",
@@ -163,7 +163,7 @@ export const getDashboardStats = (startDate?: string, endDate?: string) => {
 export const getProfitReport = (
   filterType?: string,
   page: number = 1,
-  limit: number = 6
+  limit: number = 6,
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -181,7 +181,7 @@ export const getPrograms = (
   limit = 6,
   searchTerm = "",
   filterType = "all",
-  view?: "list" | "pricing" | "rooms" | "full" | "costing"
+  view?: "list" | "pricing" | "rooms" | "full" | "costing",
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -260,7 +260,7 @@ export const getBookingsByProgram = (
     statusFilter: string;
     employeeFilter: string;
     variationFilter?: string;
-  }
+  },
 ) => {
   const queryParams = new URLSearchParams({
     page: String(params.page),
@@ -281,7 +281,7 @@ export const getBookingIdsByProgram = (
     statusFilter: string;
     employeeFilter: string;
     variationFilter?: string;
-  }
+  },
 ) => {
   const queryParams = new URLSearchParams({
     searchTerm: params.searchTerm,
@@ -294,7 +294,7 @@ export const getBookingIdsByProgram = (
 
 export const searchBookingsInProgram = async (
   programId: string,
-  searchTerm: string
+  searchTerm: string,
 ) => {
   if (!searchTerm) return [];
   const params = new URLSearchParams({
@@ -307,7 +307,7 @@ export const searchBookingsInProgram = async (
     variationFilter: "all",
   });
   const result = await request(
-    `/bookings/program/${programId}?${params.toString()}`
+    `/bookings/program/${programId}?${params.toString()}`,
   );
   return result.data;
 };
@@ -336,7 +336,7 @@ export const addPayment = (bookingId: number, payment: any) =>
 export const updatePayment = (
   bookingId: number,
   paymentId: string,
-  payment: any
+  payment: any,
 ) =>
   request(`/bookings/${bookingId}/payments/${paymentId}`, {
     method: "PUT",
@@ -369,7 +369,7 @@ export const getEmployeeAnalysis = (username: string) => {
 export const getEmployeeProgramPerformance = (
   username: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) => {
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
@@ -386,14 +386,14 @@ export const getEmployeeProgramPerformance = (
 export const getEmployeeProgramBookings = (
   username: string,
   programId: number,
-  page: number = 1, // New parameter
-  limit: number = 10, // New parameter
+  page: number = 1,
+  limit: number = 10,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) => {
   const params = new URLSearchParams({
-    page: String(page), // Add to params
-    limit: String(limit), // Add to params
+    page: String(page),
+    limit: String(limit),
   });
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
@@ -408,7 +408,7 @@ export const getEmployeeProgramBookings = (
 export const getEmployeeServicePerformance = (
   username: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) => {
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
@@ -454,7 +454,7 @@ export const getAgenciesSummaryReport = () => request("/owner/reports/summary");
 export const getAgencyDetailedReport = (
   adminId: string,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
 ) => {
   let endpoint = `/owner/reports/detailed/${adminId}`;
   const params = new URLSearchParams();
@@ -516,13 +516,22 @@ export const saveRooms = (programId: string, hotelName: string, rooms: any) =>
 export const searchUnassignedOccupants = (
   programId: string,
   hotelName: string,
-  searchTerm: string
+  searchTerm: string,
 ) => {
   const params = new URLSearchParams({ searchTerm });
   return request(
-    `/room-management/program/${programId}/hotel/${hotelName}/search-unassigned?${params.toString()}`
+    `/room-management/program/${programId}/hotel/${hotelName}/search-unassigned?${params.toString()}`,
   );
 };
 
 export const exportRoomAssignmentsToExcel = (programId: string) =>
   request(`/room-management/program/${programId}/export-excel`, {}, true);
+
+// --- Notification API (NEW) ---
+export const getNotifications = () => request("/notifications");
+
+export const markNotificationRead = (id: number) =>
+  request(`/notifications/${id}/read`, { method: "PATCH" });
+
+export const markAllNotificationsRead = () =>
+  request("/notifications/mark-all-read", { method: "PATCH" });
