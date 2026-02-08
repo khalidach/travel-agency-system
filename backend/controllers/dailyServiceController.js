@@ -11,12 +11,12 @@ const getDailyServices = async (req, res, next) => {
 
     const servicesPromise = req.db.query(
       'SELECT *, "totalPrice" - "remainingBalance" AS "totalPaid" FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [adminId, limit, offset]
+      [adminId, limit, offset],
     );
 
     const totalCountPromise = req.db.query(
       'SELECT COUNT(*) FROM daily_services WHERE "userId" = $1',
-      [adminId]
+      [adminId],
     );
 
     const [servicesResult, totalCountResult] = await Promise.all([
@@ -61,7 +61,7 @@ const createDailyService = async (req, res, next) => {
 
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
-      0
+      0,
     );
     const remainingBalance = totalPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
@@ -82,7 +82,7 @@ const createDailyService = async (req, res, next) => {
         JSON.stringify(advancePayments || []),
         remainingBalance,
         isFullyPaid,
-      ]
+      ],
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -113,7 +113,7 @@ const updateDailyService = async (req, res, next) => {
 
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
-      0
+      0,
     );
     const remainingBalance = totalPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
@@ -135,7 +135,7 @@ const updateDailyService = async (req, res, next) => {
         isFullyPaid,
         id,
         adminId,
-      ]
+      ],
     );
 
     if (rows.length === 0) {
@@ -159,7 +159,7 @@ const deleteDailyService = async (req, res, next) => {
 
     const { rowCount } = await req.db.query(
       'DELETE FROM daily_services WHERE id = $1 AND "userId" = $2',
-      [id, adminId]
+      [id, adminId],
     );
 
     if (rowCount === 0) {
@@ -278,7 +278,7 @@ const getDailyServiceReport = async (req, res, next) => {
 const findDailyServiceForUser = async (db, user, serviceId) => {
   const { rows } = await db.query(
     'SELECT * FROM daily_services WHERE id = $1 AND "userId" = $2',
-    [serviceId, user.adminId]
+    [serviceId, user.adminId],
   );
   if (rows.length === 0)
     throw new Error("Daily service not found or not authorized");
@@ -289,7 +289,7 @@ const findDailyServiceForUser = async (db, user, serviceId) => {
   }
   if (user.role === "employee" && service.employeeId !== user.id) {
     throw new Error(
-      "You are not authorized to modify payments for this service."
+      "You are not authorized to modify payments for this service.",
     );
   }
   return service;
@@ -313,7 +313,7 @@ const addDailyServicePayment = async (req, res, next) => {
     const advancePayments = [...(service.advancePayments || []), newPayment];
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + Number(p.amount),
-      0
+      0,
     );
     const remainingBalance = service.totalPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
@@ -326,7 +326,7 @@ const addDailyServicePayment = async (req, res, next) => {
         isFullyPaid,
         serviceId,
         adminId,
-      ]
+      ],
     );
 
     res.status(200).json(updatedRows[0]);
@@ -353,11 +353,11 @@ const updateDailyServicePayment = async (req, res, next) => {
       (p) =>
         p._id === paymentId
           ? { ...p, ...paymentData, _id: p._id, labelPaper: labelPaper || "" }
-          : p // MODIFIED: Update labelPaper
+          : p, // MODIFIED: Update labelPaper
     );
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + Number(p.amount),
-      0
+      0,
     );
     const remainingBalance = service.totalPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
@@ -370,7 +370,7 @@ const updateDailyServicePayment = async (req, res, next) => {
         isFullyPaid,
         serviceId,
         adminId,
-      ]
+      ],
     );
 
     res.status(200).json(updatedRows[0]);
@@ -393,11 +393,11 @@ const deleteDailyServicePayment = async (req, res, next) => {
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
 
     const advancePayments = (service.advancePayments || []).filter(
-      (p) => p._id !== paymentId
+      (p) => p._id !== paymentId,
     );
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + Number(p.amount),
-      0
+      0,
     );
     const remainingBalance = service.totalPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
@@ -410,7 +410,7 @@ const deleteDailyServicePayment = async (req, res, next) => {
         isFullyPaid,
         serviceId,
         adminId,
-      ]
+      ],
     );
 
     res.status(200).json(updatedRows[0]);

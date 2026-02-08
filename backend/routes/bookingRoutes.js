@@ -18,7 +18,7 @@ const {
   exportBookingTemplateForProgram,
   importBookingsFromExcel,
   exportFlightListToExcel,
-} = require("../controllers/bookingController");
+} = require("../controllers/bookings"); // <--- CHANGED HERE
 const {
   bookingValidation,
   paymentValidation,
