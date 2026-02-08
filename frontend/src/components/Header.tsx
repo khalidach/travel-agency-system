@@ -18,6 +18,12 @@ import {
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
+import { Notification as NotificationModel } from "../context/models";
+
+// Extend the base model to include referenceId which is used in this component
+interface HeaderNotification extends NotificationModel {
+  referenceId?: number;
+}
 
 export default function Header() {
   const { t, i18n } = useTranslation();
@@ -50,7 +56,7 @@ export default function Header() {
   };
 
   // --- Notification Logic ---
-  const { data: notifications = [] } = useQuery<any[]>({
+  const { data: notifications = [] } = useQuery<HeaderNotification[]>({
     queryKey: ["notifications"],
     queryFn: async () => {
       return await api.getNotifications();
@@ -118,7 +124,7 @@ export default function Header() {
       // Invalidate total bookings count/capacity queries if they exist
       queryClient.invalidateQueries({ queryKey: ["programs"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(
         t("errorRejectingBooking") ||
           error.message ||
@@ -311,7 +317,7 @@ export default function Header() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     rejectBookingMutation.mutate({
-                                      bookingId: notif.referenceId,
+                                      bookingId: notif.referenceId!,
                                       notificationId: notif.id,
                                     });
                                   }}
@@ -324,7 +330,7 @@ export default function Header() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateStatusMutation.mutate({
-                                      id: notif.referenceId,
+                                      id: notif.referenceId!,
                                       status: "confirmed",
                                       notificationId: notif.id,
                                     });
