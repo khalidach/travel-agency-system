@@ -1,5 +1,5 @@
 // frontend/src/components/booking/RelatedPeopleManager.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import type { Booking, RelatedPerson, Program } from "../../context/models";
