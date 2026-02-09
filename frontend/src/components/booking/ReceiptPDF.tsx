@@ -1,5 +1,5 @@
 // frontend/src/components/booking/ReceiptPDF.tsx
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Booking,
@@ -37,23 +37,23 @@ export default function ReceiptPDF({
 
     // Find the index of the current payment in the array. We use `_id` for uniqueness.
     const currentPaymentIndex = booking.advancePayments.findIndex(
-      (p) => p._id === payment._id
+      (p) => p._id === payment._id,
     );
 
     // Get the array of all payments that occurred before the current one.
     const paymentsBeforeThis = booking.advancePayments.slice(
       0,
-      currentPaymentIndex
+      currentPaymentIndex,
     );
 
     // Sum all payments up to and including the current one to get the new remaining balance.
     const paymentsUpToThisPoint = booking.advancePayments.slice(
       0,
-      currentPaymentIndex + 1
+      currentPaymentIndex + 1,
     );
     const totalPaidUpToThisPoint = paymentsUpToThisPoint.reduce(
       (sum, p) => sum + p.amount,
-      0
+      0,
     );
 
     const remainingAfterThisPayment =
@@ -213,7 +213,7 @@ export default function ReceiptPDF({
               </tr>
             </thead>
             <tbody>
-              {paymentsBeforeThis.map((prevPayment, index) => (
+              {paymentsBeforeThis.map((prevPayment) => (
                 <tr key={prevPayment._id}>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                     {prevPayment.amount.toLocaleString()} درهم

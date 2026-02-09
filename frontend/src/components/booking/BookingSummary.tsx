@@ -1,5 +1,4 @@
 // frontend/src/components/booking/BookingSummary.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../../context/AuthContext"; // استيراد hook السياق للمصادقة
 
@@ -61,7 +60,7 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
         value: stats.totalProfit,
         unit: t("mad"),
         color: "text-emerald-600 dark:text-emerald-400",
-      }
+      },
     );
   }
 

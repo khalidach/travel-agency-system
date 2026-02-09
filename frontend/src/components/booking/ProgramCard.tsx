@@ -1,16 +1,14 @@
 // frontend/src/components/booking/ProgramCard.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { Program } from "../../context/models";
 import { Package, Users, Calendar, ArrowRight } from "lucide-react";
 
 interface ProgramCardProps {
   program: Program;
-  bookingCount: number;
   onClick: () => void;
 }
 
-const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
+const ProgramCard = ({ program, onClick }: ProgramCardProps) => {
   const { t } = useTranslation();
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -38,7 +36,7 @@ const ProgramCard = ({ program, bookingCount, onClick }: ProgramCardProps) => {
             </h3>
             <span
               className={`inline-block px-3 py-1 text-xs font-medium rounded-full mt-2 ${getTypeColor(
-                program.type
+                program.type,
               )}`}
             >
               {program.type}

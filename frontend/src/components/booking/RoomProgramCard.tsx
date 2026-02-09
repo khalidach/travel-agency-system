@@ -1,5 +1,4 @@
 // frontend/src/components/booking/RoomProgramCard.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { Program } from "../../context/models";
 import { Hotel, BedDouble, Users, ArrowRight } from "lucide-react";
@@ -29,7 +28,7 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
 
   // Filter to only include hotels that have rooms managed.
   const hotelsWithRooms = hotelRoomCounts.filter(
-    (stat) => stat.roomCount && stat.roomCount > 0
+    (stat) => stat.roomCount && stat.roomCount > 0,
   );
   const hotelCount = hotelRoomCounts.length;
 
@@ -51,7 +50,7 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
             </h3>
             <span
               className={`inline-block px-3 py-1 text-xs font-medium rounded-full mt-2 ${getTypeColor(
-                program.type
+                program.type,
               )}`}
             >
               {program.type}

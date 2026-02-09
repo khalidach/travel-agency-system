@@ -1,3 +1,4 @@
+// frontend/src/components/booking/BookingTable.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 import type { Booking, Program } from "../../context/models";
@@ -11,12 +12,23 @@ import {
   MapPin,
   Hotel,
   Briefcase,
-  Check, // Added
-  X, // Added
+  Check,
+  X,
 } from "lucide-react";
 
+// Define the shape of the family summary object
+interface FamilySummary {
+  totalPrice: number;
+  totalPaid: number;
+  totalRemaining: number;
+}
+
 interface BookingTableProps {
-  bookings: (Booking & { isRelated?: boolean; familySummary?: any })[];
+  // Replaced 'any' with the explicit 'FamilySummary' interface
+  bookings: (Booking & {
+    isRelated?: boolean;
+    familySummary?: FamilySummary;
+  })[];
   programs: Program[];
   selectedIds: number[];
   onSelectionChange: (id: number) => void;
@@ -25,7 +37,7 @@ interface BookingTableProps {
   onEditBooking: (booking: Booking) => void;
   onDeleteBooking: (bookingId: number) => void;
   onManagePayments: (booking: Booking) => void;
-  onUpdateStatus: (id: number, status: "confirmed" | "cancelled") => void; // Added prop
+  onUpdateStatus: (id: number, status: "confirmed" | "cancelled") => void;
 }
 
 export default function BookingTable({
@@ -288,7 +300,6 @@ export default function BookingTable({
                       </div>
                     </td>
                     <td className="px-2 py-4 align-top">
-                      {/* Only show Selling Price. Base Price and Profit removed. */}
                       <div className="text-sm text-gray-900 dark:text-gray-100">
                         {t("selling")}:{" "}
                         {Number(booking.sellingPrice).toLocaleString()}{" "}
@@ -297,7 +308,6 @@ export default function BookingTable({
                     </td>
                     <td className="px-3 py-4 align-top">
                       <div className="space-y-2">
-                        {/* PENDING APPROVAL BADGE */}
                         {booking.status === "pending_approval" && (
                           <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                             {t("pendingApproval") || "Pending Approval"}
@@ -322,7 +332,6 @@ export default function BookingTable({
                     </td>
                     <td className="px-3 py-4 align-top">
                       <div className="flex flex-col space-y-2">
-                        {/* APPROVAL ACTIONS FOR ADMIN/MANAGER */}
                         {booking.status === "pending_approval" &&
                           (currentUser?.role === "admin" ||
                             currentUser?.role === "manager") && (

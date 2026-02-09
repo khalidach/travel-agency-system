@@ -1,5 +1,5 @@
 // frontend/src/components/booking/PaymentManagementModal.tsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import Modal from "../Modal";
@@ -16,7 +16,7 @@ import { toast } from "react-hot-toast";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import * as api from "../../services/api";
-import ReceiptPDF from "./ReceiptPDF"; // Import the new component
+import ReceiptPDF from "./ReceiptPDF";
 
 interface PaymentManagementModalProps {
   booking: Booking | null;
@@ -25,7 +25,7 @@ interface PaymentManagementModalProps {
   onSavePayment: (payment: Omit<Payment, "_id" | "id">) => void;
   onUpdatePayment: (
     paymentId: string,
-    payment: Omit<Payment, "_id" | "id">
+    payment: Omit<Payment, "_id" | "id">,
   ) => void;
   onDeletePayment: (paymentId: string) => void;
 }
@@ -113,7 +113,7 @@ export default function PaymentManagementModal({
     if (input) {
       const receiptFilename = `${t("receipt")}_${clientNameFr.replace(
         /\s/g,
-        "_"
+        "_",
       )}.pdf`;
       html2canvas(input, { scale: 2 }).then((canvas) => {
         const imgData = canvas.toDataURL("image/png");
@@ -138,7 +138,6 @@ export default function PaymentManagementModal({
       >
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            {/* Dark mode text color added */}
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
               {clientNameFr}
             </h3>
@@ -158,15 +157,14 @@ export default function PaymentManagementModal({
             className="space-y-3"
             key={(booking.advancePayments || []).length}
           >
-            {(booking.advancePayments || []).map((payment, index) => (
+            {/* REMOVED unused 'index' parameter here */}
+            {(booking.advancePayments || []).map((payment) => (
               <div
                 key={`${payment._id}-${payment.amount}`}
-                // Dark mode background color added
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               >
                 <div>
                   <div className="flex items-center">
-                    {/* Dark mode text colors added */}
                     <span className="text-sm text-gray-900 dark:text-gray-100">
                       {Number(payment.amount).toLocaleString()} {t("mad")}
                     </span>
@@ -184,7 +182,6 @@ export default function PaymentManagementModal({
                     </span>
                   </div>
                   {payment.method === "cheque" && payment.chequeNumber && (
-                    // Dark mode text color added
                     <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       <span className="font-medium">
                         {t("chequeNumber")} #{payment.chequeNumber}
@@ -195,7 +192,7 @@ export default function PaymentManagementModal({
                           {" "}
                           • {t("checkCashingDate")}:{" "}
                           {new Date(
-                            payment.chequeCashingDate
+                            payment.chequeCashingDate,
                           ).toLocaleDateString()}
                         </span>
                       )}
@@ -203,7 +200,6 @@ export default function PaymentManagementModal({
                   )}
                 </div>
                 <div className="flex space-x-2">
-                  {/* Dark mode text and hover colors added */}
                   <button
                     onClick={() => handleDownloadReceipt(payment)}
                     className="p-2 text-gray-400 hover:text-green-600 dark:text-gray-500 dark:hover:text-green-400 rounded-lg transition-colors"
@@ -228,7 +224,6 @@ export default function PaymentManagementModal({
             ))}
             {(!booking.advancePayments ||
               booking.advancePayments.length === 0) && (
-              // Dark mode text color added
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 {t("noPaymentsRecorded")}
               </div>
@@ -262,7 +257,6 @@ export default function PaymentManagementModal({
         />
       )}
 
-      {/* Hidden container for PDF generation - no dark mode needed here */}
       {receiptToPreview && (
         <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
           <div

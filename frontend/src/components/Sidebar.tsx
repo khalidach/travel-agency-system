@@ -22,7 +22,7 @@ import {
   Lock,
   BarChart2, // أيقونة جديدة لـ Agency Reports
 } from "lucide-react";
-import NewBadge from "./ui/NewBadge"; // استيراد الشارة الجديدة
+// import NewBadge from "./ui/NewBadge"; // استيراد الشارة الجديدة
 
 type MenuItem = {
   key: string;
@@ -192,13 +192,12 @@ const MenuItemContent = ({
           isActive && !item.isDisabled
             ? "text-blue-600"
             : item.isDisabled
-            ? "text-gray-300"
-            : "text-gray-400 group-hover:text-gray-600"
+              ? "text-gray-300"
+              : "text-gray-400 group-hover:text-gray-600"
         }`}
       />
       <span className={`${item.isDisabled ? "text-gray-400" : ""}`}>
         {t(item.key)}
-        {item.new && <NewBadge />}
       </span>
       {item.isDisabled && (
         <Lock className="ml-auto mr-3 h-4 w-4 text-gray-400" />
@@ -208,7 +207,7 @@ const MenuItemContent = ({
 };
 
 export default function Sidebar() {
-  const { t } = useTranslation();
+  // const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useAuthContext();
@@ -242,7 +241,7 @@ export default function Sidebar() {
 
   useEffect(() => {
     const activeParent = menuItems.find((item) =>
-      item.children?.some((child) => location.pathname.startsWith(child.path!))
+      item.children?.some((child) => location.pathname.startsWith(child.path!)),
     );
     if (activeParent) {
       setOpenMenu(activeParent.key);
@@ -281,7 +280,7 @@ export default function Sidebar() {
           {menuItems.map((item) => {
             if (item.children) {
               const isParentActive = item.children.some((child) =>
-                location.pathname.startsWith(child.path!)
+                location.pathname.startsWith(child.path!),
               );
               const isOpen = openMenu === item.key;
               return (
@@ -315,7 +314,7 @@ export default function Sidebar() {
                     <ul className="pl-8 pt-2 space-y-1">
                       {item.children.map((child) => {
                         const isChildActive = location.pathname.startsWith(
-                          child.path!
+                          child.path!,
                         );
                         return (
                           <li key={child.key}>

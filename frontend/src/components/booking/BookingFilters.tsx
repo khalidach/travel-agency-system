@@ -6,17 +6,24 @@ import { UseFormRegister } from "react-hook-form";
 import type { Employee } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
 
+// Define the shape of the form values used in this component
+export interface BookingFilterValues {
+  searchTerm: string;
+  variationFilter: string;
+  sortOrder: string;
+  statusFilter: string;
+  employeeFilter: string;
+}
+
 interface BookingFiltersProps {
-  register: UseFormRegister<any>;
+  register: UseFormRegister<BookingFilterValues>; // Replaced 'any' with explicit type
   handleExport: () => void;
   isExporting: boolean;
   employees: Employee[];
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   selectedCount: number;
   onDeleteSelected: () => void;
-  // <NEW CODE>
   programVariations: { name: string }[];
-  // </NEW CODE>
 }
 
 export default function BookingFilters({
@@ -27,10 +34,8 @@ export default function BookingFilters({
   onSearchKeyDown,
   selectedCount,
   onDeleteSelected,
-  // <NEW CODE>
   programVariations,
-}: // </NEW CODE>
-BookingFiltersProps) {
+}: BookingFiltersProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
@@ -48,7 +53,6 @@ BookingFiltersProps) {
           />
         </div>
 
-        {/* <NEW CODE> */}
         <select
           {...register("variationFilter")}
           className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -60,7 +64,6 @@ BookingFiltersProps) {
             </option>
           ))}
         </select>
-        {/* </NEW CODE> */}
 
         <select
           {...register("sortOrder")}
@@ -70,6 +73,7 @@ BookingFiltersProps) {
           <option value="oldest">{t("sortByOldest")}</option>
           <option value="family">{t("sortByFamily")}</option>
         </select>
+
         <select
           {...register("statusFilter")}
           className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
