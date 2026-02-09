@@ -1,8 +1,9 @@
+// frontend/src/components/booking_form/BulkClientRow.tsx
 import { useEffect } from "react";
 import { useFormContext, Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
-import { ClientFormData } from "./types"; // Fixed import source
+import { ClientFormData, BookingFormData } from "./types";
 
 interface BulkClientRowProps {
   index: number;
@@ -18,7 +19,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     trigger, // Need trigger for cross-field validation
     setValue, // Need setValue to clear passport
     watch, // Watch for changes
-  } = useFormContext();
+  } = useFormContext<BookingFormData>();
 
   // Watch for changes in specific fields for this row
   const noPassport = useWatch({
@@ -34,10 +35,13 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     name: `clients.${index}.clientNameAr`,
   });
 
-  // --- NEW: Initialize noPassport based on existing passportNumber ---
+  // Access errors for this specific client row safely using optional chaining
+  const clientErrors = errors.clients?.[index];
+
+  // --- Initialize noPassport based on existing passportNumber ---
   useEffect(() => {
     const existingClientData = watch(`clients.${index}`) as ClientFormData;
-    // Only apply this logic if it's an existing, populated row (e.g. after a bulk import/API data load)
+    // Only apply this logic if it's an existing, populated row
     if (existingClientData.passportNumber !== undefined) {
       const isExistingBookingWithNoPassport =
         !existingClientData.passportNumber ||
@@ -45,24 +49,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
       setValue(`clients.${index}.noPassport`, isExistingBookingWithNoPassport);
     }
   }, [index, setValue, watch]);
-  // --- END NEW ---
-
-  // Helper to safely get nested errors
-  const getError = (fieldName: string) => {
-    const fieldErrors = errors.clients as any;
-    try {
-      // Handle nested paths like 'clientNameFr.lastName'
-      const parts = fieldName.split(".");
-      let error = fieldErrors?.[index];
-      for (const part of parts) {
-        if (!error) return null;
-        error = error[part];
-      }
-      return error;
-    } catch (e) {
-      return null;
-    }
-  };
 
   // Effect to clear passport number if "No passport" is checked
   useEffect(() => {
@@ -103,7 +89,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
 
   // Check if either name field has an error, but only if both are empty
   const showNameError =
-    (getError("clientNameFr.lastName") || getError("clientNameAr")) &&
+    (clientErrors?.clientNameFr?.lastName || clientErrors?.clientNameAr) &&
     !clientNameFrLastName &&
     !clientNameAr;
 
@@ -126,7 +112,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             <Controller
               name={`clients.${index}.clientNameFr.lastName`}
               control={control}
-              rules={nameFrRules} // Use new rules
+              rules={nameFrRules}
               render={({ field }) => (
                 <input
                   {...field}
@@ -139,7 +125,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                   }`}
                   onChange={(e) => {
                     field.onChange(e);
-                    trigger(`clients.${index}.clientNameAr`); // Trigger validation
+                    trigger(`clients.${index}.clientNameAr`);
                   }}
                 />
               )}
@@ -170,7 +156,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.clientNameAr`}
             control={control}
-            rules={nameArRules} // Use new rules
+            rules={nameArRules}
             render={({ field }) => (
               <input
                 {...field}
@@ -183,7 +169,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                 dir="rtl"
                 onChange={(e) => {
                   field.onChange(e);
-                  trigger(`clients.${index}.clientNameFr.lastName`); // Trigger validation
+                  trigger(`clients.${index}.clientNameFr.lastName`);
                 }}
               />
             )}
@@ -195,12 +181,12 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             <Controller
               name={`clients.${index}.noPassport`}
               control={control}
-              render={({ field }) => (
+              render={({ field: { value, ...fieldProps } }) => (
                 <input
                   type="checkbox"
                   id={`noPassport-${index}`}
-                  {...field}
-                  checked={!!field.value}
+                  {...fieldProps} // Spread remaining props (onChange, onBlur, name, ref)
+                  checked={!!value} // Use destructured value for checked state
                   className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600"
                 />
               )}
@@ -224,14 +210,14 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           <Controller
             name={`clients.${index}.passportNumber`}
             control={control}
-            rules={passportRules} // Use new conditional rules
+            rules={passportRules}
             render={({ field }) => (
               <input
                 {...field}
                 type="text"
-                disabled={noPassport} // Disable input if checkbox is checked
+                disabled={noPassport}
                 className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
-                  getError("passportNumber")
+                  clientErrors?.passportNumber
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 } ${
@@ -260,7 +246,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
 
-        {/* --- NEW FIELD: Date of Birth --- */}
+        {/* --- Date of Birth --- */}
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("dateOfBirth")}
@@ -272,9 +258,9 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               <input
                 {...field}
                 type="date"
-                value={field.value ? field.value.split("T")[0] || "" : ""} // Format date for input
+                value={field.value ? field.value.split("T")[0] || "" : ""}
                 className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
-                  getError("dateOfBirth")
+                  clientErrors?.dateOfBirth
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 }`}
@@ -283,7 +269,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
 
-        {/* --- NEW FIELD: Passport Expiration Date --- */}
+        {/* --- Passport Expiration Date --- */}
         <div className="md:col-span-2">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("passportExpirationDate")}
@@ -295,9 +281,9 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               <input
                 {...field}
                 type="date"
-                value={field.value ? field.value.split("T")[0] || "" : ""} // Format date for input
+                value={field.value ? field.value.split("T")[0] || "" : ""}
                 className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
-                  getError("passportExpirationDate")
+                  clientErrors?.passportExpirationDate
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
                 }`}
