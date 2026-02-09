@@ -1,8 +1,9 @@
-// frontend/src/components/booking/PricingFields.tsx
+// frontend/src/components/booking_form/PricingFields.tsx
 import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../../context/AuthContext";
+import { BookingFormData } from "./types";
 
 interface PricingFieldsProps {
   handleSellingPriceChange: (price: number) => void;
@@ -13,7 +14,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
   const {
     control,
     formState: { errors },
-  } = useFormContext();
+  } = useFormContext<BookingFormData>();
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
 
@@ -50,7 +51,7 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
         />
         {errors.sellingPrice && (
           <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-            {(errors.sellingPrice as any).message}
+            {errors.sellingPrice.message}
           </p>
         )}
       </div>
