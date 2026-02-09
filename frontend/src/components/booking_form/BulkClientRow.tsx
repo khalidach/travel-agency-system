@@ -1,8 +1,8 @@
-import React, { useEffect } from "react";
-import { useFormContext, Controller, useWatch, get } from "react-hook-form";
+import { useEffect } from "react";
+import { useFormContext, Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
-import { ClientFormData } from "../BookingForm"; // Assuming ClientFormData is exported from BookingForm
+import { ClientFormData } from "./types"; // Fixed import source
 
 interface BulkClientRowProps {
   index: number;
