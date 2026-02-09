@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// frontend/src/components/PaymentForm.tsx
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Payment } from "../context/models";
 
@@ -17,7 +18,8 @@ export default function PaymentForm({
 }: PaymentFormProps) {
   const { t } = useTranslation();
 
-  const getInitialFormData = (): Omit<Payment, "_id" | "id"> => {
+  // Wrapped in useCallback to resolve useEffect dependency warning
+  const getInitialFormData = useCallback((): Omit<Payment, "_id" | "id"> => {
     if (payment) {
       return {
         amount: payment.amount,
@@ -25,7 +27,7 @@ export default function PaymentForm({
         date: payment.date
           ? new Date(payment.date).toISOString().split("T")[0]
           : "",
-        labelPaper: payment.labelPaper || "", // NEW: Initialize labelPaper
+        labelPaper: payment.labelPaper || "",
         chequeNumber: payment.chequeNumber || "",
         bankName: payment.bankName || "",
         chequeCashingDate: payment.chequeCashingDate
@@ -39,24 +41,24 @@ export default function PaymentForm({
       amount: 0,
       method: "cash",
       date: new Date().toISOString().split("T")[0],
-      labelPaper: "", // NEW: Default for new payment
+      labelPaper: "",
       chequeNumber: "",
       bankName: "",
       chequeCashingDate: "",
       transferReference: "",
       transferPayerName: "",
     };
-  };
+  }, [payment]);
 
   const [formData, setFormData] = useState(getInitialFormData());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // When the payment prop changes (e.g., when opening the modal for a new payment),
+    // When the payment prop changes (or getInitialFormData updates),
     // reset the form data.
     setFormData(getInitialFormData());
     setError(null);
-  }, [payment]);
+  }, [getInitialFormData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +132,6 @@ export default function PaymentForm({
         </label>
         <select
           value={formData.method}
-          // Changed 'as any' to strictly typed 'as Payment["method"]'
           onChange={(e) =>
             setFormData((prev) => ({
               ...prev,
@@ -169,7 +170,6 @@ export default function PaymentForm({
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
       </div>
-      {/* END NEW INPUT */}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

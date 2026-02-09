@@ -1,5 +1,4 @@
 // frontend/src/components/ui/LoadingSpinner.tsx
-import React from "react";
 
 const LoadingSpinner = ({
   className = "h-5 w-5 text-gray-400 dark:text-gray-500",

@@ -1,5 +1,4 @@
 // frontend/src/components/ui/NewBadge.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 
 const NewBadge = () => {

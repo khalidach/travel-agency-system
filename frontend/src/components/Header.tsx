@@ -1,5 +1,5 @@
 // frontend/src/components/Header.tsx
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
