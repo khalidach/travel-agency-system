@@ -8,13 +8,14 @@ import {
 import { I18nextProvider } from "react-i18next";
 import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
-import React, { Suspense, lazy, useMemo, useEffect } from "react";
+import { Suspense, lazy, useMemo, useEffect } from "react";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import Layout from "./components/Layout";
 import useIdleTimeout from "./services/useIdleTimeout";
 import BookingSkeleton from "./components/skeletons/BookingSkeleton";
+import ErrorBoundary from "./components/ErrorBoundary"; // NEW IMPORT
 
 // Lazy load the page components
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -29,7 +30,7 @@ const ProgramCosting = lazy(() => import("./pages/ProgramCosting"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
-const SignUpPage = lazy(() => import("./pages/SignUpPage")); // Import SignUpPage
+const SignUpPage = lazy(() => import("./pages/SignUpPage"));
 const OwnerPage = lazy(() => import("./pages/Owner"));
 const TiersPage = lazy(() => import("./pages/Tiers"));
 const RoomManagementPage = lazy(() => import("./pages/RoomManagementPage"));
@@ -38,7 +39,7 @@ const Facturation = lazy(() => import("./pages/Facturation"));
 const Settings = lazy(() => import("./pages/Settings"));
 const DailyServices = lazy(() => import("./pages/DailyServices"));
 const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
-const AccountSettings = lazy(() => import("./pages/AccountSettings")); // New Page
+const AccountSettings = lazy(() => import("./pages/AccountSettings"));
 
 // NEW IMPORTS FOR AGENCY REPORTS
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
@@ -290,9 +291,12 @@ function App() {
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
         <ThemeProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
+          {/* Wrapped Router in ErrorBoundary to catch lazy load failures */}
+          <ErrorBoundary>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </ErrorBoundary>
           <Toaster position="bottom-right" />
         </ThemeProvider>
       </AuthProvider>

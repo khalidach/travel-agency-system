@@ -1,4 +1,21 @@
 // frontend/src/services/api.ts
+import type {
+  Booking,
+  DailyService,
+  Employee,
+  Facture,
+  Payment,
+  Program,
+  ProgramCost,
+  ProgramPricing,
+  Room,
+  Tier,
+  TierLimits,
+  User,
+  FacturationSettings,
+} from "../context/models";
+import type { BookingSaveData } from "../components/booking_form/types";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export interface BookingFilters {
@@ -9,8 +26,12 @@ export interface BookingFilters {
   variationFilter?: string;
 }
 
+// Helper Types for API Payloads (stripping auto-generated fields)
+type Create<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
+type Update<T> = Partial<T>;
+
 // --- Auth API ---
-export const signup = async (data: any) => {
+export const signup = async (data: Record<string, unknown>) => {
   const response = await fetch(`${API_BASE_URL}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -70,12 +91,12 @@ export const refreshToken = async () => {
 export const logout = () => request("/auth/logout", { method: "POST" });
 
 // --- Account Settings API ---
-export const updateAccountSettings = (data: any) =>
+export const updateAccountSettings = (data: Partial<User>) =>
   request(`/account/settings`, { method: "PUT", body: JSON.stringify(data) });
 
 // --- Settings API ---
 export const getSettings = () => request("/settings");
-export const updateSettings = (settings: any) =>
+export const updateSettings = (settings: Partial<FacturationSettings>) =>
   request("/settings", { method: "PUT", body: JSON.stringify(settings) });
 
 // --- Facturation API ---
@@ -86,9 +107,9 @@ export const getFactures = (page = 1, limit = 10) => {
   });
   return request(`/facturation?${params.toString()}`);
 };
-export const createFacture = (facture: any) =>
+export const createFacture = (facture: Create<Facture>) =>
   request("/facturation", { method: "POST", body: JSON.stringify(facture) });
-export const updateFacture = (id: number, facture: any) =>
+export const updateFacture = (id: number, facture: Update<Facture>) =>
   request(`/facturation/${id}`, {
     method: "PUT",
     body: JSON.stringify(facture),
@@ -104,9 +125,9 @@ export const getDailyServices = (page = 1, limit = 10) => {
   });
   return request(`/daily-services?${params.toString()}`);
 };
-export const createDailyService = (service: any) =>
+export const createDailyService = (service: Create<DailyService>) =>
   request("/daily-services", { method: "POST", body: JSON.stringify(service) });
-export const updateDailyService = (id: number, service: any) =>
+export const updateDailyService = (id: number, service: Update<DailyService>) =>
   request(`/daily-services/${id}`, {
     method: "PUT",
     body: JSON.stringify(service),
@@ -126,7 +147,10 @@ export const getDailyServiceReport = (startDate?: string, endDate?: string) => {
 };
 
 // New Payment APIs for Daily Service
-export const addDailyServicePayment = (serviceId: number, payment: any) =>
+export const addDailyServicePayment = (
+  serviceId: number,
+  payment: Omit<Payment, "_id" | "id">,
+) =>
   request(`/daily-services/${serviceId}/payments`, {
     method: "POST",
     body: JSON.stringify(payment),
@@ -135,7 +159,7 @@ export const addDailyServicePayment = (serviceId: number, payment: any) =>
 export const updateDailyServicePayment = (
   serviceId: number,
   paymentId: string,
-  payment: any,
+  payment: Partial<Payment>,
 ) =>
   request(`/daily-services/${serviceId}/payments/${paymentId}`, {
     method: "PUT",
@@ -197,7 +221,6 @@ export const getPrograms = (
 
 export const searchProgramsForBooking = (searchTerm = "", limit = 10) => {
   if (!searchTerm) {
-    // If search term is empty, we still need to send the request to get all programs
     const params = new URLSearchParams({
       limit: limit.toString(),
       searchTerm,
@@ -214,9 +237,9 @@ export const searchProgramsForBooking = (searchTerm = "", limit = 10) => {
 };
 
 export const getProgramById = (id: string) => request(`/programs/${id}`);
-export const createProgram = (program: any) =>
+export const createProgram = (program: Create<Program>) =>
   request("/programs", { method: "POST", body: JSON.stringify(program) });
-export const updateProgram = (id: number, program: any) =>
+export const updateProgram = (id: number, program: Update<Program>) =>
   request(`/programs/${id}`, { method: "PUT", body: JSON.stringify(program) });
 export const deleteProgram = (id: number) =>
   request(`/programs/${id}`, { method: "DELETE" });
@@ -226,12 +249,15 @@ export const getProgramPricing = (page = 1, limit = 10) =>
   request(`/program-pricing?page=${page}&limit=${limit}`);
 export const getProgramPricingByProgramId = (programId: string) =>
   request(`/program-pricing/program/${programId}`);
-export const createProgramPricing = (pricing: any) =>
+export const createProgramPricing = (pricing: Create<ProgramPricing>) =>
   request("/program-pricing", {
     method: "POST",
     body: JSON.stringify(pricing),
   });
-export const updateProgramPricing = (id: number, pricing: any) =>
+export const updateProgramPricing = (
+  id: number,
+  pricing: Update<ProgramPricing>,
+) =>
   request(`/program-pricing/${id}`, {
     method: "PUT",
     body: JSON.stringify(pricing),
@@ -243,7 +269,10 @@ export const deleteProgramPricing = (id: number) =>
 export const getProgramCosts = (programId: string) =>
   request(`/program-costs/${programId}`);
 
-export const saveProgramCosts = (programId: string, data: any) =>
+export const saveProgramCosts = (
+  programId: string,
+  data: Partial<ProgramCost>,
+) =>
   request(`/program-costs/${programId}`, {
     method: "PUT",
     body: JSON.stringify(data),
@@ -312,9 +341,12 @@ export const searchBookingsInProgram = async (
   return result.data;
 };
 
-export const createBooking = (booking: any) =>
+export const createBooking = (booking: BookingSaveData | Partial<Booking>) =>
   request("/bookings", { method: "POST", body: JSON.stringify(booking) });
-export const updateBooking = (id: number, booking: any) =>
+export const updateBooking = (
+  id: number,
+  booking: BookingSaveData | Update<Booking>,
+) =>
   request(`/bookings/${id}`, { method: "PUT", body: JSON.stringify(booking) });
 export const deleteBooking = (id: number) =>
   request(`/bookings/${id}`, { method: "DELETE" });
@@ -338,7 +370,10 @@ export const updateBookingStatus = (
   });
 
 // --- Payment API ---
-export const addPayment = (bookingId: number, payment: any) =>
+export const addPayment = (
+  bookingId: number,
+  payment: Omit<Payment, "_id" | "id">,
+) =>
   request(`/bookings/${bookingId}/payments`, {
     method: "POST",
     body: JSON.stringify(payment),
@@ -346,7 +381,7 @@ export const addPayment = (bookingId: number, payment: any) =>
 export const updatePayment = (
   bookingId: number,
   paymentId: string,
-  payment: any,
+  payment: Partial<Payment>,
 ) =>
   request(`/bookings/${bookingId}/payments/${paymentId}`, {
     method: "PUT",
@@ -357,9 +392,11 @@ export const deletePayment = (bookingId: number, paymentId: string) =>
 
 // --- Employee API ---
 export const getEmployees = () => request("/employees");
-export const createEmployee = (employeeData: any) =>
+export const createEmployee = (
+  employeeData: Omit<Employee, "id"> & { password?: string },
+) =>
   request("/employees", { method: "POST", body: JSON.stringify(employeeData) });
-export const updateEmployee = (id: number, employeeData: any) =>
+export const updateEmployee = (id: number, employeeData: Partial<Employee>) =>
   request(`/employees/${id}`, {
     method: "PUT",
     body: JSON.stringify(employeeData),
@@ -433,9 +470,9 @@ export const getEmployeeServicePerformance = (
 
 // --- Owner API ---
 export const getAdminUsers = () => request("/owner/admins");
-export const createAdminUser = (userData: any) =>
+export const createAdminUser = (userData: Create<User>) =>
   request("/owner/admins", { method: "POST", body: JSON.stringify(userData) });
-export const updateAdminUser = (id: number, userData: any) =>
+export const updateAdminUser = (id: number, userData: Update<User>) =>
   request(`/owner/admins/${id}`, {
     method: "PUT",
     body: JSON.stringify(userData),
@@ -452,7 +489,10 @@ export const updateAdminUserTier = (id: number, tierId: number) =>
     method: "PUT",
     body: JSON.stringify({ tierId }),
   });
-export const updateAdminUserLimits = (id: number, limits: any) =>
+export const updateAdminUserLimits = (
+  id: number,
+  limits: Partial<TierLimits>,
+) =>
   request(`/owner/admins/${id}/limits`, {
     method: "PUT",
     body: JSON.stringify({ limits }),
@@ -479,9 +519,9 @@ export const getAgencyDetailedReport = (
 
 // --- Tier Management API (New) ---
 export const getTiers = () => request("/tiers");
-export const createTier = (tierData: any) =>
+export const createTier = (tierData: Create<Tier>) =>
   request("/tiers", { method: "POST", body: JSON.stringify(tierData) });
-export const updateTier = (id: number, tierData: any) =>
+export const updateTier = (id: number, tierData: Update<Tier>) =>
   request(`/tiers/${id}`, { method: "PUT", body: JSON.stringify(tierData) });
 export const deleteTier = (id: number) =>
   request(`/tiers/${id}`, { method: "DELETE" });
@@ -517,7 +557,11 @@ export const importBookings = (file: File, programId: string) => {
 export const getRooms = (programId: string, hotelName: string) =>
   request(`/room-management/program/${programId}/hotel/${hotelName}`);
 
-export const saveRooms = (programId: string, hotelName: string, rooms: any) =>
+export const saveRooms = (
+  programId: string,
+  hotelName: string,
+  rooms: Room[],
+) =>
   request(`/room-management/program/${programId}/hotel/${hotelName}`, {
     method: "POST",
     body: JSON.stringify({ rooms }),
