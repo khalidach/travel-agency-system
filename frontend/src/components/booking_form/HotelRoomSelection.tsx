@@ -1,5 +1,5 @@
 // frontend/src/components/booking_form/HotelRoomSelection.tsx
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 // import { useTranslation } from "react-i18next"; // Removed due to environment constraints
 import type { Program, Package, ProgramVariation } from "../../context/models";
 
