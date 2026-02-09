@@ -7,7 +7,6 @@ import {
   DollarSign,
   Users,
   TrendingUp,
-  CheckCircle2,
   Zap,
   Moon,
   Sun,
@@ -81,69 +80,6 @@ const FeatureCard = ({
   </div>
 );
 
-const PricingCard = ({ plan, popular }: { plan: any; popular?: boolean }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { state } = useAuthContext();
-  const handleChoosePlan = () => {
-    if (state.isAuthenticated) {
-      navigate("/dashboard");
-    } else {
-      navigate("/signup");
-    }
-  };
-
-  return (
-    <div
-      className={`relative bg-white dark:bg-gray-800 p-8 rounded-2xl border ${
-        popular ? "border-indigo-500" : "border-gray-200 dark:border-gray-700"
-      } min-h-[700px] min-[300px] flex flex-col`}
-    >
-      {popular && (
-        <div className="absolute top-0 -translate-y-1/2 bg-indigo-500 text-white text-sm font-semibold px-4 py-1 rounded-full">
-          {t("home.pricingSection.mostPopular")}
-        </div>
-      )}
-      <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-        {plan.title}
-      </h3>
-      <p className="text-gray-500 dark:text-gray-400 mt-2">{plan.subtitle}</p>
-      <div className="mt-6 text-gray-900 dark:text-white">
-        <span className="text-5xl font-extrabold">{plan.price}</span>
-        <span className="text-gray-500 dark:text-gray-400">
-          {t("currency.dh_per_month")}
-        </span>
-      </div>
-      <ul
-        className={`mt-8 mb-8 gap-4 ${
-          document.documentElement.dir === "rtl" ? "text-right" : "text-left"
-        }`}
-      >
-        {plan.features.map((feature: string, index: number) => (
-          <li key={index} className="flex mt-2 items-start">
-            <CheckCircle2
-              className={`flex-shrink-0 w-5 h-5 text-green-500 dark:text-green-400 mt-1 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              } `}
-            />
-            <span className="text-gray-600 dark:text-gray-300">{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        onClick={handleChoosePlan}
-        className={`w-full mt-auto py-3 px-6 rounded-lg font-semibold transition-colors ${
-          popular
-            ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-            : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white"
-        }`}
-      >
-        {t("home.pricingSection.choosePlan")}
-      </button>
-    </div>
-  );
-};
-
 const HomePage = () => {
   const { state } = useAuthContext();
   const navigate = useNavigate();
@@ -169,54 +105,6 @@ const HomePage = () => {
 
   const handleSignUpClick = () => {
     navigate("/signup");
-  };
-
-  const pricingPlans = {
-    monthly: [
-      {
-        title: t("home.pricingSection.essentialPlan.title"),
-        subtitle: t("home.pricingSection.essentialPlan.subtitle"),
-        price: t("home.pricingSection.essentialPlan.price"),
-        features: [
-          t("home.pricingSection.essentialPlan.features.f1"),
-          t("home.pricingSection.essentialPlan.features.f2"),
-          t("home.pricingSection.essentialPlan.features.f3"),
-          t("home.pricingSection.essentialPlan.features.f4"),
-          t("home.pricingSection.essentialPlan.features.f5"),
-          t("home.pricingSection.essentialPlan.features.f6"),
-        ],
-      },
-      {
-        title: t("home.pricingSection.proPlan.title"),
-        subtitle: t("home.pricingSection.proPlan.subtitle"),
-        price: t("home.pricingSection.proPlan.price"),
-        features: [
-          t("home.pricingSection.proPlan.features.f1"),
-          t("home.pricingSection.proPlan.features.f2"),
-          t("home.pricingSection.proPlan.features.f3"),
-          t("home.pricingSection.proPlan.features.f4"),
-          t("home.pricingSection.proPlan.features.f5"),
-          t("home.pricingSection.proPlan.features.f6"),
-          t("home.pricingSection.proPlan.features.f7"),
-          t("home.pricingSection.proPlan.features.f8"),
-          t("home.pricingSection.proPlan.features.f9"),
-          t("home.pricingSection.proPlan.features.f10"),
-        ],
-      },
-      {
-        title: t("home.pricingSection.elitePlan.title"),
-        subtitle: t("home.pricingSection.elitePlan.subtitle"),
-        price: t("home.pricingSection.elitePlan.price"),
-        features: [
-          t("home.pricingSection.elitePlan.features.f1"),
-          t("home.pricingSection.elitePlan.features.f2"),
-          t("home.pricingSection.elitePlan.features.f3"),
-          t("home.pricingSection.elitePlan.features.f4"),
-          t("home.pricingSection.elitePlan.features.f5"),
-          t("home.pricingSection.elitePlan.features.f6"),
-        ],
-      },
-    ],
   };
 
   return (
@@ -354,7 +242,7 @@ const HomePage = () => {
                         className="w-[4%] bg-indigo-500 rounded-t-md hover:bg-indigo-400 transition-colors"
                         style={{ height: `${h}%` }}
                       ></div>
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -413,7 +301,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Pricing Section (Contact Support) */}
       <section id="pricing" className="py-20">
         <div className="container mx-auto px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -422,10 +310,37 @@ const HomePage = () => {
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-12">
             {t("home.pricingSection.subtitle")}
           </p>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <PricingCard plan={pricingPlans.monthly[0]} />
-            <PricingCard plan={pricingPlans.monthly[1]} popular />
-            <PricingCard plan={pricingPlans.monthly[2]} />
+
+          <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 p-8 md:p-12 rounded-2xl border border-indigo-500/30 shadow-2xl flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-indigo-100 dark:bg-indigo-900/50 rounded-full flex items-center justify-center mb-6">
+              <DollarSign className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
+            </div>
+
+            <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              {t("home.pricingSection.contactTitle", "Get a Custom Quote")}
+            </h3>
+
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl">
+              {t(
+                "home.pricingSection.contactDescription",
+                "Contact our support team to discuss your agency's specific needs and get a pricing plan tailored for you.",
+              )}
+            </p>
+
+            <a
+              href="https://wa.me/212782622161"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-full text-lg transition-all transform hover:scale-105 shadow-lg hover:shadow-green-500/30"
+            >
+              <WhatsAppIcon />
+              <span>
+                {t(
+                  "home.pricingSection.contactSupport",
+                  "Contact Support via WhatsApp",
+                )}
+              </span>
+            </a>
           </div>
         </div>
       </section>
