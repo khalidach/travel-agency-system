@@ -2,7 +2,7 @@
 import { useCallback, useEffect } from "react";
 import { UseFormSetValue } from "react-hook-form";
 import type { ProgramPricing } from "../../../context/models";
-import type { BookingFormData, FormState } from "../../booking/types";
+import type { BookingFormData, FormState } from "../../booking_form/types";
 
 interface UseBookingPricingProps {
   formState: FormState;

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { UseFormSetValue } from "react-hook-form";
 import * as api from "../../../services/api";
 import type { Program, ProgramPricing, Booking } from "../../../context/models";
-import type { FormState, BookingFormData } from "../../booking/types";
+import type { FormState, BookingFormData } from "../../booking_form/types";
 
 interface UseProgramManagerProps {
   programs: Program[];
