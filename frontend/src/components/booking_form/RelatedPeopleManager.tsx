@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
-import type { Booking, RelatedPerson } from "../../context/models";
+import type { Booking, RelatedPerson, Program } from "../../context/models";
 
 interface RelatedPeopleManagerProps {
   search: string;
   showDropdown: boolean;
-  selectedProgram: any;
+  selectedProgram: Program | null;
   availablePeople: Booking[];
   relatedPersons: RelatedPerson[];
   onSearchChange: (value: string) => void;
@@ -36,7 +36,7 @@ const RelatedPeopleManager = ({
     setSelectedPeople((prev) =>
       prev.some((p) => p.id === person.id)
         ? prev.filter((p) => p.id !== person.id)
-        : [...prev, person]
+        : [...prev, person],
     );
   };
 
@@ -140,4 +140,5 @@ const RelatedPeopleManager = ({
     </div>
   );
 };
+
 export default RelatedPeopleManager;

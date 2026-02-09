@@ -1,8 +1,8 @@
 // frontend/src/components/booking/ProgramPackageSelection.tsx
-import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import type { Program } from "../../context/models";
+import type { Program, Booking } from "../../context/models";
+import { BookingFormData } from "./types";
 
 interface ProgramPackageSelectionProps {
   programs: Program[];
@@ -12,7 +12,7 @@ interface ProgramPackageSelectionProps {
   handleVariationChange: (variationName: string) => void;
   handlePackageChange: (packageName: string) => void;
   programId?: string;
-  booking?: any;
+  booking?: Booking | null;
 }
 
 const ProgramPackageSelection = ({
@@ -29,7 +29,7 @@ const ProgramPackageSelection = ({
   const {
     control,
     formState: { errors },
-  } = useFormContext();
+  } = useFormContext<BookingFormData>();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -62,7 +62,7 @@ const ProgramPackageSelection = ({
         />
         {errors.tripId && (
           <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-            {(errors.tripId as any).message}
+            {errors.tripId.message}
           </p>
         )}
       </div>
@@ -95,7 +95,7 @@ const ProgramPackageSelection = ({
         />
         {errors.variationName && (
           <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-            {(errors.variationName as any).message}
+            {errors.variationName.message}
           </p>
         )}
       </div>
@@ -131,7 +131,7 @@ const ProgramPackageSelection = ({
           />
           {errors.packageId && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(errors.packageId as any).message}
+              {errors.packageId.message}
             </p>
           )}
         </div>
