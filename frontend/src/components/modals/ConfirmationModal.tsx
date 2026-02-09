@@ -1,5 +1,4 @@
 // frontend/src/components/modals/ConfirmationModal.tsx
-import React from "react";
 import { AlertTriangle } from "lucide-react";
 import Modal from "../Modal";
 

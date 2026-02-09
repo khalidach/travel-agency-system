@@ -1,5 +1,4 @@
 // frontend/src/components/facturation/FacturePDF.tsx
-import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as api from "../../services/api";
 import { Facture, FacturationSettings } from "../../context/models";
@@ -87,7 +86,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                 <td className="p-2 text-right border">
                   {(Number(item.fraisServiceUnitaire) || 0).toLocaleString(
                     undefined,
-                    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
                   )}
                 </td>
               )}
@@ -114,7 +113,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                     {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    }
+                    },
                   )}{" "}
                   MAD
                 </span>
@@ -127,7 +126,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                     {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    }
+                    },
                   )}{" "}
                   MAD
                 </span>

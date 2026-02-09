@@ -69,7 +69,7 @@ export default function ProgramBookingsModal({
         currentPage,
         ITEMS_PER_PAGE,
         startDate,
-        endDate
+        endDate,
       ),
     enabled: isOpen && !!username && !!programId,
   });

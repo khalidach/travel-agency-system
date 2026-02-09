@@ -34,7 +34,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
   if (!isOpen || !user) return null;
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
     const isBooleanField = [
@@ -69,26 +69,32 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     e.preventDefault();
 
     const finalLimits: Partial<TierLimits> = {};
+    const booleanKeys = [
+      "invoicing",
+      "dailyServices",
+      "flightListExport",
+      "programCosts",
+      "profitReport",
+      "employeeAnalysis",
+    ] as const;
+
     // Iterate over the keys of the state object in a type-safe way
     (Object.keys(limits) as Array<keyof TierLimits>).forEach((key) => {
       const value = limits[key];
 
       // Filter out any keys that have been unset (value is undefined or an empty string)
       if (value !== undefined && value !== "") {
-        // Based on the key, we can safely assert the type of the value.
-        if (
-          [
-            "invoicing",
-            "dailyServices",
-            "flightListExport",
-            "programCosts",
-            "profitReport",
-            "employeeAnalysis",
-          ].includes(key as string)
-        ) {
-          (finalLimits as any)[key] = value as boolean;
+        // Check if the key corresponds to a boolean field
+        if ((booleanKeys as readonly string[]).includes(key)) {
+          const boolKey = key as (typeof booleanKeys)[number];
+          finalLimits[boolKey] = value as boolean;
         } else {
-          (finalLimits as any)[key] = value as number;
+          // If not boolean, it must be a number field
+          const numKey = key as Exclude<
+            keyof TierLimits,
+            (typeof booleanKeys)[number]
+          >;
+          finalLimits[numKey] = value as number;
         }
       }
     });
