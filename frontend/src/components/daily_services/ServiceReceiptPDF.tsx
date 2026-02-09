@@ -1,4 +1,3 @@
-import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   DailyService,
@@ -35,7 +34,7 @@ export default function ServiceReceiptPDF({
 
   // Find the current payment's index to generate a unique receipt number
   const currentPaymentIndex = service.advancePayments?.findIndex(
-    (p) => p._id === payment._id
+    (p) => p._id === payment._id,
   );
 
   const receiptNumber = `SRV-${service.id}-${
@@ -234,7 +233,7 @@ export default function ServiceReceiptPDF({
                 // Calculate the sequential receipt number for the previous payment
                 const prevPaymentIndex =
                   service.advancePayments?.findIndex(
-                    (p) => p._id === prevPayment._id
+                    (p) => p._id === prevPayment._id,
                   ) ?? index;
                 const prevReceiptNumber = `SRV-${service.id}-${
                   prevPaymentIndex + 1
