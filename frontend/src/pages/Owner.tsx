@@ -20,10 +20,11 @@ const AdminForm = ({
   onSave: (data: Partial<User>) => void;
   onCancel: () => void;
 }) => {
+  // FIX: Changed 'phoneNumber' to 'phone' to match backend expectation
   const [formData, setFormData] = useState({
     ownerName: user?.ownerName || "",
     agencyName: user?.agencyName || "",
-    phoneNumber: user?.phone || "",
+    phone: user?.phone || "",
     email: user?.email || "",
     username: user?.username || "",
     password: "",
@@ -36,7 +37,7 @@ const AdminForm = ({
       !formData.username ||
       !formData.agencyName ||
       !formData.ownerName ||
-      !formData.phoneNumber ||
+      !formData.phone || // FIX: Updated validation check
       !formData.email ||
       (!user && !formData.password)
     ) {
@@ -82,10 +83,9 @@ const AdminForm = ({
         </label>
         <input
           type="text"
-          value={formData.phoneNumber}
-          onChange={(e) =>
-            setFormData({ ...formData, phoneNumber: e.target.value })
-          }
+          // FIX: Updated value and onChange to use 'phone'
+          value={formData.phone}
+          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
