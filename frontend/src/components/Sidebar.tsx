@@ -3,13 +3,13 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
+import { User } from "../context/models";
 import {
   BarChart3,
   Package,
   Calendar,
   TrendingUp,
   Plane,
-  ShipWheel,
   Users,
   Crown,
   BedDouble,
@@ -20,9 +20,9 @@ import {
   ConciergeBell,
   DollarSign,
   Lock,
-  BarChart2, // أيقونة جديدة لـ Agency Reports
+  BarChart2,
+  ShipWheel,
 } from "lucide-react";
-// import NewBadge from "./ui/NewBadge"; // استيراد الشارة الجديدة
 
 type MenuItem = {
   key: string;
@@ -30,9 +30,10 @@ type MenuItem = {
   icon: React.ElementType;
   roles: string[];
   children?: MenuItem[];
-  accessCheck?: (user: any) => boolean;
+  // Fixed: Replaced 'any' with 'User | null'
+  accessCheck?: (user: User | null) => boolean;
   isDisabled?: boolean;
-  new?: boolean; // خاصية جديدة للإشارة إلى الميزات الجديدة
+  new?: boolean;
 };
 
 const allMenuItems: MenuItem[] = [
@@ -43,7 +44,7 @@ const allMenuItems: MenuItem[] = [
     roles: ["owner"],
   },
   {
-    key: "agencyReports", // مفتاح جديد لتقارير الوكالات
+    key: "agencyReports",
     path: "/owner/reports",
     icon: BarChart2,
     roles: ["owner"],
@@ -82,8 +83,9 @@ const allMenuItems: MenuItem[] = [
         path: "/program-costing",
         icon: DollarSign,
         roles: ["admin"],
-        new: true, // إضافة شارة "جديد" هنا
-        accessCheck: (user: any) => {
+        new: true,
+        // Fixed: Typed 'user' implicitly via MenuItem interface or explicitly
+        accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.programCosts === "boolean")
             return user.limits.programCosts;
@@ -109,7 +111,8 @@ const allMenuItems: MenuItem[] = [
         path: "/profit-report",
         icon: TrendingUp,
         roles: ["admin"],
-        accessCheck: (user: any) => {
+        // Fixed: Typed 'user' explicitly
+        accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.profitReport === "boolean")
             return user.limits.profitReport;
@@ -124,6 +127,7 @@ const allMenuItems: MenuItem[] = [
     key: "dailyServices",
     icon: ConciergeBell,
     roles: ["admin", "manager", "employee"],
+    // Fixed: Removed 'any', inferred from MenuItem
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.dailyServices === "boolean")
@@ -152,6 +156,7 @@ const allMenuItems: MenuItem[] = [
     path: "/facturation",
     icon: FileText,
     roles: ["admin", "manager", "employee"],
+    // Fixed: Removed 'any', inferred from MenuItem
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.invoicing === "boolean")
@@ -207,7 +212,6 @@ const MenuItemContent = ({
 };
 
 export default function Sidebar() {
-  // const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { state } = useAuthContext();

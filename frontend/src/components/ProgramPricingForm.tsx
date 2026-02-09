@@ -1,5 +1,5 @@
 // frontend/src/components/ProgramPricingForm.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   Program,
@@ -61,7 +61,7 @@ export default function ProgramPricingForm({
     });
 
     const freshHotelsList: HotelPrice[] = Array.from(
-      uniqueHotels.entries()
+      uniqueHotels.entries(),
     ).map(([key, data]) => {
       const [city, name] = key.split("-");
       return { name, city, nights: data.nights, PricePerNights: {} };
@@ -113,7 +113,7 @@ export default function ProgramPricingForm({
   const handleHotelPriceChange = (
     hotelIndex: number,
     roomType: string,
-    value: string
+    value: string,
   ) => {
     setCurrentPricing((prev) => {
       const newHotels = [...(prev.allHotels || [])];
@@ -354,8 +354,8 @@ export default function ProgramPricingForm({
             {isSaving
               ? t("saving")
               : "id" in currentPricing
-              ? t("updatePricing")
-              : t("savePricing")}
+                ? t("updatePricing")
+                : t("savePricing")}
           </button>
         </div>
       </>

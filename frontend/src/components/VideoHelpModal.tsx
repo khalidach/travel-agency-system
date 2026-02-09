@@ -1,7 +1,6 @@
 // frontend/src/components/VideoHelpModal.tsx
 import React from "react";
 import Modal from "./Modal";
-import { X } from "lucide-react";
 
 interface VideoHelpModalProps {
   isOpen: boolean;
