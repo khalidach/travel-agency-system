@@ -1,10 +1,10 @@
 // frontend/src/components/program/VariationManager.tsx
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin, Clock, Copy } from "lucide-react";
 import Accordion from "../ui/Accordion";
-import { Program, ProgramVariation } from "../../context/models";
+import { Program } from "../../context/models";
 
 const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   const { t } = useTranslation();
@@ -55,7 +55,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   `variations.${variationIndex}.cities.${cityIndex}.name`,
                   {
                     required: t("cityNameRequired") as string,
-                  }
+                  },
                 )}
                 placeholder={t("enterCityName") as string}
                 className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
@@ -72,7 +72,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   {
                     valueAsNumber: true,
                     min: 0,
-                  }
+                  },
                 )}
                 placeholder={t("nights") as string}
                 className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -191,7 +191,7 @@ export default function VariationManager() {
           const variation = watch(`variations.${index}`);
           const duration = (variation.cities || []).reduce(
             (sum: number, city: any) => sum + (Number(city.nights) || 0),
-            0
+            0,
           );
 
           return (

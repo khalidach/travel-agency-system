@@ -20,7 +20,6 @@ const AdminForm = ({
   onSave: (data: Partial<User>) => void;
   onCancel: () => void;
 }) => {
-  // FIX: Changed 'phoneNumber' to 'phone' to match backend expectation
   const [formData, setFormData] = useState({
     ownerName: user?.ownerName || "",
     agencyName: user?.agencyName || "",
@@ -37,14 +36,22 @@ const AdminForm = ({
       !formData.username ||
       !formData.agencyName ||
       !formData.ownerName ||
-      !formData.phone || // FIX: Updated validation check
+      !formData.phone ||
       !formData.email ||
       (!user && !formData.password)
     ) {
       toast.error("All fields are required.");
       return;
     }
-    onSave(formData);
+
+    // FIX: Trim the username to remove leading/trailing spaces
+    const cleanData = {
+      ...formData,
+      username: formData.username.trim(),
+      password: formData.password.trim(),
+    };
+
+    onSave(cleanData);
   };
 
   return (
@@ -83,7 +90,6 @@ const AdminForm = ({
         </label>
         <input
           type="text"
-          // FIX: Updated value and onChange to use 'phone'
           value={formData.phone}
           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -115,6 +121,9 @@ const AdminForm = ({
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Spaces will be automatically removed from start and end.
+        </p>
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -128,6 +137,9 @@ const AdminForm = ({
           }
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Spaces will be automatically removed from start and end.
+        </p>
       </div>
       {!user && (
         <div>

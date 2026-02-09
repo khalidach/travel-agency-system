@@ -10,17 +10,14 @@ const generateToken = (id, role, adminId, tierId) => {
   });
 };
 
-// Helper function to safely parse JSON that might be a string or already an object
 const safeJsonParse = (data) => {
   if (typeof data === "string") {
     try {
       return JSON.parse(data);
     } catch (e) {
-      // Return null or an empty object if parsing fails
       return null;
     }
   }
-  // Return data as is if it's already an object (or null/undefined)
   return data;
 };
 
@@ -29,10 +26,13 @@ const signupUser = async (req, res, next) => {
     const { ownerName, agencyName, phoneNumber, email, username, password } =
       req.body;
 
+    // FIX: Explicitly trim username
+    const cleanUsername = username ? username.trim() : "";
+
     // Check for existing user
     const userCheck = await req.db.query(
       "SELECT id FROM users WHERE username = $1 OR email = $2",
-      [username, email]
+      [cleanUsername, email],
     );
     if (userCheck.rows.length > 0) {
       return next(new AppError("Username or email already exists.", 409));
@@ -42,7 +42,6 @@ const signupUser = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     const trialTierId = 10; // Trial tier ID
 
-    // Trial expiration logic for exactly 72 hours
     const trialExpiresAt = new Date();
     trialExpiresAt.setHours(trialExpiresAt.getHours() + 72);
 
@@ -51,7 +50,7 @@ const signupUser = async (req, res, next) => {
          VALUES ($1, $2, $3, 'admin', TRUE, $4, $5, $6, $7, $8) 
          RETURNING id, username, "agencyName"`,
       [
-        username,
+        cleanUsername,
         hashedPassword,
         agencyName,
         trialTierId,
@@ -59,7 +58,7 @@ const signupUser = async (req, res, next) => {
         phoneNumber,
         email,
         trialExpiresAt,
-      ]
+      ],
     );
 
     res.status(201).json({
@@ -82,6 +81,7 @@ const loginUser = async (req, res, next) => {
     if (!username || !password) {
       return next(new AppError("Please provide username and password.", 400));
     }
+    // Already existed, but good to keep explicitly
     const trimmedUsername = username.trim();
 
     // Check users table (admins and owners)
@@ -90,26 +90,24 @@ const loginUser = async (req, res, next) => {
        FROM users u
        LEFT JOIN tiers t ON u."tierId" = t.id
        WHERE u.username = $1`,
-      [trimmedUsername]
+      [trimmedUsername],
     );
 
     if (userResult.rows.length > 0) {
       const user = userResult.rows[0];
 
-      // Check for expired trial
       if (user.trialExpiresAt && new Date(user.trialExpiresAt) < new Date()) {
         if (user.activeUser) {
-          // Deactivate the user if the trial has just expired
           await req.db.query(
             'UPDATE users SET "activeUser" = FALSE WHERE id = $1',
-            [user.id]
+            [user.id],
           );
         }
         return next(
           new AppError(
             "Your 3-day trial has expired. Please contact support.",
-            401
-          )
+            401,
+          ),
         );
       }
 
@@ -124,8 +122,8 @@ const loginUser = async (req, res, next) => {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          path: "/", // Make cookie available to all paths
-          maxAge: 60 * 60 * 1000, // 1 hour
+          path: "/",
+          maxAge: 60 * 60 * 1000,
         });
 
         return res.status(200).json({
@@ -144,14 +142,14 @@ const loginUser = async (req, res, next) => {
     // If not an admin/owner, check employees table
     let employeeResult = await req.db.query(
       "SELECT * FROM employees WHERE username = $1",
-      [trimmedUsername]
+      [trimmedUsername],
     );
 
     if (employeeResult.rows.length > 0) {
       const employee = employeeResult.rows[0];
       if (employee.active === false) {
         return next(
-          new AppError("This employee account has been deactivated.", 401)
+          new AppError("This employee account has been deactivated.", 401),
         );
       }
       const adminResult = await req.db.query(
@@ -159,12 +157,11 @@ const loginUser = async (req, res, next) => {
          FROM users u
          LEFT JOIN tiers t ON u."tierId" = t.id
          WHERE u.id = $1`,
-        [employee.adminId]
+        [employee.adminId],
       );
 
       const adminData = adminResult.rows[0] || {};
 
-      // Check for expired trial on the parent admin account
       if (
         adminData.trialExpiresAt &&
         new Date(adminData.trialExpiresAt) < new Date()
@@ -172,17 +169,23 @@ const loginUser = async (req, res, next) => {
         if (adminData.activeUser) {
           await req.db.query(
             'UPDATE users SET "activeUser" = FALSE WHERE id = $1',
-            [employee.adminId]
+            [employee.adminId],
           );
         }
         return next(
-          new AppError("The agency for this account has an expired trial.", 401)
+          new AppError(
+            "The agency for this account has an expired trial.",
+            401,
+          ),
         );
       }
 
       if (adminData.activeUser === false) {
         return next(
-          new AppError("The agency for this account has been deactivated.", 401)
+          new AppError(
+            "The agency for this account has been deactivated.",
+            401,
+          ),
         );
       }
 
@@ -193,14 +196,14 @@ const loginUser = async (req, res, next) => {
           employee.id,
           employee.role,
           employee.adminId,
-          adminData.tierId
+          adminData.tierId,
         );
         res.cookie("token", token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          path: "/", // Make cookie available to all paths
-          maxAge: 60 * 60 * 1000, // 1 hour
+          path: "/",
+          maxAge: 60 * 60 * 1000,
         });
 
         return res.status(200).json({
@@ -217,7 +220,6 @@ const loginUser = async (req, res, next) => {
       }
     }
 
-    // If no user found or password incorrect
     return next(new AppError("Invalid username or password.", 401));
   } catch (error) {
     logger.error("Login Error:", {
@@ -225,7 +227,7 @@ const loginUser = async (req, res, next) => {
       stack: error.stack,
     });
     return next(
-      new AppError("An error occurred during login. Please try again.", 500)
+      new AppError("An error occurred during login. Please try again.", 500),
     );
   }
 };
@@ -249,8 +251,8 @@ const refreshToken = async (req, res, next) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      path: "/", // Make cookie available to all paths
-      maxAge: 60 * 60 * 1000, // 1 hour
+      path: "/",
+      maxAge: 60 * 60 * 1000,
     });
 
     res.status(200).json({
@@ -269,7 +271,7 @@ const refreshToken = async (req, res, next) => {
       stack: error.stack,
     });
     return next(
-      new AppError("Could not refresh token. Please log in again.", 500)
+      new AppError("Could not refresh token. Please log in again.", 500),
     );
   }
 };
@@ -280,7 +282,7 @@ const logoutUser = (req, res) => {
     expires: new Date(0),
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    path: "/", // Ensure cookie is cleared from the root path
+    path: "/",
   });
   res.status(200).json({ message: "Logged out successfully" });
 };
