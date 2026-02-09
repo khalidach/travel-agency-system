@@ -1,3 +1,4 @@
+// frontend/src/context/AuthContext.tsx
 import React, {
   createContext,
   useContext,
@@ -74,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (userData) {
           dispatch({ type: "LOGIN", payload: userData });
         }
-      } catch (error) {
+      } catch (_error) {
         // If it fails, it means no valid session exists. The state is already logged out.
         console.log("No active session found.");
         dispatch({ type: "LOGOUT" }); // Ensure any lingering state is cleared
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (!context) {
