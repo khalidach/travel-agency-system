@@ -1,5 +1,5 @@
 // frontend/src/components/room/OccupantSearchBox.tsx
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Occupant } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";

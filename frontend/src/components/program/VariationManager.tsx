@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin, Clock, Copy } from "lucide-react";
 import Accordion from "../ui/Accordion";
-import { Program } from "../../context/models";
+import { Program, CityData } from "../../context/models";
 
 const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   const { t } = useTranslation();
@@ -151,7 +151,8 @@ export default function VariationManager() {
         duration: 0,
         cities: JSON.parse(JSON.stringify(firstVariation.cities)),
       };
-      newVariation.cities.forEach((city: any) => (city.nights = 0));
+      // Fixed: Specified type instead of any
+      newVariation.cities.forEach((city: CityData) => (city.nights = 0));
       append(newVariation);
     } else {
       append({
@@ -190,7 +191,8 @@ export default function VariationManager() {
         {fields.map((item, index) => {
           const variation = watch(`variations.${index}`);
           const duration = (variation.cities || []).reduce(
-            (sum: number, city: any) => sum + (Number(city.nights) || 0),
+            // Fixed: Specified type instead of any
+            (sum: number, city: CityData) => sum + (Number(city.nights) || 0),
             0,
           );
 

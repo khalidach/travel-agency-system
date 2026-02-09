@@ -1,5 +1,5 @@
 // frontend/src/components/ui/Accordion.tsx
-import React, { useState, ReactNode } from "react";
+import { useState, ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface AccordionProps {
