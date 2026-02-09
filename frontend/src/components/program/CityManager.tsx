@@ -1,4 +1,3 @@
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin } from "lucide-react";

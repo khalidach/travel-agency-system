@@ -1,12 +1,12 @@
 // frontend/src/components/program/PackageManager.tsx
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
+import { useFormContext, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, Hotel, Users, DollarSign } from "lucide-react";
 import type {
-  Package,
   ProgramVariation,
-  RoomPrice,
+  CityData,
+  PriceStructure,
 } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext"; // Import Auth Context
 import { useDebounce } from "../../hooks/useDebounce";
@@ -35,7 +35,7 @@ const DebouncedHotelInput = ({
   hotelIndex,
 }: {
   packageIndex: number;
-  city: any;
+  city: CityData;
   hotelIndex: number;
 }) => {
   const { t } = useTranslation();
@@ -60,9 +60,9 @@ const DebouncedHotelInput = ({
       const variations: ProgramVariation[] = getValues("variations") || [];
       const allCities = variations
         .flatMap((v) => v.cities)
-        .filter((c: any) => c.name.trim());
+        .filter((c: CityData) => c.name.trim());
 
-      prices.forEach((price: any, priceIndex: number) => {
+      prices.forEach((price: PriceStructure, priceIndex: number) => {
         if (
           price.hotelCombination &&
           (price.hotelCombination.includes(oldValue) || oldValue === "")
@@ -70,7 +70,7 @@ const DebouncedHotelInput = ({
           const combinationParts = price.hotelCombination.split("_");
 
           const cityIndexToUpdate = allCities.findIndex(
-            (c: any) => c.name === city.name,
+            (c: CityData) => c.name === city.name,
           );
 
           if (
@@ -124,8 +124,8 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
       </h5>
       <div className="space-y-4">
         {allCities
-          .filter((c: any) => c.name.trim())
-          .map((city: any) => (
+          .filter((c: CityData) => c.name.trim())
+          .map((city: CityData) => (
             <HotelManager
               key={city.name}
               packageIndex={packageIndex}
@@ -142,7 +142,7 @@ const HotelManager = ({
   city,
 }: {
   packageIndex: number;
-  city: any;
+  city: CityData;
 }) => {
   const { t } = useTranslation();
   const { control } = useFormContext();
@@ -225,7 +225,7 @@ export default function PackageManager({
     if (!variations || variations.length === 0) return options;
 
     variations.forEach((variation) => {
-      const validCities = (variation.cities || []).filter((city: any) =>
+      const validCities = (variation.cities || []).filter((city: CityData) =>
         city.name.trim(),
       );
 
@@ -372,7 +372,7 @@ const PriceStructureManager = ({
   const currentPrices = watch(`packages.${packageIndex}.prices`, []);
   const hotelOptions = generateAllHotelOptions(packageIndex);
   const existingCombinations = new Set(
-    currentPrices.map((field: any) => field.hotelCombination),
+    currentPrices.map((field: PriceStructure) => field.hotelCombination),
   );
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
@@ -416,7 +416,7 @@ const PriceStructureManager = ({
         {priceFields.map((price, priceIndex) => {
           const currentCombination =
             currentPrices[priceIndex]?.hotelCombination ||
-            (price as any).hotelCombination;
+            (price as unknown as PriceStructure).hotelCombination;
           return (
             <div
               key={price.id}
