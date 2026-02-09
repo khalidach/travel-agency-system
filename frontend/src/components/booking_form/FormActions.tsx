@@ -1,5 +1,4 @@
 // frontend/src/components/booking/FormActions.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 
 interface FormActionsProps {
