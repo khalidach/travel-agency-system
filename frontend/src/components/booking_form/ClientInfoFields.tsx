@@ -1,5 +1,11 @@
 import React, { useRef, useEffect } from "react";
-import { useFormContext, Controller, get, useWatch } from "react-hook-form";
+import {
+  useFormContext,
+  Controller,
+  get,
+  useWatch,
+  FieldError,
+} from "react-hook-form";
 import { useTranslation } from "react-i18next";
 // Removed "react-datepicker/dist/react-datepicker.css" as it's no longer used
 
@@ -28,7 +34,7 @@ const ClientInfoFields = () => {
     e: React.ChangeEvent<HTMLInputElement>,
     field: "clients.0.dob_day" | "clients.0.dob_month",
     maxLength: number,
-    nextFieldRef?: React.RefObject<HTMLInputElement>
+    nextFieldRef?: React.RefObject<HTMLInputElement>,
   ) => {
     const { value } = e.target;
     const numericValue = value.replace(/[^0-9]/g, "");
@@ -132,9 +138,10 @@ const ClientInfoFields = () => {
             !clientNameFrLastName &&
             !clientNameAr && (
               <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-                {(get(errors, "clients.0.clientNameFr.lastName") as any)
+                {(get(errors, "clients.0.clientNameFr.lastName") as FieldError)
                   ?.message ||
-                  (get(errors, "clients.0.clientNameAr") as any)?.message}
+                  (get(errors, "clients.0.clientNameAr") as FieldError)
+                    ?.message}
               </p>
             )}
         </div>
@@ -186,7 +193,7 @@ const ClientInfoFields = () => {
           />
           {get(errors, "clients.0.personType") && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.personType") as any).message}
+              {(get(errors, "clients.0.personType") as FieldError).message}
             </p>
           )}
         </div>
@@ -243,7 +250,7 @@ const ClientInfoFields = () => {
           />
           {get(errors, "clients.0.passportNumber") && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.passportNumber") as any).message}
+              {(get(errors, "clients.0.passportNumber") as FieldError).message}
             </p>
           )}
         </div>
@@ -264,7 +271,7 @@ const ClientInfoFields = () => {
           />
           {get(errors, "clients.0.phoneNumber") && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.phoneNumber") as any).message}
+              {(get(errors, "clients.0.phoneNumber") as FieldError).message}
             </p>
           )}
         </div>
@@ -358,17 +365,17 @@ const ClientInfoFields = () => {
           </div>
           {get(errors, "clients.0.dob_day") && (
             <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-              {(get(errors, "clients.0.dob_day") as any).message}
+              {(get(errors, "clients.0.dob_day") as FieldError).message}
             </p>
           )}
           {get(errors, "clients.0.dob_month") && (
             <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-              {(get(errors, "clients.0.dob_month") as any).message}
+              {(get(errors, "clients.0.dob_month") as FieldError).message}
             </p>
           )}
           {get(errors, "clients.0.dob_year") && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.dob_year") as any).message}
+              {(get(errors, "clients.0.dob_year") as FieldError).message}
             </p>
           )}
         </div>
@@ -400,8 +407,12 @@ const ClientInfoFields = () => {
             {get(errors, "clients.0.passportExpirationDate") && (
               <p className="text-red-500 dark:text-red-400 text-sm mt-1">
                 {
-                  (get(errors, "clients.0.passportExpirationDate") as any)
-                    .message
+                  (
+                    get(
+                      errors,
+                      "clients.0.passportExpirationDate",
+                    ) as FieldError
+                  ).message
                 }
               </p>
             )}
@@ -427,7 +438,7 @@ const ClientInfoFields = () => {
           />
           {get(errors, "clients.0.gender") && (
             <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.gender") as any).message}
+              {(get(errors, "clients.0.gender") as FieldError).message}
             </p>
           )}
         </div>

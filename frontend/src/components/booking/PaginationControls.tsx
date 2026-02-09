@@ -1,5 +1,4 @@
 // frontend/src/components/booking/PaginationControls.tsx
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -54,7 +53,7 @@ export default function PaginationControls({
             >
               {page}
             </button>
-          )
+          ),
         )}
       </div>
       <button

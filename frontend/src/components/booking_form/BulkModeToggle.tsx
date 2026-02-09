@@ -1,6 +1,4 @@
-// frontend/src/components/booking/BulkModeToggle.tsx
-import React from "react";
-
+// frontend/src/components/booking_form/BulkModeToggle.tsx
 interface BulkModeToggleProps {
   isBulkMode: boolean;
   setIsBulkMode: (val: boolean) => void;
