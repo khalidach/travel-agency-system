@@ -327,8 +327,14 @@ export interface EmployeeAnalysisData {
   dailyServicesMadeCount: number;
 }
 
+// New interface to replace 'any' in reports
+export interface PerformanceMetric {
+  name: string;
+  [key: string]: string | number;
+}
+
 export interface ProgramPerformanceData {
-  programPerformance: any[];
+  programPerformance: PerformanceMetric[];
   programSummary: {
     totalBookings: number;
     totalRevenue: number;
@@ -338,7 +344,7 @@ export interface ProgramPerformanceData {
 }
 
 export interface ServicePerformanceData {
-  dailyServicePerformance: any[];
+  dailyServicePerformance: PerformanceMetric[];
   serviceSummary: {
     totalServices: number;
     totalRevenue: number;
