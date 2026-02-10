@@ -21,7 +21,6 @@ import {
   subMonths,
   subYears,
 } from "date-fns";
-import { useTranslation } from "react-i18next";
 
 // Define the detailed report structure based on the backend controller
 interface DetailedReport {
@@ -39,7 +38,20 @@ interface DetailedReport {
 
 type DateFilter = "all" | "today" | "7days" | "month" | "year" | "custom";
 
-const FilterButton = ({ label, value, currentFilter, onClick }: any) => (
+// 1. Defined Interface to fix "Unexpected any"
+interface FilterButtonProps {
+  label: string;
+  value: DateFilter;
+  currentFilter: DateFilter;
+  onClick: (value: DateFilter) => void;
+}
+
+const FilterButton = ({
+  label,
+  value,
+  currentFilter,
+  onClick,
+}: FilterButtonProps) => (
   <button
     onClick={() => onClick(value)}
     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -92,7 +104,7 @@ const DateRangeDisplay = ({
 export default function AgencyDetailedReport() {
   const { adminId } = useParams<{ adminId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  // 2. Removed unused `t` and `useTranslation` hook to fix ESLint error
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [customDateRange, setCustomDateRange] = useState({
@@ -157,35 +169,37 @@ export default function AgencyDetailedReport() {
     enabled: !!adminId,
   });
 
-  const statCards = useMemo(
-    () => [
+  const statCards = useMemo(() => {
+    // If report is not loaded yet, return empty or safe defaults to prevent errors in render if called
+    if (!report) return [];
+
+    return [
       {
         title: "إجمالي البرامج",
-        value: report?.programsCount || 0,
+        value: report.programsCount || 0,
         icon: Package,
         color: "bg-blue-500",
       },
       {
         title: "إجمالي الحجوزات",
-        value: report?.bookingsCount || 0,
+        value: report.bookingsCount || 0,
         icon: Calendar,
         color: "bg-emerald-500",
       },
       {
         title: "إجمالي الخدمات اليومية",
-        value: report?.dailyServicesCount || 0,
+        value: report.dailyServicesCount || 0,
         icon: ConciergeBell,
         color: "bg-orange-500",
       },
       {
         title: "إجمالي الفواتير",
-        value: report?.facturesCount || 0,
+        value: report.facturesCount || 0,
         icon: FileText,
         color: "bg-purple-500",
       },
-    ],
-    [report],
-  );
+    ];
+  }, [report]);
 
   if (isLoading) {
     return <DashboardSkeleton />;
