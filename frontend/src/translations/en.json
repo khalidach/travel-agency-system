@@ -581,5 +581,8 @@
   "employeesManagementHelp": "Employees Management",
   "employeeAnalysisNotAvailable": "Employee analysis is not available on your current plan. Please upgrade.",
   "active": "Active",
-  "inactive": "Inactive"
+  "inactive": "Inactive",
+  "back": "Back",
+  "loading": "Loading...",
+  "noDataAvailable": "No data available"
 }

@@ -585,5 +585,8 @@
   "employeesManagementHelp": "Gestion des employés",
   "employeeAnalysisNotAvailable": "L'analyse des employés n'est pas disponible sur votre plan actuel. Veuillez mettre à niveau.",
   "active": "Actif",
-  "inactive": "Inactif"
+  "inactive": "Inactif",
+  "back": "Retour",
+  "loading": "Chargement...",
+  "noDataAvailable": "Aucune donnée disponible"
 }

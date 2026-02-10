@@ -58,7 +58,7 @@ const ServicePerformanceTable: React.FC<ServicePerformanceTableProps> = ({
             {isLoading ? (
               <tr>
                 <td colSpan={5} className="text-center p-8 text-gray-500">
-                  {t("loading")}...
+                  {t("loading")}
                 </td>
               </tr>
             ) : !data?.dailyServicePerformance?.length ? (
@@ -81,13 +81,13 @@ const ServicePerformanceTable: React.FC<ServicePerformanceTableProps> = ({
                     {item.serviceCount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {Number(item.totalSales).toLocaleString()} MAD
+                    {Number(item.totalSales).toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {Number(item.totalCost).toLocaleString()} MAD
+                    {Number(item.totalCost).toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
-                    {Number(item.totalProfit).toLocaleString()} MAD
+                    {Number(item.totalProfit).toLocaleString()} {t("mad")}
                   </td>
                 </tr>
               ))

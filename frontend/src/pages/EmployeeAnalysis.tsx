@@ -127,17 +127,17 @@ export default function EmployeeAnalysisPage() {
     {
       title: t("totalRevenue"),
       value: programData?.programSummary.totalRevenue || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
       title: t("totalCost"),
       value: programData?.programSummary.totalCost || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
       title: t("totalProfit"),
       value: programData?.programSummary.totalProfit || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
   ];
 
@@ -150,17 +150,17 @@ export default function EmployeeAnalysisPage() {
     {
       title: t("totalRevenue"),
       value: serviceData?.serviceSummary.totalRevenue || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
       title: t("totalCost"),
       value: serviceData?.serviceSummary.totalCost || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
     {
       title: t("totalProfit"),
       value: serviceData?.serviceSummary.totalProfit || 0,
-      unit: "MAD",
+      unit: t("mad"),
     },
   ];
 

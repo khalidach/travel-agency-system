@@ -585,5 +585,8 @@
   "employeesManagementHelp": "إدارة الموظفين",
   "employeeAnalysisNotAvailable": "تحليل الموظف غير متاح في خطتك الحالية. يرجى الترقية.",
   "active": "نشط",
-  "inactive": "غير نشط"
+  "inactive": "غير نشط",
+  "back": "رجوع",
+  "loading": "جار التحميل...",
+  "noDataAvailable": "لا توجد بيانات متاحة"
 }

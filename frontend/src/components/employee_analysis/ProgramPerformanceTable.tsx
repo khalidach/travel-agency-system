@@ -1,3 +1,4 @@
+// frontend/src/components/employee_analysis/ProgramPerformanceTable.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ProgramPerformanceData } from "../../context/models";
@@ -60,9 +61,8 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
               <tr>
                 <td colSpan={6} className="text-center p-8 text-gray-500">
                   <div className="flex justify-center items-center gap-2">
-                    <span className="loading-spinner" />{" "}
-                    {/* Add your spinner component if available */}
-                    {t("loading")}...
+                    {/* Add Spinner component here if available */}
+                    {t("loading")}
                   </div>
                 </td>
               </tr>
@@ -93,20 +93,21 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(String(item.type))}`}
                     >
-                      {item.type}
+                      {/* FIX: Explicitly cast item.type to String to fix TypeScript error */}
+                      {t(String(item.type))}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {item.bookingCount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {Number(item.totalSales).toLocaleString()} MAD
+                    {Number(item.totalSales).toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {Number(item.totalCost).toLocaleString()} MAD
+                    {Number(item.totalCost).toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
-                    {Number(item.totalProfit).toLocaleString()} MAD
+                    {Number(item.totalProfit).toLocaleString()} {t("mad")}
                   </td>
                 </tr>
               ))
