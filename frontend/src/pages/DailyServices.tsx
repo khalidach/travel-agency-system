@@ -32,6 +32,18 @@ import VideoHelpModal from "../components/VideoHelpModal";
 import DailyServiceForm from "../components/daily_services/DailyServiceForm";
 import ServicePaymentManagementModal from "../components/daily_services/ServicePaymentManagementModal";
 
+// Type for the data coming from the form (matches the Omit type from the error)
+type DailyServiceFormValues = Pick<
+  DailyService,
+  "serviceName" | "date" | "type" | "originalPrice" | "totalPrice"
+>;
+
+// Type for the API payload (DailyService without auto-generated fields)
+type DailyServiceApiInput = Omit<
+  DailyService,
+  "id" | "createdAt" | "updatedAt"
+>;
+
 export default function DailyServices() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -88,7 +100,7 @@ export default function DailyServices() {
 
   // Mutations
   const { mutate: createService } = useMutation({
-    mutationFn: (data: any) => api.createDailyService(data),
+    mutationFn: (data: DailyServiceApiInput) => api.createDailyService(data),
     onSuccess: () => {
       invalidateQueries();
       toast.success(t("serviceCreatedSuccessfully"));
@@ -165,11 +177,34 @@ export default function DailyServices() {
   });
 
   // Handlers
-  const handleSave = (data: any) => {
+  const handleSave = (data: DailyServiceFormValues) => {
     if (editingService) {
-      updateService({ ...editingService, ...data });
+      // Update existing service: merge editable fields with existing data
+      const updatedService: DailyService = {
+        ...editingService,
+        ...data,
+        profit: data.totalPrice - data.originalPrice,
+      };
+      updateService(updatedService);
     } else {
-      createService(data);
+      if (!authState.user) {
+        toast.error("User authentication error");
+        return;
+      }
+
+      // Create new service: construct full object for API
+      // We explicitly cast to DailyServiceApiInput to ensure compliance with API expectations
+      const newService: DailyServiceApiInput = {
+        ...data,
+        userId: authState.user.id,
+        profit: data.totalPrice - data.originalPrice,
+        remainingBalance: data.totalPrice,
+        isFullyPaid: false,
+        advancePayments: [],
+        // We let other optional fields be undefined or handled by default
+      } as DailyServiceApiInput;
+
+      createService(newService);
     }
   };
 

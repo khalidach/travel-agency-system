@@ -110,7 +110,7 @@ export default function Dashboard() {
         paymentStatus: { fullyPaid: 0, pending: 0 },
         recentBookings: [],
       },
-    [dashboardData]
+    [dashboardData],
   );
 
   const topStats = useMemo(
@@ -125,7 +125,7 @@ export default function Dashboard() {
       {
         title: t("totalRevenue"),
         value: `${(allTimeStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad"
+          "mad",
         )}`,
         icon: DollarSign,
         color: "bg-emerald-500",
@@ -134,7 +134,7 @@ export default function Dashboard() {
       {
         title: t("totalProfit"),
         value: `${(allTimeStats.totalProfit || 0).toLocaleString()} ${t(
-          "mad"
+          "mad",
         )}`,
         icon: TrendingUp,
         color: "bg-orange-500",
@@ -148,12 +148,12 @@ export default function Dashboard() {
         roles: ["admin", "manager", "employee"],
       },
     ],
-    [allTimeStats, t]
+    [allTimeStats, t],
   );
 
   const visibleTopStats = useMemo(
     () => topStats.filter((stat) => stat.roles.includes(userRole || "")),
-    [topStats, userRole]
+    [topStats, userRole],
   );
 
   const adminManagerMetrics = useMemo(
@@ -180,14 +180,14 @@ export default function Dashboard() {
       {
         title: t("totalRevenue"),
         value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad"
+          "mad",
         )}`,
         icon: DollarSign,
       },
       // REMOVED: Total Costs (dateFilteredStats.totalCost)
       // REMOVED: Total Profit (dateFilteredStats.totalProfit)
     ],
-    [dateFilteredStats, t]
+    [dateFilteredStats, t],
   );
 
   const employeeMetrics = useMemo(
@@ -214,13 +214,13 @@ export default function Dashboard() {
       {
         title: t("totalRevenue"),
         value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad"
+          "mad",
         )}`,
         icon: DollarSign,
       },
       // REMOVED: Total Paid and Total Remaining (from the original list) and Cost/Profit
     ],
-    [dateFilteredStats, t]
+    [dateFilteredStats, t],
   );
 
   const serviceProfitChartData = useMemo(
@@ -229,17 +229,17 @@ export default function Dashboard() {
         name: t(item.type),
         value: item.totalProfit,
       })),
-    [dailyServiceProfitData, t]
+    [dailyServiceProfitData, t],
   );
 
   const COLORS = useMemo(
     () => ["#3b82f6", "#059669", "#ea580c", "#8b5cf6"],
-    []
+    [],
   );
 
   const fullyPaidBookings = useMemo(
     () => paymentStatus.fullyPaid,
-    [paymentStatus]
+    [paymentStatus],
   );
   const pendingPayments = useMemo(() => paymentStatus.pending, [paymentStatus]);
 
