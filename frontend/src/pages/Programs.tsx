@@ -59,7 +59,7 @@ export default function Programs() {
         currentPage,
         programsPerPage,
         submittedSearchTerm,
-        filterType
+        filterType,
       ),
   });
 
@@ -88,7 +88,7 @@ export default function Programs() {
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
       invalidateRelatedQueries();
-      toast.success("Program created successfully!");
+      toast.success(t("serviceCreatedSuccessfully")); // Using existing generic success key or you can add specific
       setIsFormModalOpen(false);
     },
     onError: (error: Error) => {
@@ -101,7 +101,7 @@ export default function Programs() {
     onSuccess: (_, variables) => {
       // Pass the updated program's ID to invalidate the single program cache
       invalidateRelatedQueries(variables.id);
-      toast.success("Program updated successfully!");
+      toast.success(t("serviceUpdatedSuccessfully"));
       setIsFormModalOpen(false);
       setEditingProgram(null);
     },
@@ -114,7 +114,7 @@ export default function Programs() {
     mutationFn: (id: number) => api.deleteProgram(id),
     onSuccess: () => {
       invalidateRelatedQueries();
-      toast.success("Program deleted successfully!");
+      toast.success(t("serviceDeletedSuccessfully"));
     },
     onError: (error: Error) => {
       toast.error(error.message || "Failed to delete program.");
@@ -178,7 +178,7 @@ export default function Programs() {
         return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
       case "Tourism":
         return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
-      case "Ramadan": // إضافة لون لـ "Ramadan"
+      case "Ramadan":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300";
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
@@ -247,7 +247,7 @@ export default function Programs() {
             <option value="Hajj">Hajj</option>
             <option value="Umrah">Umrah</option>
             <option value="Tourism">Tourism</option>
-            <option value="Ramadan">Ramadan</option> {/* إضافة "Ramadan" هنا */}
+            <option value="Ramadan">Ramadan</option>
           </select>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function Programs() {
                   </h3>
                   <span
                     className={`inline-block px-3 py-1 text-xs font-medium rounded-full mt-2 ${getTypeColor(
-                      program.type
+                      program.type,
                     )}`}
                   >
                     {program.type}
@@ -301,7 +301,7 @@ export default function Programs() {
                     }`}
                   />
                   <span>
-                    Durations:{" "}
+                    {t("durations")}:{" "}
                     {(program.variations || [])
                       .map((v) => `${v.duration} ${t("days")}`)
                       .join(", ")}
@@ -378,7 +378,7 @@ export default function Programs() {
           <button
             onClick={() =>
               setCurrentPage((prev) =>
-                Math.min(prev + 1, pagination.totalPages)
+                Math.min(prev + 1, pagination.totalPages),
               )
             }
             disabled={currentPage === pagination.totalPages}
@@ -435,7 +435,7 @@ export default function Programs() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         videoId="RzZ8a0b9ymY"
-        title="Programs Management"
+        title={t("programsManagementHelp")}
       />
     </div>
   );

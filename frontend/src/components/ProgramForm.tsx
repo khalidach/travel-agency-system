@@ -2,8 +2,13 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-// Added CityData to imports
-import type { Program, ProgramVariation, CityData } from "../context/models";
+// Added Package to imports
+import type {
+  Program,
+  ProgramVariation,
+  CityData,
+  Package,
+} from "../context/models";
 
 // Import the refactored child components
 import PackageManager from "./program/PackageManager";
@@ -30,20 +35,22 @@ export default function ProgramForm({
   const methods = useForm<Program>({
     defaultValues: program
       ? program
-      : {
+      : ({
           name: "",
           type: "Umrah",
           isCommissionBased: false,
-          maxBookings: null, // NEW: Default to null (unlimited)
+          maxBookings: null, // Default to null (unlimited)
           variations: [
             {
-              name: "Default Variation",
+              // FIX 1: Cast t() return value to string
+              name: t("defaultVariation") as string,
               duration: 0,
               cities: [{ name: "", nights: 0 }],
             },
           ],
-          packages: [],
-        },
+          // FIX 2: Cast empty array to Package[] to avoid 'never[]' error
+          packages: [] as Package[],
+        } as unknown as Program), // FIX 3: Cast the object to Program to satisfy 'id' requirement
   });
 
   // We only need these functions here
@@ -93,7 +100,6 @@ export default function ProgramForm({
         variations.forEach((variation: ProgramVariation, index: number) => {
           const cities = variation.cities || [];
           const totalDuration = cities.reduce(
-            // Replaced 'any' with 'CityData'
             (sum: number, city: CityData) => sum + (Number(city.nights) || 0),
             0,
           );
@@ -162,10 +168,10 @@ export default function ProgramForm({
               <option value="Ramadan">Ramadan</option>
             </select>
           </div>
-          {/* NEW: Max Bookings Toggle and Input */}
+          {/* Max Bookings Toggle and Input */}
           <div className="md:col-span-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              عدد المقاعد القصوى (الحجوزات)
+              {t("maxBookingsLabel")}
             </label>
             <div className="flex items-center space-x-3">
               <input
@@ -180,13 +186,13 @@ export default function ProgramForm({
                     e.target.value === "" ? null : Number(e.target.value);
                   setValue("maxBookings", value);
                 }}
-                placeholder={t("Unlimited") as string}
+                placeholder={t("unlimitedPlaceholder") as string}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 disabled={maxBookings === null} // Disabled if set to null (unlimited)
               />
               <label className="flex items-center cursor-pointer">
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100 mr-2">
-                  غير محدود
+                  {t("unlimitedLabel")}
                 </span>
                 <div className="relative">
                   <input
@@ -220,16 +226,15 @@ export default function ProgramForm({
               maxBookings !== undefined &&
               maxBookings < 0 && (
                 <p className="text-red-500 text-xs mt-1">
-                  يجب أن يكون العدد موجباً.
+                  {t("positiveNumberRequired")}
                 </p>
               )}
             {maxBookings === null && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                (محدد كحجوزات غير محدودة)
+                {t("unlimitedSetText")}
               </p>
             )}
           </div>
-          {/* End of NEW: Max Bookings Toggle and Input */}
         </div>
 
         {/* Commission Based Toggle */}

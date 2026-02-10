@@ -1,3 +1,4 @@
+// frontend/src/components/program_pricing/PricingCard.tsx
 import React, { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -84,7 +85,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 
   const getTicketPercentage = (type: string) =>
     pricing?.personTypes?.find((p) => p.type === type)?.ticketPercentage ??
-    "N/A";
+    t("na");
 
   const formatCurrency = (amount: number | undefined) =>
     Number(amount || 0).toLocaleString();

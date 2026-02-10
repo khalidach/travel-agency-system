@@ -91,12 +91,12 @@ export default function ProgramPricingPage() {
       api.createProgramPricing(data),
     onSuccess: (_data, variables) => {
       invalidateRelatedQueries(variables.programId);
-      toast.success("Pricing saved successfully.");
+      toast.success(t("pricingSavedSuccess"));
       setIsModalOpen(false);
     },
     // FIX: Replaced 'any' with 'Error'
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to save pricing.");
+      toast.error(error.message || t("pricingSaveError"));
     },
   });
 
@@ -105,12 +105,12 @@ export default function ProgramPricingPage() {
       api.updateProgramPricing(data.id, data),
     onSuccess: (_data, variables) => {
       invalidateRelatedQueries(variables.programId);
-      toast.success("Pricing updated successfully.");
+      toast.success(t("pricingUpdateSuccess"));
       setIsModalOpen(false);
     },
     // FIX: Replaced 'any' with 'Error'
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to update pricing.");
+      toast.error(error.message || t("pricingUpdateError"));
     },
   });
 
@@ -118,11 +118,11 @@ export default function ProgramPricingPage() {
     mutationFn: (id: number) => api.deleteProgramPricing(id),
     onSuccess: () => {
       invalidateRelatedQueries();
-      toast.success("Pricing deleted successfully.");
+      toast.success(t("pricingDeleteSuccess"));
     },
     // FIX: Replaced 'any' with 'Error'
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to delete pricing.");
+      toast.error(error.message || t("pricingDeleteError"));
     },
   });
 
@@ -238,7 +238,7 @@ export default function ProgramPricingPage() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         videoId="-c4xoeUa3a8"
-        title="Program Pricing Management"
+        title={t("pricingManagementHelp")}
       />
     </div>
   );

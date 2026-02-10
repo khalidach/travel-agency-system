@@ -177,14 +177,14 @@ export default function VariationManager() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Program Variations
+          {t("programVariations")}
         </label>
         <button
           type="button"
           onClick={handleAddVariation}
           className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4 mr-1" /> Add Variation
+          <Plus className="w-4 h-4 mr-1" /> {t("addVariation")}
         </button>
       </div>
       <div className="space-y-4">
@@ -222,7 +222,7 @@ export default function VariationManager() {
                       handleDuplicateVariation(index);
                     }}
                     className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg"
-                    title="Duplicate Variation"
+                    title={t("duplicateVariation") as string}
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -242,11 +242,11 @@ export default function VariationManager() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Variation Name
+                    {t("variationName")}
                   </label>
                   <input
                     {...register(`variations.${index}.name`)}
-                    placeholder="e.g., 15 Days, 20 Days"
+                    placeholder={t("variationNamePlaceholder") as string}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     required
                   />
