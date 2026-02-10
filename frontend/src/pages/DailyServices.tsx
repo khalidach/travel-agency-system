@@ -1,5 +1,4 @@
-// frontend/src/pages/DailyServices.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -28,406 +27,17 @@ import html2canvas from "html2canvas";
 import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
 import { useAuthContext } from "../context/AuthContext";
 import VideoHelpModal from "../components/VideoHelpModal";
-import PaymentForm from "../components/PaymentForm";
 
-// Form Component
-const DailyServiceForm = ({
-  service,
-  onSave,
-  onCancel,
-}: {
-  service?: DailyService | null;
-  onSave: (
-    data: Omit<
-      DailyService,
-      // REMOVED 'advancePayments' and other calculated fields from the Omit list
-      | "id"
-      | "createdAt"
-      | "updatedAt"
-      | "userId"
-      | "employeeId"
-      | "vatPaid"
-      | "totalPaid"
-      // REMOVED 'commission'
-      // Added fields that are calculated based on the form's data
-      | "profit"
-      | "advancePayments"
-      | "remainingBalance"
-      | "isFullyPaid"
-    > & {
-      // NOTE: profit is included here to match the payload sent to the backend
-      profit: number;
-      advancePayments: Payment[];
-    },
-  ) => void;
-  onCancel: () => void;
-}) => {
-  const { t } = useTranslation();
-  const [formData, setFormData] = useState({
-    type: service?.type || "airline-ticket",
-    serviceName: service?.serviceName || "",
-    originalPrice: service?.originalPrice || 0,
-    totalPrice: service?.totalPrice || 0,
-    date: service?.date
-      ? new Date(service.date).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0],
-  });
+// Import refactored components
+import DailyServiceForm from "../components/daily_services/DailyServiceForm";
+import ServicePaymentManagementModal from "../components/daily_services/ServicePaymentManagementModal";
 
-  useEffect(() => {
-    if (service) {
-      setFormData({
-        type: service.type,
-        serviceName: service.serviceName,
-        originalPrice: service.originalPrice,
-        totalPrice: service.totalPrice,
-        date: new Date(service.date).toISOString().split("T")[0],
-      });
-    }
-  }, [service]);
-
-  const profit = useMemo(() => {
-    const original = Number(formData.originalPrice) || 0;
-    const total = Number(formData.totalPrice) || 0;
-    // Profit is the difference between total price and original price
-    return total - original;
-  }, [formData.originalPrice, formData.totalPrice]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.totalPrice < formData.originalPrice) {
-      toast.error(t("totalPriceCannotBeLessThanOriginal"));
-      return;
-    }
-    // We pass payments from the state if they exist, otherwise an empty array.
-    onSave({
-      ...formData,
-      profit,
-      advancePayments: service?.advancePayments || [],
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("serviceType")}
-          </label>
-          <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                type: e.target.value as DailyService["type"],
-              })
-            }
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          >
-            <option value="airline-ticket">{t("airline-ticket")}</option>
-            <option value="hotel-reservation">{t("hotel-reservation")}</option>
-            <option value="reservation-ticket">
-              {t("reservation-ticket")}
-            </option>
-            <option value="visa">{t("visa")}</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("serviceName")}
-          </label>
-          <input
-            type="text"
-            value={formData.serviceName}
-            onChange={(e) =>
-              setFormData({ ...formData, serviceName: e.target.value })
-            }
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("originalPrice")}
-          </label>
-          <input
-            type="number"
-            value={formData.originalPrice}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                originalPrice: Number(e.target.value),
-              })
-            }
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            required
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("totalPrice")}
-          </label>
-          <input
-            type="number"
-            value={formData.totalPrice}
-            onChange={(e) =>
-              setFormData({ ...formData, totalPrice: Number(e.target.value) })
-            }
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            required
-            min="0"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {t("date")}
-          </label>
-          <input
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            required
-          />
-        </div>
-      </div>
-      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-2">
-        {/* REMOVED Commission line from UI */}
-        <div className="flex justify-between font-bold text-lg text-emerald-600 dark:text-emerald-400">
-          <span>{t("profit")}:</span>{" "}
-          <span>
-            {profit.toLocaleString()} {t("mad")}
-          </span>
-        </div>
-      </div>
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
-        >
-          {t("cancel")}
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
-        >
-          {t("save")}
-        </button>
-      </div>
-    </form>
-  );
-};
-
-// Payment Management Modal for Daily Service
-const ServicePaymentManagementModal = ({
-  service,
-  isOpen,
-  onClose,
-  onSavePayment,
-  onUpdatePayment,
-  onDeletePayment,
-  onDownloadReceipt, // New prop for receipt download
-}: {
-  service: DailyService | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSavePayment: (payment: Omit<Payment, "_id" | "id">) => void;
-  onUpdatePayment: (
-    paymentId: string,
-    payment: Omit<Payment, "_id" | "id">,
-  ) => void;
-  onDeletePayment: (paymentId: string) => void;
-  onDownloadReceipt: (payment: Payment) => void; // New prop interface
-}) => {
-  const { t } = useTranslation();
-  const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-
-  if (!isOpen || !service) return null;
-
-  const handleAddPaymentClick = () => {
-    setEditingPayment(null);
-    setIsPaymentFormOpen(true);
-  };
-
-  const handleEditPaymentClick = (payment: Payment) => {
-    setEditingPayment(payment);
-    setIsPaymentFormOpen(true);
-  };
-
-  const handleSavePaymentForm = (paymentData: Omit<Payment, "_id" | "id">) => {
-    if (editingPayment) {
-      onUpdatePayment(editingPayment._id, paymentData);
-    } else {
-      onSavePayment(paymentData);
-    }
-    setIsPaymentFormOpen(false);
-    setEditingPayment(null);
-  };
-
-  const handleDeletePaymentClick = (paymentId: string) => {
-    setPaymentToDelete(paymentId);
-  };
-
-  const confirmDeletePayment = () => {
-    if (paymentToDelete) {
-      onDeletePayment(paymentToDelete);
-      setPaymentToDelete(null);
-    }
-  };
-
-  return (
-    <>
-      <Modal
-        isOpen={isOpen && !isPaymentFormOpen}
-        onClose={onClose}
-        title={t("managePayments")}
-        size="xl"
-        level={0}
-      >
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-              {t("paymentsForService")}
-            </h3>
-            <button
-              onClick={handleAddPaymentClick}
-              className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-            >
-              <CreditCard
-                className={`w-4 h-4 ${
-                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                }`}
-              />
-              {t("addPayment")}
-            </button>
-          </div>
-          <div className="space-y-3">
-            {(service.advancePayments || []).map((payment, index) => (
-              <div
-                key={payment._id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-              >
-                <div>
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-900 dark:text-gray-100">
-                      {Number(payment.amount).toLocaleString()} {t("mad")}
-                    </span>
-                    <span className="mx-2 text-gray-400 dark:text-gray-500">
-                      •
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
-                      {t(payment.method)}
-                    </span>
-                    <span className="mx-2 text-gray-400 dark:text-gray-500">
-                      •
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      {new Date(payment.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {payment.method === "cheque" && payment.chequeNumber && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      <span className="font-medium">
-                        {t("chequeNumber")} #{payment.chequeNumber}
-                      </span>
-                      {payment.bankName && <span> • {payment.bankName}</span>}
-                      {payment.chequeCashingDate && (
-                        <span>
-                          {" "}
-                          • {t("checkCashingDate")}:{" "}
-                          {new Date(
-                            payment.chequeCashingDate,
-                          ).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {payment.method === "transfer" &&
-                    payment.transferPayerName && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        <span className="font-medium">
-                          {t("transferPayerName")}: {payment.transferPayerName}
-                        </span>
-                        {payment.transferReference && (
-                          <span>
-                            {" "}
-                            • {t("transferReference")}:{" "}
-                            {payment.transferReference}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                </div>
-                <div className="flex space-x-2">
-                  {/* ADDED DOWNLOAD BUTTON HERE */}
-                  <button
-                    onClick={() => onDownloadReceipt(payment)}
-                    className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
-                    title={t("downloadReceipt") as string}
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleEditPaymentClick(payment)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeletePaymentClick(payment._id)}
-                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            {(!service.advancePayments ||
-              service.advancePayments.length === 0) && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                {t("noPaymentsRecorded")}
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={isPaymentFormOpen}
-        onClose={() => setIsPaymentFormOpen(false)}
-        title={editingPayment ? t("editPayment") : t("addPayment")}
-        size="md"
-        level={1}
-      >
-        <PaymentForm
-          payment={editingPayment || undefined}
-          onSave={handleSavePaymentForm}
-          onCancel={() => setIsPaymentFormOpen(false)}
-          remainingBalance={service?.remainingBalance || 0}
-        />
-      </Modal>
-
-      {paymentToDelete && (
-        <ConfirmationModal
-          isOpen={!!paymentToDelete}
-          onClose={() => setPaymentToDelete(null)}
-          onConfirm={confirmDeletePayment}
-          title={t("deletePaymentTitle")}
-          message={t("deletePaymentMessage")}
-        />
-      )}
-    </>
-  );
-};
-
-// Main Page Component
 export default function DailyServices() {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { state: authState } = useAuthContext();
+
+  // State Management
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<DailyService | null>(
     null,
@@ -437,13 +47,15 @@ export default function DailyServices() {
     service: DailyService;
     payment: Payment;
     paymentsBeforeThis: Payment[];
-  } | null>(null); // UPDATED State for Receipt Data
+  } | null>(null);
   const [serviceToManagePayments, setServiceToManagePayments] =
     useState<DailyService | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+
   const servicesPerPage = 10;
 
+  // Queries
   const { data: servicesResponse, isLoading } = useQuery<
     PaginatedResponse<DailyService>
   >({
@@ -474,6 +86,7 @@ export default function DailyServices() {
     queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
   };
 
+  // Mutations
   const { mutate: createService } = useMutation({
     mutationFn: (data: any) => api.createDailyService(data),
     onSuccess: () => {
@@ -551,17 +164,15 @@ export default function DailyServices() {
       toast.error(error.message || t("failedToDeletePayment")),
   });
 
+  // Handlers
   const handleSave = (data: any) => {
     if (editingService) {
-      // For updates, we send the new core data (including payments)
       updateService({ ...editingService, ...data });
     } else {
-      // For creation, we send the new core data (payments array should be empty in the backend logic)
       createService(data);
     }
   };
 
-  // UPDATED: Function to handle downloading the receipt for a specific payment
   const handleDownloadReceipt = async (
     service: DailyService,
     payment: Payment,
@@ -571,33 +182,22 @@ export default function DailyServices() {
       return;
     }
 
-    // 1. Filter payments before the current one (using the logic from ServiceReceiptPDF for consistency)
     const allPayments = (service.advancePayments || []).sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
-    // Find the index of the current payment using its unique _id
     const currentPaymentIndex = allPayments.findIndex(
       (p) => p._id === payment._id,
     );
-
-    // Get the array of all payments that occurred before the current one.
     const paymentsBeforeThis = allPayments.slice(0, currentPaymentIndex);
 
-    // 2. Set the data to trigger the hidden PDF component render
     setReceiptToPreview({ service, payment, paymentsBeforeThis });
-
-    // 3. Wait for the DOM to render the receipt component
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     const input = document.getElementById("service-receipt-pdf-preview");
     if (input) {
-      // Calculate the sequential number for the receipt filename
       const sequentialNumber = currentPaymentIndex + 1;
-      const receiptFilename = `${t("receipt")}_${service.serviceName.replace(
-        /\s/g,
-        "_",
-      )}_SRV${service.id}_${sequentialNumber}.pdf`;
+      const receiptFilename = `${t("receipt")}_${service.serviceName.replace(/\s/g, "_")}_SRV${service.id}_${sequentialNumber}.pdf`;
 
       html2canvas(input, { scale: 2 }).then((canvas) => {
         const imgData = canvas.toDataURL("image/png");
@@ -611,7 +211,6 @@ export default function DailyServices() {
     }
   };
 
-  // UPDATED: Logic for handling download icon click in the table, now redirects to payment modal
   const handleDownloadIconClick = (service: DailyService) => {
     if ((service.advancePayments || []).length === 0) {
       toast.error("No payments recorded to generate a receipt. Add a payment.");
@@ -731,7 +330,6 @@ export default function DailyServices() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {/* Display profit, which is the same value that used to be commission */}
                     {service.profit.toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -826,7 +424,6 @@ export default function DailyServices() {
         message={t("deleteServiceMessage")}
       />
 
-      {/* Hidden container for PDF generation */}
       {receiptToPreview && (
         <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
           <div
