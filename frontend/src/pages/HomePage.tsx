@@ -104,7 +104,7 @@ const HomePage = () => {
   };
 
   const handleSignUpClick = () => {
-    navigate("/signup");
+    navigate("/login");
   };
 
   return (
