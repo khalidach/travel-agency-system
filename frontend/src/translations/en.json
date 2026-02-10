@@ -487,7 +487,10 @@
           "f6": "Profit reports export (coming soon)"
         }
       },
-      "choosePlan": "Choose this plan"
+      "choosePlan": "Choose this plan",
+      "contactTitle": "Get a Custom Quote",
+      "contactDescription": "Contact our support team to discuss your agency's specific needs and get a pricing plan tailored for you.",
+      "contactSupport": "Contact Support via WhatsApp"
     },
     "faqSection": {
       "title": "Frequently Asked Questions",

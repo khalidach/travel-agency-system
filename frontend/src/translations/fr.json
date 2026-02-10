@@ -491,7 +491,10 @@
           "f6": "Exportation des rapports de bénéfices (bientôt)"
         }
       },
-      "choosePlan": "Choisir ce plan"
+      "choosePlan": "Choisir ce plan",
+      "contactTitle": "Obtenez un devis personnalisé",
+      "contactDescription": "Contactez notre équipe de support pour discuter des besoins spécifiques de votre agence et obtenir un plan tarifaire sur mesure.",
+      "contactSupport": "Contacter le support via WhatsApp"
     },
     "faqSection": {
       "title": "Questions Fréquemment Posées",
