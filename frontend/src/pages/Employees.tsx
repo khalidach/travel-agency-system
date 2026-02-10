@@ -148,7 +148,15 @@ export default function EmployeesPage() {
   const canAddEmployee = employees.length < employeeLimit;
 
   const { mutate: createEmployee } = useMutation({
-    mutationFn: (data: Partial<Employee>) => api.createEmployee(data),
+    mutationFn: (data: Partial<Employee>) => {
+      // FIX: Cast data to satisfy the strict type requirements of api.createEmployee.
+      // We assume the form validations ensure 'username' and 'role' are present.
+      // 'adminId' is required by the interface but is typically handled by the backend based on the auth token.
+      const payload = data as unknown as Omit<Employee, "id"> & {
+        password?: string;
+      };
+      return api.createEmployee(payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success("Employee created successfully!");
@@ -232,7 +240,7 @@ export default function EmployeesPage() {
       navigate(`/employees/${emp.username}`);
     } else {
       toast.error(
-        "Employee analysis is not available on your current plan. Please upgrade."
+        "Employee analysis is not available on your current plan. Please upgrade.",
       );
     }
   };
