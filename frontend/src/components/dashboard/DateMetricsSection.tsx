@@ -1,3 +1,4 @@
+// frontend/src/components/dashboard/DateMetricsSection.tsx
 import { useTranslation } from "react-i18next";
 import { Users, DollarSign, FileText, ConciergeBell } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
@@ -88,7 +89,8 @@ export default function DateMetricsSection({
                   start: e.target.value,
                 })
               }
-              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring"
+              // Added dark:[color-scheme:dark] to fix the icon color
+              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring dark:[color-scheme:dark]"
             />
             <span className="text-muted-foreground">to</span>
             <input
@@ -97,7 +99,8 @@ export default function DateMetricsSection({
               onChange={(e) =>
                 setCustomDateRange({ ...customDateRange, end: e.target.value })
               }
-              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring"
+              // Added dark:[color-scheme:dark] to fix the icon color
+              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring dark:[color-scheme:dark]"
             />
           </div>
         )}
