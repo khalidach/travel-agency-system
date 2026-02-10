@@ -567,5 +567,10 @@
   "clear": "مسح",
   "correctFormErrors": "يرجى تصحيح الأخطاء قبل الحفظ.",
   "bookingSourcePlaceholder": "فيسبوك، صديق، توصية...",
-  "bookingSource": "مصدر الحجز"
+  "bookingSource": "مصدر الحجز",
+  "monthlyBookingsTrend": "اتجاه الحجوزات الشهري",
+  "Hajj": "حج",
+  "Umrah": "عمرة",
+  "Tourism": "سياحة",
+  "Ramadan": "رمضان"
 }

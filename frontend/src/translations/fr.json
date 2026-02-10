@@ -567,5 +567,10 @@
   "clear": "Effacer",
   "correctFormErrors": "Veuillez corriger les erreurs avant d'enregistrer.",
   "bookingSourcePlaceholder": "Facebook, Ami, Recommandation...",
-  "bookingSource": "Source de la réservation"
+  "bookingSource": "Source de la réservation",
+  "monthlyBookingsTrend": "Tendance mensuelle des réservations",
+  "Hajj": "Hajj",
+  "Umrah": "Omra",
+  "Tourism": "Tourisme",
+  "Ramadan": "Ramadan"
 }

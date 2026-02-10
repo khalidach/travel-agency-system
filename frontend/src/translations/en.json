@@ -563,5 +563,10 @@
   "clear": "Clear",
   "correctFormErrors": "Please correct the errors before saving.",
   "bookingSourcePlaceholder": "Facebook, Friend, Recommendation...",
-  "bookingSource": "Booking Source"
+  "bookingSource": "Booking Source",
+  "monthlyBookingsTrend": "Monthly Bookings Trend",
+  "Hajj": "Hajj",
+  "Umrah": "Umrah",
+  "Tourism": "Tourism",
+  "Ramadan": "Ramadan"
 }

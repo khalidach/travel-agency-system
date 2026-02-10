@@ -122,7 +122,7 @@ export default function ProfitReport() {
         <button
           onClick={() => setIsHelpModalOpen(true)}
           className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-          aria-label="Help"
+          aria-label={t("help") as string}
         >
           <HelpCircle className="w-6 h-6" />
         </button>
@@ -208,10 +208,10 @@ export default function ProfitReport() {
             className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
             <option value="all">{t("allProgramTypes")}</option>
-            <option value="Hajj">Hajj</option>
-            <option value="Umrah">Umrah</option>
-            <option value="Tourism">Tourism</option>
-            <option value="Ramadan">Ramadan</option>
+            <option value="Hajj">{t("Hajj")}</option>
+            <option value="Umrah">{t("Umrah")}</option>
+            <option value="Tourism">{t("Tourism")}</option>
+            <option value="Ramadan">{t("Ramadan")}</option>
           </select>
         </div>
       </div>
@@ -341,7 +341,7 @@ export default function ProfitReport() {
                             : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
                       }`}
                     >
-                      {item.type}
+                      {t(item.type)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
@@ -396,7 +396,7 @@ export default function ProfitReport() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         videoId="qVEeJb4HqfA"
-        title="Dashboard & Profit Report Overview"
+        title={t("dashboardOverview")}
       />
     </div>
   );
