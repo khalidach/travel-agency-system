@@ -1,3 +1,4 @@
+// frontend/src/hooks/usePagination.ts
 import { useMemo } from "react";
 
 export const usePagination = ({
@@ -22,7 +23,7 @@ export const usePagination = ({
     const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
     const rightSiblingIndex = Math.min(
       currentPage + siblingCount,
-      totalPageCount
+      totalPageCount,
     );
 
     const shouldShowLeftDots = leftSiblingIndex > 2;
@@ -32,24 +33,24 @@ export const usePagination = ({
     const lastPageIndex = totalPageCount;
 
     if (!shouldShowLeftDots && shouldShowRightDots) {
-      let leftItemCount = 3 + 2 * siblingCount;
-      let leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
+      const leftItemCount = 3 + 2 * siblingCount;
+      const leftRange = Array.from({ length: leftItemCount }, (_, i) => i + 1);
       return [...leftRange, "...", totalPageCount];
     }
 
     if (shouldShowLeftDots && !shouldShowRightDots) {
-      let rightItemCount = 3 + 2 * siblingCount;
-      let rightRange = Array.from(
+      const rightItemCount = 3 + 2 * siblingCount;
+      const rightRange = Array.from(
         { length: rightItemCount },
-        (_, i) => totalPageCount - rightItemCount + i + 1
+        (_, i) => totalPageCount - rightItemCount + i + 1,
       );
       return [firstPageIndex, "...", ...rightRange];
     }
 
     if (shouldShowLeftDots && shouldShowRightDots) {
-      let middleRange = Array.from(
+      const middleRange = Array.from(
         { length: rightSiblingIndex - leftSiblingIndex + 1 },
-        (_, i) => leftSiblingIndex + i
+        (_, i) => leftSiblingIndex + i,
       );
       return [firstPageIndex, "...", ...middleRange, "...", lastPageIndex];
     }
