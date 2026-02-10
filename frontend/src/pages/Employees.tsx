@@ -40,7 +40,7 @@ const EmployeeForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.username || (!employee && !formData.password)) {
-      toast.error("Username and password are required.");
+      toast.error(t("usernameAndPasswordRequired"));
       return;
     }
     onSave(formData);
@@ -64,7 +64,7 @@ const EmployeeForm = ({
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Password {employee ? "(leave blank to keep unchanged)" : ""}
+          {t("password")} {employee ? t("passwordLeaveBlank") : ""}
         </label>
         <input
           type="password"
@@ -150,8 +150,6 @@ export default function EmployeesPage() {
   const { mutate: createEmployee } = useMutation({
     mutationFn: (data: Partial<Employee>) => {
       // FIX: Cast data to satisfy the strict type requirements of api.createEmployee.
-      // We assume the form validations ensure 'username' and 'role' are present.
-      // 'adminId' is required by the interface but is typically handled by the backend based on the auth token.
       const payload = data as unknown as Omit<Employee, "id"> & {
         password?: string;
       };
@@ -159,11 +157,11 @@ export default function EmployeesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
-      toast.success("Employee created successfully!");
+      toast.success(t("employeeCreatedSuccess"));
       setIsFormModalOpen(false);
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to create employee.");
+      toast.error(error.message || t("employeeCreateError"));
     },
   });
 
@@ -172,7 +170,7 @@ export default function EmployeesPage() {
       api.updateEmployee(editingEmployee!.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
-      toast.success("Employee updated successfully!");
+      toast.success(t("employeeUpdatedSuccess"));
       setIsFormModalOpen(false);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -182,7 +180,9 @@ export default function EmployeesPage() {
     mutationFn: (id: number) => api.deleteEmployee(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
-      toast.success("Employee deleted successfully!");
+      toast.success(
+        t("employeeDeletedSuccess") || "Employee deleted successfully!",
+      ); // Fallback if key missing in previous step
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -192,7 +192,7 @@ export default function EmployeesPage() {
       api.toggleEmployeeStatus(data.id, data.active),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
-      toast.success("Employee status updated successfully!");
+      toast.success(t("employeeStatusUpdatedSuccess"));
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -239,9 +239,7 @@ export default function EmployeesPage() {
     if (hasEmployeeAnalysisAccess) {
       navigate(`/employees/${emp.username}`);
     } else {
-      toast.error(
-        "Employee analysis is not available on your current plan. Please upgrade.",
-      );
+      toast.error(t("employeeAnalysisNotAvailable"));
     }
   };
 
@@ -261,7 +259,7 @@ export default function EmployeesPage() {
           <button
             onClick={() => setIsHelpModalOpen(true)}
             className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-            aria-label="Help"
+            aria-label={t("help") as string}
           >
             <HelpCircle className="w-6 h-6" />
           </button>
@@ -271,8 +269,10 @@ export default function EmployeesPage() {
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
             title={
               !canAddEmployee
-                ? `Employee limit of ${employeeLimit} reached`
-                : "Add a new employee"
+                ? (t("employeeLimitReachedTooltip", {
+                    limit: employeeLimit,
+                  }) as string)
+                : (t("addEmployeeTooltip") as string)
             }
           >
             <Plus
@@ -340,7 +340,7 @@ export default function EmployeesPage() {
             {isLoadingEmployees ? (
               <tr>
                 <td colSpan={5} className="text-center p-4">
-                  {t("loading")}...
+                  {t("loading") || "Loading..."}
                 </td>
               </tr>
             ) : (
@@ -417,7 +417,9 @@ export default function EmployeesPage() {
                         ></div>
                       </div>
                       <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
-                        {emp.active ? t("active") : t("inactive")}
+                        {emp.active
+                          ? t("active") || "Active"
+                          : t("inactive") || "Inactive"}
                       </div>
                     </label>
                   </td>
@@ -467,7 +469,7 @@ export default function EmployeesPage() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         videoId="eVawfjob52Q"
-        title="Employees Management"
+        title={t("employeesManagementHelp")}
       />
     </div>
   );

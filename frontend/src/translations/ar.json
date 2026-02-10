@@ -573,5 +573,17 @@
   "Umrah": "عمرة",
   "Tourism": "سياحة",
   "Ramadan": "رمضان",
-  "downloadReceipt": "تحميل الإيصال"
+  "downloadReceipt": "تحميل الإيصال",
+  "passwordLeaveBlank": "(اتركه فارغاً للإبقاء دون تغيير)",
+  "usernameAndPasswordRequired": "اسم المستخدم وكلمة المرور مطلوبان.",
+  "employeeCreatedSuccess": "تم إنشاء الموظف بنجاح!",
+  "employeeCreateError": "فشل إنشاء الموظف.",
+  "employeeUpdatedSuccess": "تم تحديث الموظف بنجاح!",
+  "employeeStatusUpdatedSuccess": "تم تحديث حالة الموظف بنجاح!",
+  "employeeLimitReachedTooltip": "تم الوصول إلى حد {{limit}} موظف",
+  "addEmployeeTooltip": "إضافة موظف جديد",
+  "employeesManagementHelp": "إدارة الموظفين",
+  "employeeAnalysisNotAvailable": "تحليل الموظف غير متاح في خطتك الحالية. يرجى الترقية.",
+  "active": "نشط",
+  "inactive": "غير نشط"
 }

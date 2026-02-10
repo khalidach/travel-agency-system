@@ -569,5 +569,17 @@
   "Umrah": "Umrah",
   "Tourism": "Tourism",
   "Ramadan": "Ramadan",
-  "downloadReceipt": "Download Receipt"
+  "downloadReceipt": "Download Receipt",
+  "passwordLeaveBlank": "(leave blank to keep unchanged)",
+  "usernameAndPasswordRequired": "Username and password are required.",
+  "employeeCreatedSuccess": "Employee created successfully!",
+  "employeeCreateError": "Failed to create employee.",
+  "employeeUpdatedSuccess": "Employee updated successfully!",
+  "employeeStatusUpdatedSuccess": "Employee status updated successfully!",
+  "employeeLimitReachedTooltip": "Employee limit of {{limit}} reached",
+  "addEmployeeTooltip": "Add a new employee",
+  "employeesManagementHelp": "Employees Management",
+  "employeeAnalysisNotAvailable": "Employee analysis is not available on your current plan. Please upgrade.",
+  "active": "Active",
+  "inactive": "Inactive"
 }

@@ -573,5 +573,17 @@
   "Umrah": "Omra",
   "Tourism": "Tourisme",
   "Ramadan": "Ramadan",
-  "downloadReceipt": "Télécharger le reçu"
+  "downloadReceipt": "Télécharger le reçu",
+  "passwordLeaveBlank": "(laisser vide pour conserver)",
+  "usernameAndPasswordRequired": "Le nom d'utilisateur et le mot de passe sont requis.",
+  "employeeCreatedSuccess": "Employé créé avec succès !",
+  "employeeCreateError": "Échec de la création de l'employé.",
+  "employeeUpdatedSuccess": "Employé mis à jour avec succès !",
+  "employeeStatusUpdatedSuccess": "Statut de l'employé mis à jour avec succès !",
+  "employeeLimitReachedTooltip": "Limite de {{limit}} employés atteinte",
+  "addEmployeeTooltip": "Ajouter un nouvel employé",
+  "employeesManagementHelp": "Gestion des employés",
+  "employeeAnalysisNotAvailable": "L'analyse des employés n'est pas disponible sur votre plan actuel. Veuillez mettre à niveau.",
+  "active": "Actif",
+  "inactive": "Inactif"
 }
