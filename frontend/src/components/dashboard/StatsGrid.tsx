@@ -63,16 +63,14 @@ export default function StatsGrid({ allTimeStats }: StatsGridProps) {
         return (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200"
+            className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border hover:shadow-md transition-all duration-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                <p className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-                  {stat.value}
-                </p>
+                <p className="text-2xl font-bold mt-2">{stat.value}</p>
               </div>
               <div
                 className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}

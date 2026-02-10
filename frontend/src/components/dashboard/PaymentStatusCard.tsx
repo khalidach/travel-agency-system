@@ -14,10 +14,8 @@ export default function PaymentStatusCard({
   const { t } = useTranslation();
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-        {t("paymentStatus")}
-      </h3>
+    <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
+      <h3 className="text-lg font-semibold mb-4">{t("paymentStatus")}</h3>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
@@ -26,11 +24,11 @@ export default function PaymentStatusCard({
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               {t("fullyPaid")}
             </span>
           </div>
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <span className="text-sm font-semibold">
             {paymentStatus.fullyPaid}
           </span>
         </div>
@@ -41,13 +39,11 @@ export default function PaymentStatusCard({
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-muted-foreground">
               {t("pending")}
             </span>
           </div>
-          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-            {paymentStatus.pending}
-          </span>
+          <span className="text-sm font-semibold">{paymentStatus.pending}</span>
         </div>
       </div>
     </div>

@@ -32,24 +32,22 @@ export default function Dashboard() {
   }
 
   if (isError) {
-    return <div>{t("errorLoadingDashboard")}</div>;
+    return <div className="text-destructive">{t("errorLoadingDashboard")}</div>;
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header Section */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("dashboard")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {t("dashboardSubtitle")}
-          </p>
+          <p className="text-muted-foreground mt-2">{t("dashboardSubtitle")}</p>
         </div>
         <button
           onClick={() => setIsHelpModalOpen(true)}
-          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          className="p-2 text-muted-foreground bg-muted rounded-full hover:bg-accent hover:text-accent-foreground transition-colors"
           aria-label={t("help") as string}
         >
           <HelpCircle className="w-6 h-6" />

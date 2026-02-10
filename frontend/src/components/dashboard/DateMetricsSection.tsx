@@ -1,14 +1,13 @@
 import { useTranslation } from "react-i18next";
 import { Users, DollarSign, FileText, ConciergeBell } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
-import type { DashboardStats } from "../../context/models"; // 1. Import the type
+import type { DashboardStats } from "../../context/models";
 
 interface DateMetricsSectionProps {
   dateFilter: string;
   setDateFilter: (filter: string) => void;
   customDateRange: { start: string; end: string };
   setCustomDateRange: (range: { start: string; end: string }) => void;
-  // 2. Use the specific type from your models
   dateFilteredStats: DashboardStats["dateFilteredStats"];
 }
 
@@ -59,18 +58,18 @@ export default function DateMetricsSection({
   const metrics = userRole === "admin" ? adminManagerMetrics : employeeMetrics;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-      <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
+      <div className="pb-4 border-b border-border">
         <div className="flex items-center flex-wrap gap-2">
-          <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <div className="flex items-center space-x-1 bg-muted rounded-lg p-1">
             {filters.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setDateFilter(f.key)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   dateFilter === f.key
-                    ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-background text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                 }`}
               >
                 {f.label}
@@ -89,16 +88,16 @@ export default function DateMetricsSection({
                   start: e.target.value,
                 })
               }
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring"
             />
-            <span className="dark:text-gray-400">to</span>
+            <span className="text-muted-foreground">to</span>
             <input
               type="date"
               value={customDateRange.end}
               onChange={(e) =>
                 setCustomDateRange({ ...customDateRange, end: e.target.value })
               }
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+              className="px-3 py-1 border border-input rounded-lg bg-background text-foreground focus:ring-1 focus:ring-ring"
             />
           </div>
         )}
@@ -110,13 +109,13 @@ export default function DateMetricsSection({
             return (
               <tr
                 key={metric.title}
-                className="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
+                className="border-b last:border-b-0 border-border"
               >
-                <td className="py-3 text-base font-medium text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                <td className="py-3 text-base font-medium text-muted-foreground flex items-center gap-2">
                   <Icon className="w-4 h-4" />
                   {metric.title}
                 </td>
-                <td className="py-3 text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+                <td className="py-3 text-2xl font-bold text-foreground text-right">
                   {metric.value}
                 </td>
               </tr>
