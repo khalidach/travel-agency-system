@@ -74,7 +74,6 @@ export default function Programs() {
     queryClient.invalidateQueries({ queryKey: ["programsForRoomManagement"] });
 
     if (updatedProgramId) {
-      // Invalidate the specific program's cache entry, used by BookingPage.tsx
       queryClient.invalidateQueries({
         queryKey: ["program", String(updatedProgramId)],
       });
@@ -88,7 +87,7 @@ export default function Programs() {
     mutationFn: (data: Program) => api.createProgram(data),
     onSuccess: () => {
       invalidateRelatedQueries();
-      toast.success(t("serviceCreatedSuccessfully")); // Using existing generic success key or you can add specific
+      toast.success(t("serviceCreatedSuccessfully"));
       setIsFormModalOpen(false);
     },
     onError: (error: Error) => {
@@ -99,7 +98,6 @@ export default function Programs() {
   const { mutate: updateProgram, isPending: isUpdating } = useMutation({
     mutationFn: (program: Program) => api.updateProgram(program.id, program),
     onSuccess: (_, variables) => {
-      // Pass the updated program's ID to invalidate the single program cache
       invalidateRelatedQueries(variables.id);
       toast.success(t("serviceUpdatedSuccessfully"));
       setIsFormModalOpen(false);
@@ -170,18 +168,20 @@ export default function Programs() {
     setSubmittedSearchTerm(searchTerm);
   };
 
+  // Kept specific colors for badges as they represent data types,
+  // but ensured they look good in dark mode.
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
       case "Umrah":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
       case "Tourism":
-        return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
       case "Ramadan":
-        return "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300";
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300";
       default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -197,24 +197,22 @@ export default function Programs() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("programsTitle")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            {t("programsSubtitle")}
-          </p>
+          <p className="text-muted-foreground mt-2">{t("programsSubtitle")}</p>
         </div>
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
           <button
             onClick={() => setIsHelpModalOpen(true)}
-            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="p-2 text-muted-foreground bg-muted rounded-full hover:bg-muted/80 hover:text-foreground transition-colors"
             aria-label="Help"
           >
             <HelpCircle className="w-6 h-6" />
           </button>
           <button
             onClick={handleAddProgram}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Plus
               className={`w-5 h-5 ${
@@ -226,7 +224,7 @@ export default function Programs() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -235,13 +233,13 @@ export default function Programs() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
           >
             <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
@@ -261,11 +259,11 @@ export default function Programs() {
           return (
             <div
               key={program.id}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200"
+              className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border hover:shadow-md transition-all duration-200"
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-card-foreground">
                     {program.name}
                   </h3>
                   <span
@@ -280,13 +278,13 @@ export default function Programs() {
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleEditProgram(program)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:text-primary hover:bg-secondary rounded-lg transition-colors"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteProgram(program.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -294,9 +292,9 @@ export default function Programs() {
                 )}
               </div>
               <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center text-sm text-muted-foreground">
                   <Clock
-                    className={`w-4 h-4 dark:text-gray-500 ${
+                    className={`w-4 h-4 text-muted-foreground ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                     }`}
                   />
@@ -307,9 +305,9 @@ export default function Programs() {
                       .join(", ")}
                   </span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center text-sm text-muted-foreground">
                   <Package
-                    className={`w-4 h-4 dark:text-gray-500 ${
+                    className={`w-4 h-4 text-muted-foreground ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                     }`}
                   />
@@ -317,9 +315,9 @@ export default function Programs() {
                     {packageCount} {t("package", { count: packageCount })}
                   </span>
                 </div>
-                <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex items-center text-sm text-muted-foreground">
                   <Users
-                    className={`w-4 h-4 dark:text-gray-500 ${
+                    className={`w-4 h-4 text-muted-foreground ${
                       document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
                     }`}
                   />
@@ -339,11 +337,11 @@ export default function Programs() {
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-2xl">
+        <div className="flex justify-between items-center py-3 px-6 border-t border-border bg-card rounded-b-2xl">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
             {t("previous")}
@@ -354,7 +352,7 @@ export default function Programs() {
                 return (
                   <span
                     key={index}
-                    className="px-3 py-1 text-sm text-gray-400 dark:text-gray-500"
+                    className="px-3 py-1 text-sm text-muted-foreground"
                   >
                     ...
                   </span>
@@ -366,8 +364,8 @@ export default function Programs() {
                   onClick={() => setCurrentPage(pageNumber)}
                   className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                     currentPage === pageNumber
-                      ? "bg-blue-600 text-white font-bold shadow-sm"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
                   {pageNumber}
@@ -382,7 +380,7 @@ export default function Programs() {
               )
             }
             disabled={currentPage === pagination.totalPages}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -391,16 +389,14 @@ export default function Programs() {
       )}
 
       {programs.length === 0 && !isLoading && (
-        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Package className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+        <div className="text-center py-12 bg-card rounded-2xl border border-border">
+          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Package className="w-12 h-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {t("noProgramsFound")}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
-            {t("noProgramsLead")}
-          </p>
+          <p className="text-muted-foreground mb-6">{t("noProgramsLead")}</p>
         </div>
       )}
 
