@@ -1,13 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { Users, DollarSign, FileText, ConciergeBell } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
+import type { DashboardStats } from "../../context/models"; // 1. Import the type
 
 interface DateMetricsSectionProps {
   dateFilter: string;
   setDateFilter: (filter: string) => void;
   customDateRange: { start: string; end: string };
   setCustomDateRange: (range: { start: string; end: string }) => void;
-  dateFilteredStats: any;
+  // 2. Use the specific type from your models
+  dateFilteredStats: DashboardStats["dateFilteredStats"];
 }
 
 export default function DateMetricsSection({
@@ -52,7 +54,7 @@ export default function DateMetricsSection({
     },
   ];
 
-  const employeeMetrics = [...adminManagerMetrics]; // Currently identical structure in original code
+  const employeeMetrics = [...adminManagerMetrics];
 
   const metrics = userRole === "admin" ? adminManagerMetrics : employeeMetrics;
 
@@ -103,19 +105,23 @@ export default function DateMetricsSection({
       </div>
       <table className="w-full mt-4">
         <tbody>
-          {metrics.map((metric) => (
-            <tr
-              key={metric.title}
-              className="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
-            >
-              <td className="py-3 text-base font-medium text-gray-600 dark:text-gray-400">
-                {metric.title}
-              </td>
-              <td className="py-3 text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
-                {metric.value}
-              </td>
-            </tr>
-          ))}
+          {metrics.map((metric) => {
+            const Icon = metric.icon;
+            return (
+              <tr
+                key={metric.title}
+                className="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
+              >
+                <td className="py-3 text-base font-medium text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <Icon className="w-4 h-4" />
+                  {metric.title}
+                </td>
+                <td className="py-3 text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
+                  {metric.value}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
