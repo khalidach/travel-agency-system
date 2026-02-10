@@ -1,5 +1,5 @@
 // frontend/src/pages/ProgramCosting.tsx
-import React, { useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -43,7 +43,8 @@ export default function ProgramCosting() {
     },
   });
 
-  const { control, handleSubmit, watch, setValue, reset } = methods;
+  // Removed 'setValue' to fix the unused variable error
+  const { control, handleSubmit, watch, reset } = methods;
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -70,7 +71,7 @@ export default function ProgramCosting() {
     if (existingCosts && program) {
       const hotelCosts = distinctHotels.map((hotel) => {
         const existing = existingCosts.costs?.hotels?.find(
-          (h) => h.name === hotel
+          (h) => h.name === hotel,
         );
         return { name: hotel, amount: existing?.amount || 0 };
       });
@@ -113,10 +114,10 @@ export default function ProgramCosting() {
     total += Number(costs.visa) || 0;
     total += Number(costs.transport) || 0;
     (costs.hotels || []).forEach(
-      (hotel) => (total += Number(hotel.amount) || 0)
+      (hotel) => (total += Number(hotel.amount) || 0),
     );
     (costs.custom || []).forEach(
-      (custom) => (total += Number(custom.amount) || 0)
+      (custom) => (total += Number(custom.amount) || 0),
     );
 
     return total;

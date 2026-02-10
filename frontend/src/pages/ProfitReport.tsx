@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -17,20 +17,38 @@ import {
   DollarSign,
   Calendar,
   Package,
-  HelpCircle, // Import help icon
+  HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import PaginationControls from "../components/booking/PaginationControls";
-import { PaginatedResponse } from "../context/models";
-import VideoHelpModal from "../components/VideoHelpModal"; // Import the modal
+import { ProgramType, Pagination } from "../context/models";
+import VideoHelpModal from "../components/VideoHelpModal";
 
+// Defined interface for the performance table rows
+interface DetailedPerformanceItem {
+  id: number;
+  programName: string;
+  type: ProgramType;
+  bookings: number;
+  totalSales: number;
+  totalCost: number;
+  totalProfit: number;
+  profitMargin: number;
+}
+
+// Defined interface for the chart data
+interface MonthlyTrendItem {
+  month: string;
+  bookings: number;
+}
+
+// Updated main interface to remove 'any'
 interface ProfitReportData {
-  // REMOVED topProgramsData
-  detailedPerformanceData: any[];
-  monthlyTrend: any[]; // Now contains 'bookings' count
-  pagination: PaginatedResponse<any>["pagination"];
+  detailedPerformanceData: DetailedPerformanceItem[];
+  monthlyTrend: MonthlyTrendItem[];
+  pagination: Pagination;
   summary: {
     totalBookings: number;
     totalSales: number;
@@ -42,7 +60,7 @@ interface ProfitReportData {
 export default function ProfitReport() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false); // State for the modal
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
   const [filterType, setFilterType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -57,7 +75,6 @@ export default function ProfitReport() {
     queryFn: () => api.getProfitReport(filterType, currentPage, itemsPerPage),
   });
 
-  // REMOVED topProgramsData
   const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
   const pagination = reportData?.pagination;
@@ -73,7 +90,7 @@ export default function ProfitReport() {
       totalSales,
       totalProfit,
       profitMargin,
-      totalCost: summary?.totalCost ?? 0, // Keep total cost for the metrics block
+      totalCost: summary?.totalCost ?? 0,
     };
   }, [summary]);
 
@@ -200,12 +217,9 @@ export default function ProfitReport() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-        {" "}
-        {/* Adjusted grid layout to a single column */}
-        {/* REMOVED: Profit by Program Bar Chart (Point 3) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-            {t("monthlyBookingsTrend")} {/* UPDATED TITLE (Point 3) */}
+            {t("monthlyBookingsTrend")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrend}>
@@ -214,13 +228,13 @@ export default function ProfitReport() {
               <YAxis stroke="#6b7280" />
               <Tooltip
                 formatter={(value: number) => [
-                  `${value.toLocaleString()} ${t("bookings")}`, // UPDATED TOOLTIP
+                  `${value.toLocaleString()} ${t("bookings")}`,
                   t("totalBookings"),
                 ]}
               />
               <Line
                 type="monotone"
-                dataKey="bookings" // UPDATED DATA KEY (Point 3)
+                dataKey="bookings"
                 stroke="#3b82f6"
                 strokeWidth={3}
                 dot={{ fill: "#3b82f6", strokeWidth: 2, r: 6 }}
@@ -323,8 +337,8 @@ export default function ProfitReport() {
                         item.type === "Hajj"
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
                           : item.type === "Umrah"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                          : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
                       }`}
                     >
                       {item.type}
