@@ -1,5 +1,4 @@
 // frontend/src/pages/AccountSettings.tsx
-import React from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";

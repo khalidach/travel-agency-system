@@ -1,6 +1,5 @@
 // frontend/src/pages/AgencyReports.tsx
-import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,8 +14,10 @@ import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { User } from "../context/models";
 
 // Define the summary report structure
-interface AgencySummary
-  extends Pick<User, "id" | "agencyName" | "username" | "activeUser"> {
+interface AgencySummary extends Pick<
+  User,
+  "id" | "agencyName" | "username" | "activeUser"
+> {
   agencyId: number;
   programsCount: number;
   bookingsCount: number;
@@ -24,7 +25,6 @@ interface AgencySummary
 }
 
 const AgencyReportsList = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -37,7 +37,7 @@ const AgencyReportsList = () => {
   const filteredAgencies = agencies.filter(
     (agency) =>
       agency.agencyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      agency.username.toLowerCase().includes(searchTerm.toLowerCase())
+      agency.username.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   if (isLoading) {
