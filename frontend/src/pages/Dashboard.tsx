@@ -1,258 +1,43 @@
 // frontend/src/pages/Dashboard.tsx
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import {
-  Users,
-  DollarSign,
-  TrendingUp,
-  Package,
-  Calendar,
-  Clock,
-  CheckCircle2,
-  HelpCircle, // Import help icon
-  FileText, // ADDED: Import FileText for Factures
-  ConciergeBell, // ADDED: Import ConciergeBell for Services
-} from "lucide-react";
-import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
-import * as api from "../services/api";
-import { Link } from "react-router-dom";
-import type { Booking, DashboardStats } from "../context/models";
+import { HelpCircle } from "lucide-react";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
-import { useAuthContext } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import VideoHelpModal from "../components/VideoHelpModal"; // Import the modal
+import VideoHelpModal from "../components/VideoHelpModal";
+import { useDashboardData } from "../hooks/useDashboardData";
+
+// Imported Components
+import StatsGrid from "../components/dashboard/StatsGrid";
+import DateMetricsSection from "../components/dashboard/DateMetricsSection";
+import ServiceProfitChart from "../components/dashboard/ServiceProfitChart";
+import QuickActionsCard from "../components/dashboard/QuickActionsCard";
+import PaymentStatusCard from "../components/dashboard/PaymentStatusCard";
+import RecentBookingsCard from "../components/dashboard/RecentBookingsCard";
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { state } = useAuthContext();
-  const { theme } = useTheme();
-  const userRole = state.user?.role;
-
-  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false); // State for the modal
-  const [dateFilter, setDateFilter] = useState("month");
-  const [customDateRange, setCustomDateRange] = useState({
-    start: "",
-    end: "",
-  });
-
-  const dateRangeParams = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = endOfDay(now);
-
-    switch (dateFilter) {
-      case "today":
-        startDate = startOfDay(now);
-        break;
-      case "month":
-        startDate = startOfDay(subDays(now, 30));
-        break;
-      case "year":
-        startDate = startOfDay(subYears(now, 1));
-        break;
-      case "custom":
-        if (customDateRange.start && customDateRange.end) {
-          return {
-            startDate: customDateRange.start,
-            endDate: customDateRange.end,
-          };
-        }
-        return { startDate: undefined, endDate: undefined };
-      case "7days":
-      default:
-        startDate = startOfDay(subDays(now, 7));
-        break;
-    }
-    return {
-      startDate: format(startDate, "yyyy-MM-dd"),
-      endDate: format(endDate, "yyyy-MM-dd"),
-    };
-  }, [dateFilter, customDateRange]);
-
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const {
-    data: dashboardData,
+    stats,
     isLoading,
     isError,
-  } = useQuery<DashboardStats>({
-    queryKey: ["dashboardStats", dateRangeParams],
-    queryFn: () =>
-      api.getDashboardStats(dateRangeParams.startDate, dateRangeParams.endDate),
-  });
-
-  const {
-    allTimeStats,
-    dateFilteredStats,
-    dailyServiceProfitData,
-    paymentStatus,
-    recentBookings,
-  } = useMemo(
-    () =>
-      dashboardData || {
-        allTimeStats: {
-          totalBookings: 0,
-          totalRevenue: 0,
-          totalProfit: 0,
-          activePrograms: 0,
-        },
-        dateFilteredStats: {
-          totalBookings: 0,
-          totalDailyServices: 0, // ADDED default
-          totalFactures: 0, // ADDED default
-          totalRevenue: 0,
-          totalCost: 0,
-          totalProfit: 0,
-          totalPaid: 0,
-          totalRemaining: 0,
-        },
-        dailyServiceProfitData: [],
-        paymentStatus: { fullyPaid: 0, pending: 0 },
-        recentBookings: [],
-      },
-    [dashboardData],
-  );
-
-  const topStats = useMemo(
-    () => [
-      {
-        title: t("totalBookings"),
-        value: allTimeStats.totalBookings,
-        icon: Users,
-        color: "bg-blue-500",
-        roles: ["admin", "manager", "employee"],
-      },
-      {
-        title: t("totalRevenue"),
-        value: `${(allTimeStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad",
-        )}`,
-        icon: DollarSign,
-        color: "bg-emerald-500",
-        roles: ["admin"],
-      },
-      {
-        title: t("totalProfit"),
-        value: `${(allTimeStats.totalProfit || 0).toLocaleString()} ${t(
-          "mad",
-        )}`,
-        icon: TrendingUp,
-        color: "bg-orange-500",
-        roles: ["admin"],
-      },
-      {
-        title: t("activePrograms"),
-        value: allTimeStats.activePrograms,
-        icon: Package,
-        color: "bg-purple-500",
-        roles: ["admin", "manager", "employee"],
-      },
-    ],
-    [allTimeStats, t],
-  );
-
-  const visibleTopStats = useMemo(
-    () => topStats.filter((stat) => stat.roles.includes(userRole || "")),
-    [topStats, userRole],
-  );
-
-  const adminManagerMetrics = useMemo(
-    () => [
-      // Kept: Total Reservations
-      {
-        title: t("totalBookings"),
-        value: dateFilteredStats.totalBookings,
-        icon: Users,
-      },
-      // Kept: Total Services
-      {
-        title: t("totalServicesPerformed"),
-        value: dateFilteredStats.totalDailyServices,
-        icon: ConciergeBell,
-      },
-      // Kept: Total Factures
-      {
-        title: t("facturationTitle"),
-        value: dateFilteredStats.totalFactures,
-        icon: FileText,
-      },
-      // Kept: Total Revenue (Combined)
-      {
-        title: t("totalRevenue"),
-        value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad",
-        )}`,
-        icon: DollarSign,
-      },
-      // REMOVED: Total Costs (dateFilteredStats.totalCost)
-      // REMOVED: Total Profit (dateFilteredStats.totalProfit)
-    ],
-    [dateFilteredStats, t],
-  );
-
-  const employeeMetrics = useMemo(
-    () => [
-      // Kept: Total Reservations
-      {
-        title: t("totalBookings"),
-        value: dateFilteredStats.totalBookings,
-        icon: Users,
-      },
-      // Kept: Total Services
-      {
-        title: t("totalServicesPerformed"),
-        value: dateFilteredStats.totalDailyServices,
-        icon: ConciergeBell,
-      },
-      // Kept: Total Factures
-      {
-        title: t("facturationTitle"),
-        value: dateFilteredStats.totalFactures,
-        icon: FileText,
-      },
-      // Kept: Total Revenue (Combined)
-      {
-        title: t("totalRevenue"),
-        value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t(
-          "mad",
-        )}`,
-        icon: DollarSign,
-      },
-      // REMOVED: Total Paid and Total Remaining (from the original list) and Cost/Profit
-    ],
-    [dateFilteredStats, t],
-  );
-
-  const serviceProfitChartData = useMemo(
-    () =>
-      (dailyServiceProfitData || []).map((item) => ({
-        name: t(item.type),
-        value: item.totalProfit,
-      })),
-    [dailyServiceProfitData, t],
-  );
-
-  const COLORS = useMemo(
-    () => ["#3b82f6", "#059669", "#ea580c", "#8b5cf6"],
-    [],
-  );
-
-  const fullyPaidBookings = useMemo(
-    () => paymentStatus.fullyPaid,
-    [paymentStatus],
-  );
-  const pendingPayments = useMemo(() => paymentStatus.pending, [paymentStatus]);
+    dateFilter,
+    setDateFilter,
+    customDateRange,
+    setCustomDateRange,
+  } = useDashboardData();
 
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  if (isError || !dashboardData) {
+  if (isError) {
     return <div>{t("errorLoadingDashboard")}</div>;
   }
 
   return (
     <div className="space-y-8">
+      {/* Header Section */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
@@ -271,330 +56,29 @@ export default function Dashboard() {
         </button>
       </div>
 
-      <div
-        className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
-          userRole === "employee" || userRole === "manager"
-            ? "lg:grid-cols-2"
-            : "lg:grid-cols-4"
-        }`}
-      >
-        {visibleTopStats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={index}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-                    {stat.value}
-                  </p>
-                </div>
-                <div
-                  className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}
-                >
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Top Stats Cards */}
+      <StatsGrid allTimeStats={stats.allTimeStats} />
 
+      {/* Middle Grid: Metrics & Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center flex-wrap gap-2">
-              <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                <button
-                  onClick={() => setDateFilter("today")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    dateFilter === "today"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {t("today")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("7days")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    dateFilter === "7days"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {t("last7Days")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("month")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    dateFilter === "month"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {t("last30Days")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("year")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    dateFilter === "year"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {t("lastYear")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("custom")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                    dateFilter === "custom"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                  }`}
-                >
-                  {t("customRange")}
-                </button>
-              </div>
-            </div>
-            {dateFilter === "custom" && (
-              <div className="flex items-center space-x-2 mt-4">
-                <input
-                  type="date"
-                  value={customDateRange.start}
-                  onChange={(e) =>
-                    setCustomDateRange({
-                      ...customDateRange,
-                      start: e.target.value,
-                    })
-                  }
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
-                />
-                <span className="dark:text-gray-400">to</span>
-                <input
-                  type="date"
-                  value={customDateRange.end}
-                  onChange={(e) =>
-                    setCustomDateRange({
-                      ...customDateRange,
-                      end: e.target.value,
-                    })
-                  }
-                  className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
-                />
-              </div>
-            )}
-          </div>
-          <table className="w-full mt-4">
-            <tbody>
-              {(userRole === "admin"
-                ? adminManagerMetrics
-                : employeeMetrics
-              ).map((metric) => (
-                <tr
-                  key={metric.title}
-                  className="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
-                >
-                  <td className="py-3 text-base font-medium text-gray-600 dark:text-gray-400">
-                    {metric.title}
-                  </td>
-                  <td className="py-3 text-2xl font-bold text-gray-900 dark:text-gray-100 text-right">
-                    {metric.value}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
-            {t("profitByServiceType")}
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={serviceProfitChartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                paddingAngle={5}
-                dataKey="value"
-                nameKey="name"
-              >
-                {serviceProfitChartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: number) =>
-                  `${value.toLocaleString()} ${t("mad")}`
-                }
-                contentStyle={{
-                  backgroundColor: theme === "dark" ? "#1f2937" : "#ffffff",
-                  borderColor: theme === "dark" ? "#4b5563" : "#e5e7eb",
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 mt-4">
-            {serviceProfitChartData.map((item, index) => (
-              <div key={index} className="flex items-center">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                  }`}
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                ></div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {item.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+        <DateMetricsSection
+          dateFilter={dateFilter}
+          setDateFilter={setDateFilter}
+          customDateRange={customDateRange}
+          setCustomDateRange={setCustomDateRange}
+          dateFilteredStats={stats.dateFilteredStats}
+        />
+        <ServiceProfitChart data={stats.dailyServiceProfitData} />
       </div>
 
+      {/* Bottom Grid: Actions & Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {t("quickActions")}
-          </h3>
-          <div className="space-y-3">
-            <Link
-              to="/booking"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
-                document.documentElement.dir === "rtl"
-                  ? "text-right"
-                  : "text-left"
-              }`}
-            >
-              <Calendar className="w-5 h-5 text-blue-500 mx-3" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t("newBooking")}
-              </span>
-            </Link>
-            <Link
-              to="/programs"
-              className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
-                document.documentElement.dir === "rtl"
-                  ? "text-right"
-                  : "text-left"
-              }`}
-            >
-              <Package className="w-5 h-5 text-emerald-500 mx-3" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {t("addProgram")}
-              </span>
-            </Link>
-            {(userRole === "admin" || userRole === "manager") && (
-              <Link
-                to="/profit-report"
-                className={`w-full flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
-                <TrendingUp className="w-5 h-5 text-orange-500 mx-3" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t("viewReports")}
-                </span>
-              </Link>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {t("paymentStatus")}
-          </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <CheckCircle2
-                  className={`w-5 h-5 text-emerald-500 ${
-                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                  }`}
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {t("fullyPaid")}
-                </span>
-              </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {fullyPaidBookings}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center">
-                <Clock
-                  className={`w-5 h-5 text-orange-500 ${
-                    document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                  }`}
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  {t("pending")}
-                </span>
-              </div>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {pendingPayments}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-            {t("recentBookings")}
-          </h3>
-          <div className="space-y-3">
-            {recentBookings.map((booking: Booking) => (
-              <div
-                key={booking.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-              >
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {`${booking.clientNameFr.lastName} ${booking.clientNameFr.firstName} `.trim()}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {booking.passportNumber}
-                  </p>
-                </div>
-                <div
-                  className={`${
-                    document.documentElement.dir === "rtl"
-                      ? "text-left"
-                      : "text-right"
-                  }`}
-                >
-                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
-                  </p>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      booking.isFullyPaid
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
-                    }`}
-                  >
-                    {booking.isFullyPaid ? t("paid") : t("pending")}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <QuickActionsCard />
+        <PaymentStatusCard paymentStatus={stats.paymentStatus} />
+        <RecentBookingsCard recentBookings={stats.recentBookings} />
       </div>
+
+      {/* Help Modal */}
       <VideoHelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
