@@ -50,7 +50,7 @@ export default function Dashboard() {
         <button
           onClick={() => setIsHelpModalOpen(true)}
           className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-          aria-label="Help"
+          aria-label={t("help") as string}
         >
           <HelpCircle className="w-6 h-6" />
         </button>
@@ -83,7 +83,7 @@ export default function Dashboard() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         videoId="qVEeJb4HqfA"
-        title="Dashboard & Profit Report Overview"
+        title={t("dashboardOverview")}
       />
     </div>
   );

@@ -5,6 +5,7 @@ import { Plane, Lock, User, Building, Mail, Phone } from "lucide-react";
 import { toast } from "react-hot-toast";
 import * as api from "../services/api";
 import { useMutation } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 // Declare fbq to be accessible in this file
 declare const fbq: any;
@@ -20,6 +21,7 @@ type SignUpFormData = {
 };
 
 export default function SignUpPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     register,
@@ -31,7 +33,7 @@ export default function SignUpPage() {
   const { mutate: signupUser, isPending } = useMutation({
     mutationFn: (data: SignUpFormData) => api.signup(data),
     onSuccess: (data) => {
-      toast.success(data.message || "Account created successfully!");
+      toast.success(data.message || t("auth.accountCreatedSuccess"));
       // Add the Meta Pixel track event here
       if (typeof fbq === "function") {
         fbq("track", "Lead");
@@ -40,7 +42,7 @@ export default function SignUpPage() {
     },
     onError: (error) => {
       const errorMessage =
-        error instanceof Error ? error.message : "Registration failed.";
+        error instanceof Error ? error.message : t("auth.registrationFailed");
       toast.error(errorMessage);
     },
   });
@@ -62,17 +64,17 @@ export default function SignUpPage() {
             <Plane className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Create Your TravelPro Account
+            {t("auth.createAccountTitle")}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Start your 3-day free trial now.
+            {t("auth.trialSubtitle")}
           </p>
         </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-                Owner Name
+                {t("ownerName")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -80,9 +82,9 @@ export default function SignUpPage() {
                 </div>
                 <input
                   {...register("ownerName", {
-                    required: "Owner name is required",
+                    required: t("auth.ownerNameRequired") as string,
                   })}
-                  placeholder="Owner Name"
+                  placeholder={t("ownerName") as string | undefined}
                   className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.ownerName
                       ? "border-red-500"
@@ -98,7 +100,7 @@ export default function SignUpPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-                Agency Name
+                {t("agencyName")}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -106,9 +108,9 @@ export default function SignUpPage() {
                 </div>
                 <input
                   {...register("agencyName", {
-                    required: "Agency name is required",
+                    required: t("auth.agencyNameRequired") as string,
                   })}
-                  placeholder="Agency Name"
+                  placeholder={t("agencyName") as string | undefined}
                   className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.agencyName
                       ? "border-red-500"
@@ -125,7 +127,7 @@ export default function SignUpPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-              Email
+              {t("email")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -134,13 +136,13 @@ export default function SignUpPage() {
               <input
                 type="email"
                 {...register("email", {
-                  required: "Email is required",
+                  required: t("auth.emailRequired") as string,
                   pattern: {
                     value: /^\S+@\S+$/i,
-                    message: "Invalid email address",
+                    message: t("auth.emailInvalid") as string,
                   },
                 })}
-                placeholder="Email Address"
+                placeholder={t("email") as string | undefined}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.email
                     ? "border-red-500"
@@ -156,7 +158,7 @@ export default function SignUpPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-              Phone Number
+              {t("phoneNumber")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -165,9 +167,9 @@ export default function SignUpPage() {
               <input
                 type="tel"
                 {...register("phoneNumber", {
-                  required: "Phone number is required",
+                  required: t("auth.phoneRequired") as string,
                 })}
-                placeholder="Phone Number"
+                placeholder={t("phoneNumber") as string | undefined}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.phoneNumber
                     ? "border-red-500"
@@ -183,7 +185,7 @@ export default function SignUpPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-              Username
+              {t("username")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -191,14 +193,13 @@ export default function SignUpPage() {
               </div>
               <input
                 {...register("username", {
-                  required: "Username is required",
+                  required: t("auth.usernameRequired") as string,
                   pattern: {
                     value: /^[a-zA-Z0-9._]+$/,
-                    message:
-                      "Username can only contain English letters, numbers, '.', or '_'",
+                    message: t("auth.usernameInvalid") as string,
                   },
                 })}
-                placeholder="Username"
+                placeholder={t("username") as string | undefined}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.username
                     ? "border-red-500"
@@ -214,7 +215,7 @@ export default function SignUpPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-              Password
+              {t("password")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -223,13 +224,13 @@ export default function SignUpPage() {
               <input
                 type="password"
                 {...register("password", {
-                  required: "Password is required",
+                  required: t("auth.passwordRequired") as string,
                   minLength: {
                     value: 6,
-                    message: "Password must be at least 6 characters",
+                    message: t("auth.passwordLength") as string,
                   },
                 })}
-                placeholder="Password"
+                placeholder={t("password") as string | undefined}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.password
                     ? "border-red-500"
@@ -245,7 +246,7 @@ export default function SignUpPage() {
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sr-only">
-              Confirm Password
+              {t("confirmNewPassword")}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -254,11 +255,12 @@ export default function SignUpPage() {
               <input
                 type="password"
                 {...register("confirmPassword", {
-                  required: "Please confirm your password",
+                  required: (t("auth.confirmNewPassword") ||
+                    "Please confirm your password") as string,
                   validate: (value) =>
-                    value === watch("password") || "Passwords do not match",
+                    value === watch("password") || t("passwordMismatch"),
                 })}
-                placeholder="Confirm Password"
+                placeholder={t("confirmNewPassword") as string | undefined}
                 className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.confirmPassword
                     ? "border-red-500"
@@ -277,16 +279,16 @@ export default function SignUpPage() {
             disabled={isPending}
             className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-sm disabled:bg-blue-400 disabled:cursor-not-allowed"
           >
-            {isPending ? "Creating Account..." : "Sign Up"}
+            {isPending ? t("auth.creatingAccount") : t("signUp")}
           </button>
         </form>
         <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-          Already have an account?{" "}
+          {t("auth.alreadyHaveAccount")}{" "}
           <Link
             to="/login"
             className="font-medium text-blue-600 hover:text-blue-500"
           >
-            Log In
+            {t("auth.loginLink")}
           </Link>
         </p>
       </div>

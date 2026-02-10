@@ -245,13 +245,13 @@ export default function BookingPage() {
       // APPROVE LOGIC: Update status to confirmed immediately
       try {
         await api.updateBookingStatus(id, status);
-        toast.success(t("statusUpdated") || "Status updated successfully");
+        toast.success(t("statusUpdated"));
         queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
         queryClient.invalidateQueries({ queryKey: ["program", programId] });
         queryClient.invalidateQueries({ queryKey: ["notifications"] });
       } catch (error) {
         console.error(error);
-        toast.error(t("errorUpdatingStatus") || "Failed to update status");
+        toast.error(t("errorUpdatingStatus"));
       }
     }
   };
@@ -262,16 +262,14 @@ export default function BookingPage() {
 
     try {
       await api.deleteBooking(bookingToReject);
-      toast.success(
-        t("bookingRejectedAndDeleted") || "Booking rejected and deleted",
-      );
+      toast.success(t("bookingRejectedAndDeleted"));
       // Refresh both the booking list and program (for capacity/stats)
       queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
       queryClient.invalidateQueries({ queryKey: ["program", programId] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } catch (error) {
       console.error(error);
-      toast.error(t("errorRejectingBooking") || "Failed to reject booking");
+      toast.error(t("errorRejectingBooking"));
     } finally {
       setIsRejectModalOpen(false);
       setBookingToReject(null);
@@ -321,7 +319,7 @@ export default function BookingPage() {
         setIsSelectAllAcrossPages(true);
       }
     } catch (_error) {
-      toast.error("Could not fetch all bookings.");
+      toast.error(t("fetchBookingsError"));
     }
   };
 
@@ -329,7 +327,7 @@ export default function BookingPage() {
     if (userRole === "manager" || userRole === "employee") {
       const booking = allBookings.find((b) => b.id === id);
       if (booking && booking.employeeId !== userId) {
-        toast.error("You have not made this booking.");
+        toast.error(t("notYourBookingError"));
         return;
       }
     }
@@ -339,7 +337,7 @@ export default function BookingPage() {
   const handleSelectAllToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
       if (selectableBookingIdsOnPage.length === 0) {
-        toast.error("There are no bookings you have made on this page.");
+        toast.error(t("noBookingsOnPageError"));
         e.target.checked = false;
         return;
       }
@@ -466,13 +464,10 @@ export default function BookingPage() {
         isOpen={isRejectModalOpen}
         onClose={() => setIsRejectModalOpen(false)}
         onConfirm={handleConfirmReject}
-        title={t("rejectBookingTitle") || "Reject Booking"}
-        message={
-          t("confirmRejectBooking") ||
-          "Are you sure you want to reject this booking? This action will permanently delete the booking and cannot be undone."
-        }
-        confirmText={t("reject") || "Reject"}
-        cancelText={t("cancel") || "Cancel"}
+        title={t("rejectBookingTitle")}
+        message={t("confirmRejectBooking")}
+        confirmText={t("reject") as string}
+        cancelText={t("cancel") as string}
       />
     </div>
   );
