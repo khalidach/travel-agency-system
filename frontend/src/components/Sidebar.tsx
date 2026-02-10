@@ -30,7 +30,6 @@ type MenuItem = {
   icon: React.ElementType;
   roles: string[];
   children?: MenuItem[];
-  // Fixed: Replaced 'any' with 'User | null'
   accessCheck?: (user: User | null) => boolean;
   isDisabled?: boolean;
   new?: boolean;
@@ -84,7 +83,6 @@ const allMenuItems: MenuItem[] = [
         icon: DollarSign,
         roles: ["admin"],
         new: true,
-        // Fixed: Typed 'user' implicitly via MenuItem interface or explicitly
         accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.programCosts === "boolean")
@@ -111,7 +109,6 @@ const allMenuItems: MenuItem[] = [
         path: "/profit-report",
         icon: TrendingUp,
         roles: ["admin"],
-        // Fixed: Typed 'user' explicitly
         accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.profitReport === "boolean")
@@ -127,7 +124,6 @@ const allMenuItems: MenuItem[] = [
     key: "dailyServices",
     icon: ConciergeBell,
     roles: ["admin", "manager", "employee"],
-    // Fixed: Removed 'any', inferred from MenuItem
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.dailyServices === "boolean")
@@ -156,7 +152,6 @@ const allMenuItems: MenuItem[] = [
     path: "/facturation",
     icon: FileText,
     roles: ["admin", "manager", "employee"],
-    // Fixed: Removed 'any', inferred from MenuItem
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.invoicing === "boolean")
@@ -195,17 +190,17 @@ const MenuItemContent = ({
       <Icon
         className={`mx-3 h-5 w-5 transition-colors ${
           isActive && !item.isDisabled
-            ? "text-blue-600"
+            ? "text-primary"
             : item.isDisabled
-              ? "text-gray-300"
-              : "text-gray-400 group-hover:text-gray-600"
+              ? "text-muted-foreground/50"
+              : "text-muted-foreground group-hover:text-foreground"
         }`}
       />
-      <span className={`${item.isDisabled ? "text-gray-400" : ""}`}>
+      <span className={`${item.isDisabled ? "text-muted-foreground/50" : ""}`}>
         {t(item.key)}
       </span>
       {item.isDisabled && (
-        <Lock className="ml-auto mr-3 h-4 w-4 text-gray-400" />
+        <Lock className="ml-auto mr-3 h-4 w-4 text-muted-foreground/50" />
       )}
     </>
   );
@@ -227,7 +222,6 @@ export default function Sidebar() {
           const isDisabled = item.accessCheck ? !item.accessCheck(user) : false;
           if (item.children) {
             const processedChildren = processItems(item.children);
-            // A parent is disabled if its own access check fails OR if all its children are disabled.
             const areAllChildrenDisabled =
               processedChildren.length > 0 &&
               processedChildren.every((child) => child.isDisabled);
@@ -262,19 +256,17 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 shadow-xl border-r border-gray-100 dark:border-gray-700 flex flex-col">
-      <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+    <div className="w-64 bg-card shadow-xl border-r border-border flex flex-col transition-colors duration-300">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center gap-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
             <Plane className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-xl font-bold text-card-foreground">
               TravelPro
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Management System
-            </p>
+            <p className="text-sm text-muted-foreground">Management System</p>
           </div>
         </div>
       </div>
@@ -293,8 +285,8 @@ export default function Sidebar() {
                     onClick={() => handleMenuClick(item)}
                     className={`group flex items-center justify-between w-full px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                       isParentActive && !isOpen && !item.isDisabled
-                        ? "bg-blue-50 text-blue-700 shadow-sm"
-                        : "text-gray-600 dark:text-gray-100 dark:hover:text-gray-900  hover:bg-gray-50 hover:text-gray-900"
+                        ? "bg-primary/10 text-primary shadow-sm"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     } ${
                       item.isDisabled ? "cursor-not-allowed opacity-60" : ""
                     }`}
@@ -326,8 +318,8 @@ export default function Sidebar() {
                               to={child.isDisabled ? "#" : child.path!}
                               className={`relative group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
                                 isChildActive && !child.isDisabled
-                                  ? "text-blue-700 bg-blue-50"
-                                  : "text-gray-500 dark:text-gray-100 hover:text-gray-900 dark:hover:text-gray-900 hover:bg-gray-50"
+                                  ? "text-primary bg-primary/10"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
                               } ${
                                 child.isDisabled
                                   ? "cursor-not-allowed opacity-60"
@@ -358,8 +350,8 @@ export default function Sidebar() {
                   onClick={(e) => item.isDisabled && e.preventDefault()}
                   className={`group flex items-center px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                     isActive && !item.isDisabled
-                      ? "bg-blue-50 text-blue-700 shadow-sm"
-                      : "text-gray-600 dark:text-gray-100 hover:bg-gray-50 hover:text-gray-900 dark:hover:text-gray-900"
+                      ? "bg-primary/10 text-primary shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <MenuItemContent item={item} isActive={isActive} />
@@ -370,8 +362,8 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-gray-100">
-        <div className="text-xs text-gray-500 text-center">
+      <div className="p-4 border-t border-border">
+        <div className="text-xs text-muted-foreground text-center">
           © 2025 TravelPro System
         </div>
       </div>

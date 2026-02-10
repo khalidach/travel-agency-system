@@ -14,13 +14,12 @@ import {
   Check,
   X,
   Trash2,
-} from "lucide-react"; // Added Trash2
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import { Notification as NotificationModel } from "../context/models";
 
-// Extend the base model to include referenceId which is used in this component
 interface HeaderNotification extends NotificationModel {
   referenceId?: number;
 }
@@ -83,7 +82,6 @@ export default function Header() {
     },
   });
 
-  // <NEW CODE>
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: number) => {
       await api.deleteNotification(id);
@@ -112,8 +110,8 @@ export default function Header() {
       bookingId: number;
       notificationId: number;
     }) => {
-      await api.deleteBooking(bookingId); // Delete the booking directly
-      await api.deleteNotification(notificationId); // Delete the notification
+      await api.deleteBooking(bookingId);
+      await api.deleteNotification(notificationId);
     },
     onSuccess: () => {
       toast.success(
@@ -121,7 +119,6 @@ export default function Header() {
       );
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
-      // Invalidate total bookings count/capacity queries if they exist
       queryClient.invalidateQueries({ queryKey: ["programs"] });
     },
     onError: (error: Error) => {
@@ -132,7 +129,6 @@ export default function Header() {
       );
     },
   });
-  // </NEW CODE>
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({
@@ -159,8 +155,8 @@ export default function Header() {
   });
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
-  // --------------------------
 
+  // Handle clicking outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -183,76 +179,61 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700">
+    <header className="bg-card shadow-sm border-b border-border transition-colors duration-300">
       <div className="px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <h2 className="text-2xl font-bold text-card-foreground">
               {t("welcomeMessage", { name: state.user?.agencyName || "User" })}
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {t("headerSubtitle")}
             </p>
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Language Switcher */}
             <div className="relative">
-              <div className="flex items-center gap-x-3 bg-gray-50 dark:bg-gray-700 rounded-lg p-1">
-                <button
-                  onClick={() => changeLanguage("fr")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === "fr"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  }`}
-                >
-                  FR
-                </button>
-                <button
-                  onClick={() => changeLanguage("ar")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === "ar"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  }`}
-                >
-                  AR
-                </button>
-                <button
-                  onClick={() => changeLanguage("en")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    i18n.language === "en"
-                      ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                      : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  }`}
-                >
-                  EN
-                </button>
+              <div className="flex items-center gap-x-3 bg-muted rounded-lg p-1">
+                {(["fr", "ar", "en"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => changeLanguage(lang)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                      i18n.language === lang
+                        ? "bg-background text-primary shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    }`}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Notification Bell */}
             <div className="relative notification-area">
               <button
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 relative transition-colors"
+                className="p-2 rounded-full hover:bg-accent hover:text-accent-foreground relative transition-colors"
               >
-                <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                <Bell className="w-5 h-5 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-destructive rounded-full border-2 border-background"></span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 z-50 overflow-hidden">
-                  <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <div className="absolute right-0 mt-2 w-80 bg-popover rounded-xl shadow-lg ring-1 ring-border z-50 overflow-hidden border border-border">
+                  <div className="p-3 border-b border-border flex justify-between items-center bg-muted/50">
+                    <h3 className="text-sm font-semibold text-popover-foreground">
                       {t("notifications") || "Notifications"}
                     </h3>
                     <div className="flex items-center gap-3">
                       {unreadCount > 0 && (
                         <button
                           onClick={() => markAllReadMutation.mutate()}
-                          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                          className="text-xs text-primary hover:text-primary/80"
                         >
                           {t("markAllRead") || "Mark all read"}
                         </button>
@@ -260,7 +241,7 @@ export default function Header() {
                       {notifications.length > 0 && (
                         <button
                           onClick={() => clearAllNotificationsMutation.mutate()}
-                          className="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
+                          className="text-xs text-destructive hover:text-destructive/80"
                         >
                           {t("clearAll") || "Clear All"}
                         </button>
@@ -269,47 +250,45 @@ export default function Header() {
                   </div>
                   <div className="max-h-96 overflow-y-auto">
                     {notifications.length === 0 ? (
-                      <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                      <div className="p-6 text-center text-sm text-muted-foreground">
                         {t("noNotifications") || "No new notifications"}
                       </div>
                     ) : (
                       notifications.map((notif) => (
                         <div
                           key={notif.id}
-                          className={`p-4 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group relative ${
-                            !notif.isRead
-                              ? "bg-blue-50/50 dark:bg-blue-900/10"
-                              : ""
+                          className={`p-4 border-b border-border/50 hover:bg-muted/50 cursor-pointer transition-colors group relative ${
+                            !notif.isRead ? "bg-primary/5" : ""
                           }`}
                           onClick={() =>
                             !notif.isRead && markReadMutation.mutate(notif.id)
                           }
                         >
-                          {/* Trash Icon for Deleting Single Notification */}
+                          {/* Trash Icon */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               deleteNotificationMutation.mutate(notif.id);
                             }}
-                            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                             title={t("deleteNotification") || "Delete"}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
 
                           <div className="flex justify-between items-start mb-1 pr-6">
-                            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                            <p className="text-sm font-semibold text-foreground">
                               {notif.title}
                             </p>
                             {!notif.isRead && (
-                              <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                              <span className="w-2 h-2 bg-primary rounded-full mt-1.5 flex-shrink-0"></span>
                             )}
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             {notif.message}
                           </p>
 
-                          {/* APPROVAL BUTTONS IN NOTIFICATION */}
+                          {/* Approval Actions */}
                           {notif.type === "booking_approval" &&
                             notif.referenceId && (
                               <div className="flex gap-2 mt-3 justify-end">
@@ -321,7 +300,7 @@ export default function Header() {
                                       notificationId: notif.id,
                                     });
                                   }}
-                                  className="flex items-center px-2 py-1 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200"
+                                  className="flex items-center px-2 py-1 text-xs font-medium text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-md border border-destructive/20 transition-colors"
                                 >
                                   <X className="w-3 h-3 mr-1" />
                                   {t("reject") || "Reject"}
@@ -335,7 +314,7 @@ export default function Header() {
                                       notificationId: notif.id,
                                     });
                                   }}
-                                  className="flex items-center px-2 py-1 text-xs font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-md border border-green-200"
+                                  className="flex items-center px-2 py-1 text-xs font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40 rounded-md border border-green-200 dark:border-green-800 transition-colors"
                                 >
                                   <Check className="w-3 h-3 mr-1" />
                                   {t("approve") || "Approve"}
@@ -343,7 +322,7 @@ export default function Header() {
                               </div>
                             )}
 
-                          <p className="text-[10px] text-gray-400 mt-2 text-right">
+                          <p className="text-[10px] text-muted-foreground mt-2 text-right">
                             {new Date(notif.createdAt).toLocaleString(
                               i18n.language,
                             )}
@@ -356,37 +335,40 @@ export default function Header() {
               )}
             </div>
 
+            {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-x-3"
+                className="flex items-center gap-x-3 group"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center ring-2 ring-background">
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
                     {state.user?.agencyName}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {state.user?.username}
                   </p>
                 </div>
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none py-2 z-50">
+                <div className="absolute right-0 mt-2 w-56 origin-top-right bg-popover rounded-xl shadow-lg ring-1 ring-border focus:outline-none py-2 z-50 border border-border">
                   <Link
                     to="/account-settings"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     <Settings className="w-4 h-4 mr-3" />
                     <span>{t("accountSettings")}</span>
                   </Link>
+
+                  {/* Theme Toggle Inside Dropdown */}
                   <button
                     onClick={toggleTheme}
-                    className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                   >
                     {theme === "light" ? (
                       <Moon className="w-4 h-4 mr-3" />
@@ -397,10 +379,12 @@ export default function Header() {
                       {theme === "light" ? t("dark") : t("light")} {t("theme")}
                     </span>
                   </button>
-                  <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+
+                  <div className="border-t border-border my-1"></div>
+
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
                   >
                     <LogOut className="w-4 h-4 mr-3" />
                     <span>{t("logout")}</span>
