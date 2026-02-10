@@ -438,55 +438,6 @@
       "title": "Simple and transparent pricing",
       "subtitle": "Choose the plan that fits the size and ambitions of your agency. No hidden fees.",
       "mostPopular": "Most Popular",
-      "essentialPlan": {
-        "title": "Essential Plan",
-        "subtitle": "Ideal for small agencies",
-        "price": "200",
-        "features": {
-          "f1": "2 employees",
-          "f2": "Up to 120 bookings/month",
-          "f3": "Up to 5 programs/month",
-          "f4": "Accommodation management",
-          "f5": "Up to 50 invoices/month",
-          "f6": "5 exports per program/month"
-        },
-        "notincludes": {
-          "f1": "Gestion des services quotidiens (billets, visas)",
-          "f2": "Rapports avancés",
-          "f3": "Tarification professionnelle des programmes",
-          "f4": "Rapports et analyse de performance des employés"
-        }
-      },
-      "proPlan": {
-        "title": "Professional Plan",
-        "subtitle": "For growing agencies",
-        "price": "599",
-        "features": {
-          "f1": "7 employees",
-          "f2": "Employee performance reports and analysis",
-          "f3": "Up to 400 bookings/month",
-          "f4": "Up to 15 programs/month",
-          "f5": "Program cost calculation",
-          "f6": "Accommodation management",
-          "f7": "Up to 200 invoices/month",
-          "f8": "Daily services (up to 100/month)",
-          "f9": "Unlimited data export to Excel",
-          "f10": "Technical support via phone and WhatsApp"
-        }
-      },
-      "elitePlan": {
-        "title": "Elite Plan",
-        "subtitle": "The complete solution for large agencies",
-        "price": "1199",
-        "features": {
-          "f1": "25 employees",
-          "f2": "Unlimited sales and invoices",
-          "f3": "Unlimited programs",
-          "f4": "Everything in the professional plan",
-          "f5": "Advanced technical support within the system (coming soon)",
-          "f6": "Profit reports export (coming soon)"
-        }
-      },
       "choosePlan": "Choose this plan",
       "contactTitle": "Get a Custom Quote",
       "contactDescription": "Contact our support team to discuss your agency's specific needs and get a pricing plan tailored for you.",

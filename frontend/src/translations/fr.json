@@ -442,55 +442,6 @@
       "title": "Un tarif simple et transparent",
       "subtitle": "Choisissez le plan qui correspond à la taille et aux ambitions de votre agence. Pas de frais cachés.",
       "mostPopular": "Le plus populaire",
-      "essentialPlan": {
-        "title": "Plan Essentiel",
-        "subtitle": "Idéal pour les petites agences",
-        "price": "200",
-        "features": {
-          "f1": "2 employees",
-          "f2": "Up to 120 bookings/month",
-          "f3": "Up to 5 programs/month",
-          "f4": "Accommodation management",
-          "f5": "Up to 50 invoices/month",
-          "f6": "Up to 5 program data exports to Excel per program/month"
-        },
-        "notincludes": {
-          "f1": "Gestion des services quotidiens (billets, visas)",
-          "f2": "Rapports avancés",
-          "f3": "Tarification professionnelle des programmes",
-          "f4": "Rapports et analyse de performance des employés"
-        }
-      },
-      "proPlan": {
-        "title": "Plan Professionnel",
-        "subtitle": "Pour les agences en croissance",
-        "price": "599",
-        "features": {
-          "f1": "7 employés",
-          "f2": "Rapports et analyse de performance des employés",
-          "f3": "Jusqu'à 400 réservations/mois",
-          "f4": "Jusqu'à 15 programmes/mois",
-          "f5": "Calcul du coût du programme",
-          "f6": "Gestion de l’hébergement",
-          "f7": "Jusqu'à 200 factures/mois",
-          "f8": "Services quotidiens (jusqu'à 100/mois)",
-          "f9": "Exportation illimitée des données vers Excel",
-          "f10": "Assistance technique par téléphone et WhatsApp"
-        }
-      },
-      "elitePlan": {
-        "title": "Plan Élite",
-        "subtitle": "La solution complète pour les grandes agences",
-        "price": "1199",
-        "features": {
-          "f1": "25 employés",
-          "f2": "Ventes et factures illimitées",
-          "f3": "Programmes illimités",
-          "f4": "Tout ce qui est inclus dans le plan professionnel",
-          "f5": "Assistance technique avancée intégrée au système (bientôt)",
-          "f6": "Exportation des rapports de bénéfices (bientôt)"
-        }
-      },
       "choosePlan": "Choisir ce plan",
       "contactTitle": "Obtenez un devis personnalisé",
       "contactDescription": "Contactez notre équipe de support pour discuter des besoins spécifiques de votre agence et obtenir un plan tarifaire sur mesure.",
