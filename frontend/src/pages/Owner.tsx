@@ -202,7 +202,15 @@ export default function OwnerPage() {
   });
 
   const { mutate: createUser } = useMutation({
-    mutationFn: (data: Partial<User>) => api.createAdminUser(data),
+    mutationFn: (data: Partial<User>) => {
+      // FIX: Explicitly set role to "admin" and cast the data to satisfy TypeScript.
+      // This bridges the gap between Partial<User> from the form and strict API types.
+      const payload = { ...data, role: "admin" } as unknown as Omit<
+        User,
+        "id" | "createdAt" | "updatedAt"
+      >;
+      return api.createAdminUser(payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       toast.success("Admin user created successfully!");
