@@ -16,7 +16,6 @@ import {
   DailyService,
   PaginatedResponse,
   FacturationSettings,
-  User,
   Payment,
 } from "../context/models";
 import Modal from "../components/Modal";
@@ -59,7 +58,7 @@ const DailyServiceForm = ({
       // NOTE: profit is included here to match the payload sent to the backend
       profit: number;
       advancePayments: Payment[];
-    }
+    },
   ) => void;
   onCancel: () => void;
 }) => {
@@ -236,7 +235,7 @@ const ServicePaymentManagementModal = ({
   onSavePayment: (payment: Omit<Payment, "_id" | "id">) => void;
   onUpdatePayment: (
     paymentId: string,
-    payment: Omit<Payment, "_id" | "id">
+    payment: Omit<Payment, "_id" | "id">,
   ) => void;
   onDeletePayment: (paymentId: string) => void;
   onDownloadReceipt: (payment: Payment) => void; // New prop interface
@@ -340,7 +339,7 @@ const ServicePaymentManagementModal = ({
                           {" "}
                           • {t("checkCashingDate")}:{" "}
                           {new Date(
-                            payment.chequeCashingDate
+                            payment.chequeCashingDate,
                           ).toLocaleDateString()}
                         </span>
                       )}
@@ -431,7 +430,7 @@ export default function DailyServices() {
   const { state: authState } = useAuthContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<DailyService | null>(
-    null
+    null,
   );
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
   const [receiptToPreview, setReceiptToPreview] = useState<{
@@ -529,7 +528,7 @@ export default function DailyServices() {
       api.updateDailyServicePayment(
         data.serviceId,
         data.paymentId,
-        data.payment
+        data.payment,
       ),
     onSuccess: (updatedService) => {
       invalidateQueries();
@@ -565,7 +564,7 @@ export default function DailyServices() {
   // UPDATED: Function to handle downloading the receipt for a specific payment
   const handleDownloadReceipt = async (
     service: DailyService,
-    payment: Payment
+    payment: Payment,
   ) => {
     if (!service || !payment) {
       toast.error("Service or payment data not available.");
@@ -574,12 +573,12 @@ export default function DailyServices() {
 
     // 1. Filter payments before the current one (using the logic from ServiceReceiptPDF for consistency)
     const allPayments = (service.advancePayments || []).sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
     // Find the index of the current payment using its unique _id
     const currentPaymentIndex = allPayments.findIndex(
-      (p) => p._id === payment._id
+      (p) => p._id === payment._id,
     );
 
     // Get the array of all payments that occurred before the current one.
@@ -597,7 +596,7 @@ export default function DailyServices() {
       const sequentialNumber = currentPaymentIndex + 1;
       const receiptFilename = `${t("receipt")}_${service.serviceName.replace(
         /\s/g,
-        "_"
+        "_",
       )}_SRV${service.id}_${sequentialNumber}.pdf`;
 
       html2canvas(input, { scale: 2 }).then((canvas) => {

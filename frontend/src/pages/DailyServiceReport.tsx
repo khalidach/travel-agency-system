@@ -1,5 +1,5 @@
 // frontend/src/pages/DailyServiceReport.tsx
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { subDays, startOfDay, endOfDay, format, subMonths } from "date-fns";
@@ -49,9 +49,21 @@ export default function DailyServiceReport() {
   });
 
   const dateRangeParams = useMemo(() => {
+    // Handle custom range specifically
+    if (dateFilter === "custom") {
+      if (customDateRange.start && customDateRange.end) {
+        return {
+          startDate: customDateRange.start,
+          endDate: customDateRange.end,
+        };
+      }
+      return { startDate: undefined, endDate: undefined };
+    }
+
     const now = new Date();
     let startDate: Date;
-    let endDate: Date = endOfDay(now);
+    // Fix: changed 'let' to 'const' as endDate is not reassigned in this scope
+    const endDate: Date = endOfDay(now);
 
     switch (dateFilter) {
       case "today":
@@ -63,14 +75,6 @@ export default function DailyServiceReport() {
       case "year":
         startDate = startOfDay(subMonths(now, 12));
         break;
-      case "custom":
-        if (customDateRange.start && customDateRange.end) {
-          return {
-            startDate: customDateRange.start,
-            endDate: customDateRange.end,
-          };
-        }
-        return { startDate: undefined, endDate: undefined };
       case "7days":
       default:
         startDate = startOfDay(subDays(now, 7));
@@ -91,7 +95,7 @@ export default function DailyServiceReport() {
     queryFn: () =>
       api.getDailyServiceReport(
         dateRangeParams.startDate,
-        dateRangeParams.endDate
+        dateRangeParams.endDate,
       ),
   });
 
@@ -139,25 +143,25 @@ export default function DailyServiceReport() {
     {
       title: t("totalSalesCount"),
       value: `${Number(
-        dateFilteredSummary.totalSalesCount || 0
+        dateFilteredSummary.totalSalesCount || 0,
       ).toLocaleString()}`,
     },
     {
       title: t("totalRevenue"),
       value: `${Number(dateFilteredSummary.totalRevenue).toLocaleString()} ${t(
-        "mad"
+        "mad",
       )}`,
     },
     {
       title: t("totalCost"),
       value: `${Number(dateFilteredSummary.totalCost).toLocaleString()} ${t(
-        "mad"
+        "mad",
       )}`,
     },
     {
       title: t("totalProfit"),
       value: `${Number(dateFilteredSummary.totalProfit).toLocaleString()} ${t(
-        "mad"
+        "mad",
       )}`,
     },
   ];
