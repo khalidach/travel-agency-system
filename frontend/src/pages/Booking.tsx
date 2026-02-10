@@ -45,7 +45,7 @@ export default function Booking() {
         currentPage,
         programsPerPage,
         submittedSearchTerm,
-        filterType
+        filterType,
       ),
   });
 
@@ -130,7 +130,6 @@ export default function Booking() {
           <ProgramCard
             key={program.id}
             program={program}
-            bookingCount={program.totalBookings || 0}
             onClick={() => handleProgramSelect(program.id)}
           />
         ))}
@@ -180,7 +179,7 @@ export default function Booking() {
           <button
             onClick={() =>
               setCurrentPage((prev) =>
-                Math.min(prev + 1, pagination.totalPages)
+                Math.min(prev + 1, pagination.totalPages),
               )
             }
             disabled={currentPage === pagination.totalPages}

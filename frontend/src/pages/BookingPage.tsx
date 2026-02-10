@@ -16,7 +16,7 @@ import PaginationControls from "../components/booking/PaginationControls";
 import BookingPageModals from "../components/booking/BookingPageModals";
 import BookingSelectionBanner from "../components/booking/BookingSelectionBanner";
 import BookingEmptyState from "../components/booking/BookingEmptyState";
-import ConfirmationModal from "../components/modals/ConfirmationModal"; // Imported ConfirmationModal
+import ConfirmationModal from "../components/modals/ConfirmationModal";
 
 // Hooks
 import { usePagination } from "../hooks/usePagination";
@@ -148,7 +148,11 @@ export default function BookingPage() {
       placeholderData: (prev) => prev,
     });
 
-  const allBookings = bookingResponse?.data ?? [];
+  // FIX: Memoize allBookings to prevent reference changes on every render
+  const allBookings = useMemo(() => {
+    return bookingResponse?.data ?? [];
+  }, [bookingResponse]);
+
   const summaryStats = bookingResponse?.summary;
   const pagination = bookingResponse?.pagination;
 
