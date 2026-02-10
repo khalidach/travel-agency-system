@@ -15,13 +15,12 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
   const {
     control,
     formState: { errors },
-    getValues, // Need getValues for validation
-    trigger, // Need trigger for cross-field validation
-    setValue, // Need setValue to clear passport
-    watch, // Watch for changes
+    getValues,
+    trigger,
+    setValue,
+    watch,
   } = useFormContext<BookingFormData>();
 
-  // Watch for changes in specific fields for this row
   const noPassport = useWatch({
     control,
     name: `clients.${index}.noPassport`,
@@ -35,13 +34,10 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     name: `clients.${index}.clientNameAr`,
   });
 
-  // Access errors for this specific client row safely using optional chaining
   const clientErrors = errors.clients?.[index];
 
-  // --- Initialize noPassport based on existing passportNumber ---
   useEffect(() => {
     const existingClientData = watch(`clients.${index}`) as ClientFormData;
-    // Only apply this logic if it's an existing, populated row
     if (existingClientData.passportNumber !== undefined) {
       const isExistingBookingWithNoPassport =
         !existingClientData.passportNumber ||
@@ -50,17 +46,15 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     }
   }, [index, setValue, watch]);
 
-  // Effect to clear passport number if "No passport" is checked
   useEffect(() => {
     if (noPassport) {
       setValue(`clients.${index}.passportNumber`, "");
-      trigger(`clients.${index}.passportNumber`); // Clear errors
+      trigger(`clients.${index}.passportNumber`);
     } else {
-      trigger(`clients.${index}.passportNumber`); // Re-validate
+      trigger(`clients.${index}.passportNumber`);
     }
   }, [noPassport, setValue, trigger, index]);
 
-  // Validation rules
   const nameFrRules = {
     validate: (value: string) => {
       const arName = getValues(`clients.${index}.clientNameAr`);
@@ -87,7 +81,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
     required: !noPassport ? (t("passportNumberRequired") as string) : false,
   };
 
-  // Check if either name field has an error, but only if both are empty
   const showNameError =
     (clientErrors?.clientNameFr?.lastName || clientErrors?.clientNameAr) &&
     !clientNameFrLastName &&
@@ -95,14 +88,12 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
 
   return (
     <div className="grid grid-cols-12 gap-3 items-start p-3 border-b dark:border-gray-700">
-      {/* Index */}
       <div className="col-span-12 md:col-span-1 flex items-center pt-9">
         <span className="text-gray-500 dark:text-gray-400 font-semibold">
           {index + 1}.
         </span>
       </div>
 
-      {/* Client Info */}
       <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-5 gap-3">
         <div className="md:col-span-2">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -117,7 +108,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                 <input
                   {...field}
                   type="text"
-                  placeholder="Last Name"
+                  placeholder={t("lastNamePlaceholder") as string}
                   className={`w-full px-2 py-1.5 border rounded-md text-sm dark:bg-gray-700 dark:text-gray-100 ${
                     showNameError
                       ? "border-red-500"
@@ -137,7 +128,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                 <input
                   {...field}
                   type="text"
-                  placeholder="First Name"
+                  placeholder={t("firstNamePlaceholder") as string}
                   className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
                 />
               )}
@@ -176,7 +167,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
         <div className="flex flex-col justify-start mb-auto">
-          {/* "No passport yet" checkbox */}
           <div className="flex items-center">
             <Controller
               name={`clients.${index}.noPassport`}
@@ -185,8 +175,8 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
                 <input
                   type="checkbox"
                   id={`noPassport-${index}`}
-                  {...fieldProps} // Spread remaining props (onChange, onBlur, name, ref)
-                  checked={!!value} // Use destructured value for checked state
+                  {...fieldProps}
+                  checked={!!value}
                   className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600"
                 />
               )}
@@ -199,14 +189,12 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             </label>
           </div>
 
-          {/* Passport Label */}
           <div className="flex justify-between items-center mb-1">
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
               {t("passportNumber")}
             </label>
           </div>
 
-          {/* Passport Input */}
           <Controller
             name={`clients.${index}.passportNumber`}
             control={control}
@@ -246,7 +234,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
 
-        {/* --- Date of Birth --- */}
         <div>
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("dateOfBirth")}
@@ -269,7 +256,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
           />
         </div>
 
-        {/* --- Passport Expiration Date --- */}
         <div className="md:col-span-2">
           <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("passportExpirationDate")}
@@ -333,7 +319,6 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
         </div>
       </div>
 
-      {/* Remove Button */}
       <div className="col-span-12 md:col-span-1 flex items-center justify-end pt-9">
         <button
           type="button"

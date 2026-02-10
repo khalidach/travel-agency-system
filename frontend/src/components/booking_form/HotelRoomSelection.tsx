@@ -1,31 +1,6 @@
-// frontend/src/components/booking_form/HotelRoomSelection.tsx
 import { useMemo } from "react";
-// import { useTranslation } from "react-i18next"; // Removed due to environment constraints
+import { useTranslation } from "react-i18next"; // Correct import
 import type { Program, Package, ProgramVariation } from "../../context/models";
-
-// Mock implementation of useTranslation to resolve environment issues
-const useTranslation = () => ({
-  t: (key: string, options?: { count?: number }) => {
-    if (options && typeof options.count !== "undefined") {
-      // Simple pluralization for the known keys
-      if (key === "nights_other") {
-        return `${options.count} ${options.count > 1 ? "nights" : "night"}`;
-      }
-      if (key === "guests") {
-        return `${options.count} ${options.count > 1 ? "guests" : "guest"}`;
-      }
-    }
-    // Simple key-to-text mapping
-    const translations: { [key: string]: string } = {
-      hotelAndRoomSelection: "Hotel & Room Selection",
-      selectHotel: "Select Hotel",
-      selectAHotel: "Select a hotel",
-      roomType: "Room Type",
-      selectRoomType: "Select a room type",
-    };
-    return translations[key] || key;
-  },
-});
 
 interface HotelRoomSelectionProps {
   selectedProgram: Program | null;

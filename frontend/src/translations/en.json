@@ -548,5 +548,20 @@
   "pricingManagementHelp": "Pricing Management Help",
   "na": "N/A",
   "unlimited": "Unlimited",
-  "nightsLabel": "Nights"
+  "nightsLabel": "Nights",
+  "addPerson": "Add Person",
+  "bulkAdd": "Bulk Add",
+  "lastNamePlaceholder": "Last Name",
+  "firstNamePlaceholder": "First Name",
+  "invalidDay": "Invalid day",
+  "invalidMonth": "Invalid month",
+  "invalidYear": "Invalid year",
+  "variation": "Variation",
+  "selectVariation": "Select a variation",
+  "variationRequired": "Variation is required",
+  "addSelectedPersons": "Add {{count}} person(s)",
+  "clear": "Clear",
+  "correctFormErrors": "Please correct the errors before saving.",
+  "bookingSourcePlaceholder": "Facebook, Friend, Recommendation...",
+  "bookingSource": "Booking Source"
 }

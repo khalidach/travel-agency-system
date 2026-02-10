@@ -1,4 +1,5 @@
-// frontend/src/components/booking_form/BulkModeToggle.tsx
+import { useTranslation } from "react-i18next";
+
 interface BulkModeToggleProps {
   isBulkMode: boolean;
   setIsBulkMode: (val: boolean) => void;
@@ -8,14 +9,16 @@ export const BulkModeToggle = ({
   isBulkMode,
   setIsBulkMode,
 }: BulkModeToggleProps) => {
+  const { t } = useTranslation();
+
   return (
     <div className="flex items-center justify-end">
       <label
         htmlFor="bulk-mode-toggle"
         className="flex items-center cursor-pointer"
       >
-        <span className="mr-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-          Ajout groupé
+        <span className="mr-3 rtl:ml-3 rtl:mr-0 text-sm font-medium text-gray-900 dark:text-gray-100">
+          {t("bulkAdd")}
         </span>
         <div className="relative">
           <input

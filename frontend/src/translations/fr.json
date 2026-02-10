@@ -552,5 +552,20 @@
   "pricingManagementHelp": "Aide à la Gestion de la Tarification",
   "na": "N/D",
   "unlimited": "Illimité",
-  "nightsLabel": "Nuits"
+  "nightsLabel": "Nuits",
+  "addPerson": "Ajouter une personne",
+  "bulkAdd": "Ajout groupé",
+  "lastNamePlaceholder": "Nom",
+  "firstNamePlaceholder": "Prénom",
+  "invalidDay": "Jour invalide",
+  "invalidMonth": "Mois invalide",
+  "invalidYear": "Année invalide",
+  "variation": "Variation",
+  "selectVariation": "Sélectionner une variation",
+  "variationRequired": "La variation est requise",
+  "addSelectedPersons": "Ajouter {{count}} personne(s)",
+  "clear": "Effacer",
+  "correctFormErrors": "Veuillez corriger les erreurs avant d'enregistrer.",
+  "bookingSourcePlaceholder": "Facebook, Ami, Recommandation...",
+  "bookingSource": "Source de la réservation"
 }

@@ -7,6 +7,7 @@ import {
 } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next"; // Import useTranslation
 
 import type {
   Booking,
@@ -14,7 +15,6 @@ import type {
   Payment,
   RelatedPerson,
 } from "../context/models";
-// 1. Add FormState to the imports here
 import type {
   BookingFormData,
   BookingSaveData,
@@ -53,6 +53,7 @@ export default function BookingForm({
   onCancel,
   programId,
 }: BookingFormProps) {
+  const { t } = useTranslation(); // Initialize translation
   const [isBulkMode, setIsBulkMode] = useState(false);
 
   const methods = useForm<BookingFormData>({
@@ -143,15 +144,17 @@ export default function BookingForm({
   }, [dob_day, dob_month, dob_year, setValue]);
 
   // Handler: Form Invalid
-  const onInvalid = useCallback((errors: FieldErrors<BookingFormData>) => {
-    console.log("Form Errors:", errors);
-    toast.error("Please correct the errors before saving.");
-  }, []);
+  const onInvalid = useCallback(
+    (errors: FieldErrors<BookingFormData>) => {
+      console.log("Form Errors:", errors);
+      toast.error(t("correctFormErrors")); // Translate toast
+    },
+    [t],
+  );
 
   // Handler: Form Submit
   const onSubmit = useCallback(
     (data: BookingFormData) => {
-      // Recalculate one last time to ensure basePrice is fresh before save
       const freshBasePrice = calculateTotalBasePrice();
       data.basePrice = freshBasePrice;
       data.profit = data.sellingPrice - freshBasePrice;
@@ -177,7 +180,7 @@ export default function BookingForm({
       const newHotelNames = [...selectedHotel.hotelNames];
       const newRoomTypes = [...selectedHotel.roomTypes];
       newHotelNames[cityIndex] = hotelName;
-      newRoomTypes[cityIndex] = ""; // Reset room type when hotel changes
+      newRoomTypes[cityIndex] = "";
 
       setValue("selectedHotel", {
         ...selectedHotel,
@@ -220,7 +223,6 @@ export default function BookingForm({
         ...(watchedValues.relatedPersons || []),
         ...newPersons,
       ]);
-      // 2. Explicitly type prev here
       setFormState((prev: FormState) => ({
         ...prev,
         search: "",
@@ -275,7 +277,8 @@ export default function BookingForm({
               onClick={() => append(emptyClient)}
               className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
-              <Plus className="w-4 h-4 mr-1" /> Ajouter une personne
+              <Plus className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />{" "}
+              {t("addPerson")}
             </button>
           </div>
         ) : (
@@ -300,7 +303,6 @@ export default function BookingForm({
           availablePeople={availablePeople}
           relatedPersons={watchedValues.relatedPersons || []}
           onSearchChange={(value) =>
-            // 3. Explicitly type prev here
             setFormState((prev: FormState) => ({
               ...prev,
               search: value,
@@ -308,12 +310,10 @@ export default function BookingForm({
             }))
           }
           onFocus={() =>
-            // 4. Explicitly type prev here
             setFormState((prev: FormState) => ({ ...prev, showDropdown: true }))
           }
           onBlur={() =>
             setTimeout(
-              // 5. Explicitly type prev here
               () =>
                 setFormState((prev: FormState) => ({
                   ...prev,

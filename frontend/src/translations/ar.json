@@ -552,5 +552,20 @@
   "pricingManagementHelp": "مساعدة في إدارة التسعير",
   "na": "غير متاح",
   "unlimited": "غير محدود",
-  "nightsLabel": "ليالي"
+  "nightsLabel": "ليالي",
+  "addPerson": "إضافة شخص",
+  "bulkAdd": "إضافة جماعية",
+  "lastNamePlaceholder": "الاسم العائلي",
+  "firstNamePlaceholder": "الاسم الشخصي",
+  "invalidDay": "يوم غير صحيح",
+  "invalidMonth": "شهر غير صحيح",
+  "invalidYear": "سنة غير صحيحة",
+  "variation": "نوع البرنامج",
+  "selectVariation": "اختر نوعاً",
+  "variationRequired": "نوع البرنامج مطلوب",
+  "addSelectedPersons": "إضافة {{count}} شخص/أشخاص",
+  "clear": "مسح",
+  "correctFormErrors": "يرجى تصحيح الأخطاء قبل الحفظ.",
+  "bookingSourcePlaceholder": "فيسبوك، صديق، توصية...",
+  "bookingSource": "مصدر الحجز"
 }

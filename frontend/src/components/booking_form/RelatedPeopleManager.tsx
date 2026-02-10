@@ -105,7 +105,7 @@ const RelatedPeopleManager = ({
                   onClick={handleAddSelected}
                   className="flex-grow bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  Add {selectedPeople.length} person(s)
+                  {t("addSelectedPersons", { count: selectedPeople.length })}
                 </button>
                 <button
                   type="button"
@@ -113,7 +113,7 @@ const RelatedPeopleManager = ({
                   onClick={handleClearSelection}
                   className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
                 >
-                  Clear
+                  {t("clear")}
                 </button>
               </div>
             )}
