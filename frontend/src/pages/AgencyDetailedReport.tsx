@@ -1,5 +1,5 @@
 // frontend/src/pages/AgencyDetailedReport.tsx
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -8,7 +8,6 @@ import {
   Calendar,
   ConciergeBell,
   FileText,
-  Clock,
   MapPin,
   RefreshCcw,
 } from "lucide-react";
@@ -19,7 +18,6 @@ import {
   startOfDay,
   endOfDay,
   format,
-  subWeeks,
   subMonths,
   subYears,
 } from "date-fns";
@@ -106,7 +104,7 @@ export default function AgencyDetailedReport() {
   const dateParams = useMemo(() => {
     const now = new Date();
     let startDate: Date | undefined;
-    let endDate: Date = endOfDay(now);
+    const endDate: Date = endOfDay(now);
 
     switch (dateFilter) {
       case "today":
@@ -154,7 +152,7 @@ export default function AgencyDetailedReport() {
       api.getAgencyDetailedReport(
         adminId!,
         dateParams.startDate,
-        dateParams.endDate
+        dateParams.endDate,
       ),
     enabled: !!adminId,
   });
@@ -186,7 +184,7 @@ export default function AgencyDetailedReport() {
         color: "bg-purple-500",
       },
     ],
-    [report]
+    [report],
   );
 
   if (isLoading) {
