@@ -196,7 +196,7 @@
   "selectRoomType": "Select a room type",
   "selectAllHotelsFirst": "Select all hotels first",
   "update": "Update",
-  "mad": "MAD",
+  "mad": "dh",
   "clientName": "Client Name",
   "passportNumber": "Passport Number",
   "sellingPrice": "Selling Price",
@@ -207,7 +207,7 @@
   "validProgramRequired": "A valid program must be selected.",
   "packageSelectionRequired": "A package must be selected for this program.",
   "validHotelCombinationRequired": "A valid hotel and room combination is required for programs with overnight stays.",
-  "paymentAmount": "Payment Amount (MAD)",
+  "paymentAmount": "Payment Amount (dh)",
   "paymentMethod": "Payment Method",
   "cash": "Cash",
   "cheque": "Cheque",
@@ -217,7 +217,7 @@
   "chequeNumber": "Cheque Number",
   "checkCashingDate": "Check Cashing Date",
   "paymentDate": "Payment Date",
-  "amountExceedsBalance": "Payment amount cannot exceed the remaining balance ({{balance}} MAD)",
+  "amountExceedsBalance": "Payment amount cannot exceed the remaining balance ({{balance}} dh)",
   "amountGreaterThanZero": "Payment amount must be greater than zero.",
   "savePayment": "Save Payment",
   "profitReportTitle": "Profit Report",
@@ -568,5 +568,6 @@
   "Hajj": "Hajj",
   "Umrah": "Umrah",
   "Tourism": "Tourism",
-  "Ramadan": "Ramadan"
+  "Ramadan": "Ramadan",
+  "downloadReceipt": "Download Receipt"
 }

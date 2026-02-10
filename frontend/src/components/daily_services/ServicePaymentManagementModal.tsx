@@ -85,6 +85,7 @@ const ServicePaymentManagementModal: React.FC<
             <button
               onClick={handleAddPaymentClick}
               className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              title={t("addPayment") as string}
             >
               <CreditCard
                 className={`w-4 h-4 ${
@@ -162,12 +163,14 @@ const ServicePaymentManagementModal: React.FC<
                   <button
                     onClick={() => handleEditPaymentClick(payment)}
                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    title={t("editPayment") as string}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeletePaymentClick(payment._id)}
                     className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title={t("deletePayment") as string}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

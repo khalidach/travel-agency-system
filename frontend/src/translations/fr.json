@@ -200,7 +200,7 @@
   "selectRoomType": "Sélectionner un type de chambre",
   "selectAllHotelsFirst": "Sélectionnez d'abord tous les hôtels",
   "update": "Mettre à jour",
-  "mad": "MAD",
+  "mad": "dh",
   "clientName": "Nom du Client",
   "passportNumber": "Numéro de Passeport",
   "sellingPrice": "Prix de Vente",
@@ -211,7 +211,7 @@
   "validProgramRequired": "Un programme valide doit être sélectionné.",
   "packageSelectionRequired": "Un forfait doit être sélectionné pour ce programme.",
   "validHotelCombinationRequired": "Une combinaison d'hôtel et de chambre valide est requise pour les programmes avec nuitées.",
-  "paymentAmount": "Montant du Paiement (MAD)",
+  "paymentAmount": "Montant du Paiement (dh)",
   "paymentMethod": "Moyen de Paiement",
   "cash": "Espèces",
   "cheque": "Chèque",
@@ -221,7 +221,7 @@
   "chequeNumber": "Numéro de Chèque",
   "checkCashingDate": "Date d'Encaissement",
   "paymentDate": "Date du Paiement",
-  "amountExceedsBalance": "Le montant du paiement ne peut pas dépasser le solde restant ({{balance}} MAD)",
+  "amountExceedsBalance": "Le montant du paiement ne peut pas dépasser le solde restant ({{balance}} dh)",
   "amountGreaterThanZero": "Le montant du paiement doit être supérieur à zéro.",
   "savePayment": "Enregistrer le Paiement",
   "profitReportTitle": "Rapport des Profits",
@@ -572,5 +572,6 @@
   "Hajj": "Hajj",
   "Umrah": "Omra",
   "Tourism": "Tourisme",
-  "Ramadan": "Ramadan"
+  "Ramadan": "Ramadan",
+  "downloadReceipt": "Télécharger le reçu"
 }

@@ -389,12 +389,14 @@ export default function DailyServices() {
                           setIsModalOpen(true);
                         }}
                         className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                        title={t("edit") as string}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setServiceToDelete(service.id)}
                         className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        title={t("delete") as string}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
