@@ -8,61 +8,53 @@ import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Tier, TierLimits } from "../context/models";
 
+// Define the shape of data required to save a tier (excluding ID)
+type TierFormData = Omit<Tier, "id">;
+
+// FIX: Move defaultLimits OUTSIDE the component to make it stable
+const defaultLimits: TierLimits = {
+  bookingsPerMonth: 0,
+  programsPerMonth: 0,
+  programPricingsPerMonth: 0,
+  programCosts: false,
+  employees: 0,
+  invoicing: false,
+  facturesPerMonth: 0,
+  dailyServicesPerMonth: 0,
+  dailyServices: false,
+  bookingExcelExportsPerMonth: 0,
+  listExcelExportsPerMonth: 0,
+  flightListExport: false,
+  profitReport: false,
+  employeeAnalysis: false,
+};
+
 const TierForm = ({
   tier,
-  tiers, // Receive the list of all tiers
+  tiers,
   onSave,
   onCancel,
 }: {
   tier?: Tier | null;
-  tiers: Tier[]; // Add prop for all tiers
-  onSave: (data: Partial<Tier>) => void;
+  tiers: Tier[];
+  onSave: (data: TierFormData) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState<Partial<Tier>>({
+  const [formData, setFormData] = useState<TierFormData>({
     name: tier?.name || "",
-    limits: tier?.limits || {
-      bookingsPerMonth: 0,
-      programsPerMonth: 0,
-      programPricingsPerMonth: 0,
-      programCosts: false,
-      employees: 0,
-      invoicing: false,
-      facturesPerMonth: 0,
-      dailyServicesPerMonth: 0,
-      dailyServices: false,
-      bookingExcelExportsPerMonth: 0,
-      listExcelExportsPerMonth: 0,
-      flightListExport: false,
-      profitReport: false,
-      employeeAnalysis: false,
-    },
+    limits: tier?.limits || defaultLimits,
   });
 
+  // FIX: defaultLimits is now a stable constant, so useEffect doesn't complain
   useEffect(() => {
     setFormData({
       name: tier?.name || "",
-      limits: tier?.limits || {
-        bookingsPerMonth: 0,
-        programsPerMonth: 0,
-        programPricingsPerMonth: 0,
-        programCosts: false,
-        employees: 0,
-        invoicing: false,
-        facturesPerMonth: 0,
-        dailyServicesPerMonth: 0,
-        dailyServices: false,
-        bookingExcelExportsPerMonth: 0,
-        listExcelExportsPerMonth: 0,
-        flightListExport: false,
-        profitReport: false,
-        employeeAnalysis: false,
-      },
+      limits: tier?.limits || defaultLimits,
     });
   }, [tier]);
 
   const handleLimitChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value, type } = e.target;
     let processedValue: string | number | boolean = value;
@@ -84,7 +76,7 @@ const TierForm = ({
 
     setFormData((prev) => ({
       ...prev,
-      limits: { ...(prev.limits as TierLimits), [name]: processedValue },
+      limits: { ...prev.limits, [name]: processedValue },
     }));
   };
 
@@ -99,7 +91,7 @@ const TierForm = ({
     const isNameDuplicate = tiers.some(
       (existingTier) =>
         existingTier.name.toLowerCase() === trimmedName.toLowerCase() &&
-        existingTier.id !== tier?.id
+        existingTier.id !== tier?.id,
     );
 
     if (isNameDuplicate) {
@@ -140,7 +132,7 @@ const TierForm = ({
         </label>
         <input
           type="text"
-          value={formData.name || ""}
+          value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
@@ -155,7 +147,7 @@ const TierForm = ({
             <input
               type="number"
               name={field}
-              value={(formData.limits as TierLimits)?.[field] ?? 0}
+              value={formData.limits[field]}
               onChange={handleLimitChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
@@ -167,9 +159,7 @@ const TierForm = ({
           </label>
           <select
             name="programCosts"
-            value={String(
-              (formData.limits as TierLimits)?.programCosts ?? false
-            )}
+            value={String(formData.limits.programCosts)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -183,7 +173,7 @@ const TierForm = ({
           </label>
           <select
             name="invoicing"
-            value={String((formData.limits as TierLimits)?.invoicing ?? false)}
+            value={String(formData.limits.invoicing)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -197,9 +187,7 @@ const TierForm = ({
           </label>
           <select
             name="dailyServices"
-            value={String(
-              (formData.limits as TierLimits)?.dailyServices ?? false
-            )}
+            value={String(formData.limits.dailyServices)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -213,9 +201,7 @@ const TierForm = ({
           </label>
           <select
             name="flightListExport"
-            value={String(
-              (formData.limits as TierLimits)?.flightListExport ?? false
-            )}
+            value={String(formData.limits.flightListExport)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -229,9 +215,7 @@ const TierForm = ({
           </label>
           <select
             name="profitReport"
-            value={String(
-              (formData.limits as TierLimits)?.profitReport ?? false
-            )}
+            value={String(formData.limits.profitReport)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -245,9 +229,7 @@ const TierForm = ({
           </label>
           <select
             name="employeeAnalysis"
-            value={String(
-              (formData.limits as TierLimits)?.employeeAnalysis ?? false
-            )}
+            value={String(formData.limits.employeeAnalysis)}
             onChange={handleLimitChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
@@ -288,7 +270,7 @@ export default function TiersPage() {
   });
 
   const { mutate: createTier } = useMutation({
-    mutationFn: (data: Partial<Tier>) => api.createTier(data),
+    mutationFn: (data: TierFormData) => api.createTier(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tiers"] });
       toast.success("Tier created successfully!");
@@ -318,7 +300,7 @@ export default function TiersPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const handleSave = (data: Partial<Tier>) => {
+  const handleSave = (data: TierFormData) => {
     if (editingTier) {
       updateTier({ ...editingTier, ...data });
     } else {

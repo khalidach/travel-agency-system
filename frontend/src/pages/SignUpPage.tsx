@@ -1,5 +1,4 @@
 // frontend/src/pages/SignUpPage.tsx
-import React from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Plane, Lock, User, Building, Mail, Phone } from "lucide-react";
