@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import * as api from "../services/api";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import { Save, KeyRound, Building } from "lucide-react";
 
@@ -18,7 +18,7 @@ type FormData = {
 export default function AccountSettings() {
   const { t } = useTranslation();
   const { state, dispatch } = useAuthContext();
-  const queryClient = useQueryClient();
+
   const {
     register,
     handleSubmit,
@@ -58,16 +58,20 @@ export default function AccountSettings() {
   });
 
   const onSubmit = (data: FormData) => {
-    const payload: any = { currentPassword: data.currentPassword };
+    // Initialize payload with the required field typed as FormData
+    const payload: FormData = { currentPassword: data.currentPassword };
+
     if (data.newPassword) {
       payload.newPassword = data.newPassword;
     }
+
     if (
       state.user?.role === "admin" &&
       data.agencyName !== state.user.agencyName
     ) {
       payload.agencyName = data.agencyName;
     }
+
     updateSettings(payload);
   };
 
