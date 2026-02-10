@@ -1,5 +1,5 @@
 // frontend/src/pages/RoomManage.tsx
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../services/api";
@@ -99,13 +99,16 @@ export default function RoomManage() {
 
   const groupedRooms = useMemo(() => {
     if (!rooms) return {};
-    return rooms.reduce((acc, room) => {
-      if (!acc[room.type]) {
-        acc[room.type] = [];
-      }
-      acc[room.type].push(room);
-      return acc;
-    }, {} as Record<string, Room[]>);
+    return rooms.reduce(
+      (acc, room) => {
+        if (!acc[room.type]) {
+          acc[room.type] = [];
+        }
+        acc[room.type].push(room);
+        return acc;
+      },
+      {} as Record<string, Room[]>,
+    );
   }, [rooms]);
 
   const roomTypesForCurrentHotel = useMemo(() => {
@@ -145,7 +148,7 @@ export default function RoomManage() {
         ...room,
         occupants: Array.from(
           { length: room.capacity },
-          (_, i) => room.occupants[i] || null
+          (_, i) => room.occupants[i] || null,
         ),
       }));
       setRooms(sanitizedRooms);
@@ -160,12 +163,12 @@ export default function RoomManage() {
     roomName: string,
     roomType: string,
     slotIndex: number,
-    occupant: Occupant
+    occupant: Occupant,
   ) => {
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
       const room = newRooms.find(
-        (r: Room) => r.name === roomName && r.type === roomType
+        (r: Room) => r.name === roomName && r.type === roomType,
       );
       if (room) {
         room.occupants[slotIndex] = occupant;
@@ -177,12 +180,12 @@ export default function RoomManage() {
   const handleUnassignOccupant = (
     roomName: string,
     roomType: string,
-    slotIndex: number
+    slotIndex: number,
   ) => {
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
       const room = newRooms.find(
-        (r: Room) => r.name === roomName && r.type === roomType
+        (r: Room) => r.name === roomName && r.type === roomType,
       );
       if (room) {
         room.occupants[slotIndex] = null;
@@ -194,7 +197,7 @@ export default function RoomManage() {
   const handleMoveOccupant = (
     occupant: Occupant,
     fromRoomName: string,
-    fromRoomType: string
+    fromRoomType: string,
   ) => {
     setMovePersonState({ occupant, fromRoomName, fromRoomType });
   };
@@ -206,22 +209,22 @@ export default function RoomManage() {
     setRooms((currentRooms) => {
       const newRooms = JSON.parse(JSON.stringify(currentRooms));
       const fromRoom = newRooms.find(
-        (r: Room) => r.name === fromRoomName && r.type === fromRoomType
+        (r: Room) => r.name === fromRoomName && r.type === fromRoomType,
       );
       const toRoom = newRooms.find(
-        (r: Room) => r.name === toRoomName && r.type === toRoomType
+        (r: Room) => r.name === toRoomName && r.type === toRoomType,
       );
 
       if (fromRoom && toRoom) {
         const emptySlotIndex = toRoom.occupants.findIndex(
-          (occ: Occupant | null) => occ === null
+          (occ: Occupant | null) => occ === null,
         );
         if (emptySlotIndex === -1) {
           toast.error(t("roomFull"));
           return currentRooms;
         }
         const occupantIndex = fromRoom.occupants.findIndex(
-          (occ: Occupant | null) => occ && occ.id === occupant.id
+          (occ: Occupant | null) => occ && occ.id === occupant.id,
         );
         if (occupantIndex > -1) {
           fromRoom.occupants[occupantIndex] = null;
@@ -246,14 +249,14 @@ export default function RoomManage() {
       rooms.some(
         (r) =>
           r.name === newRoomDetails.name.trim() &&
-          r.type === newRoomDetails.type
+          r.type === newRoomDetails.type,
       )
     ) {
       toast.error(
         t("roomExistsError", {
           roomName: newRoomDetails.name,
           roomType: newRoomDetails.type,
-        })
+        }),
       );
       return;
     }
@@ -271,14 +274,14 @@ export default function RoomManage() {
 
   const handleDeleteRoom = (roomName: string, roomType: string) => {
     const roomToDelete = rooms.find(
-      (r) => r.name === roomName && r.type === roomType
+      (r) => r.name === roomName && r.type === roomType,
     );
     if (roomToDelete && roomToDelete.occupants.some((o) => o !== null)) {
       toast.error(t("deleteRoomError"));
       return;
     }
     setRooms(
-      rooms.filter((r) => !(r.name === roomName && r.type === roomType))
+      rooms.filter((r) => !(r.name === roomName && r.type === roomType)),
     );
   };
 
@@ -296,7 +299,7 @@ export default function RoomManage() {
           t("roomExistsError", {
             roomName: tempRoomName.trim(),
             roomType: roomType,
-          })
+          }),
         );
         setEditingRoom(null);
         return;
@@ -306,8 +309,8 @@ export default function RoomManage() {
         currentRooms.map((r) =>
           r.name === oldName && r.type === roomType
             ? { ...r, name: tempRoomName.trim() }
-            : r
-        )
+            : r,
+        ),
       );
     }
     setEditingRoom(null);
@@ -375,7 +378,7 @@ export default function RoomManage() {
                 rooms.map((r) => ({
                   ...r,
                   occupants: r.occupants.filter((o) => o),
-                }))
+                })),
               )
             }
             disabled={isSaving || !hasChanges}
