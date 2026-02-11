@@ -30,7 +30,7 @@ export default function RoomManagementPage() {
     setCurrentPage(1);
   }, [submittedSearchTerm, filterType]);
 
-  // Data Fetching - Now paginated and includes room management stats
+  // Data Fetching
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
     PaginatedResponse<Program>
   >({
@@ -46,7 +46,7 @@ export default function RoomManagementPage() {
         programsPerPage,
         submittedSearchTerm,
         filterType,
-        "rooms"
+        "rooms",
       ),
   });
 
@@ -84,23 +84,23 @@ export default function RoomManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("roomManagementTitle")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("roomManagementSubtitle")}
           </p>
         </div>
         <button
           onClick={() => setIsHelpModalOpen(true)}
-          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 mt-4 sm:mt-0"
+          className="p-2 text-muted-foreground bg-muted rounded-full hover:bg-accent hover:text-accent-foreground mt-4 sm:mt-0 transition-colors"
           aria-label="Help"
         >
           <HelpCircle className="w-6 h-6" />
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -109,13 +109,13 @@ export default function RoomManagementPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
           >
             <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
@@ -136,11 +136,11 @@ export default function RoomManagementPage() {
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-2xl">
+        <div className="flex justify-between items-center py-3 px-6 border-t border-border bg-card rounded-2xl shadow-sm">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-muted text-muted-foreground rounded-lg hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft
               className={`w-4 h-4 ${
@@ -155,7 +155,7 @@ export default function RoomManagementPage() {
                 return (
                   <span
                     key={index}
-                    className="px-3 py-1 text-sm text-gray-400 dark:text-gray-500"
+                    className="px-3 py-1 text-sm text-muted-foreground"
                   >
                     ...
                   </span>
@@ -167,8 +167,8 @@ export default function RoomManagementPage() {
                   onClick={() => setCurrentPage(pageNumber)}
                   className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                     currentPage === pageNumber
-                      ? "bg-blue-600 text-white font-bold shadow-sm"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   {pageNumber}
@@ -179,11 +179,11 @@ export default function RoomManagementPage() {
           <button
             onClick={() =>
               setCurrentPage((prev) =>
-                Math.min(prev + 1, pagination.totalPages)
+                Math.min(prev + 1, pagination.totalPages),
               )
             }
             disabled={currentPage === pagination.totalPages}
-            className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-3 py-1 text-sm bg-muted text-muted-foreground rounded-lg hover:bg-accent hover:text-accent-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {t("next")}
             <ChevronRight className="w-4 h-4 ml-1" />
@@ -192,16 +192,14 @@ export default function RoomManagementPage() {
       )}
 
       {programs.length === 0 && !isLoadingPrograms && (
-        <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BedDouble className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+        <div className="col-span-full text-center py-12 bg-card rounded-2xl border border-border">
+          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <BedDouble className="w-12 h-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {t("noProgramsRoom")}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {t("noProgramsLeadRoom")}
-          </p>
+          <p className="text-muted-foreground">{t("noProgramsLeadRoom")}</p>
         </div>
       )}
       <VideoHelpModal

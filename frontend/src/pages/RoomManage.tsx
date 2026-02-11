@@ -70,7 +70,6 @@ export default function RoomManage() {
       queryClient.invalidateQueries({
         queryKey: ["unassignedOccupantsSearch"],
       });
-      // Invalidate the query for the listing page to force a refresh on navigation.
       queryClient.invalidateQueries({
         queryKey: ["programsForRoomManagement"],
       });
@@ -349,12 +348,12 @@ export default function RoomManage() {
           <button
             type="button"
             onClick={() => navigate("/room-management")}
-            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+            className="p-2 bg-muted rounded-full hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors"
           >
-            <ChevronLeft className="dark:text-gray-200" />
+            <ChevronLeft />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-3xl font-bold text-foreground">
               {program?.name} - {t("roomManagementTitle")}
             </h1>
           </div>
@@ -363,7 +362,7 @@ export default function RoomManage() {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Download
               className={`${
@@ -382,7 +381,7 @@ export default function RoomManage() {
               )
             }
             disabled={isSaving || !hasChanges}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save
               className={`${
@@ -394,15 +393,15 @@ export default function RoomManage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+      <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
         {hotels.map((hotel, index) => (
           <button
             key={hotel}
             onClick={() => setCurrentHotelIndex(index)}
             className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
               currentHotelIndex === index
-                ? "bg-white text-blue-600 shadow-sm dark:bg-gray-900 dark:text-white"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                ? "bg-card text-primary shadow-sm"
+                : "text-muted-foreground hover:bg-background/50"
             }`}
           >
             <Hotel size={16} />
@@ -416,13 +415,13 @@ export default function RoomManage() {
           const roomsInType = groupedRooms[type] || [];
           return (
             <div key={type} className="col-span-1 space-y-4">
-              <h3 className="text-center font-bold text-xl dark:text-gray-100">
+              <h3 className="text-center font-bold text-xl text-foreground">
                 {type}
               </h3>
               {roomsInType.map((room) => (
                 <div
                   key={`${room.name}-${room.type}`}
-                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm"
+                  className="bg-card text-card-foreground p-4 rounded-lg shadow-sm border border-border"
                 >
                   <div className="flex justify-between items-center mb-2">
                     {editingRoom &&
@@ -442,12 +441,12 @@ export default function RoomManage() {
                             setEditingRoom(null);
                           }
                         }}
-                        className="font-semibold border-b-2 border-blue-500 focus:outline-none bg-transparent dark:text-gray-100"
+                        className="font-semibold border-b-2 border-primary focus:outline-none bg-transparent text-foreground"
                         autoFocus
                       />
                     ) : (
                       <h4
-                        className="font-semibold cursor-pointer hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+                        className="font-semibold cursor-pointer hover:text-primary transition-colors"
                         onClick={() => {
                           setEditingRoom({ name: room.name, type: room.type });
                           setTempRoomName(room.name);
@@ -456,7 +455,7 @@ export default function RoomManage() {
                         {room.name}
                       </h4>
                     )}
-                    <div className="flex items-center text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center text-muted-foreground">
                       <Users
                         size={16}
                         className={`${
@@ -470,7 +469,7 @@ export default function RoomManage() {
                       </span>
                       <button
                         onClick={() => handleDeleteRoom(room.name, room.type)}
-                        className="ml-2 text-red-500 hover:text-red-700"
+                        className="ml-2 text-destructive hover:text-destructive/80 transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -506,7 +505,7 @@ export default function RoomManage() {
                   });
                   setIsNewRoomModalOpen(true);
                 }}
-                className="w-full mt-2 p-2 bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded hover:bg-gray-300 flex items-center justify-center text-gray-800 dark:text-gray-200"
+                className="w-full mt-2 p-2 bg-muted text-white rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
               >
                 <Plus
                   size={16}
@@ -528,7 +527,7 @@ export default function RoomManage() {
       >
         {movePersonState && (
           <div className="space-y-4">
-            <p className="dark:text-gray-300">
+            <p className="text-foreground">
               {t("movePersonTo", {
                 personName: movePersonState.occupant.clientName,
               })}
@@ -541,7 +540,7 @@ export default function RoomManage() {
                   disabled={
                     room.occupants.filter((o) => o).length >= room.capacity
                   }
-                  className={`w-full p-2 bg-gray-100 dark:bg-gray-700 dark:text-gray-200 rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 ${
+                  className={`w-full p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 transition-colors ${
                     document.documentElement.dir === "rtl"
                       ? "text-right"
                       : "text-left"
@@ -563,26 +562,28 @@ export default function RoomManage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="dark:text-gray-300">{t("roomName")}</label>
+            <label className="text-foreground block mb-1">
+              {t("roomName")}
+            </label>
             <input
               type="text"
               value={newRoomDetails.name}
               onChange={(e) =>
                 setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
               }
-              className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+              className="w-full p-2 border border-input rounded bg-background text-foreground focus:ring-1 focus:ring-ring focus:outline-none"
             />
           </div>
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setIsNewRoomModalOpen(false)}
-              className="p-2 bg-gray-200 dark:bg-gray-600 rounded"
+              className="p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               {t("cancel")}
             </button>
             <button
               onClick={handleAddNewRoom}
-              className="p-2 bg-blue-600 text-white rounded"
+              className="p-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
             >
               {t("addRoom")}
             </button>

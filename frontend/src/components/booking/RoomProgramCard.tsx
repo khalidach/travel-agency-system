@@ -10,16 +10,17 @@ interface RoomProgramCardProps {
 
 const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
   const { t } = useTranslation();
+
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
       case "Umrah":
-        return "bg-emerald-100 text-emerald-700";
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300";
       case "Tourism":
-        return "bg-orange-100 text-orange-700";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -40,12 +41,12 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg hover:border-blue-300 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+      className="group bg-card text-card-foreground rounded-xl p-6 shadow-sm border border-border hover:shadow-md hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col justify-between"
     >
       <div>
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-card-foreground">
               {program.name}
             </h3>
             <span
@@ -58,9 +59,9 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
           </div>
         </div>
         <div className="space-y-3">
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-muted-foreground">
             <Hotel
-              className={`w-4 h-4 text-gray-400 ${
+              className={`w-4 h-4 text-muted-foreground ${
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
@@ -68,9 +69,9 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
               {hotelCount} {t("hotels", { count: hotelCount })}
             </span>
           </div>
-          <div className="flex items-start text-sm text-gray-600">
+          <div className="flex items-start text-sm text-muted-foreground">
             <BedDouble
-              className={`w-4 h-4 text-gray-400 mt-0.5 ${
+              className={`w-4 h-4 text-muted-foreground mt-0.5 ${
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
@@ -99,9 +100,9 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
               )}
             </div>
           </div>
-          <div className="flex items-center text-sm text-gray-600">
+          <div className="flex items-center text-sm text-muted-foreground">
             <Users
-              className={`w-4 h-4 text-gray-400 ${
+              className={`w-4 h-4 text-muted-foreground ${
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
@@ -111,7 +112,7 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
           </div>
         </div>
       </div>
-      <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-end text-blue-600 font-medium">
+      <div className="mt-6 pt-4 border-t border-border flex items-center justify-end text-primary font-medium">
         {t("viewRooms")}
         <ArrowRight
           className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ${

@@ -50,21 +50,21 @@ export default function OccupantSearchBox({
 
   if (assignedOccupant) {
     return (
-      <div className="flex items-center justify-between bg-gray-200 p-2 rounded-lg">
-        <span className="font-medium text-sm">
+      <div className="flex items-center justify-between bg-muted p-2 rounded-lg border border-border">
+        <span className="font-medium text-sm text-foreground">
           {assignedOccupant.clientName}
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => onMove(assignedOccupant)}
-            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+            className="p-1 text-primary hover:bg-background/50 rounded transition-colors"
             title={t("move") as string}
           >
             <ArrowRight size={16} />
           </button>
           <button
             onClick={onUnassign}
-            className="p-1 text-red-600 hover:bg-red-100 rounded"
+            className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
             title={t("unassign") as string}
           >
             <X size={16} />
@@ -83,10 +83,10 @@ export default function OccupantSearchBox({
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
         placeholder={t("searchPlaceholder") as string}
-        className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+        className="w-full p-2 border border-input rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
       />
       {showDropdown && finalResults.length > 0 && (
-        <ul className="absolute z-20 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+        <ul className="absolute z-20 w-full bg-popover border border-border rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
           {finalResults.map((occ) => (
             <li
               key={occ.id}
@@ -95,7 +95,7 @@ export default function OccupantSearchBox({
                 setSearchTerm("");
                 setShowDropdown(false);
               }}
-              className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+              className="px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm text-popover-foreground"
             >
               {occ.clientName}
             </li>
