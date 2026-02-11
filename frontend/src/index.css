@@ -4,17 +4,18 @@
 
 @layer base {
   :root {
-    /* --- Light Mode Base --- */
+    /* ------------------------------------------------------------------ */
+    /* Light Mode (Refined for cleanliness and contrast)                  */
+    /* ------------------------------------------------------------------ */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    /* Surface Colors */
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Brand Colors (Blue) */
+    /* Brand: Vibrant Royal Blue (Trust & Travel) */
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
@@ -30,26 +31,22 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    /* --- Border & Inputs --- */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
 
-    /* --- Semantic Colors (Light) --- */
+    /* Semantic Colors (Light) */
     --success: 142 76% 36%;
-    --success-foreground: 355 100% 97%;
-
+    --success-foreground: 355 100% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 48 96% 89%;
-
+    --warning-foreground: 48 96% 10%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-
     --danger: 0 72% 45%;
     --danger-foreground: 0 85% 97%;
 
-    /* --- Sidebar (Light) --- */
+    /* Sidebar (Light) */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -58,48 +55,51 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* --- Chart Colors (Light) --- */
-    --chart-1: 221.2 83.2% 53.3%; /* Primary Blue */
-    --chart-2: 173 58% 39%; /* Teal */
-    --chart-3: 197 37% 24%; /* Navy */
-    --chart-4: 43 74% 66%; /* Yellow/Orange */
-    --chart-5: 27 87% 67%; /* Orange */
   }
 
   .dark {
-    /* --- Dark Mode Base --- */
-    --background: 222.2 84% 4.9%; /* Very Dark Blue */
+    /* ------------------------------------------------------------------ */
+    /* Dark Mode (Redesigned: "Deep Navy Slate")                          */
+    /* ------------------------------------------------------------------ */
+
+    /* Base: Deep rich slate, not pure black. Reduces eye strain. */
+    --background: 222 47% 11%;
+    /* Text: Soft white, not harsh #FFFFFF. */
     --foreground: 210 40% 98%;
 
-    /* Surface Colors (Slightly lighter than bg for depth) */
-    --card: 222 47% 11%;
+    /* Surfaces: Slightly lighter than bg to create "elevation". */
+    --card: 222 47% 13%; /* +2% lightness from bg */
     --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
+
+    --popover: 222 47% 15%; /* +4% lightness from bg */
     --popover-foreground: 210 40% 98%;
 
-    /* Brand Colors */
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Brand: Lighter, more pastel blue to pass contrast ratios against dark bg */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47.4% 11.2%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    /* Secondary: Used for secondary actions/buttons */
+    --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Muted: For subtitles, captions, borders */
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    /* Accent: Hover states, selected items */
+    --accent: 217 32% 17%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    /* Destructive: Slightly desaturated red */
+    --destructive: 0 62% 30%;
     --destructive-foreground: 210 40% 98%;
 
-    /* --- Border & Inputs --- */
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Borders: Subtle, barely there separation */
+    --border: 217 32% 20%;
+    --input: 217 32% 20%;
+    --ring: 224 76% 48%;
 
-    /* --- Semantic Colors (Dark - Softer) --- */
+    /* Semantic Colors (Dark - Adjusted for visibility) */
     --success: 142 70% 45%;
     --success-foreground: 144 80% 10%;
 
@@ -109,20 +109,20 @@
     --info: 199 89% 65%;
     --info-foreground: 199 89% 10%;
 
-    --danger: 0 94% 82%;
-    --danger-foreground: 0 90% 10%;
+    --danger: 0 84% 60%; /* Lighter red than base destructive for alerts */
+    --danger-foreground: 0 0% 100%;
 
-    /* --- Sidebar (Dark) --- */
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    /* Sidebar (Dark) - Matches the main dark theme */
+    --sidebar-background: 222 47% 10%; /* Slightly darker than main bg for depth */
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 32% 20%;
+    --sidebar-ring: 217 91% 60%;
 
-    /* --- Chart Colors (Dark) --- */
+    /* Chart Colors (Optimized for Dark Mode) */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -144,7 +144,7 @@
 }
 
 @layer components {
-  /* Toggle Switch */
+  /* Modern Toggle Switch */
   .toggle-checkbox:checked {
     right: 0;
     border-color: hsl(var(--primary));

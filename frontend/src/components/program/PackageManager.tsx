@@ -91,7 +91,7 @@ const DebouncedHotelInput = ({
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       placeholder={t("hotelNamePlaceholder") as string}
-      className="flex-1 px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary"
+      className="flex-1 px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
     />
   );
 };
@@ -111,11 +111,12 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
     );
 
   return (
-    <div className="mb-6">
-      <h5 className="text-sm font-medium text-muted-foreground mb-3">
+    <div className="mb-8 p-4 bg-muted/20 rounded-lg border border-border/50">
+      <h5 className="text-sm font-semibold text-foreground mb-4 flex items-center">
+        <Hotel className="w-4 h-4 mr-2" />
         {t("hotelsByCity")}
       </h5>
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {allCities
           .filter((c: CityData) => c.name.trim())
           .map((city: CityData) => (
@@ -145,27 +146,23 @@ const HotelManager = ({
   });
 
   return (
-    <div className="bg-card p-4 rounded-lg border border-border shadow-sm">
+    <div className="bg-background p-4 rounded-lg border border-border">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-foreground flex items-center">
-          <Hotel
-            className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
-          />
+        <span className="text-sm font-medium text-muted-foreground flex items-center">
           {city.name}
         </span>
         <button
           type="button"
           onClick={() => append("")}
-          // UPDATED: Use blue-400 in dark mode for visibility
-          className="text-xs text-primary hover:text-primary/80 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          className="text-xs font-medium text-primary hover:text-primary/80 transition-colors bg-primary/10 px-2 py-1 rounded"
         >
           {t("addHotel")}
         </button>
       </div>
-      <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+      <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
         {fields.map((field, hotelIndex) => {
           return (
-            <div key={field.id} className="flex items-center space-x-2">
+            <div key={field.id} className="flex items-center gap-2">
               <DebouncedHotelInput
                 packageIndex={packageIndex}
                 city={city}
@@ -174,10 +171,9 @@ const HotelManager = ({
               <button
                 type="button"
                 onClick={() => remove(hotelIndex)}
-                // UPDATED: Red-400 for icon in dark mode
-                className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg"
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
               >
-                <Trash2 className="w-[14px] h-[14px]" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           );
@@ -251,9 +247,9 @@ export default function PackageManager({
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <label className="block text-sm font-medium text-foreground">
+    <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <label className="text-lg font-semibold text-foreground">
           {t("packages")}
         </label>
         <button
@@ -265,10 +261,9 @@ export default function PackageManager({
               prices: [],
             })
           }
-          // UPDATED: Added dark:text-white and dark:bg-blue-600
-          className="inline-flex items-center px-3 py-1 text-sm bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white rounded-lg hover:bg-primary/90"
+          className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all shadow-sm"
         >
-          <Plus className="w-4 h-4 mr-1" /> {t("addPackage")}
+          <Plus className="w-4 h-4 mr-2" /> {t("addPackage")}
         </button>
       </div>
       <div className="space-y-4">
@@ -277,7 +272,7 @@ export default function PackageManager({
             <Accordion
               key={pkg.id}
               title={
-                <h4 className="text-lg font-semibold text-foreground">
+                <h4 className="text-base font-medium text-foreground">
                   {watch(`packages.${packageIndex}.name`) ||
                     `${t("packageLabel")} ${packageIndex + 1}`}
                 </h4>
@@ -289,40 +284,41 @@ export default function PackageManager({
                     e.stopPropagation();
                     removePackage(packageIndex);
                   }}
-                  // UPDATED: Red-400 for icon
-                  className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg"
+                  className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               }
             >
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  {t("packageName")}
-                </label>
-                <input
-                  {...register(`packages.${packageIndex}.name`)}
-                  placeholder={t("packageNamePlaceholder") as string}
-                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
-                  required
+              <div className="space-y-6 pt-2">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                    {t("packageName")}
+                  </label>
+                  <input
+                    {...register(`packages.${packageIndex}.name`)}
+                    placeholder={t("packageNamePlaceholder") as string}
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary transition-colors"
+                    required
+                  />
+                </div>
+
+                <PackageHotels packageIndex={packageIndex} />
+
+                <PriceStructureManager
+                  packageIndex={packageIndex}
+                  generateAllHotelOptions={generateAllHotelOptions}
+                  isCommissionBased={isCommissionBased}
                 />
               </div>
-
-              <PackageHotels packageIndex={packageIndex} />
-
-              <PriceStructureManager
-                packageIndex={packageIndex}
-                generateAllHotelOptions={generateAllHotelOptions}
-                isCommissionBased={isCommissionBased}
-              />
             </Accordion>
           ))
         ) : (
-          <div className="text-center py-6 bg-muted/30 rounded-lg border-dashed border-2 border-border">
-            <p className="text-sm text-muted-foreground">
+          <div className="text-center py-12 bg-muted/20 rounded-lg border-dashed border-2 border-border/60">
+            <p className="text-base font-medium text-foreground">
               {t("noPackagesAdded")}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-2">
               {t("noPackagesLeadForm")}
             </p>
           </div>
@@ -361,10 +357,10 @@ const PriceStructureManager = ({
 
   return (
     <div>
-      <h5 className="text-sm font-medium text-muted-foreground mb-3">
+      <h5 className="text-sm font-semibold text-foreground mb-4">
         {t("hotelCombinationsTitle")}
       </h5>
-      <div className="mb-4">
+      <div className="mb-6 p-4 bg-background rounded-lg border border-border">
         <div className="flex flex-wrap gap-2">
           {hotelOptions.map((hotelOption) => {
             const isAlreadyAdded = existingCombinations.has(hotelOption);
@@ -383,16 +379,21 @@ const PriceStructureManager = ({
                   })
                 }
                 disabled={isAlreadyAdded}
-                className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
                   isAlreadyAdded
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border-input"
-                    : "bg-background border-input hover:bg-primary/10 hover:text-primary hover:border-primary dark:hover:text-blue-400 dark:hover:border-blue-400"
+                    ? "bg-muted text-muted-foreground cursor-not-allowed border-transparent opacity-50"
+                    : "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 hover:border-primary"
                 }`}
               >
                 + {hotelOption.replace(/_/g, " → ")}
               </button>
             );
           })}
+          {hotelOptions.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">
+              {t("addHotelsToGenerateOptions")}
+            </span>
+          )}
         </div>
       </div>
       <div className="space-y-4">
@@ -403,22 +404,21 @@ const PriceStructureManager = ({
           return (
             <div
               key={price.id}
-              className="bg-card p-4 rounded-lg border border-border shadow-sm"
+              className="bg-background p-4 rounded-lg border border-border shadow-sm group"
             >
-              <div className="flex items-center justify-between mb-3">
-                <h6 className="text-sm font-medium text-foreground flex items-center">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+                <h6 className="text-sm font-semibold text-foreground flex items-center">
                   <Users
-                    className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
+                    className={`w-4 h-4 text-primary ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
                   />
                   {currentCombination?.replace(/_/g, " → ") || ""}
                 </h6>
                 <button
                   type="button"
                   onClick={() => remove(priceIndex)}
-                  // UPDATED: Red-400 for icon
-                  className="p-1 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded"
+                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors opacity-100 md:opacity-0 group-hover:opacity-100"
                 >
-                  <Trash2 className="w-[16px] h-[16px]" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               <RoomTypeManager
@@ -462,21 +462,21 @@ const RoomTypeManager = ({
             key={room.id}
             className={`grid grid-cols-1 md:grid-cols-${
               (isCommissionBased ? 1 : 0) + (canManagePrices ? 1 : 0) + 3
-            } gap-3 p-3 bg-muted/50 rounded-lg`}
+            } gap-4 p-4 bg-muted/20 rounded-lg border border-border/50 items-end`}
           >
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                 {t("roomType")}
               </label>
               <input
                 {...register(
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.type`,
                 )}
-                className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
+                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground focus:ring-1 focus:ring-primary focus:border-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                 {t("guests")}
               </label>
               <input
@@ -485,7 +485,7 @@ const RoomTypeManager = ({
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.guests`,
                   { valueAsNumber: true },
                 )}
-                className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
+                className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground focus:ring-1 focus:ring-primary focus:border-primary"
                 min="1"
                 required
               />
@@ -493,9 +493,9 @@ const RoomTypeManager = ({
 
             {canManagePrices && (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
                   {t("sellingPrice")}
-                  <span className="text-[10px] text-muted-foreground/80">
+                  <span className="text-[10px] opacity-70">
                     ({t("minLimit")})
                   </span>
                 </label>
@@ -507,17 +507,18 @@ const RoomTypeManager = ({
                       { valueAsNumber: true },
                     )}
                     placeholder="0.00"
-                    className="w-full pl-6 px-2 py-1 text-sm border border-orange-200 dark:border-orange-900/50 rounded bg-orange-50 dark:bg-orange-900/10 text-foreground focus:ring-orange-500 focus:border-orange-500"
+                    // UPDATED: Used semantic variables for "money" fields
+                    className="w-full pl-7 px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground focus:ring-1 focus:ring-green-500 focus:border-green-500 font-medium"
                     min="0"
                   />
-                  <DollarSign className="w-3 h-3 absolute left-1.5 top-2 text-muted-foreground" />
+                  <DollarSign className="w-3.5 h-3.5 absolute left-2 top-2.5 text-muted-foreground" />
                 </div>
               </div>
             )}
 
             {isCommissionBased && (
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   {t("purchasePrice")}
                 </label>
                 <input
@@ -526,20 +527,20 @@ const RoomTypeManager = ({
                     `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
                     { valueAsNumber: true },
                   )}
-                  className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background text-foreground focus:ring-1 focus:ring-primary focus:border-primary"
                   min="0"
                 />
               </div>
             )}
 
-            <div className="flex items-end">
+            <div className="flex justify-end pb-0.5">
               <button
                 type="button"
                 onClick={() => remove(roomIndex)}
-                // UPDATED: Red-400 for icon
-                className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded transition-colors ml-auto"
+                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                title={t("delete") as string}
               >
-                <Trash2 className="w-[15px] h-[15px]" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -555,9 +556,9 @@ const RoomTypeManager = ({
             sellingPrice: 0,
           })
         }
-        // UPDATED: Blue-400 for link text
-        className="text-xs text-primary hover:text-primary/80 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+        className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center mt-2 px-1"
       >
+        <Plus className="w-3 h-3 mr-1" />
         {t("addCustomRoomType")}
       </button>
     </div>
