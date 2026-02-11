@@ -79,12 +79,12 @@ const ServicePaymentManagementModal: React.FC<
       >
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-medium text-foreground">
               {t("paymentsForService")}
             </h3>
             <button
               onClick={handleAddPaymentClick}
-              className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
               title={t("addPayment") as string}
             >
               <CreditCard
@@ -99,28 +99,24 @@ const ServicePaymentManagementModal: React.FC<
             {(service.advancePayments || []).map((payment) => (
               <div
                 key={payment._id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border"
               >
                 <div>
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-medium text-foreground">
                       {Number(payment.amount).toLocaleString()} {t("mad")}
                     </span>
-                    <span className="mx-2 text-gray-400 dark:text-gray-500">
-                      •
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-300 capitalize">
+                    <span className="mx-2 text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground capitalize">
                       {t(payment.method)}
                     </span>
-                    <span className="mx-2 text-gray-400 dark:text-gray-500">
-                      •
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                    <span className="mx-2 text-muted-foreground">•</span>
+                    <span className="text-sm text-muted-foreground">
                       {new Date(payment.date).toLocaleDateString()}
                     </span>
                   </div>
                   {payment.method === "cheque" && payment.chequeNumber && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       <span className="font-medium">
                         {t("chequeNumber")} #{payment.chequeNumber}
                       </span>
@@ -138,7 +134,7 @@ const ServicePaymentManagementModal: React.FC<
                   )}
                   {payment.method === "transfer" &&
                     payment.transferPayerName && (
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <div className="text-sm text-muted-foreground mt-1">
                         <span className="font-medium">
                           {t("transferPayerName")}: {payment.transferPayerName}
                         </span>
@@ -155,21 +151,21 @@ const ServicePaymentManagementModal: React.FC<
                 <div className="flex space-x-2">
                   <button
                     onClick={() => onDownloadReceipt(payment)}
-                    className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-success transition-colors"
                     title={t("downloadReceipt") as string}
                   >
                     <Download className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleEditPaymentClick(payment)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-info transition-colors"
                     title={t("editPayment") as string}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeletePaymentClick(payment._id)}
-                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors"
                     title={t("deletePayment") as string}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -179,7 +175,7 @@ const ServicePaymentManagementModal: React.FC<
             ))}
             {(!service.advancePayments ||
               service.advancePayments.length === 0) && (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              <div className="text-center py-8 text-muted-foreground">
                 {t("noPaymentsRecorded")}
               </div>
             )}

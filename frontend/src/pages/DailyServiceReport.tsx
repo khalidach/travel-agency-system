@@ -1,4 +1,3 @@
-// frontend/src/pages/DailyServiceReport.tsx
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -49,7 +48,6 @@ export default function DailyServiceReport() {
   });
 
   const dateRangeParams = useMemo(() => {
-    // Handle custom range specifically
     if (dateFilter === "custom") {
       if (customDateRange.start && customDateRange.end) {
         return {
@@ -62,7 +60,6 @@ export default function DailyServiceReport() {
 
     const now = new Date();
     let startDate: Date;
-    // Fix: changed 'let' to 'const' as endDate is not reassigned in this scope
     const endDate: Date = endOfDay(now);
 
     switch (dateFilter) {
@@ -117,7 +114,7 @@ export default function DailyServiceReport() {
       title: t("totalSalesCount"),
       value: Number(lifetimeSummary.totalSalesCount || 0).toLocaleString(),
       icon: Hash,
-      color: "bg-blue-500",
+      color: "bg-blue-500", // Keep these as they are specific brand colors for stats
     },
     {
       title: t("totalRevenue"),
@@ -169,10 +166,12 @@ export default function DailyServiceReport() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-foreground">
           {t("dailyServiceReportTitle")}
         </h1>
-        <p className="text-gray-600 mt-2">{t("dailyServiceReportSubtitle")}</p>
+        <p className="text-muted-foreground mt-2">
+          {t("dailyServiceReportSubtitle")}
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -181,19 +180,19 @@ export default function DailyServiceReport() {
           return (
             <div
               key={index}
-              className="bg-white rounded-2xl p-6 shadow-sm border"
+              className="bg-card rounded-2xl p-6 shadow-sm border border-border"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-medium text-muted-foreground">
                     {card.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 mt-2">
+                  <p className="text-2xl font-bold text-foreground mt-2">
                     {card.value}
                   </p>
                 </div>
                 <div
-                  className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center`}
+                  className={`w-12 h-12 ${card.color} rounded-xl flex items-center justify-center shadow-lg`}
                 >
                   <Icon className="w-6 h-6 text-white" />
                 </div>
@@ -204,63 +203,38 @@ export default function DailyServiceReport() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <div className="pb-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <div className="pb-4 border-b border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               {t("filterPerformance")}
             </h3>
             <div className="flex items-center flex-wrap gap-2">
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setDateFilter("today")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${
-                    dateFilter === "today"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {t("today")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("7days")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${
-                    dateFilter === "7days"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {t("last7Days")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("month")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${
-                    dateFilter === "month"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {t("last30Days")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("year")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${
-                    dateFilter === "year"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {t("lastYear")}
-                </button>
-                <button
-                  onClick={() => setDateFilter("custom")}
-                  className={`px-3 py-1.5 text-sm rounded-md ${
-                    dateFilter === "custom"
-                      ? "bg-white text-blue-600 shadow-sm"
-                      : "text-gray-600"
-                  }`}
-                >
-                  {t("customRange")}
-                </button>
+              <div className="flex items-center space-x-1 bg-muted rounded-lg p-1">
+                {["today", "7days", "month", "year", "custom"].map(
+                  (filterKey) => (
+                    <button
+                      key={filterKey}
+                      onClick={() => setDateFilter(filterKey)}
+                      className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                        dateFilter === filterKey
+                          ? "bg-card text-primary shadow-sm font-medium"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {t(
+                        filterKey === "month"
+                          ? "last30Days"
+                          : filterKey === "7days"
+                            ? "last7Days"
+                            : filterKey === "year"
+                              ? "lastYear"
+                              : filterKey === "today"
+                                ? "today"
+                                : "customRange",
+                      )}
+                    </button>
+                  ),
+                )}
               </div>
               {dateFilter === "custom" && (
                 <div className="flex items-center space-x-2 mt-4 sm:mt-0">
@@ -273,9 +247,9 @@ export default function DailyServiceReport() {
                         start: e.target.value,
                       })
                     }
-                    className="px-3 py-1 border rounded-lg"
+                    className="px-3 py-1 border border-input bg-background rounded-lg text-foreground focus:ring-2 focus:ring-ring"
                   />
-                  <span>to</span>
+                  <span className="text-muted-foreground">to</span>
                   <input
                     type="date"
                     value={customDateRange.end}
@@ -285,7 +259,7 @@ export default function DailyServiceReport() {
                         end: e.target.value,
                       })
                     }
-                    className="px-3 py-1 border rounded-lg"
+                    className="px-3 py-1 border border-input bg-background rounded-lg text-foreground focus:ring-2 focus:ring-ring"
                   />
                 </div>
               )}
@@ -296,12 +270,12 @@ export default function DailyServiceReport() {
               {dateFilteredMetrics.map((metric) => (
                 <tr
                   key={metric.title}
-                  className="border-b last:border-b-0 border-gray-100"
+                  className="border-b last:border-b-0 border-border"
                 >
-                  <td className="py-3 text-base font-medium text-gray-600">
+                  <td className="py-3 text-base font-medium text-muted-foreground">
                     {metric.title}
                   </td>
-                  <td className="py-3 text-2xl font-bold text-gray-900 text-right">
+                  <td className="py-3 text-2xl font-bold text-foreground text-right">
                     {metric.value}
                   </td>
                 </tr>
@@ -309,16 +283,24 @@ export default function DailyServiceReport() {
             </tbody>
           </table>
         </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <h3 className="text-lg font-semibold text-foreground mb-6">
             {t("monthlyProfitTrend")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--muted-foreground) / 0.2)"
+              />
+              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+              <YAxis stroke="hsl(var(--muted-foreground))" />
               <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--card))",
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--card-foreground))",
+                }}
                 formatter={(value: number) => [
                   `${value.toLocaleString()} ${t("mad")}`,
                   t("totalProfit"),
@@ -327,22 +309,23 @@ export default function DailyServiceReport() {
               <Line
                 type="monotone"
                 dataKey="profit"
-                stroke="#8884d8"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
+                dot={{ fill: "hsl(var(--primary))" }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="p-6 border-b border-border">
+          <h3 className="text-lg font-semibold text-foreground">
             {t("detailedProgramPerformance")}
           </h3>
         </div>
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted/50">
             <tr>
               {[
                 "serviceType",
@@ -355,14 +338,14 @@ export default function DailyServiceReport() {
               ].map((h) => (
                 <th
                   key={h}
-                  className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                 >
                   {t(h)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {byType.map((item) => {
               const itemTotalRevenue = Number(item.totalSalePrice);
               const itemTotalProfit = Number(item.totalProfit);
@@ -372,26 +355,29 @@ export default function DailyServiceReport() {
                   : 0;
 
               return (
-                <tr key={item.type}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <tr
+                  key={item.type}
+                  className="hover:bg-muted/50 transition-colors"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                     {t(item.type)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {Number(item.count).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {Number(item.totalOriginalPrice).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-foreground">
                     {Number(item.totalSalePrice).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {Number(item.totalCommission).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-success">
                     {itemTotalProfit.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-info">
                     {itemProfitMargin.toFixed(1)}%
                   </td>
                 </tr>

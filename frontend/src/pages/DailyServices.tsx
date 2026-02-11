@@ -28,17 +28,14 @@ import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
 import { useAuthContext } from "../context/AuthContext";
 import VideoHelpModal from "../components/VideoHelpModal";
 
-// Import refactored components
 import DailyServiceForm from "../components/daily_services/DailyServiceForm";
 import ServicePaymentManagementModal from "../components/daily_services/ServicePaymentManagementModal";
 
-// Type for the data coming from the form (matches the Omit type from the error)
 type DailyServiceFormValues = Pick<
   DailyService,
   "serviceName" | "date" | "type" | "originalPrice" | "totalPrice"
 >;
 
-// Type for the API payload (DailyService without auto-generated fields)
 type DailyServiceApiInput = Omit<
   DailyService,
   "id" | "createdAt" | "updatedAt"
@@ -49,7 +46,6 @@ export default function DailyServices() {
   const queryClient = useQueryClient();
   const { state: authState } = useAuthContext();
 
-  // State Management
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<DailyService | null>(
     null,
@@ -67,7 +63,6 @@ export default function DailyServices() {
 
   const servicesPerPage = 10;
 
-  // Queries
   const { data: servicesResponse, isLoading } = useQuery<
     PaginatedResponse<DailyService>
   >({
@@ -98,7 +93,6 @@ export default function DailyServices() {
     queryClient.invalidateQueries({ queryKey: ["dailyServiceReport"] });
   };
 
-  // Mutations
   const { mutate: createService } = useMutation({
     mutationFn: (data: DailyServiceApiInput) => api.createDailyService(data),
     onSuccess: () => {
@@ -176,10 +170,8 @@ export default function DailyServices() {
       toast.error(error.message || t("failedToDeletePayment")),
   });
 
-  // Handlers
   const handleSave = (data: DailyServiceFormValues) => {
     if (editingService) {
-      // Update existing service: merge editable fields with existing data
       const updatedService: DailyService = {
         ...editingService,
         ...data,
@@ -191,9 +183,6 @@ export default function DailyServices() {
         toast.error("User authentication error");
         return;
       }
-
-      // Create new service: construct full object for API
-      // We explicitly cast to DailyServiceApiInput to ensure compliance with API expectations
       const newService: DailyServiceApiInput = {
         ...data,
         userId: authState.user.id,
@@ -201,7 +190,6 @@ export default function DailyServices() {
         remainingBalance: data.totalPrice,
         isFullyPaid: false,
         advancePayments: [],
-        // We let other optional fields be undefined or handled by default
       } as DailyServiceApiInput;
 
       createService(newService);
@@ -259,17 +247,17 @@ export default function DailyServices() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("dailyServicesTitle")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("dailyServicesSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsHelpModalOpen(true)}
-            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="p-2 text-muted-foreground bg-secondary rounded-full hover:bg-secondary/80 transition-colors"
             aria-label="Help"
           >
             <HelpCircle className="w-6 h-6" />
@@ -279,17 +267,17 @@ export default function DailyServices() {
               setEditingService(null);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl"
+            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
           >
-            <Plus className="w-5 h-5 mr-2" />
+            <Plus className="w-5 h-5 rtl:ml-2 ltr:mr-2" />
             {t("newService")}
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border dark:border-gray-700 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700/50">
+          <thead className="bg-muted/50">
             <tr>
               {[
                 "date",
@@ -305,28 +293,31 @@ export default function DailyServices() {
                   key={h}
                   className={`px-6 py-4 ${
                     i18n.language === "ar" ? "text-right" : "text-left"
-                  } text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider`}
+                  } text-xs font-medium text-muted-foreground uppercase tracking-wider`}
                 >
                   {t(h)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="bg-card divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="text-center p-4">
+                <td
+                  colSpan={8}
+                  className="text-center p-4 text-muted-foreground"
+                >
                   Loading...
                 </td>
               </tr>
             ) : services.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center p-12">
-                  <ConciergeBell className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <ConciergeBell className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <h3 className="mt-2 text-sm font-medium text-foreground">
                     {t("noServices")}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {t("createFirstService")}
                   </p>
                 </td>
@@ -335,21 +326,21 @@ export default function DailyServices() {
               services.map((service) => (
                 <tr
                   key={service.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  className="hover:bg-muted/50 transition-colors"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(service.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                     {service.serviceName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-foreground">
                     {service.totalPrice.toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-info">
                     {Number(service.totalPaid).toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 dark:text-orange-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-warning">
                     {Number(service.remainingBalance).toLocaleString()}{" "}
                     {t("mad")}
                   </td>
@@ -357,28 +348,28 @@ export default function DailyServices() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         service.isFullyPaid
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                          : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                          ? "bg-success/10 text-success"
+                          : "bg-warning/10 text-warning"
                       }`}
                     >
                       {t(service.isFullyPaid ? "fullyPaid" : "pending")}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-success">
                     {service.profit.toLocaleString()} {t("mad")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setServiceToManagePayments(service)}
-                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-colors"
+                        className="p-2 text-muted-foreground hover:text-primary transition-colors"
                         title={t("managePayments") as string}
                       >
                         <CreditCard className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDownloadIconClick(service)}
-                        className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 rounded-lg transition-colors"
+                        className="p-2 text-muted-foreground hover:text-success transition-colors"
                         title={t("downloadReceipt") as string}
                       >
                         <Download className="w-4 h-4" />
@@ -388,14 +379,14 @@ export default function DailyServices() {
                           setEditingService(service);
                           setIsModalOpen(true);
                         }}
-                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                        className="p-2 text-muted-foreground hover:text-info transition-colors"
                         title={t("edit") as string}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setServiceToDelete(service.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                        className="p-2 text-muted-foreground hover:text-destructive transition-colors"
                         title={t("delete") as string}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -408,7 +399,7 @@ export default function DailyServices() {
           </tbody>
         </table>
         {pagination && pagination.totalPages > 1 && (
-          <div className="p-4">
+          <div className="p-4 border-t border-border">
             <PaginationControls
               currentPage={currentPage}
               totalPages={pagination.totalPages}
