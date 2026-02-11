@@ -45,35 +45,41 @@ export default function Settings() {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-64 text-muted-foreground">
+        Loading...
+      </div>
+    );
   }
+
+  // Common input class using semantic design tokens
+  const inputClass =
+    "mt-1 block w-full px-3 py-2 border border-input rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring bg-background text-foreground placeholder:text-muted-foreground transition-colors";
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-3xl font-bold text-foreground">
           {t("settingsTitle")}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          {t("settingsSubtitle")}
-        </p>
+        <p className="text-muted-foreground mt-2">{t("settingsSubtitle")}</p>
       </div>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700"
+        className="bg-card text-card-foreground p-8 rounded-2xl shadow-sm border border-border"
       >
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6">
+        <h2 className="text-xl font-semibold text-foreground mb-6">
           {t("facturationSettings")}
         </h2>
 
         <div className="space-y-6">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 border-b pb-2 border-gray-200 dark:border-gray-600">
+          <h3 className="text-lg font-medium text-foreground border-b border-border pb-2">
             {t("companyInfo")}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("ice")}
               </label>
               <input
@@ -81,11 +87,11 @@ export default function Settings() {
                 name="ice"
                 value={settings.ice || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("if")}
               </label>
               <input
@@ -93,11 +99,11 @@ export default function Settings() {
                 name="if"
                 value={settings.if || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("rc")}
               </label>
               <input
@@ -105,11 +111,11 @@ export default function Settings() {
                 name="rc"
                 value={settings.rc || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("patente")}
               </label>
               <input
@@ -117,11 +123,11 @@ export default function Settings() {
                 name="patente"
                 value={settings.patente || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("cnss")}
               </label>
               <input
@@ -129,13 +135,13 @@ export default function Settings() {
                 name="cnss"
                 value={settings.cnss || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("address")}
               </label>
               <input
@@ -143,11 +149,11 @@ export default function Settings() {
                 name="address"
                 value={settings.address || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("phone")}
               </label>
               <input
@@ -155,11 +161,11 @@ export default function Settings() {
                 name="phone"
                 value={settings.phone || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("email")}
               </label>
               <input
@@ -167,17 +173,17 @@ export default function Settings() {
                 name="email"
                 value={settings.email || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
           </div>
 
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 border-b pb-2 pt-4 border-gray-200 dark:border-gray-600">
+          <h3 className="text-lg font-medium text-foreground border-b border-border pb-2 pt-4">
             {t("bankInfo")}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("bankName")}
               </label>
               <input
@@ -185,11 +191,11 @@ export default function Settings() {
                 name="bankName"
                 value={settings.bankName || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+              <label className="block text-sm font-medium text-muted-foreground">
                 {t("rib")}
               </label>
               <input
@@ -197,7 +203,7 @@ export default function Settings() {
                 name="rib"
                 value={settings.rib || ""}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                className={inputClass}
               />
             </div>
           </div>
@@ -207,7 +213,7 @@ export default function Settings() {
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm disabled:bg-gray-400"
+            className="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 shadow-sm disabled:opacity-50 transition-colors"
           >
             <Save
               className={`w-5 h-5 ${

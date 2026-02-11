@@ -37,7 +37,6 @@ export default function AccountSettings() {
     mutationFn: (data: FormData) => api.updateAccountSettings(data),
     onSuccess: async () => {
       toast.success("Account settings updated successfully!");
-      // Refetch user data to update the UI
       try {
         const userData = await api.refreshToken();
         dispatch({ type: "REFRESH_TOKEN", payload: userData });
@@ -57,7 +56,6 @@ export default function AccountSettings() {
   });
 
   const onSubmit = (data: FormData) => {
-    // Initialize payload with the required field typed as FormData
     const payload: FormData = { currentPassword: data.currentPassword };
 
     if (data.newPassword) {
@@ -77,27 +75,31 @@ export default function AccountSettings() {
   const newPassword = watch("newPassword");
   const isAdmin = state.user?.role === "admin" || state.user?.role === "owner";
 
+  // Shared classes
+  const labelClass =
+    "block text-sm font-medium text-muted-foreground flex items-center";
+  const inputBaseClass =
+    "mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 bg-background text-foreground transition-colors";
+  const inputDefaultClass = "border-input focus:ring-ring focus:border-ring";
+  const inputErrorClass =
+    "border-destructive focus:ring-destructive focus:border-destructive";
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 className="text-3xl font-bold text-foreground">
           {t("accountSettings")}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          {t("updateAccountInfo")}
-        </p>
+        <p className="text-muted-foreground mt-2">{t("updateAccountInfo")}</p>
       </div>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 max-w-2xl mx-auto"
+        className="bg-card text-card-foreground p-8 rounded-2xl shadow-sm border border-border max-w-2xl mx-auto"
       >
         <div className="space-y-6">
           {isAdmin && (
             <div>
-              <label
-                htmlFor="agencyName"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-              >
+              <label htmlFor="agencyName" className={labelClass}>
                 <Building className="w-4 h-4 mr-2" />
                 {t("agencyName")}
               </label>
@@ -105,20 +107,17 @@ export default function AccountSettings() {
                 id="agencyName"
                 type="text"
                 {...register("agencyName")}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className={`${inputBaseClass} ${inputDefaultClass}`}
               />
             </div>
           )}
 
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+          <div className="border-t border-border pt-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               {t("changePassword")}
             </h3>
             <div>
-              <label
-                htmlFor="currentPassword"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center"
-              >
+              <label htmlFor="currentPassword" className={labelClass}>
                 <KeyRound className="w-4 h-4 mr-2" />
                 {t("currentPassword")}
               </label>
@@ -128,14 +127,12 @@ export default function AccountSettings() {
                 {...register("currentPassword", {
                   required: t("currentPasswordRequired") as string,
                 })}
-                className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  errors.currentPassword
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
+                className={`${inputBaseClass} ${
+                  errors.currentPassword ? inputErrorClass : inputDefaultClass
                 }`}
               />
               {errors.currentPassword && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-destructive text-xs mt-1">
                   {errors.currentPassword.message}
                 </p>
               )}
@@ -145,7 +142,7 @@ export default function AccountSettings() {
               <div>
                 <label
                   htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium text-muted-foreground"
                 >
                   {t("newPassword")}
                 </label>
@@ -158,14 +155,12 @@ export default function AccountSettings() {
                       message: t("passwordTooShort") as string,
                     },
                   })}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                    errors.newPassword
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
+                  className={`${inputBaseClass} ${
+                    errors.newPassword ? inputErrorClass : inputDefaultClass
                   }`}
                 />
                 {errors.newPassword && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-destructive text-xs mt-1">
                     {errors.newPassword.message}
                   </p>
                 )}
@@ -173,7 +168,7 @@ export default function AccountSettings() {
               <div>
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  className="block text-sm font-medium text-muted-foreground"
                 >
                   {t("confirmNewPassword")}
                 </label>
@@ -185,14 +180,12 @@ export default function AccountSettings() {
                       value === newPassword ||
                       (t("passwordMismatch") as string),
                   })}
-                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                    errors.confirmPassword
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
+                  className={`${inputBaseClass} ${
+                    errors.confirmPassword ? inputErrorClass : inputDefaultClass
                   }`}
                 />
                 {errors.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-destructive text-xs mt-1">
                     {errors.confirmPassword.message}
                   </p>
                 )}
@@ -205,7 +198,7 @@ export default function AccountSettings() {
           <button
             type="submit"
             disabled={isPending || !isDirty}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Save className="w-5 h-5 mr-2" />
             {isPending ? t("saving") : t("updateAccount")}
