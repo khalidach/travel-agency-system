@@ -26,7 +26,7 @@ export const PricingFilters: React.FC<PricingFiltersProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+    <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <input
@@ -35,13 +35,13 @@ export const PricingFilters: React.FC<PricingFiltersProps> = ({
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground placeholder:text-muted-foreground transition-colors"
           />
         </div>
         <select
           value={filterType}
           onChange={(e) => onFilterChange(e.target.value)}
-          className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground transition-colors"
         >
           <option value="all">{t("allTypes")}</option>
           <option value="Hajj">Hajj</option>
