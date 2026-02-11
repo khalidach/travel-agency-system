@@ -21,13 +21,13 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
-        return "bg-blue-100 text-blue-700";
+        return "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200";
       case "Umrah":
-        return "bg-emerald-100 text-emerald-700";
+        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200";
       case "Tourism":
-        return "bg-orange-100 text-orange-700";
+        return "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-200";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -41,34 +41,39 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted/50">
             <tr>
               {headers.map((key) => (
                 <th
                   key={key}
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider ${alignClass}`}
+                  className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${alignClass}`}
                 >
                   {t(key)}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="text-center p-8 text-gray-500">
+                <td
+                  colSpan={6}
+                  className="text-center p-8 text-muted-foreground"
+                >
                   <div className="flex justify-center items-center gap-2">
-                    {/* Add Spinner component here if available */}
                     {t("loading")}
                   </div>
                 </td>
               </tr>
             ) : !data?.programPerformance?.length ? (
               <tr>
-                <td colSpan={6} className="text-center p-8 text-gray-500">
+                <td
+                  colSpan={6}
+                  className="text-center p-8 text-muted-foreground"
+                >
                   {t("noDataAvailable")}
                 </td>
               </tr>
@@ -76,7 +81,7 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
               data.programPerformance.map((item, index) => (
                 <tr
                   key={index}
-                  className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  className="hover:bg-muted/30 cursor-pointer transition-colors"
                   onClick={() =>
                     onProgramClick(
                       Number(item.programId),
@@ -85,7 +90,7 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
                   }
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                    <div className="text-sm font-medium text-foreground">
                       {item.programName}
                     </div>
                   </td>
@@ -93,20 +98,19 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(String(item.type))}`}
                     >
-                      {/* FIX: Explicitly cast item.type to String to fix TypeScript error */}
                       {t(String(item.type))}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {item.bookingCount}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {Number(item.totalSales).toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {Number(item.totalCost).toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                     {Number(item.totalProfit).toLocaleString()} {t("mad")}
                   </td>
                 </tr>

@@ -49,7 +49,7 @@ const EmployeeForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("username")}
         </label>
         <input
@@ -58,12 +58,12 @@ const EmployeeForm = ({
           onChange={(e) =>
             setFormData({ ...formData, username: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+          className="w-full px-3 py-2 border border-input rounded-lg mt-1 bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
           required
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("password")} {employee ? t("passwordLeaveBlank") : ""}
         </label>
         <input
@@ -72,11 +72,11 @@ const EmployeeForm = ({
           onChange={(e) =>
             setFormData({ ...formData, password: e.target.value })
           }
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+          className="w-full px-3 py-2 border border-input rounded-lg mt-1 bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("role")}
         </label>
         <select
@@ -87,23 +87,23 @@ const EmployeeForm = ({
               role: e.target.value as "manager" | "employee",
             })
           }
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+          className="w-full px-3 py-2 border border-input rounded-lg mt-1 bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
         >
           <option value="employee">{t("employee")}</option>
           <option value="manager">{t("manager")}</option>
         </select>
       </div>
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex justify-end space-x-3 pt-4 rtl:space-x-reverse">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
+          className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
         >
           {t("cancel")}
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
         >
           {t("save")}
         </button>
@@ -149,7 +149,6 @@ export default function EmployeesPage() {
 
   const { mutate: createEmployee } = useMutation({
     mutationFn: (data: Partial<Employee>) => {
-      // FIX: Cast data to satisfy the strict type requirements of api.createEmployee.
       const payload = data as unknown as Omit<Employee, "id"> & {
         password?: string;
       };
@@ -182,7 +181,7 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["employeesWithCount"] });
       toast.success(
         t("employeeDeletedSuccess") || "Employee deleted successfully!",
-      ); // Fallback if key missing in previous step
+      );
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -198,7 +197,7 @@ export default function EmployeesPage() {
   });
 
   const handleToggleStatus = (e: React.ChangeEvent, employee: Employee) => {
-    e.stopPropagation(); // Prevent navigation when clicking the toggle
+    e.stopPropagation();
     toggleStatus({ id: employee.id, active: !employee.active });
   };
 
@@ -247,10 +246,10 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("employees")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("manageStaff")}{" "}
             {t("employeeLimitReached", { limit: employeeLimit })}
           </p>
@@ -258,7 +257,7 @@ export default function EmployeesPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsHelpModalOpen(true)}
-            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="p-2 text-muted-foreground bg-secondary rounded-full hover:bg-secondary/80 transition-colors"
             aria-label={t("help") as string}
           >
             <HelpCircle className="w-6 h-6" />
@@ -266,7 +265,7 @@ export default function EmployeesPage() {
           <button
             onClick={openAddModal}
             disabled={!canAddEmployee}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             title={
               !canAddEmployee
                 ? (t("employeeLimitReachedTooltip", {
@@ -285,12 +284,12 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700/50">
+          <thead className="bg-muted/50 border-b border-border">
             <tr>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -299,7 +298,7 @@ export default function EmployeesPage() {
                 {t("username")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -308,7 +307,7 @@ export default function EmployeesPage() {
                 {t("role")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -317,7 +316,7 @@ export default function EmployeesPage() {
                 {t("bookingsMade")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -326,7 +325,7 @@ export default function EmployeesPage() {
                 {t("status")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
+                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
                   document.documentElement.dir === "rtl"
                     ? "text-right"
                     : "text-left"
@@ -336,10 +335,13 @@ export default function EmployeesPage() {
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="bg-card divide-y divide-border">
             {isLoadingEmployees ? (
               <tr>
-                <td colSpan={5} className="text-center p-4">
+                <td
+                  colSpan={5}
+                  className="text-center p-4 text-muted-foreground"
+                >
                   {t("loading") || "Loading..."}
                 </td>
               </tr>
@@ -347,19 +349,19 @@ export default function EmployeesPage() {
               employees.map((emp) => (
                 <tr
                   key={emp.id}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 ${
+                  className={`hover:bg-muted/30 transition-colors ${
                     hasEmployeeAnalysisAccess ? "cursor-pointer" : ""
                   }`}
                   onClick={() => handleRowClick(emp)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Users className="w-5 h-5 text-gray-400 dark:text-gray-500 mx-3" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <Users className="w-5 h-5 text-muted-foreground mx-3" />
+                      <span className="text-sm font-medium text-foreground">
                         {emp.username}
                       </span>
                       {!hasEmployeeAnalysisAccess && (
-                        <Lock className="w-3 h-3 text-gray-400 ml-2" />
+                        <Lock className="w-3 h-3 text-muted-foreground ml-2" />
                       )}
                     </div>
                   </td>
@@ -367,8 +369,8 @@ export default function EmployeesPage() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         emp.role === "manager"
-                          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300"
-                          : "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+                          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200"
+                          : "bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200"
                       }`}
                     >
                       <Briefcase className="w-3 h-3 mr-1.5" />
@@ -378,13 +380,13 @@ export default function EmployeesPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Hash
-                        className={`w-4 h-4 text-gray-400 dark:text-gray-500 ${
+                        className={`w-4 h-4 text-muted-foreground ${
                           document.documentElement.dir === "rtl"
                             ? "ml-2"
                             : "mr-2"
                         }`}
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-foreground">
                         {emp.bookingCount || 0}
                       </span>
                     </div>
@@ -393,7 +395,7 @@ export default function EmployeesPage() {
                     <label
                       htmlFor={`toggle-${emp.id}`}
                       className="flex items-center cursor-pointer"
-                      onClick={(e) => e.stopPropagation()} // Prevent row click from firing
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <div className="relative">
                         <input
@@ -404,19 +406,17 @@ export default function EmployeesPage() {
                           onChange={(e) => handleToggleStatus(e, emp)}
                         />
                         <div
-                          className={`block w-14 h-8 rounded-full ${
-                            emp.active
-                              ? "bg-green-500"
-                              : "bg-gray-300 dark:bg-gray-600"
+                          className={`block w-14 h-8 rounded-full transition-colors ${
+                            emp.active ? "bg-success" : "bg-input"
                           }`}
                         ></div>
                         <div
-                          className={`dot absolute left-1 top-1 bg-white dark:bg-gray-300 w-6 h-6 rounded-full transition-transform ${
+                          className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
                             emp.active ? "translate-x-6" : ""
                           }`}
                         ></div>
                       </div>
-                      <div className="ml-3 text-gray-700 dark:text-gray-300 font-medium">
+                      <div className="ml-3 text-foreground font-medium">
                         {emp.active
                           ? t("active") || "Active"
                           : t("inactive") || "Inactive"}
@@ -424,16 +424,16 @@ export default function EmployeesPage() {
                     </label>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
                       <button
                         onClick={(e) => openEditModal(e, emp)}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
+                        className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={(e) => handleDelete(e, emp.id)}
-                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

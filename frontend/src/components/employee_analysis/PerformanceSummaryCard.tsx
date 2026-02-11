@@ -1,3 +1,4 @@
+// frontend/src/components/employee_analysis/PerformanceSummaryCard.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { DateFilter, CustomDateRange } from "../../hooks/useDateRangeParams";
@@ -37,20 +38,20 @@ const PerformanceSummaryCard: React.FC<PerformanceSummaryCardProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-full">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">{t(title)}</h3>
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border h-full">
+      <h3 className="text-lg font-semibold text-foreground mb-4">{t(title)}</h3>
 
       {/* Date Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-center mb-4">
-        <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1 rtl:space-x-reverse">
+        <div className="flex items-center space-x-1 bg-muted rounded-lg p-1 rtl:space-x-reverse">
           {filterButtons.map((btn) => (
             <button
               key={btn.value}
               onClick={() => setDateFilter(btn.value)}
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 dateFilter === btn.value
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
+                  ? "bg-card text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {t(btn.label)}
@@ -68,16 +69,16 @@ const PerformanceSummaryCard: React.FC<PerformanceSummaryCardProps> = ({
             onChange={(e) =>
               setCustomDateRange({ ...customDateRange, start: e.target.value })
             }
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+            className="px-3 py-1 border border-input rounded-lg text-sm bg-background text-foreground"
           />
-          <span className="text-gray-500 text-sm">{t("to")}</span>
+          <span className="text-muted-foreground text-sm">{t("to")}</span>
           <input
             type="date"
             value={customDateRange.end}
             onChange={(e) =>
               setCustomDateRange({ ...customDateRange, end: e.target.value })
             }
-            className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+            className="px-3 py-1 border border-input rounded-lg text-sm bg-background text-foreground"
           />
         </div>
       )}
@@ -88,7 +89,7 @@ const PerformanceSummaryCard: React.FC<PerformanceSummaryCardProps> = ({
           {[...Array(4)].map((_, i) => (
             <div
               key={i}
-              className="h-8 bg-gray-100 rounded animate-pulse w-full"
+              className="h-8 bg-muted rounded animate-pulse w-full"
             />
           ))}
         </div>
@@ -98,15 +99,15 @@ const PerformanceSummaryCard: React.FC<PerformanceSummaryCardProps> = ({
             {summaryData.map((metric) => (
               <tr
                 key={metric.title}
-                className="border-b last:border-b-0 border-gray-100"
+                className="border-b last:border-b-0 border-border"
               >
-                <td className="py-3 text-base font-medium text-gray-600">
+                <td className="py-3 text-base font-medium text-muted-foreground">
                   {metric.title}
                 </td>
-                <td className="py-3 text-2xl font-bold text-gray-900 text-right">
+                <td className="py-3 text-2xl font-bold text-foreground text-right">
                   {metric.value.toLocaleString()}
                   {metric.unit && (
-                    <span className="text-sm font-normal text-gray-500 ml-1 mr-1">
+                    <span className="text-sm font-normal text-muted-foreground ml-1 mr-1">
                       {metric.unit}
                     </span>
                   )}

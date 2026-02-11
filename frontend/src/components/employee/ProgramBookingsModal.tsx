@@ -5,10 +5,10 @@ import Modal from "../Modal";
 import { useQuery } from "@tanstack/react-query";
 import * as api from "../../services/api";
 import LoadingSpinner from "../ui/LoadingSpinner";
-import PaginationControls from "../ui/PaginationControls"; // NEW IMPORT
+import PaginationControls from "../ui/PaginationControls";
 import { DollarSign, Calendar, User } from "lucide-react";
 
-const ITEMS_PER_PAGE = 10; // Set the limit for pagination
+const ITEMS_PER_PAGE = 10;
 
 interface ProgramBookingsModalProps {
   isOpen: boolean;
@@ -45,9 +45,8 @@ export default function ProgramBookingsModal({
   endDate,
 }: ProgramBookingsModalProps) {
   const { t } = useTranslation();
-  const [currentPage, setCurrentPage] = useState(1); // NEW State for pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Reset page when modal opens/closes or filters change
   React.useEffect(() => {
     setCurrentPage(1);
   }, [isOpen, programId, startDate, endDate]);
@@ -57,7 +56,7 @@ export default function ProgramBookingsModal({
       "employeeProgramBookings",
       username,
       programId,
-      currentPage, // Add page to query key
+      currentPage,
       ITEMS_PER_PAGE,
       startDate,
       endDate,
@@ -90,44 +89,44 @@ export default function ProgramBookingsModal({
       <div className="space-y-4">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center p-8">
-            <LoadingSpinner className="w-8 h-8 text-blue-500" />
-            <span className="ml-3 mt-2 text-gray-600 dark:text-gray-400">
+            <LoadingSpinner className="w-8 h-8 text-primary" />
+            <span className="ml-3 mt-2 text-muted-foreground">
               Loading bookings...
             </span>
           </div>
         ) : (
           <>
-            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden border dark:border-gray-700">
+            <div className="bg-card rounded-lg overflow-hidden border border-border">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       <User className="w-4 h-4 inline mr-2" />
                       {t("clientName")}
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       <Calendar className="w-4 h-4 inline mr-2" />
                       {t("dateOfBooking")}
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       <DollarSign className="w-4 h-4 inline mr-2" />
                       {t("sellingPrice")}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-border">
                   {bookings.map((booking) => (
                     <tr
                       key={booking.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      className="hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-foreground">
                         {booking.fullName}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-muted-foreground">
                         {new Date(booking.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right text-blue-600 dark:text-blue-400">
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-right text-primary">
                         {booking.sellingPrice.toLocaleString()} {t("mad")}
                       </td>
                     </tr>
@@ -136,7 +135,7 @@ export default function ProgramBookingsModal({
                     <tr>
                       <td
                         colSpan={3}
-                        className="text-center py-8 text-gray-500 dark:text-gray-400"
+                        className="text-center py-8 text-muted-foreground"
                       >
                         No bookings found for this program in the selected date
                         range.

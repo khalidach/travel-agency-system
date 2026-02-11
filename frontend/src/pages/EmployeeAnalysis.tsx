@@ -99,10 +99,12 @@ export default function EmployeeAnalysisPage() {
   if (!analysisData) {
     return (
       <div className="text-center py-10">
-        <h2 className="text-xl font-semibold">{t("couldNotLoadAnalysis")}</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          {t("couldNotLoadAnalysis")}
+        </h2>
         <button
           onClick={() => navigate("/employees")}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
         >
           {t("backToEmployees")}
         </button>
@@ -175,18 +177,18 @@ export default function EmployeeAnalysisPage() {
       <div className="flex items-center">
         <button
           onClick={() => navigate("/employees")}
-          className={`p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors ${
+          className={`p-2 bg-secondary rounded-full hover:bg-secondary/80 transition-colors ${
             isRtl ? "ml-4" : "mr-4"
           }`}
           aria-label={t("back") as string}
         >
-          <ChevronLeft className="w-6 h-6 text-gray-700" />
+          <ChevronLeft className="w-6 h-6 text-foreground" />
         </button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("employeeAnalysis", { username: employee.username })}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("performanceOverview", { username: employee.username })}
           </p>
         </div>

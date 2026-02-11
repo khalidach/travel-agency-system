@@ -1,3 +1,4 @@
+// frontend/src/components/employee_analysis/StatCardsRow.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { Package, Calendar, ConciergeBell } from "lucide-react";
@@ -41,12 +42,14 @@ const StatCardsRow: React.FC<StatCardsRowProps> = ({
       {cards.map((card) => (
         <div
           key={card.title}
-          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+          className="bg-card rounded-2xl p-6 shadow-sm border border-border hover:shadow-md transition-shadow"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">{card.title}</p>
-              <p className="text-3xl font-bold text-gray-900 mt-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                {card.title}
+              </p>
+              <p className="text-3xl font-bold text-foreground mt-2">
                 {card.value}
               </p>
             </div>
