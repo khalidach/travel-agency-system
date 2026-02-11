@@ -24,13 +24,14 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("cities")}
         </label>
         <button
           type="button"
           onClick={() => append({ name: "", nights: 0 })}
-          className="inline-flex items-center px-3 py-1 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-500"
+          // UPDATED: Added dark:text-white and dark:bg-blue-600
+          className="inline-flex items-center px-3 py-1 text-xs bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white rounded-lg hover:bg-primary/90 disabled:opacity-50"
           disabled={areCitiesLocked}
         >
           <Plus
@@ -49,7 +50,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
         return (
           <div key={item.id}>
             <div className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <MapPin className="w-4 h-4 text-muted-foreground" />
               <input
                 {...register(
                   `variations.${variationIndex}.cities.${cityIndex}.name`,
@@ -58,11 +59,9 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   },
                 )}
                 placeholder={t("enterCityName") as string}
-                className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                  nameError
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-500 dark:disabled:text-gray-400`}
+                className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground disabled:bg-muted disabled:text-muted-foreground ${
+                  nameError ? "border-destructive" : "border-input"
+                }`}
                 disabled={areCitiesLocked}
               />
               <input
@@ -75,14 +74,15 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                   },
                 )}
                 placeholder={t("nights") as string}
-                className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-24 px-3 py-2 border border-input rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground"
                 min="0"
               />
               {fields.length > 1 && (
                 <button
                   type="button"
                   onClick={() => remove(cityIndex)}
-                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:text-gray-400 dark:disabled:text-gray-500 disabled:hover:bg-transparent"
+                  // UPDATED: Red-400 for icon
+                  className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg disabled:text-muted-foreground disabled:hover:bg-transparent"
                   disabled={areCitiesLocked}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -90,7 +90,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
               )}
             </div>
             {nameError && (
-              <p className="text-red-500 text-xs mt-1 ml-6">
+              <p className="text-destructive text-xs mt-1 ml-6">
                 {nameError.message as string}
               </p>
             )}
@@ -118,9 +118,7 @@ export default function VariationManager() {
     if (!allVariations || allVariations.length <= 1) {
       return;
     }
-
     const firstCities = firstVariationCities || [];
-
     for (let i = 1; i < allVariations.length; i++) {
       const currentCities = getValues(`variations.${i}.cities`) || [];
       const updatedCities = firstCities.map((firstCity, index) => ({
@@ -131,7 +129,6 @@ export default function VariationManager() {
             ? currentCities[index].nights
             : 0,
       }));
-
       if (JSON.stringify(currentCities) !== JSON.stringify(updatedCities)) {
         setValue(`variations.${i}.cities`, updatedCities);
       }
@@ -151,7 +148,6 @@ export default function VariationManager() {
         duration: 0,
         cities: JSON.parse(JSON.stringify(firstVariation.cities)),
       };
-      // Fixed: Specified type instead of any
       newVariation.cities.forEach((city: CityData) => (city.nights = 0));
       append(newVariation);
     } else {
@@ -176,13 +172,14 @@ export default function VariationManager() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("programVariations")}
         </label>
         <button
           type="button"
           onClick={handleAddVariation}
-          className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          // UPDATED: Added dark:text-white and dark:bg-blue-600
+          className="inline-flex items-center px-3 py-1 text-sm bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white rounded-lg hover:bg-primary/90"
         >
           <Plus className="w-4 h-4 mr-1" /> {t("addVariation")}
         </button>
@@ -191,7 +188,6 @@ export default function VariationManager() {
         {fields.map((item, index) => {
           const variation = watch(`variations.${index}`);
           const duration = (variation.cities || []).reduce(
-            // Fixed: Specified type instead of any
             (sum: number, city: CityData) => sum + (Number(city.nights) || 0),
             0,
           );
@@ -201,11 +197,11 @@ export default function VariationManager() {
               key={item.id}
               title={
                 <div className="flex items-center space-x-4">
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h4 className="text-lg font-semibold text-foreground">
                     {watch(`variations.${index}.name`) ||
                       `Variation ${index + 1}`}
                   </h4>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center text-sm text-muted-foreground">
                     <Clock className="w-4 h-4 mr-1.5" />
                     <span>
                       {duration} {t("days")}
@@ -221,7 +217,8 @@ export default function VariationManager() {
                       e.stopPropagation();
                       handleDuplicateVariation(index);
                     }}
-                    className="p-2 text-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg"
+                    // UPDATED: Blue-400 for icon
+                    className="p-2 text-primary dark:text-blue-400 hover:bg-primary/10 dark:hover:bg-blue-900/40 rounded-lg"
                     title={t("duplicateVariation") as string}
                   >
                     <Copy className="w-4 h-4" />
@@ -232,7 +229,8 @@ export default function VariationManager() {
                       e.stopPropagation();
                       remove(index);
                     }}
-                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg"
+                    // UPDATED: Red-400 for icon
+                    className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -241,13 +239,13 @@ export default function VariationManager() {
             >
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     {t("variationName")}
                   </label>
                   <input
                     {...register(`variations.${index}.name`)}
                     placeholder={t("variationNamePlaceholder") as string}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground"
                     required
                   />
                 </div>

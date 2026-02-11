@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
-// Added Package to imports
 import type {
   Program,
   ProgramVariation,
@@ -10,12 +9,10 @@ import type {
   Package,
 } from "../context/models";
 
-// Import the refactored child components
 import PackageManager from "./program/PackageManager";
 import LoadingSpinner from "./ui/LoadingSpinner";
 import VariationManager from "./program/VariationManager";
 
-// Form props with isSaving
 interface ProgramFormProps {
   program?: Program | null;
   onSave: (program: Program) => void;
@@ -31,7 +28,6 @@ export default function ProgramForm({
 }: ProgramFormProps) {
   const { t } = useTranslation();
 
-  // The methods object now contains all the react-hook-form functions
   const methods = useForm<Program>({
     defaultValues: program
       ? program
@@ -39,21 +35,18 @@ export default function ProgramForm({
           name: "",
           type: "Umrah",
           isCommissionBased: false,
-          maxBookings: null, // Default to null (unlimited)
+          maxBookings: null,
           variations: [
             {
-              // FIX 1: Cast t() return value to string
               name: t("defaultVariation") as string,
               duration: 0,
               cities: [{ name: "", nights: 0 }],
             },
           ],
-          // FIX 2: Cast empty array to Package[] to avoid 'never[]' error
           packages: [] as Package[],
-        } as unknown as Program), // FIX 3: Cast the object to Program to satisfy 'id' requirement
+        } as unknown as Program),
   });
 
-  // We only need these functions here
   const {
     handleSubmit,
     watch,
@@ -66,7 +59,6 @@ export default function ProgramForm({
   const isCommissionBased = watch("isCommissionBased");
   const maxBookings = watch("maxBookings");
 
-  // Watch for changes in cities to auto-calculate duration for each variation.
   useEffect(() => {
     const subscription = watch((_, { name }) => {
       if (name && name.startsWith("variations.0.cities")) {
@@ -94,7 +86,6 @@ export default function ProgramForm({
         }
       }
 
-      // Only run the calculation if a city's name or nights changed to prevent infinite loops.
       if (name && name.includes(".cities.")) {
         const variations = getValues("variations") || [];
         variations.forEach((variation: ProgramVariation, index: number) => {
@@ -104,7 +95,6 @@ export default function ProgramForm({
             0,
           );
 
-          // Only update the value if it has actually changed.
           if (getValues(`variations.${index}.duration`) !== totalDuration) {
             setValue(`variations.${index}.duration`, totalDuration, {
               shouldDirty: true,
@@ -116,7 +106,6 @@ export default function ProgramForm({
     return () => subscription.unsubscribe();
   }, [watch, setValue, getValues]);
 
-  // Reset form when the program prop changes
   useEffect(() => {
     if (program) {
       reset(program);
@@ -130,13 +119,10 @@ export default function ProgramForm({
 
   return (
     <FormProvider {...methods}>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-8 dark:bg-gray-800"
-      >
-        <div className="grid  grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t("programName")}
             </label>
             <input
@@ -144,23 +130,23 @@ export default function ProgramForm({
               {...methods.register("name", {
                 required: t("programNameRequired") as string,
               })}
-              className={`w-full px-3 py-2 border rounded-lg ${
-                errors.name
-                  ? "border-red-500"
-                  : "border-gray-300 dark:border-gray-600"
-              } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
+              className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-ring focus:border-transparent ${
+                errors.name ? "border-destructive" : "border-input"
+              }`}
             />
             {errors.name && (
-              <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
+              <p className="text-destructive text-xs mt-1">
+                {errors.name.message}
+              </p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t("programType")}
             </label>
             <select
               {...methods.register("type")}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
             >
               <option value="Hajj">Hajj</option>
               <option value="Umrah">Umrah</option>
@@ -168,9 +154,10 @@ export default function ProgramForm({
               <option value="Ramadan">Ramadan</option>
             </select>
           </div>
-          {/* Max Bookings Toggle and Input */}
+
+          {/* Max Bookings Toggle */}
           <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               {t("maxBookingsLabel")}
             </label>
             <div className="flex items-center space-x-3">
@@ -187,11 +174,11 @@ export default function ProgramForm({
                   setValue("maxBookings", value);
                 }}
                 placeholder={t("unlimitedPlaceholder") as string}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                disabled={maxBookings === null} // Disabled if set to null (unlimited)
+                className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-ring focus:border-transparent"
+                disabled={maxBookings === null}
               />
               <label className="flex items-center cursor-pointer">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 mr-2">
+                <span className="text-sm font-medium text-foreground mr-2">
                   {t("unlimitedLabel")}
                 </span>
                 <div className="relative">
@@ -200,22 +187,23 @@ export default function ProgramForm({
                     checked={maxBookings === null}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setValue("maxBookings", null); // Set to null for unlimited
+                        setValue("maxBookings", null);
                       } else {
-                        setValue("maxBookings", 0); // Set to 0 to enable input (user can change to desired number)
+                        setValue("maxBookings", 0);
                       }
                     }}
                     className="sr-only toggle-checkbox"
                   />
+                  {/* UPDATED: Lighter gray in dark mode (gray-500) for better visibility */}
                   <div
-                    className={`block w-14 h-8 rounded-full ${
+                    className={`block w-14 h-8 rounded-full transition-colors ${
                       maxBookings === null
-                        ? "bg-green-500"
-                        : "bg-gray-300 dark:bg-gray-600"
+                        ? "bg-primary"
+                        : "bg-gray-300 dark:bg-gray-500"
                     }`}
                   ></div>
                   <div
-                    className={`dot absolute left-1 top-1 bg-white dark:bg-gray-300 w-6 h-6 rounded-full transition-transform ${
+                    className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
                       maxBookings === null ? "translate-x-6" : ""
                     }`}
                   ></div>
@@ -225,12 +213,12 @@ export default function ProgramForm({
             {maxBookings !== null &&
               maxBookings !== undefined &&
               maxBookings < 0 && (
-                <p className="text-red-500 text-xs mt-1">
+                <p className="text-destructive text-xs mt-1">
                   {t("positiveNumberRequired")}
                 </p>
               )}
             {maxBookings === null && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {t("unlimitedSetText")}
               </p>
             )}
@@ -238,13 +226,13 @@ export default function ProgramForm({
         </div>
 
         {/* Commission Based Toggle */}
-        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
           <label
             htmlFor="isCommissionBased"
-            className="font-medium text-gray-700 dark:text-gray-200"
+            className="font-medium text-foreground"
           >
             {t("commissionBasedProgram")}
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+            <p className="text-xs text-muted-foreground font-normal">
               {t("commissionBasedProgramDesc")}
             </p>
           </label>
@@ -255,36 +243,43 @@ export default function ProgramForm({
               {...methods.register("isCommissionBased")}
               className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
             />
+            {/* UPDATED: Lighter gray in dark mode (gray-500) */}
             <label
               htmlFor="isCommissionBased"
-              className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
+              className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-500 cursor-pointer"
             ></label>
           </div>
         </div>
+
+        {/* Helper style for this specific toggle if not in global css */}
         <style>{`
-            .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
-            .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
+            .toggle-checkbox:checked { right: 0; border-color: hsl(var(--primary)); }
+            .toggle-checkbox:checked + .toggle-label { background-color: hsl(var(--primary)); }
         `}</style>
 
         <VariationManager />
 
         <PackageManager isCommissionBased={isCommissionBased ?? false} />
 
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="px-6 py-2 text-gray-700 bg-gray-100 dark:bg-gray-600 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50"
+            className="px-6 py-2 text-secondary-foreground bg-secondary rounded-lg hover:bg-secondary/80 disabled:opacity-50"
           >
             {t("cancel")}
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:bg-blue-400 dark:disabled:bg-blue-800 disabled:cursor-not-allowed min-w-[100px]"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
           >
-            {isSaving ? <LoadingSpinner /> : t("save")}
+            {isSaving ? (
+              <LoadingSpinner className="text-primary-foreground" />
+            ) : (
+              t("save")
+            )}
           </button>
         </div>
       </form>

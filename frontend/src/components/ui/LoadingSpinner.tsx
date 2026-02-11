@@ -1,7 +1,7 @@
 // frontend/src/components/ui/LoadingSpinner.tsx
 
 const LoadingSpinner = ({
-  className = "h-5 w-5 text-gray-400 dark:text-gray-500",
+  className = "h-5 w-5 text-muted-foreground",
 }: {
   className?: string;
 }) => (

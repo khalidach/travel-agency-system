@@ -8,11 +8,10 @@ import type {
   CityData,
   PriceStructure,
 } from "../../context/models";
-import { useAuthContext } from "../../context/AuthContext"; // Import Auth Context
+import { useAuthContext } from "../../context/AuthContext";
 import { useDebounce } from "../../hooks/useDebounce";
-import Accordion from "../ui/Accordion"; // Import the Accordion component
+import Accordion from "../ui/Accordion";
 
-// Helper function to get number of guests based on room type
 function getGuestsForType(type: string): number {
   switch (type.toLowerCase()) {
     case "ثنائية":
@@ -28,7 +27,6 @@ function getGuestsForType(type: string): number {
   }
 }
 
-// Component to handle debounced updates for hotel names without losing focus
 const DebouncedHotelInput = ({
   packageIndex,
   city,
@@ -54,7 +52,6 @@ const DebouncedHotelInput = ({
 
     if (newValue !== undefined && newValue !== oldValue) {
       setValue(fieldName, newValue, { shouldDirty: true });
-
       const allPackages = getValues("packages");
       const prices = allPackages[packageIndex]?.prices || [];
       const variations: ProgramVariation[] = getValues("variations") || [];
@@ -68,7 +65,6 @@ const DebouncedHotelInput = ({
           (price.hotelCombination.includes(oldValue) || oldValue === "")
         ) {
           const combinationParts = price.hotelCombination.split("_");
-
           const cityIndexToUpdate = allCities.findIndex(
             (c: CityData) => c.name === city.name,
           );
@@ -79,7 +75,6 @@ const DebouncedHotelInput = ({
           ) {
             combinationParts[cityIndexToUpdate] = newValue;
             const updatedCombination = combinationParts.join("_");
-
             const combinationFieldName = `packages.${packageIndex}.prices.${priceIndex}.hotelCombination`;
             setValue(combinationFieldName, updatedCombination, {
               shouldDirty: true,
@@ -87,7 +82,6 @@ const DebouncedHotelInput = ({
           }
         }
       });
-
       lastUpdatedValueRef.current = newValue;
     }
   }, [debouncedValue, fieldName, packageIndex, getValues, setValue, city.name]);
@@ -97,12 +91,11 @@ const DebouncedHotelInput = ({
       value={localValue}
       onChange={(e) => setLocalValue(e.target.value)}
       placeholder={t("hotelNamePlaceholder") as string}
-      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      className="flex-1 px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary"
     />
   );
 };
 
-// Sub-component for managing hotels within a package
 const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
   const { t } = useTranslation();
   const { watch } = useFormContext();
@@ -119,7 +112,7 @@ const PackageHotels = ({ packageIndex }: { packageIndex: number }) => {
 
   return (
     <div className="mb-6">
-      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+      <h5 className="text-sm font-medium text-muted-foreground mb-3">
         {t("hotelsByCity")}
       </h5>
       <div className="space-y-4">
@@ -152,28 +145,23 @@ const HotelManager = ({
   });
 
   return (
-    <div className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
+    <div className="bg-card p-4 rounded-lg border border-border shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-200 flex items-center">
+        <span className="text-sm font-medium text-foreground flex items-center">
           <Hotel
-            className={`w-4 h-4 ${
-              document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-            }`}
+            className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
           />
           {city.name}
         </span>
         <button
           type="button"
           onClick={() => append("")}
-          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+          // UPDATED: Use blue-400 in dark mode for visibility
+          className="text-xs text-primary hover:text-primary/80 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
         >
           {t("addHotel")}
         </button>
       </div>
-      {/*
-        FIX: Added max-h-40 and overflow-y-auto classes here 
-        to enable vertical scrolling if the list of hotels gets too long.
-      */}
       <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
         {fields.map((field, hotelIndex) => {
           return (
@@ -186,7 +174,8 @@ const HotelManager = ({
               <button
                 type="button"
                 onClick={() => remove(hotelIndex)}
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                // UPDATED: Red-400 for icon in dark mode
+                className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg"
               >
                 <Trash2 className="w-[14px] h-[14px]" />
               </button>
@@ -198,7 +187,6 @@ const HotelManager = ({
   );
 };
 
-// Main PackageManager Component
 export default function PackageManager({
   isCommissionBased,
 }: {
@@ -221,14 +209,12 @@ export default function PackageManager({
   const generateAllHotelOptions = (packageIndex: number) => {
     const pkg = watch(`packages.${packageIndex}`);
     const options: string[] = [];
-
     if (!variations || variations.length === 0) return options;
 
     variations.forEach((variation) => {
       const validCities = (variation.cities || []).filter((city: CityData) =>
         city.name.trim(),
       );
-
       const generateCombinations = (
         cityIndex: number,
         currentCombination: string[],
@@ -242,7 +228,6 @@ export default function PackageManager({
           }
           return;
         }
-
         const cityHotels =
           (pkg.hotels && pkg.hotels[validCities[cityIndex].name]) || [];
         if (
@@ -252,26 +237,23 @@ export default function PackageManager({
           generateCombinations(cityIndex + 1, currentCombination);
           return;
         }
-
         cityHotels.forEach((hotel: string) => {
           if (hotel.trim()) {
             generateCombinations(cityIndex + 1, [...currentCombination, hotel]);
           }
         });
       };
-
       if (validCities.length > 0) {
         generateCombinations(0, []);
       }
     });
-
     return options;
   };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label className="block text-sm font-medium text-foreground">
           {t("packages")}
         </label>
         <button
@@ -283,7 +265,8 @@ export default function PackageManager({
               prices: [],
             })
           }
-          className="inline-flex items-center px-3 py-1 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          // UPDATED: Added dark:text-white and dark:bg-blue-600
+          className="inline-flex items-center px-3 py-1 text-sm bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white rounded-lg hover:bg-primary/90"
         >
           <Plus className="w-4 h-4 mr-1" /> {t("addPackage")}
         </button>
@@ -294,7 +277,7 @@ export default function PackageManager({
             <Accordion
               key={pkg.id}
               title={
-                <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h4 className="text-lg font-semibold text-foreground">
                   {watch(`packages.${packageIndex}.name`) ||
                     `${t("packageLabel")} ${packageIndex + 1}`}
                 </h4>
@@ -306,20 +289,21 @@ export default function PackageManager({
                     e.stopPropagation();
                     removePackage(packageIndex);
                   }}
-                  className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg"
+                  // UPDATED: Red-400 for icon
+                  className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               }
             >
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   {t("packageName")}
                 </label>
                 <input
                   {...register(`packages.${packageIndex}.name`)}
                   placeholder={t("packageNamePlaceholder") as string}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
@@ -334,11 +318,11 @@ export default function PackageManager({
             </Accordion>
           ))
         ) : (
-          <div className="text-center py-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-dashed border-2 border-gray-300 dark:border-gray-600">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-center py-6 bg-muted/30 rounded-lg border-dashed border-2 border-border">
+            <p className="text-sm text-muted-foreground">
               {t("noPackagesAdded")}
             </p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {t("noPackagesLeadForm")}
             </p>
           </div>
@@ -348,7 +332,6 @@ export default function PackageManager({
   );
 }
 
-// Sub-component for pricing structures
 const PriceStructureManager = ({
   packageIndex,
   generateAllHotelOptions,
@@ -378,7 +361,7 @@ const PriceStructureManager = ({
 
   return (
     <div>
-      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+      <h5 className="text-sm font-medium text-muted-foreground mb-3">
         {t("hotelCombinationsTitle")}
       </h5>
       <div className="mb-4">
@@ -402,8 +385,8 @@ const PriceStructureManager = ({
                 disabled={isAlreadyAdded}
                 className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
                   isAlreadyAdded
-                    ? "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300 dark:bg-gray-600 dark:text-gray-500 dark:border-gray-500"
-                    : "bg-gray-100 border-gray-200 hover:bg-blue-50 hover:text-blue-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
+                    ? "bg-muted text-muted-foreground cursor-not-allowed border-input"
+                    : "bg-background border-input hover:bg-primary/10 hover:text-primary hover:border-primary dark:hover:text-blue-400 dark:hover:border-blue-400"
                 }`}
               >
                 + {hotelOption.replace(/_/g, " → ")}
@@ -420,21 +403,20 @@ const PriceStructureManager = ({
           return (
             <div
               key={price.id}
-              className="bg-white dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600"
+              className="bg-card p-4 rounded-lg border border-border shadow-sm"
             >
               <div className="flex items-center justify-between mb-3">
-                <h6 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                <h6 className="text-sm font-medium text-foreground flex items-center">
                   <Users
-                    className={`w-4 h-4 ${
-                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                    }`}
+                    className={`w-4 h-4 ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
                   />
                   {currentCombination?.replace(/_/g, " → ") || ""}
                 </h6>
                 <button
                   type="button"
                   onClick={() => remove(priceIndex)}
-                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                  // UPDATED: Red-400 for icon
+                  className="p-1 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded"
                 >
                   <Trash2 className="w-[16px] h-[16px]" />
                 </button>
@@ -463,13 +445,12 @@ const RoomTypeManager = ({
 }) => {
   const { t } = useTranslation();
   const { control, register } = useFormContext();
-  const { state } = useAuthContext(); // Get auth state
+  const { state } = useAuthContext();
   const { fields, append, remove } = useFieldArray({
     control,
     name: `packages.${packageIndex}.prices.${priceIndex}.roomTypes`,
   });
 
-  // Check if user is Admin or Manager
   const canManagePrices =
     state.user?.role === "admin" || state.user?.role === "manager";
 
@@ -480,24 +461,22 @@ const RoomTypeManager = ({
           <div
             key={room.id}
             className={`grid grid-cols-1 md:grid-cols-${
-              // Adjust grid columns based on visibility
               (isCommissionBased ? 1 : 0) + (canManagePrices ? 1 : 0) + 3
-            } gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg`}
+            } gap-3 p-3 bg-muted/50 rounded-lg`}
           >
-            {/* Room Type and Guests Inputs (Keep existing) */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 {t("roomType")}
               </label>
               <input
                 {...register(
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.type`,
                 )}
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 {t("guests")}
               </label>
               <input
@@ -506,18 +485,17 @@ const RoomTypeManager = ({
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.guests`,
                   { valueAsNumber: true },
                 )}
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
                 min="1"
                 required
               />
             </div>
 
-            {/* NEW: Selling Price Input (Admin/Manager Only) */}
             {canManagePrices && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 flex items-center gap-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1 flex items-center gap-1">
                   {t("sellingPrice")}
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-muted-foreground/80">
                     ({t("minLimit")})
                   </span>
                 </label>
@@ -529,18 +507,17 @@ const RoomTypeManager = ({
                       { valueAsNumber: true },
                     )}
                     placeholder="0.00"
-                    className="w-full pl-6 px-2 py-1 text-sm border border-orange-200 dark:border-orange-900/50 rounded bg-orange-50 dark:bg-orange-900/10 text-gray-900 dark:text-gray-100 focus:ring-orange-500 focus:border-orange-500"
+                    className="w-full pl-6 px-2 py-1 text-sm border border-orange-200 dark:border-orange-900/50 rounded bg-orange-50 dark:bg-orange-900/10 text-foreground focus:ring-orange-500 focus:border-orange-500"
                     min="0"
                   />
-                  <DollarSign className="w-3 h-3 absolute left-1.5 top-2 text-gray-400" />
+                  <DollarSign className="w-3 h-3 absolute left-1.5 top-2 text-muted-foreground" />
                 </div>
               </div>
             )}
 
-            {/* Purchase Price (Commission Based Only) */}
             {isCommissionBased && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
                   {t("purchasePrice")}
                 </label>
                 <input
@@ -549,7 +526,7 @@ const RoomTypeManager = ({
                     `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
                     { valueAsNumber: true },
                   )}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-2 py-1 text-sm border border-input rounded bg-background text-foreground"
                   min="0"
                 />
               </div>
@@ -559,7 +536,8 @@ const RoomTypeManager = ({
               <button
                 type="button"
                 onClick={() => remove(roomIndex)}
-                className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors ml-auto"
+                // UPDATED: Red-400 for icon
+                className="p-2 text-destructive dark:text-red-400 hover:bg-destructive/10 dark:hover:bg-red-900/40 rounded transition-colors ml-auto"
               >
                 <Trash2 className="w-[15px] h-[15px]" />
               </button>
@@ -567,7 +545,6 @@ const RoomTypeManager = ({
           </div>
         );
       })}
-      {/* ... Add button ... */}
       <button
         type="button"
         onClick={() =>
@@ -578,7 +555,8 @@ const RoomTypeManager = ({
             sellingPrice: 0,
           })
         }
-        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+        // UPDATED: Blue-400 for link text
+        className="text-xs text-primary hover:text-primary/80 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
       >
         {t("addCustomRoomType")}
       </button>
