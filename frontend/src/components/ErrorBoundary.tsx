@@ -34,14 +34,14 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-gray-800">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground">
           <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
-          <p className="mb-6">
+          <p className="mb-6 text-muted-foreground">
             We encountered an issue loading the application.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition"
           >
             Reload Page
           </button>

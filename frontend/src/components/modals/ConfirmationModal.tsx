@@ -26,9 +26,9 @@ export default function ConfirmationModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm" level={2}>
       <div className="sm:flex sm:items-start">
-        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
+        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-destructive/10 sm:mx-0 sm:h-10 sm:w-10">
           <AlertTriangle
-            className="h-6 w-6 text-red-600 dark:text-red-400"
+            className="h-6 w-6 text-destructive"
             aria-hidden="true"
           />
         </div>
@@ -40,13 +40,13 @@ export default function ConfirmationModal({
           }`}
         >
           <h3
-            className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100"
+            className="text-lg leading-6 font-medium text-foreground"
             id="modal-title"
           >
             {title}
           </h3>
           <div className="mt-2">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-muted-foreground">
               {message}
             </p>
           </div>
@@ -55,17 +55,17 @@ export default function ConfirmationModal({
       <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
         <button
           type="button"
-          className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm"
+          className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-destructive text-destructive-foreground text-base font-medium hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive sm:w-auto sm:text-sm"
           onClick={() => {
             onConfirm();
-            onClose(); // Close modal after confirmation
+            onClose();
           }}
         >
           {confirmText}
         </button>
         <button
           type="button"
-          className="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+          className="mt-3 w-full inline-flex justify-center rounded-lg border border-border shadow-sm px-4 py-2 bg-card text-base font-medium text-card-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring sm:mt-0 sm:w-auto sm:text-sm"
           onClick={onClose}
         >
           {cancelText}

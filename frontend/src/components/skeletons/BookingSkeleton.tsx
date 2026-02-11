@@ -19,7 +19,7 @@ export default function BookingSkeleton() {
       {/* Summary Stats Skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="bg-white p-4 rounded-xl shadow-sm border">
+          <div key={i} className="bg-card p-4 rounded-xl shadow-sm border border-border">
             <Skeleton className="h-4 w-20 mx-auto" />
             <Skeleton className="h-7 w-24 mx-auto mt-2" />
           </div>
@@ -27,7 +27,7 @@ export default function BookingSkeleton() {
       </div>
 
       {/* Filters Skeleton */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <Skeleton className="h-10 flex-1" />
           <Skeleton className="h-10 w-32" />
@@ -38,10 +38,10 @@ export default function BookingSkeleton() {
       </div>
 
       {/* Table Skeleton */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-muted/50">
               <tr>
                 <th className="px-6 py-4">
                   <Skeleton className="h-4 w-16" />
@@ -60,7 +60,7 @@ export default function BookingSkeleton() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {[...Array(5)].map((_, i) => (
                 <tr key={i}>
                   <td className="px-6 py-4">

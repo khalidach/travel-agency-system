@@ -42,23 +42,23 @@ export default function Modal({
     <div className={`fixed inset-0 `} style={{ zIndex: 50 + level * 10 }}>
       <div className="flex min-h-screen items-center justify-center p-4">
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 transition-opacity"
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 transition-opacity"
           onClick={onClose}
           style={{ zIndex: 50 + level * 10 }}
         />
         <div
-          className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all max-h-[90vh] flex flex-col`}
+          className={`relative bg-card rounded-2xl shadow-2xl w-full ${sizeClasses[size]} transform transition-all max-h-[90vh] flex flex-col`}
           style={{ zIndex: 51 + level * 10 }}
         >
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-between p-6 border-b border-border flex-shrink-0">
+            <h3 className="text-lg font-semibold text-card-foreground">
               {title}
             </h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-lg transition-colors"
             >
-              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <X className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
           <div className="p-6 overflow-y-auto">{children}</div>
