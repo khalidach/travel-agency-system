@@ -61,9 +61,6 @@ export default function Facturation() {
         "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
       >,
     ) => {
-      // FIX: Cast via 'unknown' to avoids 'no-explicit-any' lint error.
-      // We manually assert the type expected by api.createFacture.
-      // The backend handles the missing 'userId' and 'facture_number'.
       return api.createFacture(
         data as unknown as Omit<Facture, "id" | "createdAt" | "updatedAt">,
       );
@@ -111,7 +108,8 @@ export default function Facturation() {
 
   const handleDownloadPDF = async (facture: Facture) => {
     setFactureToPreview(facture);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Increased timeout slightly to ensure rendering completes
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
     const input = document.getElementById("pdf-preview");
     if (input) {
@@ -136,26 +134,26 @@ export default function Facturation() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("facturationTitle")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("facturationSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsHelpModalOpen(true)}
-            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            className="p-2 text-muted-foreground bg-secondary hover:bg-secondary/80 rounded-full transition-colors"
             aria-label="Help"
           >
             <HelpCircle className="w-6 h-6" />
           </button>
           <button
             onClick={handleNewDocumentClick}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-sm"
+            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 shadow-sm transition-colors"
           >
             <Plus
               className={`w-5 h-5 ${
@@ -167,103 +165,111 @@ export default function Facturation() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700/50">
-            <tr>
-              {[
-                "N°",
-                "documentType",
-                "clientName",
-                "documentDate",
-                "total",
-                "actions",
-              ].map((h) => (
-                <th
-                  key={h}
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t(h)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {isLoading ? (
+      <div className="bg-card text-card-foreground rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/50">
               <tr>
-                <td colSpan={6} className="text-center p-4">
-                  Loading...
-                </td>
+                {[
+                  "N°",
+                  "documentType",
+                  "clientName",
+                  "documentDate",
+                  "total",
+                  "actions",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
+                      document.documentElement.dir === "rtl"
+                        ? "text-right"
+                        : "text-left"
+                    }`}
+                  >
+                    {t(h)}
+                  </th>
+                ))}
               </tr>
-            ) : factures.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center p-12">
-                  <FileText className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {t("noDocuments")}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {t("createFirstDocument")}
-                  </p>
-                </td>
-              </tr>
-            ) : (
-              factures.map((facture) => (
-                <tr
-                  key={facture.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {facture.facture_number}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm capitalize text-gray-700 dark:text-gray-300">
-                    {t(facture.type)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {facture.clientName}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {new Date(facture.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                    {facture.total.toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleDownloadPDF(facture)}
-                        className="p-2 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-gray-700 rounded-lg"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingFacture(facture);
-                          setIsModalOpen(true);
-                        }}
-                        className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setFactureToDelete(facture.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 rounded-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="text-center p-4 text-muted-foreground"
+                  >
+                    Loading...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : factures.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center p-12">
+                    <FileText className="w-12 h-12 mx-auto text-muted-foreground/50" />
+                    <h3 className="mt-2 text-sm font-medium text-foreground">
+                      {t("noDocuments")}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t("createFirstDocument")}
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                factures.map((facture) => (
+                  <tr
+                    key={facture.id}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
+                      {facture.facture_number}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm capitalize text-muted-foreground">
+                      {t(facture.type)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {facture.clientName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {new Date(facture.date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {facture.total.toLocaleString()} {t("mad")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleDownloadPDF(facture)}
+                          className="p-2 text-muted-foreground hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                          title={t("download") || "Download"}
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingFacture(facture);
+                            setIsModalOpen(true);
+                          }}
+                          className="p-2 text-muted-foreground hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                          title={t("edit") || "Edit"}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setFactureToDelete(facture.id)}
+                          className="p-2 text-muted-foreground hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title={t("delete") || "Delete"}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
         {pagination && pagination.totalPages > 1 && (
-          <div className="p-4">
+          <div className="p-4 border-t border-border">
             <PaginationControls
               currentPage={currentPage}
               totalPages={pagination.totalPages}
@@ -299,6 +305,9 @@ export default function Facturation() {
         message={t("deleteDocumentMessage")}
       />
 
+      {/* This div is strictly for PDF generation. 
+        It must remain hidden from view and standard light colors (white paper) for printing.
+      */}
       {factureToPreview && (
         <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
           <div id="pdf-preview">

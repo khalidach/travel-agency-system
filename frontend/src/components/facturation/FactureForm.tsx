@@ -9,7 +9,7 @@ interface FactureFormProps {
     data: Omit<
       Facture,
       "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
-    >
+    >,
   ) => void;
   onCancel: () => void;
   existingFacture?: Facture | null;
@@ -89,7 +89,7 @@ export default function FactureForm({
   const handleItemChange = (
     index: number,
     field: keyof FactureItemForm,
-    value: string | number
+    value: string | number,
   ) => {
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
@@ -168,16 +168,23 @@ export default function FactureForm({
   const priceColSpan = showMargin ? "md:col-span-2" : "md:col-span-2";
   const totalColSpan = showMargin ? "md:col-span-2" : "md:col-span-2";
 
+  // Reusable styling classes
+  const inputClass =
+    "mt-1 block w-full px-3 py-2 bg-background text-foreground border border-input rounded-md focus:ring-1 focus:ring-ring focus:border-ring placeholder:text-muted-foreground";
+  const labelClass = "block text-sm font-medium text-foreground";
+  const sectionHeaderClass =
+    "text-lg font-medium text-foreground border-b border-border pb-2";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <style>{`
-        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
-      `}</style>
-      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+      {/* The toggle logic below relies on index.css containing:
+        .toggle-checkbox:checked { right: 0; border-color: hsl(var(--primary)); }
+        .toggle-checkbox:checked + .toggle-label { background-color: hsl(var(--primary)); }
+      */}
+      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
         <label
           htmlFor="show-margin-toggle"
-          className="font-medium text-gray-700"
+          className="font-medium text-foreground"
         >
           Display Service Fees & TVA
         </label>
@@ -192,91 +199,80 @@ export default function FactureForm({
               setShowMargin(checked);
               if (!checked) {
                 setItems(
-                  items.map((item) => ({ ...item, fraisServiceUnitaire: 0 }))
+                  items.map((item) => ({ ...item, fraisServiceUnitaire: 0 })),
                 );
               }
             }}
-            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
+            className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-muted appearance-none cursor-pointer"
           />
           <label
             htmlFor="show-margin-toggle"
-            className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"
+            className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 dark:bg-gray-600 cursor-pointer"
           ></label>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {t("documentType")}
-          </label>
+          <label className={labelClass}>{t("documentType")}</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as "facture" | "devis")}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            className={inputClass}
           >
             <option value="facture">{t("invoice")}</option>
             <option value="devis">{t("quote")}</option>
           </select>
         </div>
       </div>
-      <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
-        {t("clientInfo")}
-      </h3>
+
+      <h3 className={sectionHeaderClass}>{t("clientInfo")}</h3>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {t("clientName")}
-          </label>
+          <label className={labelClass}>{t("clientName")}</label>
           <input
             type="text"
             value={clientName}
             onChange={(e) => setClientName(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {t("clientAddress")}
-          </label>
+          <label className={labelClass}>{t("clientAddress")}</label>
           <input
             type="text"
             value={clientAddress}
             onChange={(e) => setClientAddress(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {t("ice")}
-          </label>
+          <label className={labelClass}>{t("ice")}</label>
           <input
             type="text"
             value={clientICE}
             onChange={(e) => setClientICE(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            className={inputClass}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            {t("documentDate")}
-          </label>
+          <label className={labelClass}>{t("documentDate")}</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+            className={`${inputClass} dark:[color-scheme:dark]`}
             required
           />
         </div>
       </div>
 
-      <h3 className="text-lg font-medium text-gray-900 border-b pb-2">
-        {t("items")}
-      </h3>
+      <h3 className={sectionHeaderClass}>{t("items")}</h3>
+
       <div className="space-y-4">
         <div
-          className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-medium text-gray-500`}
+          className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-medium text-muted-foreground`}
         >
           <div className={descColSpan}>DESIGNATION</div>
           <div className="col-span-1 text-center">QU</div>
@@ -287,6 +283,7 @@ export default function FactureForm({
           <div className={`${totalColSpan} text-left`}>MONTANT TOTAL</div>
           <div className="col-span-1"></div>
         </div>
+
         {calculatedTotals.itemsWithTotals.map((item, index) => (
           <div
             key={index}
@@ -300,7 +297,7 @@ export default function FactureForm({
                 onChange={(e) =>
                   handleItemChange(index, "description", e.target.value)
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={inputClass}
                 required
               />
             </div>
@@ -311,7 +308,7 @@ export default function FactureForm({
                 onChange={(e) =>
                   handleItemChange(index, "quantity", Number(e.target.value))
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-center"
+                className={`${inputClass} text-center`}
                 required
               />
             </div>
@@ -323,10 +320,10 @@ export default function FactureForm({
                   handleItemChange(
                     index,
                     "prixUnitaire",
-                    Number(e.target.value)
+                    Number(e.target.value),
                   )
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
+                className={`${inputClass} text-right`}
                 required
               />
             </div>
@@ -339,16 +336,16 @@ export default function FactureForm({
                     handleItemChange(
                       index,
                       "fraisServiceUnitaire",
-                      Number(e.target.value)
+                      Number(e.target.value),
                     )
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-right"
+                  className={`${inputClass} text-right`}
                   required
                 />
               </div>
             )}
             <div className={`col-span-10 ${totalColSpan}`}>
-              <div className="w-full px-3 py-2 text-right font-medium bg-gray-100 rounded-md">
+              <div className="w-full px-3 py-2 text-right font-medium bg-muted/50 text-foreground rounded-md border border-input">
                 {item.total.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -359,17 +356,18 @@ export default function FactureForm({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="text-red-500 hover:text-red-700 p-2"
+                className="text-muted-foreground hover:text-red-500 p-2 transition-colors"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
           </div>
         ))}
+
         <button
           type="button"
           onClick={addItem}
-          className="inline-flex items-center px-3 py-1 text-sm bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+          className="inline-flex items-center px-3 py-1.5 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
         >
           <Plus className="w-4 h-4 mr-1" /> {t("addItem")}
         </button>
@@ -379,39 +377,41 @@ export default function FactureForm({
         <div className="w-full max-w-sm space-y-2 text-sm">
           {showMargin && (
             <>
-              <div className="flex justify-between p-2 bg-gray-50 rounded-md">
-                <span className="font-medium text-gray-600">
+              <div className="flex justify-between p-2 bg-muted/30 rounded-md">
+                <span className="font-medium text-muted-foreground">
                   Prix Total H. Frais de SCE
                 </span>
-                <span className="font-semibold text-gray-800">
+                <span className="font-semibold text-foreground">
                   {calculatedTotals.prixTotalHorsFrais.toLocaleString(
                     undefined,
                     {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    }
+                    },
                   )}{" "}
                   {t("mad")}
                 </span>
               </div>
               <div className="flex justify-between p-2">
-                <span className="font-medium text-gray-600">
+                <span className="font-medium text-muted-foreground">
                   Frais de Service Hors TVA
                 </span>
-                <span className="font-semibold text-gray-800">
+                <span className="font-semibold text-foreground">
                   {calculatedTotals.totalFraisServiceHT.toLocaleString(
                     undefined,
                     {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    }
+                    },
                   )}{" "}
                   {t("mad")}
                 </span>
               </div>
               <div className="flex justify-between p-2">
-                <span className="font-medium text-gray-600">TVA 20%</span>
-                <span className="font-semibold text-gray-800">
+                <span className="font-medium text-muted-foreground">
+                  TVA 20%
+                </span>
+                <span className="font-semibold text-foreground">
                   {calculatedTotals.tva.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -421,7 +421,7 @@ export default function FactureForm({
               </div>
             </>
           )}
-          <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2 p-2 bg-gray-100 rounded-md">
+          <div className="flex justify-between font-bold text-lg border-t border-border pt-2 mt-2 p-2 bg-muted/50 rounded-md text-foreground">
             <span>Total Facture</span>
             <span>
               {calculatedTotals.totalFacture.toLocaleString(undefined, {
@@ -435,35 +435,33 @@ export default function FactureForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700">
-          {t("notes")}
-        </label>
+        <label className={labelClass}>{t("notes")}</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder={t("notesPlaceholder") as string}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+          className={inputClass}
           rows={3}
         ></textarea>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+      <div className="flex justify-end space-x-3 pt-6 border-t border-border mt-6">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 text-foreground border border-input rounded-lg hover:bg-muted transition-colors"
         >
           {t("cancel")}
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
         >
           {existingFacture
             ? t("updateDocument")
             : type === "facture"
-            ? t("createInvoice")
-            : t("createQuote")}
+              ? t("createInvoice")
+              : t("createQuote")}
         </button>
       </div>
     </form>
