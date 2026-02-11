@@ -212,10 +212,10 @@ export default function Programs() {
           </button>
           <button
             onClick={handleAddProgram}
-            className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
+            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
           >
             <Plus
-              className={`w-5 h-5 ${
+              className={`w-5 h-5 text-white ${
                 document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
               }`}
             />
