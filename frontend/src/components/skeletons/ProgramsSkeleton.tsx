@@ -11,18 +11,20 @@ export default function ProgramsSkeleton() {
         <Skeleton className="h-10 w-36 mt-4 sm:mt-0" />
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      {/* Filters Area */}
+      <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <Skeleton className="h-10 flex-1" />
           <Skeleton className="h-10 w-32" />
         </div>
       </div>
 
+      {/* Grid Area */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+            className="bg-card rounded-2xl p-6 shadow-sm border border-border"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -35,7 +37,7 @@ export default function ProgramsSkeleton() {
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-4 w-1/3" />
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="mt-4 pt-4 border-t border-border">
               <div className="flex flex-wrap gap-2">
                 <Skeleton className="h-4 w-16" />
                 <Skeleton className="h-4 w-20" />
