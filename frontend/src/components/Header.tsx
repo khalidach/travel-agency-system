@@ -179,7 +179,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="bg-card shadow-sm border-b border-border transition-colors duration-300">
+    <header className="bg-sidebar shadow-sm border-b border-border transition-colors duration-300">
       <div className="px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <div>
@@ -384,9 +384,9 @@ export default function Header() {
 
                   <button
                     onClick={handleLogout}
-                    className="flex items-center w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-danger hover:bg-destructive/10 transition-colors "
                   >
-                    <LogOut className="w-4 h-4 mr-3" />
+                    <LogOut className="w-4 h-4 mr-3 text-danger" />
                     <span>{t("logout")}</span>
                   </button>
                 </div>
