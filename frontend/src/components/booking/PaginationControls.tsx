@@ -19,11 +19,11 @@ export default function PaginationControls({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex justify-between items-center py-3 px-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-2xl">
+    <div className="flex justify-between items-center py-3 px-6 border-t border-border bg-card text-card-foreground rounded-b-2xl">
       <button
         onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
         disabled={currentPage === 1}
-        className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <ChevronLeft
           className={`w-4 h-4 ${
@@ -35,10 +35,7 @@ export default function PaginationControls({
       <div className="flex items-center space-x-1">
         {paginationRange.map((page, i) =>
           typeof page === "string" ? (
-            <span
-              key={i}
-              className="px-3 py-1 text-sm text-gray-400 dark:text-gray-500"
-            >
+            <span key={i} className="px-3 py-1 text-sm text-muted-foreground">
               ...
             </span>
           ) : (
@@ -47,8 +44,8 @@ export default function PaginationControls({
               onClick={() => onPageChange(page)}
               className={`px-3 py-1 text-sm rounded-lg transition-colors ${
                 currentPage === page
-                  ? "bg-blue-600 text-white font-bold shadow-sm"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
               {page}
@@ -59,7 +56,7 @@ export default function PaginationControls({
       <button
         onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
         disabled={currentPage === totalPages}
-        className="inline-flex items-center px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {t("next")}
         <ChevronRight className="w-4 h-4 ml-1" />

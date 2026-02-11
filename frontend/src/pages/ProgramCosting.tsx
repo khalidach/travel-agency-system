@@ -43,7 +43,6 @@ export default function ProgramCosting() {
     },
   });
 
-  // Removed 'setValue' to fix the unused variable error
   const { control, handleSubmit, watch, reset } = methods;
 
   const { fields, append, remove } = useFieldArray({
@@ -134,7 +133,6 @@ export default function ProgramCosting() {
       queryClient.invalidateQueries({
         queryKey: ["bookingsByProgram", programId],
       });
-      // NEW: Invalidate the program list used by the ProgramCostingList page
       queryClient.invalidateQueries({
         queryKey: ["programsForCosting"],
       });
@@ -160,15 +158,15 @@ export default function ProgramCosting() {
             <button
               type="button"
               onClick={() => navigate("/program-costing")}
-              className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+              className="p-2 bg-secondary text-secondary-foreground rounded-full hover:bg-secondary/80 transition-colors"
             >
               <ChevronLeft />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-3xl font-bold text-foreground">
                 {program?.name}
               </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-muted-foreground mt-1">
                 {t("programCostingSubtitle")}
               </p>
             </div>
@@ -176,8 +174,8 @@ export default function ProgramCosting() {
           <div className="flex items-center gap-4">
             <div className="flex items-center space-x-2">
               <span
-                className={`text-sm font-medium ${
-                  isEnabled ? "text-green-600" : "text-red-600"
+                className={`text-sm font-medium  ${
+                  isEnabled ? "text-success" : "text-danger"
                 }`}
               >
                 {isEnabled ? t("calculationActive") : t("calculationLocked")}
@@ -203,12 +201,12 @@ export default function ProgramCosting() {
                     )}
                   />
                   <div
-                    className={`block w-14 h-8 rounded-full ${
-                      isEnabled ? "bg-blue-600" : "bg-gray-300 dark:bg-gray-600"
+                    className={`block w-14 h-8 rounded-full transition-colors ${
+                      isEnabled ? "bg-primary" : "bg-muted"
                     }`}
                   ></div>
                   <div
-                    className={`dot absolute left-1 top-1 bg-white dark:bg-gray-300 w-6 h-6 rounded-full transition-transform ${
+                    className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
                       isEnabled ? "translate-x-6" : ""
                     }`}
                   ></div>
@@ -218,7 +216,7 @@ export default function ProgramCosting() {
             <button
               type="submit"
               disabled={isSaving}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl disabled:bg-gray-400"
+              className="inline-flex items-center px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl disabled:opacity-50 transition-colors"
             >
               <Save className="w-5 h-5 mr-2" />
               {isSaving ? t("saving") : t("save")}
@@ -226,10 +224,10 @@ export default function ProgramCosting() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border dark:border-gray-700 space-y-6">
+        <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-sm border border-border space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-foreground">
                 {t("totalFlightTicketsCost")}
               </label>
               <Controller
@@ -239,13 +237,13 @@ export default function ProgramCosting() {
                   <input
                     type="number"
                     {...field}
-                    className="mt-1 w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                    className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
                 )}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-foreground">
                 {t("totalVisaCost")}
               </label>
               <Controller
@@ -255,13 +253,13 @@ export default function ProgramCosting() {
                   <input
                     type="number"
                     {...field}
-                    className="mt-1 w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                    className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
                 )}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="block text-sm font-medium text-foreground">
                 {t("transportFees")}
               </label>
               <Controller
@@ -271,20 +269,20 @@ export default function ProgramCosting() {
                   <input
                     type="number"
                     {...field}
-                    className="mt-1 w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                    className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
                 )}
               />
             </div>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               {t("hotels")}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {distinctHotels.map((hotel, index) => (
                 <div key={hotel}>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="block text-sm font-medium text-foreground">
                     {t("totalHotelCost", { hotelName: hotel })}
                   </label>
                   <Controller
@@ -294,7 +292,7 @@ export default function ProgramCosting() {
                       <input
                         type="number"
                         {...field}
-                        className="mt-1 w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                        className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                       />
                     )}
                   />
@@ -304,7 +302,7 @@ export default function ProgramCosting() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               {t("otherCosts")}
             </h3>
             <div className="space-y-3">
@@ -320,7 +318,7 @@ export default function ProgramCosting() {
                       <input
                         {...field}
                         placeholder={t("costName") as string}
-                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                        className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                       />
                     )}
                   />
@@ -332,14 +330,14 @@ export default function ProgramCosting() {
                         type="number"
                         {...field}
                         placeholder={t("costAmount") as string}
-                        className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                        className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                       />
                     )}
                   />
                   <button
                     type="button"
                     onClick={() => remove(index)}
-                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                    className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -349,19 +347,19 @@ export default function ProgramCosting() {
             <button
               type="button"
               onClick={() => append({ name: "", amount: 0 })}
-              className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+              className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
             >
               <Plus className="w-4 h-4 mr-1" /> {t("addCost")}
             </button>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border dark:border-gray-700 flex justify-end">
+        <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-sm border border-border flex justify-end">
           <div className="flex items-center space-x-4">
-            <span className="text-lg font-medium text-gray-700 dark:text-gray-300">
+            <span className="text-lg font-medium text-foreground">
               {t("totalProgramCost")}:
             </span>
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <span className="text-2xl font-bold text-primary">
               {totalCost.toLocaleString()} {t("mad")}
             </span>
           </div>

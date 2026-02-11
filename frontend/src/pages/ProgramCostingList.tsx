@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ChevronRight } from "lucide-react"; // Import ChevronRight
+import { DollarSign, ChevronRight } from "lucide-react";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import type { Program, PaginatedResponse } from "../context/models";
@@ -38,7 +38,7 @@ export default function ProgramCostingList() {
         programsPerPage,
         submittedSearchTerm,
         filterType,
-        "costing" // Use the new view to filter out commission-based programs
+        "costing",
       ),
   });
 
@@ -67,16 +67,17 @@ export default function ProgramCostingList() {
     setSubmittedSearchTerm(searchTerm);
   };
 
+  // Uses semantic colors defined in index.css (Info, Success, Warning)
   const getTypeColor = (type: string) => {
     switch (type) {
       case "Hajj":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+        return "bg-info/10 text-info border border-info/20";
       case "Umrah":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+        return "bg-success/10 text-success border border-success/20";
       case "Tourism":
-        return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
+        return "bg-warning/10 text-warning border border-warning/20";
       default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
+        return "bg-secondary text-secondary-foreground";
     }
   };
 
@@ -88,16 +89,16 @@ export default function ProgramCostingList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("programCosting")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("programCostingListSubtitle")}
           </p>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <input
@@ -106,13 +107,13 @@ export default function ProgramCostingList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input placeholder:text-muted-foreground"
             />
           </div>
           <select
             value={filterType}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-4 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input"
           >
             <option value="all">{t("allTypes")}</option>
             <option value="Hajj">Hajj</option>
@@ -127,17 +128,17 @@ export default function ProgramCostingList() {
           <div
             key={program.id}
             onClick={() => handleProgramSelect(program.id)}
-            className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 cursor-pointer flex flex-col justify-between"
+            className="group bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border hover:shadow-lg hover:border-primary transition-all duration-300 cursor-pointer flex flex-col justify-between"
           >
             <div>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h3 className="text-lg font-semibold text-foreground">
                     {program.name}
                   </h3>
                   <span
                     className={`inline-block px-3 py-1 text-xs font-medium rounded-full mt-2 ${getTypeColor(
-                      program.type
+                      program.type,
                     )}`}
                   >
                     {program.type}
@@ -145,43 +146,37 @@ export default function ProgramCostingList() {
                 </div>
               </div>
 
-              {/* --- NEW COST DETAILS SECTION --- */}
-              <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300 mb-4">
+              {/* --- COST DETAILS SECTION --- */}
+              <div className="space-y-2 text-sm text-muted-foreground mb-4">
                 {program.costs && program.costs.totalCost > 0 ? (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {t("totalFlightTicketsCost")}:
-                      </span>
-                      <span className="font-medium">
+                      <span>{t("totalFlightTicketsCost")}:</span>
+                      <span className="font-medium text-foreground">
                         {program.costs.costs?.flightTickets?.toLocaleString() ||
                           0}{" "}
                         {t("mad")}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {t("totalVisaCost")}:
-                      </span>
-                      <span className="font-medium">
+                      <span>{t("totalVisaCost")}:</span>
+                      <span className="font-medium text-foreground">
                         {program.costs.costs?.visa?.toLocaleString() || 0}{" "}
                         {t("mad")}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500 dark:text-gray-400">
-                        {t("transportFees")}:
-                      </span>
-                      <span className="font-medium">
+                      <span>{t("transportFees")}:</span>
+                      <span className="font-medium text-foreground">
                         {program.costs.costs?.transport?.toLocaleString() || 0}{" "}
                         {t("mad")}
                       </span>
                     </div>
-                    <div className="flex justify-between pt-2 border-t dark:border-gray-600 mt-2">
-                      <span className="font-semibold text-base text-gray-800 dark:text-gray-100">
+                    <div className="flex justify-between pt-2 border-t border-border mt-2">
+                      <span className="font-semibold text-base text-foreground">
                         {t("totalProgramCost")}:
                       </span>
-                      <span className="font-bold text-base text-blue-600 dark:text-blue-400">
+                      <span className="font-bold text-base text-primary">
                         {program.costs.totalCost?.toLocaleString() || 0}{" "}
                         {t("mad")}
                       </span>
@@ -189,16 +184,15 @@ export default function ProgramCostingList() {
                   </>
                 ) : (
                   <div className="text-center py-4">
-                    <span className="text-gray-400 dark:text-gray-500 italic">
+                    <span className="text-muted-foreground italic">
                       {t("noPricingSet")}
                     </span>
                   </div>
                 )}
               </div>
-              {/* --- END NEW COST DETAILS SECTION --- */}
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end text-blue-600 dark:text-blue-400 font-medium group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+            <div className="mt-6 pt-4 border-t border-border flex items-center justify-end text-primary font-medium group-hover:text-primary/80 transition-colors">
               {t("enterCosts")}
               <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
             </div>
@@ -216,16 +210,14 @@ export default function ProgramCostingList() {
       )}
 
       {programs.length === 0 && !isLoadingPrograms && (
-        <div className="col-span-full text-center py-12 bg-white dark:bg-gray-800 rounded-2xl">
-          <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-            <DollarSign className="w-12 h-12 text-gray-400 dark:text-gray-500" />
+        <div className="col-span-full text-center py-12 bg-card rounded-2xl border border-border">
+          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <DollarSign className="w-12 h-12 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          <h3 className="text-lg font-medium text-foreground mb-2">
             {t("noProgramsCosting")}
           </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {t("noProgramsCostingLead")}
-          </p>
+          <p className="text-muted-foreground">{t("noProgramsCostingLead")}</p>
         </div>
       )}
     </div>
