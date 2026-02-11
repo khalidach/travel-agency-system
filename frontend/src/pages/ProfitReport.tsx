@@ -105,23 +105,23 @@ export default function ProfitReport() {
   }
 
   if (isError) {
-    return <div>{t("errorLoadingDashboard")}</div>;
+    return <div className="text-destructive">{t("errorLoadingDashboard")}</div>;
   }
 
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("profitReportTitle")}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-muted-foreground mt-2">
             {t("profitReportSubtitle")}
           </p>
         </div>
         <button
           onClick={() => setIsHelpModalOpen(true)}
-          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          className="p-2 text-secondary-foreground bg-secondary rounded-full hover:bg-secondary/80 transition-colors"
           aria-label={t("help") as string}
         >
           <HelpCircle className="w-6 h-6" />
@@ -129,73 +129,80 @@ export default function ProfitReport() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        {/* Total Bookings Card */}
+        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 {t("totalBookings")}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+              <p className="text-2xl font-bold mt-2">
                 {totals.totalBookings.toLocaleString()}
               </p>
             </div>
-            <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-chart-1 rounded-xl flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+
+        {/* Total Sales Card */}
+        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 {t("totalSales")}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+              <p className="text-2xl font-bold mt-2">
                 {totals.totalSales.toLocaleString()} {t("mad")}
               </p>
             </div>
-            <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-chart-2 rounded-xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+
+        {/* Total Profit Card */}
+        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 {t("totalProfit")}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+              <p className="text-2xl font-bold mt-2">
                 {totals.totalProfit.toLocaleString()} {t("mad")}
               </p>
             </div>
-            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-chart-3 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+
+        {/* Profit Margin Card */}
+        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-muted-foreground">
                 {t("profitMargin")}
               </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+              <p className="text-2xl font-bold mt-2">
                 {totals.profitMargin.toFixed(1)}%
               </p>
             </div>
-            <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-              <Package className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-chart-4 rounded-xl flex items-center justify-center">
+              <Package className="w-6 h-6 text-primary-foreground" />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+      <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Filter className="w-5 h-5 text-muted-foreground" />
+            <span className="text-sm font-medium text-card-foreground">
               {t("filters")}
             </span>
           </div>
@@ -203,9 +210,9 @@ export default function ProfitReport() {
             value={filterType}
             onChange={(e) => {
               setFilterType(e.target.value);
-              setCurrentPage(1); // Reset page on filter change
+              setCurrentPage(1);
             }}
-            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
           >
             <option value="all">{t("allProgramTypes")}</option>
             <option value="Hajj">{t("Hajj")}</option>
@@ -217,16 +224,25 @@ export default function ProfitReport() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+          <h3 className="text-lg font-semibold text-card-foreground mb-6">
             {t("monthlyBookingsTrend")}
           </h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={monthlyTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="month" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+              />
+              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+              <YAxis stroke="hsl(var(--muted-foreground))" />
               <Tooltip
+                contentStyle={{
+                  backgroundColor: "hsl(var(--popover))",
+                  borderColor: "hsl(var(--border))",
+                  color: "hsl(var(--popover-foreground))",
+                  borderRadius: "var(--radius)",
+                }}
                 formatter={(value: number) => [
                   `${value.toLocaleString()} ${t("bookings")}`,
                   t("totalBookings"),
@@ -235,99 +251,64 @@ export default function ProfitReport() {
               <Line
                 type="monotone"
                 dataKey="bookings"
-                stroke="#3b82f6"
+                stroke="hsl(var(--primary))"
                 strokeWidth={3}
-                dot={{ fill: "#3b82f6", strokeWidth: 2, r: 6 }}
+                dot={{
+                  fill: "hsl(var(--primary))",
+                  strokeWidth: 2,
+                  r: 6,
+                }}
+                activeDot={{
+                  r: 8,
+                  stroke: "hsl(var(--background))",
+                }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-lg font-semibold text-card-foreground">
             {t("detailedProgramPerformance")}
           </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700/50">
+            <thead className="bg-muted/50">
               <tr>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("programName")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("programType")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("bookings")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("totalSales")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("totalCost")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("totalProfit")}
-                </th>
-                <th
-                  className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    document.documentElement.dir === "rtl"
-                      ? "text-right"
-                      : "text-left"
-                  }`}
-                >
-                  {t("profitMargin")}
-                </th>
+                {[
+                  "programName",
+                  "programType",
+                  "bookings",
+                  "totalSales",
+                  "totalCost",
+                  "totalProfit",
+                  "profitMargin",
+                ].map((header) => (
+                  <th
+                    key={header}
+                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
+                      document.documentElement.dir === "rtl"
+                        ? "text-right"
+                        : "text-left"
+                    }`}
+                  >
+                    {t(header)}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-card divide-y divide-border">
               {detailedPerformanceData.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
                   onClick={() => navigate(`/booking/program/${item.id}`)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div className="text-sm font-medium text-foreground">
                       {item.programName}
                     </div>
                   </td>
@@ -335,28 +316,28 @@ export default function ProfitReport() {
                     <span
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         item.type === "Hajj"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+                          ? "bg-chart-1/20 text-chart-1"
                           : item.type === "Umrah"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                            : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300"
+                            ? "bg-chart-2/20 text-chart-2"
+                            : "bg-chart-3/20 text-chart-3"
                       }`}
                     >
                       {t(item.type)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {item.bookings}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {item.totalSales.toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {item.totalCost.toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-success">
                     {item.totalProfit.toLocaleString()} {t("mad")}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     <div className="flex items-center">
                       <span
                         className={`${
@@ -367,9 +348,9 @@ export default function ProfitReport() {
                       >
                         {item.profitMargin.toFixed(1)}%
                       </span>
-                      <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div className="w-16 bg-secondary rounded-full h-2">
                         <div
-                          className="bg-emerald-500 h-2 rounded-full"
+                          className="bg-success h-2 rounded-full"
                           style={{
                             width: `${Math.min(item.profitMargin, 100)}%`,
                           }}
