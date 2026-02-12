@@ -10,8 +10,8 @@ const calculatePaymentStatus = (amount, payments) => {
   );
   const remaining = parseFloat(amount) - totalPaid;
   return {
-    remainingBalance: remaining > 0 ? remaining : 0,
-    isFullyPaid: remaining <= 0,
+    remainingBalance: remaining > 0.1 ? remaining : 0, // 0.1 tolerance for float math
+    isFullyPaid: remaining <= 0.1,
   };
 };
 
@@ -43,12 +43,41 @@ exports.getAllExpenses = async (req, res, next) => {
 
 exports.createExpense = async (req, res, next) => {
   try {
-    const { type, category, description, beneficiary, amount, date } = req.body;
+    const {
+      type,
+      category,
+      description,
+      beneficiary,
+      amount,
+      date,
+      paymentMethod,
+    } = req.body;
+
+    let advancePayments = [];
+    let remainingBalance = amount;
+    let isFullyPaid = false;
+
+    // --- NEW LOGIC: Regular expenses are paid immediately ---
+    if (type === "regular") {
+      isFullyPaid = true;
+      remainingBalance = 0;
+      // Create a full payment record automatically
+      advancePayments = [
+        {
+          _id: uuidv4(),
+          id: uuidv4(),
+          date: date,
+          amount: amount,
+          method: paymentMethod || "cash", // Default to cash if not provided
+          labelPaper: "Auto-payment for Regular Expense",
+        },
+      ];
+    }
 
     const { rows } = await req.db.query(
       `INSERT INTO expenses 
-      ("userId", "employeeId", type, category, description, beneficiary, amount, "remainingBalance", date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ("userId", "employeeId", type, category, description, beneficiary, amount, "advancePayments", "remainingBalance", "isFullyPaid", date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         req.user.id,
@@ -58,7 +87,9 @@ exports.createExpense = async (req, res, next) => {
         description,
         beneficiary,
         amount,
-        amount, // Initial remaining balance equals amount
+        JSON.stringify(advancePayments),
+        remainingBalance,
+        isFullyPaid,
         date,
       ],
     );
@@ -73,9 +104,10 @@ exports.createExpense = async (req, res, next) => {
 exports.updateExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { category, description, beneficiary, amount, date } = req.body;
+    const { category, description, beneficiary, amount, date, paymentMethod } =
+      req.body;
 
-    // Fetch existing to recalculate balance if amount changes
+    // Fetch existing
     const existing = await req.db.query(
       `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
       [id, req.user.id],
@@ -84,16 +116,38 @@ exports.updateExpense = async (req, res, next) => {
     if (existing.rowCount === 0)
       return next(new AppError("Expense not found", 404));
 
-    const currentPayments = existing.rows[0].advancePayments || [];
-    const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
-      amount,
-      currentPayments,
-    );
+    const expense = existing.rows[0];
+    let advancePayments = expense.advancePayments || [];
+    let remainingBalance;
+    let isFullyPaid;
+
+    if (expense.type === "regular") {
+      // For regular expenses, ensure the single payment matches the new amount
+      // We wipe old payments and create a new one to ensure consistency
+      advancePayments = [
+        {
+          _id: uuidv4(),
+          id: uuidv4(),
+          date: date,
+          amount: amount,
+          method: paymentMethod || "cash",
+          labelPaper: "Auto-payment (Updated)",
+        },
+      ];
+      remainingBalance = 0;
+      isFullyPaid = true;
+    } else {
+      // For order notes, preserve payments but recalculate balance
+      const status = calculatePaymentStatus(amount, advancePayments);
+      remainingBalance = status.remainingBalance;
+      isFullyPaid = status.isFullyPaid;
+    }
 
     const { rows } = await req.db.query(
       `UPDATE expenses 
-      SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, "remainingBalance" = $6, "isFullyPaid" = $7, "updatedAt" = NOW()
-      WHERE id = $8 AND "userId" = $9
+      SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, 
+          "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, "updatedAt" = NOW()
+      WHERE id = $9 AND "userId" = $10
       RETURNING *`,
       [
         category,
@@ -101,6 +155,7 @@ exports.updateExpense = async (req, res, next) => {
         beneficiary,
         amount,
         date,
+        JSON.stringify(advancePayments),
         remainingBalance,
         isFullyPaid,
         id,
@@ -136,6 +191,18 @@ exports.deleteExpense = async (req, res, next) => {
 exports.addPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Check type first
+    const check = await req.db.query(
+      `SELECT type FROM expenses WHERE id = $1`,
+      [id],
+    );
+    if (check.rows.length > 0 && check.rows[0].type === "regular") {
+      return next(
+        new AppError("Cannot manually add payments to regular expenses.", 400),
+      );
+    }
+
     const payment = { ...req.body, _id: uuidv4(), id: uuidv4() };
 
     const { rows } = await req.db.query(
@@ -174,6 +241,20 @@ exports.addPayment = async (req, res, next) => {
 exports.deletePayment = async (req, res, next) => {
   try {
     const { id, paymentId } = req.params;
+
+    // Check type first
+    const check = await req.db.query(
+      `SELECT type FROM expenses WHERE id = $1`,
+      [id],
+    );
+    if (check.rows.length > 0 && check.rows[0].type === "regular") {
+      return next(
+        new AppError(
+          "Cannot manually delete payments from regular expenses.",
+          400,
+        ),
+      );
+    }
 
     const { rows } = await req.db.query(
       `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,

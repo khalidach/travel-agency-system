@@ -34,7 +34,6 @@ export default function Expenses() {
   const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // FIX: Added <Expense[]> generic to useQuery
   const { data: expenses, isLoading } = useQuery<Expense[]>({
     queryKey: ["expenses", activeTab],
     queryFn: () => api.getExpenses({ type: activeTab }),
@@ -71,7 +70,6 @@ export default function Expenses() {
     onError: () => toast.error(t("errorDeletingExpense")),
   });
 
-  // FIX: Explicitly typed 'expense' here, though useQuery<Expense[]> usually handles it
   const filteredExpenses = expenses?.filter(
     (expense: Expense) =>
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -161,9 +159,9 @@ export default function Expenses() {
       {/* List */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-left text-gray-500">{t("loading")}</div>
+          <div className="p-8 text-center text-gray-500">{t("loading")}</div>
         ) : !filteredExpenses?.length ? (
-          <div className="p-12 text-left">
+          <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <Wallet className="w-8 h-8 text-gray-400" />
             </div>
@@ -196,19 +194,21 @@ export default function Expenses() {
                   <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("paid")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
-                    {t("remaining")}
-                  </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                  {activeTab === "order_note" && (
+                    <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-right">
+                      {t("remaining")}
+                    </th>
+                  )}
+
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-center">
                     {t("status")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-right">
                     {t("actions")}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {/* FIX: Explicitly typed the map callback parameter as Expense */}
                 {filteredExpenses.map((expense: Expense) => (
                   <tr
                     key={expense.id}
@@ -225,21 +225,24 @@ export default function Expenses() {
                         ? expense.beneficiary
                         : t(expense.category || "")}
                     </td>
-                    <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">
+                    <td className="p-4 text-sm text-right font-medium text-gray-900 dark:text-white">
                       {Number(expense.amount).toLocaleString()} {t("mad")}
                     </td>
-                    <td className="p-4 text-sm text-left text-emerald-600 font-medium">
-                      {(
-                        Number(expense.amount) -
-                        Number(expense.remainingBalance)
+                    <td className="p-4 text-sm text-right text-emerald-600 font-medium">
+                      {(activeTab === "regular"
+                        ? Number(expense.amount)
+                        : Number(expense.amount) -
+                          Number(expense.remainingBalance)
                       ).toLocaleString()}{" "}
                       {t("mad")}
                     </td>
-                    <td className="p-4 text-sm text-left text-red-600 font-medium">
-                      {Number(expense.remainingBalance).toLocaleString()}{" "}
-                      {t("mad")}
-                    </td>
-                    <td className="p-4 text-left">
+                    {activeTab === "order_note" && (
+                      <td className="p-4 text-sm text-right text-red-600 font-medium">
+                        {Number(expense.remainingBalance).toLocaleString()}{" "}
+                        {t("mad")}
+                      </td>
+                    )}
+                    <td className="p-4 text-center">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           expense.isFullyPaid
@@ -260,15 +263,18 @@ export default function Expenses() {
                         )}
                       </span>
                     </td>
-                    <td className="p-4 text-left">
-                      <div className="flex justify-start gap-2">
-                        <button
-                          onClick={() => handleManagePayments(expense)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                          title={t("managePayments") as string}
-                        >
-                          <CreditCard className="w-4 h-4" />
-                        </button>
+                    <td className="p-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        {/* Only show Payment Management for Order Notes */}
+                        {activeTab === "order_note" && (
+                          <button
+                            onClick={() => handleManagePayments(expense)}
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                            title={t("managePayments") as string}
+                          >
+                            <CreditCard className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(expense)}
                           className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
