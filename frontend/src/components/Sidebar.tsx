@@ -264,7 +264,7 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-sidebar shadow-xl border-r border-border flex flex-col transition-colors duration-300">
+    <div className="w-64 bg-sidebar shadow-xl border-r border-border flex flex-col min-h-screen transition-colors duration-300">
       <div className="p-6 border-b border-border">
         <div className="flex items-center gap-x-3">
           <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
