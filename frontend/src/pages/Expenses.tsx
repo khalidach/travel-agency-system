@@ -195,15 +195,15 @@ export default function Expenses() {
                     {t("paid")}
                   </th>
                   {activeTab === "order_note" && (
-                    <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-right">
+                    <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                       {t("remaining")}
                     </th>
                   )}
 
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-center">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("status")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-right">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("actions")}
                   </th>
                 </tr>
@@ -225,10 +225,10 @@ export default function Expenses() {
                         ? expense.beneficiary
                         : t(expense.category || "")}
                     </td>
-                    <td className="p-4 text-sm text-right font-medium text-gray-900 dark:text-white">
+                    <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">
                       {Number(expense.amount).toLocaleString()} {t("mad")}
                     </td>
-                    <td className="p-4 text-sm text-right text-emerald-600 font-medium">
+                    <td className="p-4 text-sm text-left text-emerald-600 font-medium">
                       {(activeTab === "regular"
                         ? Number(expense.amount)
                         : Number(expense.amount) -
@@ -237,12 +237,12 @@ export default function Expenses() {
                       {t("mad")}
                     </td>
                     {activeTab === "order_note" && (
-                      <td className="p-4 text-sm text-right text-red-600 font-medium">
+                      <td className="p-4 text-sm text-left text-red-600 font-medium">
                         {Number(expense.remainingBalance).toLocaleString()}{" "}
                         {t("mad")}
                       </td>
                     )}
-                    <td className="p-4 text-center">
+                    <td className="p-4 text-left">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           expense.isFullyPaid
@@ -263,8 +263,8 @@ export default function Expenses() {
                         )}
                       </span>
                     </td>
-                    <td className="p-4 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="p-4 text-left">
+                      <div className="flex justify-start gap-2">
                         {/* Only show Payment Management for Order Notes */}
                         {activeTab === "order_note" && (
                           <button
