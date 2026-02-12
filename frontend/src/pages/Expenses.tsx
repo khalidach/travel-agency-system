@@ -18,8 +18,9 @@ import * as api from "../services/api";
 import { Expense } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
-import ExpenseForm from "../components/expenses/ExpenseForm";
 import ExpensePaymentModal from "../components/expenses/ExpensePaymentModal";
+import OrderNoteForm from "../components/expenses/OrderNoteForm";
+import RegularExpenseForm from "../components/expenses/RegularExpenseForm";
 import { toast } from "react-hot-toast";
 
 export default function Expenses() {
@@ -308,18 +309,31 @@ export default function Expenses() {
               : t("addRegularExpense")
         }
       >
-        <ExpenseForm
-          initialData={selectedExpense || undefined}
-          type={activeTab}
-          onSubmit={(data) => {
-            if (selectedExpense) {
-              updateMutation.mutate({ id: selectedExpense.id, data });
-            } else {
-              createMutation.mutate({ ...data, type: activeTab });
-            }
-          }}
-          onCancel={() => setIsFormOpen(false)}
-        />
+        {activeTab === "order_note" ? (
+          <OrderNoteForm
+            initialData={selectedExpense || undefined}
+            onSubmit={(data) => {
+              if (selectedExpense) {
+                updateMutation.mutate({ id: selectedExpense.id, data });
+              } else {
+                createMutation.mutate({ ...data, type: "order_note" });
+              }
+            }}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        ) : (
+          <RegularExpenseForm
+            initialData={selectedExpense || undefined}
+            onSubmit={(data) => {
+              if (selectedExpense) {
+                updateMutation.mutate({ id: selectedExpense.id, data });
+              } else {
+                createMutation.mutate({ ...data, type: "regular" });
+              }
+            }}
+            onCancel={() => setIsFormOpen(false)}
+          />
+        )}
       </Modal>
 
       <ExpensePaymentModal
