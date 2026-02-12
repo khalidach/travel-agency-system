@@ -40,6 +40,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const DailyServices = lazy(() => import("./pages/DailyServices"));
 const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
+const Expenses = lazy(() => import("./pages/Expenses")); // <--- ADDED
 
 // NEW IMPORTS FOR AGENCY REPORTS
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
@@ -198,6 +199,8 @@ function AppRoutes() {
                               path="/program-pricing"
                               element={<ProgramPricing />}
                             />
+                            {/* ADDED EXPENSES ROUTE */}
+                            <Route path="/expenses" element={<Expenses />} />
                           </>
                         )}
                         <Route path="/booking" element={<Booking />} />

@@ -1,0 +1,207 @@
+// backend/controllers/expenseController.js
+const { v4: uuidv4 } = require("uuid");
+const AppError = require("../utils/appError");
+const logger = require("../utils/logger");
+
+const calculatePaymentStatus = (amount, payments) => {
+  const totalPaid = payments.reduce(
+    (sum, p) => sum + parseFloat(p.amount || 0),
+    0,
+  );
+  const remaining = parseFloat(amount) - totalPaid;
+  return {
+    remainingBalance: remaining > 0 ? remaining : 0,
+    isFullyPaid: remaining <= 0,
+  };
+};
+
+exports.getAllExpenses = async (req, res, next) => {
+  try {
+    const { type, startDate, endDate } = req.query;
+    let query = `SELECT * FROM expenses WHERE "userId" = $1`;
+    const params = [req.user.id];
+
+    if (type) {
+      query += ` AND type = $${params.length + 1}`;
+      params.push(type);
+    }
+
+    if (startDate && endDate) {
+      query += ` AND date BETWEEN $${params.length + 1} AND $${params.length + 2}`;
+      params.push(startDate, endDate);
+    }
+
+    query += ` ORDER BY date DESC`;
+
+    const result = await req.db.query(query, params);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    logger.error("Get Expenses Error:", error);
+    next(new AppError("Failed to fetch expenses", 500));
+  }
+};
+
+exports.createExpense = async (req, res, next) => {
+  try {
+    const { type, category, description, beneficiary, amount, date } = req.body;
+
+    const { rows } = await req.db.query(
+      `INSERT INTO expenses 
+      ("userId", "employeeId", type, category, description, beneficiary, amount, "remainingBalance", date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`,
+      [
+        req.user.id,
+        req.user.role === "employee" ? req.user.id : null,
+        type,
+        category,
+        description,
+        beneficiary,
+        amount,
+        amount, // Initial remaining balance equals amount
+        date,
+      ],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (error) {
+    logger.error("Create Expense Error:", error);
+    next(new AppError("Failed to create expense", 500));
+  }
+};
+
+exports.updateExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { category, description, beneficiary, amount, date } = req.body;
+
+    // Fetch existing to recalculate balance if amount changes
+    const existing = await req.db.query(
+      `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (existing.rowCount === 0)
+      return next(new AppError("Expense not found", 404));
+
+    const currentPayments = existing.rows[0].advancePayments || [];
+    const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
+      amount,
+      currentPayments,
+    );
+
+    const { rows } = await req.db.query(
+      `UPDATE expenses 
+      SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, "remainingBalance" = $6, "isFullyPaid" = $7, "updatedAt" = NOW()
+      WHERE id = $8 AND "userId" = $9
+      RETURNING *`,
+      [
+        category,
+        description,
+        beneficiary,
+        amount,
+        date,
+        remainingBalance,
+        isFullyPaid,
+        id,
+        req.user.id,
+      ],
+    );
+
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    logger.error("Update Expense Error:", error);
+    next(new AppError("Failed to update expense", 500));
+  }
+};
+
+exports.deleteExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await req.db.query(
+      `DELETE FROM expenses WHERE id = $1 AND "userId" = $2 RETURNING id`,
+      [id, req.user.id],
+    );
+
+    if (result.rowCount === 0)
+      return next(new AppError("Expense not found", 404));
+
+    res.status(200).json({ message: "Expense deleted" });
+  } catch (error) {
+    logger.error("Delete Expense Error:", error);
+    next(new AppError("Failed to delete expense", 500));
+  }
+};
+
+exports.addPayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const payment = { ...req.body, _id: uuidv4(), id: uuidv4() };
+
+    const { rows } = await req.db.query(
+      `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (rows.length === 0) return next(new AppError("Expense not found", 404));
+
+    const expense = rows[0];
+    const newPayments = [...(expense.advancePayments || []), payment];
+    const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
+      expense.amount,
+      newPayments,
+    );
+
+    if (remainingBalance < 0) {
+      return next(new AppError("Payment exceeds remaining balance", 400));
+    }
+
+    const updated = await req.db.query(
+      `UPDATE expenses 
+       SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [JSON.stringify(newPayments), remainingBalance, isFullyPaid, id],
+    );
+
+    res.status(200).json(updated.rows[0]);
+  } catch (error) {
+    logger.error("Add Payment Error:", error);
+    next(new AppError("Failed to add payment", 500));
+  }
+};
+
+exports.deletePayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+
+    const { rows } = await req.db.query(
+      `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (rows.length === 0) return next(new AppError("Expense not found", 404));
+
+    const expense = rows[0];
+    const newPayments = (expense.advancePayments || []).filter(
+      (p) => p._id !== paymentId && p.id !== paymentId,
+    );
+    const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
+      expense.amount,
+      newPayments,
+    );
+
+    const updated = await req.db.query(
+      `UPDATE expenses 
+       SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [JSON.stringify(newPayments), remainingBalance, isFullyPaid, id],
+    );
+
+    res.status(200).json(updated.rows[0]);
+  } catch (error) {
+    logger.error("Delete Payment Error:", error);
+    next(new AppError("Failed to delete payment", 500));
+  }
+};

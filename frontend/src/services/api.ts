@@ -3,6 +3,7 @@ import type {
   Booking,
   DailyService,
   Employee,
+  Expense, // <--- ADDED
   Facture,
   Payment,
   Program,
@@ -590,10 +591,46 @@ export const markNotificationRead = (id: number) =>
 export const markAllNotificationsRead = () =>
   request("/notifications/mark-all-read", { method: "PATCH" });
 
-// <NEW CODE>
 export const deleteNotification = (id: number) =>
   request(`/notifications/${id}`, { method: "DELETE" });
 
 export const deleteAllNotifications = () =>
   request("/notifications/clear-all", { method: "DELETE" });
-// </NEW CODE>
+
+// --- Expenses API (NEW) ---
+export const getExpenses = (params?: {
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const query = new URLSearchParams();
+
+  if (params) {
+    if (params.type) query.append("type", params.type);
+    if (params.startDate) query.append("startDate", params.startDate);
+    if (params.endDate) query.append("endDate", params.endDate);
+  }
+
+  return request(`/expenses?${query.toString()}`);
+};
+
+export const createExpense = (data: Partial<Expense>) =>
+  request("/expenses", { method: "POST", body: JSON.stringify(data) });
+
+export const updateExpense = (id: number, data: Partial<Expense>) =>
+  request(`/expenses/${id}`, { method: "PUT", body: JSON.stringify(data) });
+
+export const deleteExpense = (id: number) =>
+  request(`/expenses/${id}`, { method: "DELETE" });
+
+export const addExpensePayment = (
+  id: number,
+  payment: Omit<Payment, "_id" | "id">,
+) =>
+  request(`/expenses/${id}/payments`, {
+    method: "POST",
+    body: JSON.stringify(payment),
+  });
+
+export const deleteExpensePayment = (id: number, paymentId: string) =>
+  request(`/expenses/${id}/payments/${paymentId}`, { method: "DELETE" });

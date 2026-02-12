@@ -22,6 +22,7 @@ import {
   Lock,
   BarChart2,
   ShipWheel,
+  Wallet,
 } from "lucide-react";
 
 type MenuItem = {
@@ -173,6 +174,13 @@ const allMenuItems: MenuItem[] = [
     path: "/settings",
     icon: Settings,
     roles: ["admin"],
+  },
+  {
+    key: "expenses",
+    path: "/expenses",
+    icon: Wallet, // Import Wallet from lucide-react
+    roles: [""],
+    isDisabled: true, // Mark as disabled since it's not implemented yet
   },
 ];
 

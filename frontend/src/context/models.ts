@@ -378,3 +378,20 @@ export interface Notification {
   createdAt: string;
   senderName?: string;
 }
+
+export interface Expense {
+  id: number;
+  userId: number;
+  employeeId?: number;
+  type: "order_note" | "regular";
+  category?: string;
+  description: string;
+  beneficiary?: string; // e.g., RAM, Landlord
+  amount: number;
+  advancePayments: Payment[];
+  remainingBalance: number;
+  isFullyPaid: boolean;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+}
