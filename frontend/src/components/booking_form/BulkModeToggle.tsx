@@ -28,10 +28,12 @@ export const BulkModeToggle = ({
             checked={isBulkMode}
             onChange={() => setIsBulkMode(!isBulkMode)}
           />
-          <div className="block bg-gray-200 dark:bg-gray-700 w-14 h-8 rounded-full"></div>
           <div
-            className={`dot absolute left-1 top-1 bg-white dark:bg-gray-400 w-6 h-6 rounded-full transition-transform ${
-              isBulkMode ? "translate-x-6 bg-blue-600" : ""
+            className={`block ${isBulkMode ? "bg-primary" : "bg-accent"} w-14 h-8 rounded-full`}
+          ></div>
+          <div
+            className={`dot absolute rtl:right-1 rtl:left-auto left-1 top-1 bg-white  w-6 h-6 rounded-full transition-transform ${
+              isBulkMode ? "translate-x-6 rtl:-translate-x-6 bg-blue-600" : ""
             }`}
           ></div>
         </div>

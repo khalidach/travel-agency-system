@@ -185,13 +185,7 @@ export default function BookingTable({
                             <Users className="w-5 h-5 text-white" />
                           )}
                         </div>
-                        <div
-                          className={
-                            document.documentElement.dir === "rtl"
-                              ? "mr-4"
-                              : "ml-4"
-                          }
-                        >
+                        <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {clientNameFr}
                           </div>
@@ -212,11 +206,7 @@ export default function BookingTable({
                             booking.employeeName && (
                               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 <Briefcase
-                                  className={`w-3 h-3 text-gray-400 ${
-                                    document.documentElement.dir === "rtl"
-                                      ? "ml-1"
-                                      : "mr-1"
-                                  }`}
+                                  className={`w-3 h-3 text-gray-400 mr-1`}
                                 />
                                 <span>
                                   {t("addedBy")} {booking.employeeName}
@@ -251,19 +241,11 @@ export default function BookingTable({
                                   className="flex items-center text-xs text-gray-600 dark:text-gray-400"
                                 >
                                   <MapPin
-                                    className={`w-3 h-3 text-gray-400 dark:text-gray-500 ${
-                                      document.documentElement.dir === "rtl"
-                                        ? "ml-1"
-                                        : "mr-1"
-                                    }`}
+                                    className={`w-3 h-3 text-gray-400 dark:text-gray-500 mr-1`}
                                   />
                                   <span className="font-medium">{city}:</span>
                                   <Hotel
-                                    className={`${
-                                      document.documentElement.dir === "rtl"
-                                        ? "ml-1 mr-2"
-                                        : "ml-2 mr-1"
-                                    }w-3 h-3 text-gray-400 dark:text-gray-500`}
+                                    className={`ml-2 mr-1 w-3 h-3 text-gray-400 dark:text-gray-500`}
                                   />
                                   <span>
                                     {hotelName} ({roomType})
@@ -338,13 +320,7 @@ export default function BookingTable({
                           disabled={!canModify}
                           className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <CreditCard
-                            className={`w-3 h-3 ${
-                              document.documentElement.dir === "rtl"
-                                ? "ml-1"
-                                : "mr-1"
-                            }`}
-                          />{" "}
+                          <CreditCard className={`w-3 h-3 mr-1 `} />{" "}
                           {t("managePayments")}
                         </button>
                         <button
@@ -352,13 +328,7 @@ export default function BookingTable({
                           disabled={!canModify}
                           className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Edit2
-                            className={`w-3 h-3 ${
-                              document.documentElement.dir === "rtl"
-                                ? "ml-1"
-                                : "mr-1"
-                            }`}
-                          />{" "}
+                          <Edit2 className={`w-3 h-3 mr-1 `} />{" "}
                           {t("editBooking")}
                         </button>
                         <button
@@ -366,13 +336,7 @@ export default function BookingTable({
                           disabled={!canModify}
                           className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Trash2
-                            className={`w-3 h-3 ${
-                              document.documentElement.dir === "rtl"
-                                ? "ml-1"
-                                : "mr-1"
-                            }`}
-                          />{" "}
+                          <Trash2 className={`w-3 h-3 mr-1`} />{" "}
                           {t("deleteBooking")}
                         </button>
                       </div>

@@ -1,5 +1,4 @@
 // frontend/src/components/booking_form/PricingFields.tsx
-import React from "react";
 import { useFormContext, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../../context/AuthContext";

@@ -87,11 +87,7 @@ const ServicePaymentManagementModal: React.FC<
               className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
               title={t("addPayment") as string}
             >
-              <CreditCard
-                className={`w-4 h-4 ${
-                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                }`}
-              />
+              <CreditCard className={`w-4 h-4 mr-2`} />
               {t("addPayment")}
             </button>
           </div>
