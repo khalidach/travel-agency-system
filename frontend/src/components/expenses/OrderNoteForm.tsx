@@ -154,7 +154,7 @@ export default function OrderNoteForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col space-y-4">
         {/* Row 1: Date & Currency */}
-        <div className="flex flex-col space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t("date")}
@@ -186,7 +186,7 @@ export default function OrderNoteForm({
         </div>
 
         {/* Row 2: Booking Type, Beneficiary, & Reservation Number */}
-        <div className="flex flex-col space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t("bookingType")}
@@ -221,7 +221,7 @@ export default function OrderNoteForm({
             </div>
           )}
 
-          <div>
+          <div className={`${bookingType === "Hotel" ? "col-span-2" : ""}`}>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t("beneficiary")}
             </label>
@@ -249,11 +249,11 @@ export default function OrderNoteForm({
           }`}
         >
           <div className="col-span-4">{t("description")}</div>
-          <div className="col-span-2 text-center">{t("quantity")}</div>
+          <div className="col-span-2 text-left">{t("quantity")}</div>
           {bookingType === "Hotel" && (
-            <div className="col-span-2 text-center">Nights</div>
+            <div className="col-span-2 text-left">{t("nights")}</div>
           )}
-          <div className="col-span-3 text-right">{t("price")}</div>
+          <div className="col-span-3 text-left">{t("price")}</div>
           <div className="col-span-1"></div>
         </div>
 
