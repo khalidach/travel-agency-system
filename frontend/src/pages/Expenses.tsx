@@ -178,13 +178,13 @@ export default function Expenses() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("date")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("description")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {activeTab === "order_note"
                       ? t("beneficiary")
                       : t("category")}

@@ -25,11 +25,7 @@ export default function PaginationControls({
         disabled={currentPage === 1}
         className="inline-flex items-center px-3 py-1 text-sm bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        <ChevronLeft
-          className={`w-4 h-4 ${
-            document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
-          }`}
-        />
+        <ChevronLeft className={`w-4 h-4 mr-1`} />
         {t("previous")}
       </button>
       <div className="flex items-center space-x-1">

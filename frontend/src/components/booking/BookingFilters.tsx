@@ -103,11 +103,7 @@ export default function BookingFilters({
             onClick={onDeleteSelected}
             className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-sm"
           >
-            <Trash2
-              className={`w-4 h-4 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Trash2 className={`w-4 h-4 mr-2`} />
             {t("delete")} ({selectedCount})
           </button>
         ) : (

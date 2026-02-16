@@ -8,16 +8,16 @@ import {
 import { I18nextProvider } from "react-i18next";
 import i18n from "./services/i18n";
 import { Toaster } from "react-hot-toast";
-import { Suspense, lazy, useMemo, useEffect } from "react";
+import { Suspense, lazy, useMemo, useEffect } from "react"; // Ensure useEffect is imported
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import Layout from "./components/Layout";
 import useIdleTimeout from "./services/useIdleTimeout";
 import BookingSkeleton from "./components/skeletons/BookingSkeleton";
-import ErrorBoundary from "./components/ErrorBoundary"; // NEW IMPORT
+import ErrorBoundary from "./components/ErrorBoundary";
 
-// Lazy load the page components
+// ... [Keep all your lazy imports exactly as they are] ...
 const HomePage = lazy(() => import("./pages/HomePage"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Programs = lazy(() => import("./pages/Programs"));
@@ -40,73 +40,60 @@ const Settings = lazy(() => import("./pages/Settings"));
 const DailyServices = lazy(() => import("./pages/DailyServices"));
 const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
-const Expenses = lazy(() => import("./pages/Expenses")); // <--- ADDED
-
-// NEW IMPORTS FOR AGENCY REPORTS
+const Expenses = lazy(() => import("./pages/Expenses"));
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
 const AgencyDetailedReport = lazy(() => import("./pages/AgencyDetailedReport"));
 
-// A wrapper component to decide which view to show based on auth state
+// ... [Keep AppRoutes function exactly as it is] ...
 function AppRoutes() {
   const { state } = useAuthContext();
   const user = state.user;
   const userRole = user?.role;
 
+  // ... [Keep existing useMemos and logic] ...
   const hasInvoicingAccess = useMemo(() => {
     if (!user) return false;
-    if (typeof user.limits?.invoicing === "boolean") {
+    if (typeof user.limits?.invoicing === "boolean")
       return user.limits.invoicing;
-    }
-    if (typeof user.tierLimits?.invoicing === "boolean") {
+    if (typeof user.tierLimits?.invoicing === "boolean")
       return user.tierLimits.invoicing;
-    }
-    if (user.tierId) {
-      return user.tierId !== 1;
-    }
+    if (user.tierId) return user.tierId !== 1;
     return false;
   }, [user]);
 
   const hasDailyServiceAccess = useMemo(() => {
     if (!user) return false;
-    if (typeof user.limits?.dailyServices === "boolean") {
+    if (typeof user.limits?.dailyServices === "boolean")
       return user.limits.dailyServices;
-    }
-    if (typeof user.tierLimits?.dailyServices === "boolean") {
+    if (typeof user.tierLimits?.dailyServices === "boolean")
       return user.tierLimits.dailyServices;
-    }
     return false;
   }, [user]);
 
   const hasProgramCostAccess = useMemo(() => {
     if (!user) return false;
-    if (typeof user.limits?.programCosts === "boolean") {
+    if (typeof user.limits?.programCosts === "boolean")
       return user.limits.programCosts;
-    }
-    if (typeof user.tierLimits?.programCosts === "boolean") {
+    if (typeof user.tierLimits?.programCosts === "boolean")
       return user.tierLimits.programCosts;
-    }
     return false;
   }, [user]);
 
   const hasProfitReportAccess = useMemo(() => {
     if (!user) return false;
-    if (typeof user.limits?.profitReport === "boolean") {
+    if (typeof user.limits?.profitReport === "boolean")
       return user.limits.profitReport;
-    }
-    if (typeof user.tierLimits?.profitReport === "boolean") {
+    if (typeof user.tierLimits?.profitReport === "boolean")
       return user.tierLimits.profitReport;
-    }
     return false;
   }, [user]);
 
   const hasEmployeeAnalysisAccess = useMemo(() => {
     if (!user) return false;
-    if (typeof user.limits?.employeeAnalysis === "boolean") {
+    if (typeof user.limits?.employeeAnalysis === "boolean")
       return user.limits.employeeAnalysis;
-    }
-    if (typeof user.tierLimits?.employeeAnalysis === "boolean") {
+    if (typeof user.tierLimits?.employeeAnalysis === "boolean")
       return user.tierLimits.employeeAnalysis;
-    }
     return false;
   }, [user]);
 
@@ -123,6 +110,7 @@ function AppRoutes() {
   return (
     <Suspense fallback={<BookingSkeleton />}>
       <Routes>
+        {/* ... [Keep your Routes exactly as they are] ... */}
         {!state.isAuthenticated ? (
           <>
             <Route path="/" element={<HomePage />} />
@@ -199,7 +187,6 @@ function AppRoutes() {
                               path="/program-pricing"
                               element={<ProgramPricing />}
                             />
-                            {/* ADDED EXPENSES ROUTE */}
                             <Route path="/expenses" element={<Expenses />} />
                           </>
                         )}
@@ -285,6 +272,26 @@ function AppRoutes() {
 }
 
 function App() {
+  // --- ADDED: Handle Direction (RTL/LTR) based on language ---
+  useEffect(() => {
+    const handleLanguageChange = (lng: string) => {
+      const dir = lng === "ar" ? "rtl" : "ltr";
+      document.documentElement.dir = dir;
+      document.documentElement.lang = lng;
+    };
+
+    // Set initial direction
+    handleLanguageChange(i18n.language);
+
+    // Listen for changes
+    i18n.on("languageChanged", handleLanguageChange);
+
+    return () => {
+      i18n.off("languageChanged", handleLanguageChange);
+    };
+  }, []);
+  // -----------------------------------------------------------
+
   useEffect(() => {
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
@@ -294,7 +301,6 @@ function App() {
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
         <ThemeProvider>
-          {/* Wrapped Router in ErrorBoundary to catch lazy load failures */}
           <ErrorBoundary>
             <Router>
               <AppRoutes />

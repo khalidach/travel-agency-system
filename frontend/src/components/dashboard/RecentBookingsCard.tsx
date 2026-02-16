@@ -27,13 +27,7 @@ export default function RecentBookingsCard({
                 {booking.passportNumber}
               </p>
             </div>
-            <div
-              className={`${
-                document.documentElement.dir === "rtl"
-                  ? "text-left"
-                  : "text-right"
-              }`}
-            >
+            <div className={`text-left`}>
               <p className="text-sm font-semibold">
                 {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
               </p>

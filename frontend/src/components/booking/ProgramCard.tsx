@@ -46,9 +46,7 @@ const ProgramCard = ({ program, onClick }: ProgramCardProps) => {
         <div className="space-y-3">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Calendar
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
+              className={`w-4 h-4 text-gray-400 dark:text-gray-500 mr-2`}
             />
             {program.variations.map((variation, index) => (
               <span key={index}>{variation.duration} days ,</span>
@@ -56,9 +54,7 @@ const ProgramCard = ({ program, onClick }: ProgramCardProps) => {
           </div>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Package
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
+              className={`w-4 h-4 text-gray-400 dark:text-gray-500 mr-2`}
             />
             <span>
               {program.packages?.length || 0}{" "}
@@ -67,9 +63,7 @@ const ProgramCard = ({ program, onClick }: ProgramCardProps) => {
           </div>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <Users
-              className={`w-4 h-4 text-gray-400 dark:text-gray-500 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
+              className={`w-4 h-4 text-gray-400 dark:text-gray-500 mr-2`}
             />
             <span>
               <span>
@@ -87,9 +81,7 @@ const ProgramCard = ({ program, onClick }: ProgramCardProps) => {
       <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end text-blue-600 dark:text-blue-400 font-medium">
         {t("viewBookings")}
         <ArrowRight
-          className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ${
-            document.documentElement.dir === "rtl" ? "mr-2" : "ml-2"
-          }`}
+          className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ml-2`}
         />
       </div>
     </div>

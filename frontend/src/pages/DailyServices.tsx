@@ -42,7 +42,7 @@ type DailyServiceApiInput = Omit<
 >;
 
 export default function DailyServices() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { state: authState } = useAuthContext();
 
@@ -291,9 +291,7 @@ export default function DailyServices() {
               ].map((h) => (
                 <th
                   key={h}
-                  className={`px-6 py-4 ${
-                    i18n.language === "ar" ? "text-right" : "text-left"
-                  } text-xs font-medium text-muted-foreground uppercase tracking-wider`}
+                  className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                 >
                   {t(h)}
                 </th>

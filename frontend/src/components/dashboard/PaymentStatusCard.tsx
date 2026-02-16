@@ -19,11 +19,7 @@ export default function PaymentStatusCard({
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <CheckCircle2
-              className={`w-5 h-5 text-emerald-500 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <CheckCircle2 className={`w-5 h-5 text-emerald-500 mr-2`} />
             <span className="text-sm text-muted-foreground">
               {t("fullyPaid")}
             </span>
@@ -34,11 +30,7 @@ export default function PaymentStatusCard({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
-            <Clock
-              className={`w-5 h-5 text-orange-500 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Clock className={`w-5 h-5 text-orange-500 mr-2`} />
             <span className="text-sm text-muted-foreground">
               {t("pending")}
             </span>

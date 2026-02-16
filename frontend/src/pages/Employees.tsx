@@ -288,49 +288,19 @@ export default function EmployeesPage() {
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("username")}
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("role")}
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("bookingsMade")}
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("status")}
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("actions")}
               </th>
             </tr>
@@ -411,7 +381,7 @@ export default function EmployeesPage() {
                           }`}
                         ></div>
                         <div
-                          className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
+                          className={`dot absolute ${document.documentElement.dir === "rtl" ? "right-1" : "left-1"} top-1 bg-white w-6 h-6 rounded-full transition-transform ${
                             emp.active ? "translate-x-6" : ""
                           }`}
                         ></div>

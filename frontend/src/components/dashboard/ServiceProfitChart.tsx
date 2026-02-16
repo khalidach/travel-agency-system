@@ -73,9 +73,7 @@ export default function ServiceProfitChart({ data }: ServiceProfitChartProps) {
         {chartData.map((item, index) => (
           <div key={index} className="flex items-center">
             <div
-              className={`w-3 h-3 rounded-full ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
+              className={`w-3 h-3 rounded-full mr-2`}
               style={{
                 // Use the same dynamic color for the legend
                 backgroundColor: currentColors[index % currentColors.length],

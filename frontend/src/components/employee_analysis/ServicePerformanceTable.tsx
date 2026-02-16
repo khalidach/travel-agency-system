@@ -14,7 +14,7 @@ const ServicePerformanceTable: React.FC<ServicePerformanceTableProps> = ({
 }) => {
   const { t } = useTranslation();
   const isRtl = document.documentElement.dir === "rtl";
-  const alignClass = isRtl ? "text-right" : "text-left";
+  const alignClass = isRtl ? "text-left" : "text-left";
 
   const getServiceTypeColor = (type: string) => {
     switch (type) {

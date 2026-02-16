@@ -180,11 +180,7 @@ export default function Facturation() {
                 ].map((h) => (
                   <th
                     key={h}
-                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                      document.documentElement.dir === "rtl"
-                        ? "text-right"
-                        : "text-left"
-                    }`}
+                    className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left"
                   >
                     {t(h)}
                   </th>

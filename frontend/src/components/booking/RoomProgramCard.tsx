@@ -60,20 +60,14 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
         </div>
         <div className="space-y-3">
           <div className="flex items-center text-sm text-muted-foreground">
-            <Hotel
-              className={`w-4 h-4 text-muted-foreground ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Hotel className={`w-4 h-4 text-muted-foreground mr-2`} />
             <span>
               {hotelCount} {t("hotels", { count: hotelCount })}
             </span>
           </div>
           <div className="flex items-start text-sm text-muted-foreground">
             <BedDouble
-              className={`w-4 h-4 text-muted-foreground mt-0.5 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
+              className={`w-4 h-4 text-muted-foreground mt-0.5 mr-2`}
             />
 
             <div className="flex flex-col">
@@ -101,11 +95,7 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
             </div>
           </div>
           <div className="flex items-center text-sm text-muted-foreground">
-            <Users
-              className={`w-4 h-4 text-muted-foreground ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Users className={`w-4 h-4 text-muted-foreground mr-2`} />
             <span>
               {occupantCount} {t("members", { count: occupantCount })}
             </span>
@@ -115,9 +105,7 @@ const RoomProgramCard = ({ program, onClick }: RoomProgramCardProps) => {
       <div className="mt-6 pt-4 border-t border-border flex items-center justify-end text-primary font-medium">
         {t("viewRooms")}
         <ArrowRight
-          className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ${
-            document.documentElement.dir === "rtl" ? "mr-2" : "ml-2"
-          }`}
+          className={`w-4 h-4 transform transition-transform group-hover:translate-x-1 ml-2`}
         />
       </div>
     </div>

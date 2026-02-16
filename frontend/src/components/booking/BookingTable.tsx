@@ -79,48 +79,24 @@ export default function BookingTable({
                   aria-label="Select all bookings"
                 />
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left">
                 {t("client")}
               </th>
-              <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <th className="px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left ">
                 {t("programAndHotels")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left`}
               >
                 {t("priceDetails")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left`}
               >
                 {t("paymentStatus")}
               </th>
               <th
-                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
+                className={`px-6 py-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider text-left`}
               >
                 {t("actions")}
               </th>

@@ -8,9 +8,7 @@ export default function QuickActionsCard() {
   const { state } = useAuthContext();
   const userRole = state.user?.role;
 
-  const linkClass = `w-full flex items-center p-3 hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors ${
-    document.documentElement.dir === "rtl" ? "text-right" : "text-left"
-  }`;
+  const linkClass = `w-full flex items-center p-3 hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors text-left`;
 
   return (
     <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">

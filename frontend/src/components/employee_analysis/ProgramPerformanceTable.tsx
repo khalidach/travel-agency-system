@@ -16,7 +16,7 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
 }) => {
   const { t } = useTranslation();
   const isRtl = document.documentElement.dir === "rtl";
-  const alignClass = isRtl ? "text-right" : "text-left";
+  const alignClass = isRtl ? "text-left" : "text-left";
 
   const getTypeColor = (type: string) => {
     switch (type) {
