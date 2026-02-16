@@ -385,7 +385,27 @@
   "currentPasswordRequired": "Le mot de passe actuel est requis.",
   "passwordTooShort": "Le nouveau mot de passe doit comporter au moins 6 caractères.",
   "passwordMismatch": "Les mots de passe ne correspondent pas.",
-  "currency": "Devise",
+  "currency": {
+    "MAD": "DH",
+    "USD": "$",
+    "EUR": "€",
+    "SAR": "SAR",
+    "EGP": "EGP",
+    "GBP": "£",
+    "CNY": "¥",
+    "TRY": "₺"
+  },
+  "currencyChoicen": {
+    "MAD": "Dirham Marocain (DH)",
+    "USD": "Dollar Américain ($)",
+    "EUR": "Euro (€)",
+    "SAR": "Riyal Saoudien (SAR)",
+    "EGP": "Livre Égyptienne (EGP)",
+    "GBP": "Livre Sterling (£)",
+    "CNY": "Yuan Chinois (¥)",
+    "TRY": "Livre Turque (₺)"
+  },
+  "currencyChoice": "Devise choisie",
   "home": {
     "header": {
       "brand": "TravelPro",

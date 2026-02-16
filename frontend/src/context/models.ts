@@ -3,7 +3,7 @@ export interface TierLimits {
   bookingsPerMonth: number;
   programsPerMonth: number;
   programPricingsPerMonth: number;
-  programCosts: boolean; // تم التغيير
+  programCosts: boolean;
   employees: number;
   invoicing: boolean;
   facturesPerMonth: number;
@@ -111,12 +111,12 @@ export interface HotelRoomCount {
   roomCount: number;
 }
 
-export type ProgramType = "Hajj" | "Umrah" | "Tourism" | "Ramadan"; // تم إضافة "Ramadan" هنا
+export type ProgramType = "Hajj" | "Umrah" | "Tourism" | "Ramadan";
 
 export interface Program {
   id: number;
   name: string;
-  type: ProgramType; // استخدام النوع الجديد
+  type: ProgramType;
   variations: ProgramVariation[];
   packages: Package[];
   roomTypes: RoomTypeDefinition[];
@@ -128,7 +128,7 @@ export interface Program {
   hotelRoomCounts?: HotelRoomCount[];
   totalOccupants?: number;
   isCommissionBased?: boolean;
-  maxBookings?: number | null; // NEW: Maximum number of bookings allowed. Null/0 means unlimited.
+  maxBookings?: number | null;
 }
 
 export interface Package {
@@ -148,7 +148,7 @@ export interface RoomPrice {
   type: string;
   guests: number;
   purchasePrice?: number;
-  sellingPrice?: number; // NEW: Admin defined min selling price
+  sellingPrice?: number;
 }
 
 export interface RelatedPerson {
@@ -193,23 +193,24 @@ export interface Booking {
   userId: number;
   employeeId?: number;
   employeeName?: string;
-  bookingSource?: string; // NEW: Field for source of booking
-  status?: "confirmed" | "pending_approval" | "cancelled"; // NEW
+  bookingSource?: string;
+  status?: "confirmed" | "pending_approval" | "cancelled";
 }
 
 export interface ExpenseItem {
   description: string;
   quantity: number;
   unitPrice: number;
+  nights?: number; // ADDED: Number of nights for hotel bookings
   total: number;
 }
 
 export interface Payment {
   _id: string;
   id: string;
-  amount: number; // Foreign Currency (if expense is Foreign)
-  amountMAD?: number; // Equivalent in MAD
-  currency?: string; // e.g. 'SAR', 'EUR'
+  amount: number;
+  amountMAD?: number;
+  currency?: string;
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
   labelPaper?: string;
@@ -262,7 +263,7 @@ export interface PaginatedResponse<T> {
 }
 
 export interface Occupant {
-  id: number; // booking id
+  id: number;
   clientName: string;
 }
 
@@ -297,7 +298,7 @@ export interface DailyService {
   advancePayments?: Payment[];
   remainingBalance: number;
   isFullyPaid: boolean;
-  totalPaid?: number; // Calculated on the fly by the backend
+  totalPaid?: number;
 }
 
 export interface DashboardStats {
@@ -309,9 +310,9 @@ export interface DashboardStats {
   };
   dateFilteredStats: {
     totalBookings: number;
-    totalDailyServices: number; // ADDED
-    totalFactures: number; // ADDED
-    totalRevenue: number; // UPDATED definition (now combined)
+    totalDailyServices: number;
+    totalFactures: number;
+    totalRevenue: number;
   };
   programTypeData: {
     Hajj: number;
@@ -336,7 +337,6 @@ export interface EmployeeAnalysisData {
   dailyServicesMadeCount: number;
 }
 
-// New interface to replace 'any' in reports
 export interface PerformanceMetric {
   name: string;
   [key: string]: string | number;
@@ -394,13 +394,14 @@ export interface Expense {
   employeeId?: number;
   type: "order_note" | "regular";
   category?: string;
+  bookingType?: "Hotel" | "Flight" | "Visa" | "Transfer" | "Other"; // ADDED
   description: string;
   beneficiary?: string;
-  amount: number; // Total in 'currency'
-  currency?: string; // 'MAD', 'SAR', 'USD', etc.
-  items?: ExpenseItem[]; // List of items
+  amount: number;
+  currency?: string;
+  items?: ExpenseItem[];
   advancePayments: Payment[];
-  remainingBalance: number; // In 'currency'
+  remainingBalance: number;
   isFullyPaid: boolean;
   date: string;
   createdAt: string;

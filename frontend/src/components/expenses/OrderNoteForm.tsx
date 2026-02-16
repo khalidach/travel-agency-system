@@ -14,8 +14,11 @@ const emptyItem: ExpenseItem = {
   description: "",
   quantity: 1,
   unitPrice: 0,
+  nights: 1, // Default nights to 1
   total: 0,
 };
+
+type BookingType = "Hotel" | "Flight" | "Visa" | "Transfer" | "Other";
 
 export default function OrderNoteForm({
   initialData,
@@ -34,10 +37,18 @@ export default function OrderNoteForm({
   );
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
+  // New State for Booking Type
+  const [bookingType, setBookingType] = useState<BookingType>(
+    initialData?.bookingType || "Other",
+  );
+
   // Use existing items or create one from description/amount if migrating from old format
   const [items, setItems] = useState<ExpenseItem[]>(() => {
     if (initialData?.items && initialData.items.length > 0) {
-      return initialData.items;
+      return initialData.items.map((item) => ({
+        ...item,
+        nights: item.nights || 1,
+      }));
     }
     if (initialData?.description && initialData?.amount) {
       return [
@@ -45,6 +56,7 @@ export default function OrderNoteForm({
           description: initialData.description,
           quantity: 1,
           unitPrice: initialData.amount,
+          nights: 1,
           total: initialData.amount,
         },
       ];
@@ -53,6 +65,13 @@ export default function OrderNoteForm({
   });
 
   const currencies = ["MAD", "SAR", "USD", "EUR", "GBP", "TRY", "CNY"];
+  const bookingTypes: BookingType[] = [
+    "Hotel",
+    "Flight",
+    "Visa",
+    "Transfer",
+    "Other",
+  ];
 
   const handleItemChange = (
     index: number,
@@ -61,10 +80,35 @@ export default function OrderNoteForm({
   ) => {
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
+
     // Recalculate total for this item
-    item.total = (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0);
+    // Logic: If Hotel, Total = Qty * Price * Nights. Else, Total = Qty * Price
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.unitPrice) || 0;
+    const nights = bookingType === "Hotel" ? Number(item.nights) || 1 : 1;
+
+    item.total = qty * price * nights;
+
     newItems[index] = item;
     setItems(newItems);
+  };
+
+  // Recalculate all items if booking type changes (because 'nights' might become relevant or irrelevant)
+  const handleBookingTypeChange = (newType: BookingType) => {
+    setBookingType(newType);
+
+    const updatedItems = items.map((item) => {
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.unitPrice) || 0;
+      // If switching TO Hotel, use existing nights or 1. If switching FROM Hotel, treat nights as 1 for calc.
+      const nights = newType === "Hotel" ? Number(item.nights) || 1 : 1;
+
+      return {
+        ...item,
+        total: qty * price * nights,
+      };
+    });
+    setItems(updatedItems);
   };
 
   const addItem = () => setItems([...items, { ...emptyItem }]);
@@ -95,54 +139,80 @@ export default function OrderNoteForm({
       description,
       amount: totalAmount,
       type: "order_note",
+      bookingType, // Include in submission
     });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("date")}
-          </label>
-          <input
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
-          />
+        {/* Row 1: Date & Currency */}
+        <div className="flex flex-col space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t("date")}
+            </label>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t("currencyChoice")}
+            </label>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+            >
+              {currencies.map((cur) => (
+                <option key={cur} value={cur}>
+                  {t(`currencyChoicen.${cur}`)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {t("currency")}
-          </label>
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-            className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-          >
-            {currencies.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {t("beneficiary")} (Supplier/Provider)
-        </label>
-        <input
-          type="text"
-          required
-          placeholder="e.g., Royal Air Maroc, Hotel Hilton"
-          value={beneficiary}
-          onChange={(e) => setBeneficiary(e.target.value)}
-          className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-        />
+        {/* Row 2: Booking Type & Beneficiary */}
+        <div className="flex flex-col space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Booking Type
+            </label>
+            <select
+              value={bookingType}
+              onChange={(e) =>
+                handleBookingTypeChange(e.target.value as BookingType)
+              }
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+            >
+              {bookingTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              {t("beneficiary")}
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="e.g., Royal Air Maroc, Hotel Hilton"
+              value={beneficiary}
+              onChange={(e) => setBeneficiary(e.target.value)}
+              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -151,16 +221,28 @@ export default function OrderNoteForm({
         </label>
 
         {/* Header Row */}
-        <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 uppercase">
-          <div className="col-span-6 md:col-span-5">{t("description")}</div>
+        <div
+          className={`grid gap-2 text-xs font-medium text-gray-500 uppercase items-center ${
+            bookingType === "Hotel" ? "grid-cols-12" : "grid-cols-10"
+          }`}
+        >
+          <div className="col-span-4">{t("description")}</div>
           <div className="col-span-2 text-center">{t("quantity")}</div>
+          {bookingType === "Hotel" && (
+            <div className="col-span-2 text-center">Nights</div>
+          )}
           <div className="col-span-3 text-right">{t("price")}</div>
           <div className="col-span-1"></div>
         </div>
 
         {items.map((item, index) => (
-          <div key={index} className="grid grid-cols-12 gap-2 items-start">
-            <div className="col-span-6 md:col-span-5">
+          <div
+            key={index}
+            className={`grid gap-2 items-start ${
+              bookingType === "Hotel" ? "grid-cols-12" : "grid-cols-10"
+            }`}
+          >
+            <div className="col-span-4">
               <input
                 type="text"
                 placeholder={t("itemDescription") as string}
@@ -172,9 +254,10 @@ export default function OrderNoteForm({
                 className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
               <div className="md:hidden mt-1 text-xs text-gray-500">
-                Total: {item.total.toLocaleString()} {currency}
+                Total: {item.total.toLocaleString()} {t(`currency.${currency}`)}
               </div>
             </div>
+
             <div className="col-span-2">
               <input
                 type="number"
@@ -185,8 +268,26 @@ export default function OrderNoteForm({
                   handleItemChange(index, "quantity", Number(e.target.value))
                 }
                 className="w-full p-2 text-center rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                placeholder="Qty"
               />
             </div>
+
+            {bookingType === "Hotel" && (
+              <div className="col-span-2">
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={item.nights || 1}
+                  onChange={(e) =>
+                    handleItemChange(index, "nights", Number(e.target.value))
+                  }
+                  className="w-full p-2 text-center rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                  placeholder="Nights"
+                />
+              </div>
+            )}
+
             <div className="col-span-3">
               <input
                 type="number"
@@ -200,6 +301,7 @@ export default function OrderNoteForm({
                 className="w-full p-2 text-right rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
               />
             </div>
+
             <div className="col-span-1 flex justify-center pt-2">
               <button
                 type="button"
@@ -224,7 +326,8 @@ export default function OrderNoteForm({
 
       <div className="flex justify-end items-center gap-4 pt-4 border-t dark:border-gray-700">
         <div className="text-lg font-bold">
-          {t("total")}: {totalAmount.toLocaleString()} {currency}
+          {t("total")}: {totalAmount.toLocaleString()}{" "}
+          {t(`currency.${currency}`)}
         </div>
       </div>
 
