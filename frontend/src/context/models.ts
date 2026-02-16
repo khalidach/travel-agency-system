@@ -197,13 +197,22 @@ export interface Booking {
   status?: "confirmed" | "pending_approval" | "cancelled"; // NEW
 }
 
+export interface ExpenseItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 export interface Payment {
   _id: string;
   id: string;
-  amount: number;
+  amount: number; // Foreign Currency (if expense is Foreign)
+  amountMAD?: number; // Equivalent in MAD
+  currency?: string; // e.g. 'SAR', 'EUR'
   method: "cash" | "cheque" | "transfer" | "card";
   date: string;
-  labelPaper?: string; // NEW: Optional Label Paper field
+  labelPaper?: string;
   chequeNumber?: string;
   bankName?: string;
   chequeCashingDate?: string;
@@ -386,10 +395,12 @@ export interface Expense {
   type: "order_note" | "regular";
   category?: string;
   description: string;
-  beneficiary?: string; // e.g., RAM, Landlord
-  amount: number;
+  beneficiary?: string;
+  amount: number; // Total in 'currency'
+  currency?: string; // 'MAD', 'SAR', 'USD', etc.
+  items?: ExpenseItem[]; // List of items
   advancePayments: Payment[];
-  remainingBalance: number;
+  remainingBalance: number; // In 'currency'
   isFullyPaid: boolean;
   date: string;
   createdAt: string;

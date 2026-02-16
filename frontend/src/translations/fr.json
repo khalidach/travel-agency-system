@@ -211,7 +211,7 @@
   "validProgramRequired": "Un programme valide doit être sélectionné.",
   "packageSelectionRequired": "Un forfait doit être sélectionné pour ce programme.",
   "validHotelCombinationRequired": "Une combinaison d'hôtel et de chambre valide est requise pour les programmes avec nuitées.",
-  "paymentAmount": "Montant du Paiement (dh)",
+  "paymentAmount": "Montant du Paiement ({{currency}})",
   "paymentMethod": "Moyen de Paiement",
   "cash": "Espèces",
   "cheque": "Chèque",
@@ -385,9 +385,7 @@
   "currentPasswordRequired": "Le mot de passe actuel est requis.",
   "passwordTooShort": "Le nouveau mot de passe doit comporter au moins 6 caractères.",
   "passwordMismatch": "Les mots de passe ne correspondent pas.",
-  "currency": {
-    "dh_per_month": "DH/mois"
-  },
+  "currency": "Devise",
   "home": {
     "header": {
       "brand": "TravelPro",
@@ -607,5 +605,7 @@
   "office_supplies": "Fournitures de bureau",
   "taxes": "Impôts & Taxes",
   "selectCategory": "Sélectionner une catégorie",
-  "searchExpenses": "Rechercher des dépenses..."
+  "searchExpenses": "Rechercher des dépenses...",
+  "orderItems": "Articles du bon de commande",
+  "equivalentIn": "Équivalent en"
 }

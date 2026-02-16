@@ -207,7 +207,7 @@
   "validProgramRequired": "A valid program must be selected.",
   "packageSelectionRequired": "A package must be selected for this program.",
   "validHotelCombinationRequired": "A valid hotel and room combination is required for programs with overnight stays.",
-  "paymentAmount": "Payment Amount (dh)",
+  "paymentAmount": "Payment Amount ({{currency}})",
   "paymentMethod": "Payment Method",
   "cash": "Cash",
   "cheque": "Cheque",
@@ -381,9 +381,7 @@
   "currentPasswordRequired": "Current password is required.",
   "passwordTooShort": "New password must be at least 6 characters.",
   "passwordMismatch": "Passwords do not match.",
-  "currency": {
-    "dh_per_month": "DH/month"
-  },
+  "currency": "Currency",
   "home": {
     "header": {
       "brand": "TravelPro",
@@ -603,5 +601,7 @@
   "office_supplies": "Office Supplies",
   "taxes": "Taxes",
   "selectCategory": "Select Category",
-  "searchExpenses": "Search expenses..."
+  "searchExpenses": "Search expenses...",
+  "orderItems": "Order Items",
+  "equivalentIn": "Equivalent in"
 }

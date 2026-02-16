@@ -483,17 +483,33 @@ const applyDatabaseMigrations = async (client) => {
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
         type VARCHAR(50) NOT NULL, -- 'order_note' or 'regular'
-        category VARCHAR(100), -- 'airline', 'salary', 'rent', 'office', 'other'
+        category VARCHAR(100), 
         description TEXT NOT NULL,
-        beneficiary VARCHAR(255), -- The person/entity paid (e.g., 'RAM', 'Landlord')
+        beneficiary VARCHAR(255), 
         amount NUMERIC(12, 2) NOT NULL,
         "advancePayments" JSONB DEFAULT '[]'::jsonb,
         "remainingBalance" NUMERIC(12, 2) DEFAULT 0,
         "isFullyPaid" BOOLEAN DEFAULT FALSE,
         date DATE NOT NULL,
+        "items" JSONB DEFAULT '[]'::jsonb, -- NEW: Support for multiple items
+        "currency" VARCHAR(10) DEFAULT 'MAD', -- NEW: Currency support
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    // --- MIGRATION: Add items and currency to expenses if they don't exist ---
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='items') THEN
+          ALTER TABLE expenses ADD COLUMN "items" JSONB DEFAULT '[]'::jsonb;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='currency') THEN
+          ALTER TABLE expenses ADD COLUMN "currency" VARCHAR(10) DEFAULT 'MAD';
+        END IF;
+      END;
+      $$;
     `);
 
     // Index for expenses

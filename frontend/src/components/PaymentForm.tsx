@@ -8,6 +8,7 @@ interface PaymentFormProps {
   onSave: (payment: Omit<Payment, "_id" | "id">) => void;
   onCancel: () => void;
   remainingBalance: number;
+  currency?: string; // NEW: Pass the expense currency
 }
 
 export default function PaymentForm({
@@ -15,14 +16,15 @@ export default function PaymentForm({
   onSave,
   onCancel,
   remainingBalance,
+  currency = "MAD",
 }: PaymentFormProps) {
   const { t } = useTranslation();
 
-  // Wrapped in useCallback to resolve useEffect dependency warning
   const getInitialFormData = useCallback((): Omit<Payment, "_id" | "id"> => {
     if (payment) {
       return {
         amount: payment.amount,
+        amountMAD: payment.amountMAD || payment.amount,
         method: payment.method,
         date: payment.date
           ? new Date(payment.date).toISOString().split("T")[0]
@@ -39,6 +41,7 @@ export default function PaymentForm({
     }
     return {
       amount: 0,
+      amountMAD: 0,
       method: "cash",
       date: new Date().toISOString().split("T")[0],
       labelPaper: "",
@@ -54,23 +57,20 @@ export default function PaymentForm({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // When the payment prop changes (or getInitialFormData updates),
-    // reset the form data.
     setFormData(getInitialFormData());
     setError(null);
   }, [getInitialFormData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // When editing, the validation balance should be the current remaining balance plus the amount of the payment being edited.
     const validationBalance = payment
       ? remainingBalance + payment.amount
       : remainingBalance;
 
-    if (formData.amount > validationBalance) {
+    if (formData.amount > validationBalance + 0.1) {
       setError(
         t("amountExceedsBalance", {
-          balance: validationBalance.toLocaleString(),
+          balance: `${validationBalance.toLocaleString()} ${currency}`,
         }),
       );
       return;
@@ -81,19 +81,28 @@ export default function PaymentForm({
       return;
     }
 
-    onSave(formData);
+    // If currency is MAD, ensure amountMAD matches amount
+    const finalData = { ...formData };
+    if (currency === "MAD") {
+      finalData.amountMAD = finalData.amount;
+    } else if (!finalData.amountMAD || finalData.amountMAD <= 0) {
+      setError(t("enterEquivalentMAD"));
+      return;
+    }
+
+    finalData.currency = currency;
+
+    onSave(finalData);
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const amount = parseFloat(e.target.value) || 0;
     setFormData((prev) => ({ ...prev, amount }));
-    const validationBalance = payment
-      ? remainingBalance + payment.amount
-      : remainingBalance;
-    // Clear error if the new amount is valid
-    if (amount <= validationBalance) {
-      setError(null);
+    // If currency is MAD, sync amountMAD
+    if (currency === "MAD") {
+      setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
     }
+    setError(null);
   };
 
   const paymentMethods = [
@@ -103,29 +112,63 @@ export default function PaymentForm({
     { value: "card", label: t("card") },
   ];
 
+  const isForeignCurrency = currency !== "MAD";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {t("paymentAmount")}
-        </label>
-        <input
-          type="number"
-          value={formData.amount || ""}
-          onChange={handleAmountChange}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-          min="0"
-          step="0.01"
-          required
-        />
-        {error && (
-          <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+      <div className="flex flex-col space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            {t("paymentAmount", { currency })}
+          </label>
+          <input
+            type="number"
+            value={formData.amount || ""}
+            onChange={handleAmountChange}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            min="0"
+            step="0.01"
+            required
+          />
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
+            {currency}
+          </p>
+        </div>
+
+        {isForeignCurrency && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t("equivalentIn")} (MAD)
+            </label>
+            <input
+              type="number"
+              value={formData.amountMAD || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  amountMAD: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+              min="0"
+              step="0.01"
+              required
+              placeholder="Value at time of payment"
+            />
+            <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              {t("enterCurrentValueInMAD")}
+            </p>
+          </div>
         )}
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
-          {t("mad")}
-        </p>
       </div>
+
+      {error && (
+        <p className="mt-1 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+          {error}
+        </p>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {t("paymentMethod")}
@@ -149,22 +192,16 @@ export default function PaymentForm({
         </select>
       </div>
 
-      {/* NEW: Optional Label Paper Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {t("labelPaper")}
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-1">
-            ({t("optional")})
-          </span>
+          {t("labelPaper")}{" "}
+          <span className="text-gray-500 font-normal">({t("optional")})</span>
         </label>
         <input
           type="text"
           value={formData.labelPaper}
           onChange={(e) =>
-            setFormData((prev) => ({
-              ...prev,
-              labelPaper: e.target.value,
-            }))
+            setFormData((prev) => ({ ...prev, labelPaper: e.target.value }))
           }
           placeholder={t("labelPaperPlaceholder") as string}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -185,6 +222,8 @@ export default function PaymentForm({
           required
         />
       </div>
+
+      {/* Cheque and Transfer fields remain the same... */}
       {formData.method === "cheque" && (
         <>
           <div>
@@ -275,6 +314,7 @@ export default function PaymentForm({
           </div>
         </>
       )}
+
       <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-600">
         <button
           type="button"

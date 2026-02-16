@@ -46,7 +46,9 @@ exports.createExpense = async (req, res, next) => {
     const {
       type,
       category,
-      description,
+      description, // For Order Note, this might be a summary or empty if items exist
+      items, // NEW: Array of items
+      currency, // NEW: Currency code
       beneficiary,
       amount,
       date,
@@ -68,7 +70,9 @@ exports.createExpense = async (req, res, next) => {
           id: uuidv4(),
           date: date,
           amount: amount,
-          method: paymentMethod || "cash", // Default to cash if not provided
+          amountMAD: amount, // Assume MAD for regular expenses
+          currency: "MAD",
+          method: paymentMethod || "cash",
           labelPaper: "Auto-payment for Regular Expense",
         },
       ];
@@ -76,8 +80,8 @@ exports.createExpense = async (req, res, next) => {
 
     const { rows } = await req.db.query(
       `INSERT INTO expenses 
-      ("userId", "employeeId", type, category, description, beneficiary, amount, "advancePayments", "remainingBalance", "isFullyPaid", date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ("userId", "employeeId", type, category, description, beneficiary, amount, "advancePayments", "remainingBalance", "isFullyPaid", date, items, currency)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *`,
       [
         req.user.id,
@@ -91,6 +95,8 @@ exports.createExpense = async (req, res, next) => {
         remainingBalance,
         isFullyPaid,
         date,
+        JSON.stringify(items || []),
+        currency || "MAD",
       ],
     );
 
@@ -104,8 +110,16 @@ exports.createExpense = async (req, res, next) => {
 exports.updateExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { category, description, beneficiary, amount, date, paymentMethod } =
-      req.body;
+    const {
+      category,
+      description,
+      items,
+      currency,
+      beneficiary,
+      amount,
+      date,
+      paymentMethod,
+    } = req.body;
 
     // Fetch existing
     const existing = await req.db.query(
@@ -123,13 +137,14 @@ exports.updateExpense = async (req, res, next) => {
 
     if (expense.type === "regular") {
       // For regular expenses, ensure the single payment matches the new amount
-      // We wipe old payments and create a new one to ensure consistency
       advancePayments = [
         {
           _id: uuidv4(),
           id: uuidv4(),
           date: date,
           amount: amount,
+          amountMAD: amount,
+          currency: "MAD",
           method: paymentMethod || "cash",
           labelPaper: "Auto-payment (Updated)",
         },
@@ -146,8 +161,9 @@ exports.updateExpense = async (req, res, next) => {
     const { rows } = await req.db.query(
       `UPDATE expenses 
       SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, 
-          "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, "updatedAt" = NOW()
-      WHERE id = $9 AND "userId" = $10
+          "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
+          items = $9, currency = $10, "updatedAt" = NOW()
+      WHERE id = $11 AND "userId" = $12
       RETURNING *`,
       [
         category,
@@ -158,6 +174,8 @@ exports.updateExpense = async (req, res, next) => {
         JSON.stringify(advancePayments),
         remainingBalance,
         isFullyPaid,
+        JSON.stringify(items || []),
+        currency || "MAD",
         id,
         req.user.id,
       ],
@@ -203,6 +221,7 @@ exports.addPayment = async (req, res, next) => {
       );
     }
 
+    // payment object includes amount (foreign), amountMAD (local), etc.
     const payment = { ...req.body, _id: uuidv4(), id: uuidv4() };
 
     const { rows } = await req.db.query(
@@ -214,12 +233,15 @@ exports.addPayment = async (req, res, next) => {
 
     const expense = rows[0];
     const newPayments = [...(expense.advancePayments || []), payment];
+
+    // Calculate status based on foreign currency amount
     const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
       expense.amount,
       newPayments,
     );
 
-    if (remainingBalance < 0) {
+    if (remainingBalance < -0.1) {
+      // Small float tolerance
       return next(new AppError("Payment exceeds remaining balance", 400));
     }
 

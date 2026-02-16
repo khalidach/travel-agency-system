@@ -50,6 +50,8 @@ export default function ExpensePaymentModal({
 
   if (!expense || !isOpen) return null;
 
+  const currency = expense.currency || "MAD";
+
   return (
     <>
       <Modal
@@ -65,16 +67,20 @@ export default function ExpensePaymentModal({
               <p className="text-sm text-gray-500">
                 {t("remainingBalance")}:{" "}
                 <span className="text-red-600 font-bold">
-                  {expense.remainingBalance} {t("mad")}
+                  {expense.remainingBalance.toLocaleString()} {currency}
                 </span>
               </p>
             </div>
             <button
               onClick={() => setIsPaymentFormOpen(true)}
-              className="btn-primary flex items-center gap-2 text-sm"
+              className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
               disabled={expense.isFullyPaid}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard
+                className={`w-4 h-4 ${
+                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
+                }`}
+              />
               {t("addPayment")}
             </button>
           </div>
@@ -86,15 +92,24 @@ export default function ExpensePaymentModal({
                 className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               >
                 <div>
-                  <span className="font-bold">
-                    {payment.amount} {t("mad")}
-                  </span>
-                  <span className="text-gray-500 mx-2">•</span>
-                  <span className="capitalize">{t(payment.method)}</span>
-                  <span className="text-gray-500 mx-2">•</span>
-                  <span className="text-sm text-gray-500">
-                    {new Date(payment.date).toLocaleDateString()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg">
+                      {payment.amount.toLocaleString()} {currency}
+                    </span>
+                    {currency !== "MAD" && payment.amountMAD && (
+                      <span className="text-sm text-gray-500 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded-full">
+                        ≈ {payment.amountMAD.toLocaleString()} MAD
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    <span className="capitalize">{t(payment.method)}</span>
+                    {payment.labelPaper && (
+                      <span className="mx-2">• {payment.labelPaper}</span>
+                    )}
+                    <span className="mx-2">•</span>
+                    <span>{new Date(payment.date).toLocaleDateString()}</span>
+                  </div>
                 </div>
                 <button
                   onClick={() => setPaymentToDelete(payment.id)}
@@ -120,6 +135,7 @@ export default function ExpensePaymentModal({
       >
         <PaymentForm
           remainingBalance={expense.remainingBalance}
+          currency={currency} // Pass the currency
           onSave={(data) => addPaymentMutation.mutate(data)}
           onCancel={() => setIsPaymentFormOpen(false)}
         />

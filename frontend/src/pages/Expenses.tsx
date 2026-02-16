@@ -226,23 +226,31 @@ export default function Expenses() {
                         ? expense.beneficiary
                         : t(expense.category || "")}
                     </td>
+
+                    {/* Amount - Shows Original Currency */}
                     <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">
-                      {Number(expense.amount).toLocaleString()} {t("mad")}
+                      {Number(expense.amount).toLocaleString()}{" "}
+                      {expense.currency || "MAD"}
                     </td>
+
+                    {/* Paid - Shows Original Currency */}
                     <td className="p-4 text-sm text-left text-emerald-600 font-medium">
                       {(activeTab === "regular"
                         ? Number(expense.amount)
                         : Number(expense.amount) -
                           Number(expense.remainingBalance)
                       ).toLocaleString()}{" "}
-                      {t("mad")}
+                      {expense.currency || "MAD"}
                     </td>
+
+                    {/* Remaining - Shows Original Currency */}
                     {activeTab === "order_note" && (
                       <td className="p-4 text-sm text-left text-red-600 font-medium">
                         {Number(expense.remainingBalance).toLocaleString()}{" "}
-                        {t("mad")}
+                        {expense.currency || "MAD"}
                       </td>
                     )}
+
                     <td className="p-4 text-left">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

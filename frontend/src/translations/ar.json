@@ -211,7 +211,7 @@
   "validProgramRequired": "يجب اختيار برنامج صالح.",
   "packageSelectionRequired": "يجب اختيار باقة لهذا البرنامج.",
   "validHotelCombinationRequired": "مطلوب مجموعة فندقية وغرفة صالحة للبرامج التي تتضمن إقامة ليلية.",
-  "paymentAmount": "مبلغ الدفعة (درهم)",
+  "paymentAmount": "مبلغ الدفعة ({{currency}})",
   "paymentMethod": "طريقة الدفع",
   "cash": "نقداً",
   "cheque": "شيك",
@@ -385,9 +385,7 @@
   "currentPasswordRequired": "كلمة المرور الحالية مطلوبة.",
   "passwordTooShort": "يجب أن تتكون كلمة المرور الجديدة من 6 أحرف على الأقل.",
   "passwordMismatch": "كلمات المرور غير متطابقة.",
-  "currency": {
-    "dh_per_month": "درهم/شهر"
-  },
+  "currency": "العملة",
   "home": {
     "header": {
       "brand": "TravelPro",
@@ -607,5 +605,7 @@
   "office_supplies": "لوازم مكتبية",
   "taxes": "ضرائب ورسوم",
   "selectCategory": "اختر الفئة",
-  "searchExpenses": "بحث في المصاريف..."
+  "searchExpenses": "بحث في المصاريف...",
+  "orderItems": "عناصر الطلب",
+  "equivalentIn": "معادل بـ"
 }
