@@ -46,31 +46,32 @@ exports.createExpense = async (req, res, next) => {
     const {
       type,
       category,
-      description, // For Order Note, this might be a summary or empty if items exist
-      items, // NEW: Array of items
-      currency, // NEW: Currency code
+      description,
+      items,
+      currency,
       beneficiary,
       amount,
       date,
       paymentMethod,
+      bookingType, // <--- Extract bookingType
+      reservationNumber, // <--- Extract reservationNumber
     } = req.body;
 
     let advancePayments = [];
     let remainingBalance = amount;
     let isFullyPaid = false;
 
-    // --- NEW LOGIC: Regular expenses are paid immediately ---
+    // --- Regular expenses are paid immediately ---
     if (type === "regular") {
       isFullyPaid = true;
       remainingBalance = 0;
-      // Create a full payment record automatically
       advancePayments = [
         {
           _id: uuidv4(),
           id: uuidv4(),
           date: date,
           amount: amount,
-          amountMAD: amount, // Assume MAD for regular expenses
+          amountMAD: amount,
           currency: "MAD",
           method: paymentMethod || "cash",
           labelPaper: "Auto-payment for Regular Expense",
@@ -80,8 +81,10 @@ exports.createExpense = async (req, res, next) => {
 
     const { rows } = await req.db.query(
       `INSERT INTO expenses 
-      ("userId", "employeeId", type, category, description, beneficiary, amount, "advancePayments", "remainingBalance", "isFullyPaid", date, items, currency)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ("userId", "employeeId", type, category, description, beneficiary, amount, 
+       "advancePayments", "remainingBalance", "isFullyPaid", date, items, currency, 
+       "bookingType", "reservationNumber")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING *`,
       [
         req.user.id,
@@ -97,6 +100,8 @@ exports.createExpense = async (req, res, next) => {
         date,
         JSON.stringify(items || []),
         currency || "MAD",
+        bookingType || null, // <--- Pass to DB
+        reservationNumber || null, // <--- Pass to DB
       ],
     );
 
@@ -119,6 +124,8 @@ exports.updateExpense = async (req, res, next) => {
       amount,
       date,
       paymentMethod,
+      bookingType, // <--- Extract
+      reservationNumber, // <--- Extract
     } = req.body;
 
     // Fetch existing
@@ -136,7 +143,6 @@ exports.updateExpense = async (req, res, next) => {
     let isFullyPaid;
 
     if (expense.type === "regular") {
-      // For regular expenses, ensure the single payment matches the new amount
       advancePayments = [
         {
           _id: uuidv4(),
@@ -152,7 +158,6 @@ exports.updateExpense = async (req, res, next) => {
       remainingBalance = 0;
       isFullyPaid = true;
     } else {
-      // For order notes, preserve payments but recalculate balance
       const status = calculatePaymentStatus(amount, advancePayments);
       remainingBalance = status.remainingBalance;
       isFullyPaid = status.isFullyPaid;
@@ -162,8 +167,10 @@ exports.updateExpense = async (req, res, next) => {
       `UPDATE expenses 
       SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
-          items = $9, currency = $10, "updatedAt" = NOW()
-      WHERE id = $11 AND "userId" = $12
+          items = $9, currency = $10, 
+          "bookingType" = $11, "reservationNumber" = $12, 
+          "updatedAt" = NOW()
+      WHERE id = $13 AND "userId" = $14
       RETURNING *`,
       [
         category,
@@ -176,6 +183,8 @@ exports.updateExpense = async (req, res, next) => {
         isFullyPaid,
         JSON.stringify(items || []),
         currency || "MAD",
+        bookingType || null, // <--- Update field
+        reservationNumber || null, // <--- Update field
         id,
         req.user.id,
       ],
@@ -210,7 +219,6 @@ exports.addPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Check type first
     const check = await req.db.query(
       `SELECT type FROM expenses WHERE id = $1`,
       [id],
@@ -221,7 +229,6 @@ exports.addPayment = async (req, res, next) => {
       );
     }
 
-    // payment object includes amount (foreign), amountMAD (local), etc.
     const payment = { ...req.body, _id: uuidv4(), id: uuidv4() };
 
     const { rows } = await req.db.query(
@@ -234,14 +241,12 @@ exports.addPayment = async (req, res, next) => {
     const expense = rows[0];
     const newPayments = [...(expense.advancePayments || []), payment];
 
-    // Calculate status based on foreign currency amount
     const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
       expense.amount,
       newPayments,
     );
 
     if (remainingBalance < -0.1) {
-      // Small float tolerance
       return next(new AppError("Payment exceeds remaining balance", 400));
     }
 
@@ -264,7 +269,6 @@ exports.deletePayment = async (req, res, next) => {
   try {
     const { id, paymentId } = req.params;
 
-    // Check type first
     const check = await req.db.query(
       `SELECT type FROM expenses WHERE id = $1`,
       [id],

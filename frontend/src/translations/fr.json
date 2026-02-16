@@ -635,5 +635,6 @@
   "price": "Prix",
   "bookingType": "Type de réservation",
   "amountInMADPlaceholder": "Montant en MAD",
-  "enterCurrentValueInMAD": "Veuillez entrer le montant en MAD"
+  "enterCurrentValueInMAD": "Veuillez entrer le montant en MAD",
+  "reservationNumber": "Numéro de réservation"
 }

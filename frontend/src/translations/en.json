@@ -631,5 +631,6 @@
   "price": "Price",
   "bookingType": "Booking Type",
   "amountInMADPlaceholder": "Amount in MAD",
-  "enterCurrentValueInMAD": "Enter the current value in MAD"
+  "enterCurrentValueInMAD": "Enter the current value in MAD",
+  "reservationNumber": "Reservation Number"
 }

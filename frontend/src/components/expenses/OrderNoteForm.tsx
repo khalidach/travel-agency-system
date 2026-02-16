@@ -209,7 +209,7 @@ export default function OrderNoteForm({
           {bookingType === "Hotel" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Reservation Number
+                {t("reservationNumber")}
               </label>
               <input
                 type="text"
@@ -328,7 +328,7 @@ export default function OrderNoteForm({
               <button
                 type="button"
                 onClick={() => removeItem(index)}
-                className="text-gray-400 hover:text-red-500 transition-colors"
+                className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                 disabled={items.length === 1}
               >
                 <Trash2 className="w-5 h-5" />

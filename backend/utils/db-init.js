@@ -476,7 +476,7 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- NEW: Expenses Table ---
+    // --- NEW: Expenses Table (Updated with bookingType and reservationNumber) ---
     await client.query(`
       CREATE TABLE IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,
@@ -493,12 +493,14 @@ const applyDatabaseMigrations = async (client) => {
         date DATE NOT NULL,
         "items" JSONB DEFAULT '[]'::jsonb, -- NEW: Support for multiple items
         "currency" VARCHAR(10) DEFAULT 'MAD', -- NEW: Currency support
+        "bookingType" VARCHAR(50), -- NEW: Booking type for order notes
+        "reservationNumber" VARCHAR(100), -- NEW: Hotel reservation number
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
-    // --- MIGRATION: Add items and currency to expenses if they don't exist ---
+    // --- MIGRATION: Add items, currency, bookingType, and reservationNumber to expenses if they don't exist ---
     await client.query(`
       DO $$
       BEGIN
@@ -507,6 +509,12 @@ const applyDatabaseMigrations = async (client) => {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='currency') THEN
           ALTER TABLE expenses ADD COLUMN "currency" VARCHAR(10) DEFAULT 'MAD';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='bookingType') THEN
+          ALTER TABLE expenses ADD COLUMN "bookingType" VARCHAR(50);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='reservationNumber') THEN
+          ALTER TABLE expenses ADD COLUMN "reservationNumber" VARCHAR(100);
         END IF;
       END;
       $$;

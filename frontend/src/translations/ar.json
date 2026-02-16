@@ -635,5 +635,6 @@
   "price": "السعر",
   "bookingType": "نوع الحجز",
   "amountInMADPlaceholder": "المبلغ بالدرهم المغربي",
-  "enterCurrentValueInMAD": "يرجى إدخال المبلغ بالدرهم المغربي"
+  "enterCurrentValueInMAD": "يرجى إدخال المبلغ بالدرهم المغربي",
+  "reservationNumber": "رقم الحجز"
 }
