@@ -42,6 +42,11 @@ export default function OrderNoteForm({
     initialData?.bookingType || "Other",
   );
 
+  // New State for Reservation Number
+  const [reservationNumber, setReservationNumber] = useState(
+    initialData?.reservationNumber || "",
+  );
+
   // Use existing items or create one from description/amount if migrating from old format
   const [items, setItems] = useState<ExpenseItem[]>(() => {
     if (initialData?.items && initialData.items.length > 0) {
@@ -139,7 +144,9 @@ export default function OrderNoteForm({
       description,
       amount: totalAmount,
       type: "order_note",
-      bookingType, // Include in submission
+      bookingType,
+      reservationNumber:
+        bookingType === "Hotel" ? reservationNumber : undefined,
     });
   };
 
@@ -178,7 +185,7 @@ export default function OrderNoteForm({
           </div>
         </div>
 
-        {/* Row 2: Booking Type & Beneficiary */}
+        {/* Row 2: Booking Type, Beneficiary, & Reservation Number */}
         <div className="flex flex-col space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -198,6 +205,21 @@ export default function OrderNoteForm({
               ))}
             </select>
           </div>
+
+          {bookingType === "Hotel" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Reservation Number
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., 12345ABC"
+                value={reservationNumber}
+                onChange={(e) => setReservationNumber(e.target.value)}
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

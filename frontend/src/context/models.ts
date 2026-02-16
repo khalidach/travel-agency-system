@@ -400,6 +400,7 @@ export interface Expense {
   amount: number;
   currency?: string;
   items?: ExpenseItem[];
+  reservationNumber?: string;
   advancePayments: Payment[];
   remainingBalance: number;
   isFullyPaid: boolean;
