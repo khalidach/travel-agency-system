@@ -316,6 +316,7 @@ export default function Expenses() {
               ? t("addOrderNote")
               : t("addRegularExpense")
         }
+        size="xl"
       >
         {activeTab === "order_note" ? (
           <OrderNoteForm
