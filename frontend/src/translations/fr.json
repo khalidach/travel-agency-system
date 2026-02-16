@@ -627,5 +627,13 @@
   "selectCategory": "Sélectionner une catégorie",
   "searchExpenses": "Rechercher des dépenses...",
   "orderItems": "Articles du bon de commande",
-  "equivalentIn": "Équivalent en"
+  "equivalentIn": "Équivalent en",
+  "amount": "Montant",
+  "category": "Catégorie",
+  "totalAmount": "Montant total",
+  "itemDescription": "Description de l'article",
+  "price": "Prix",
+  "bookingType": "Type de réservation",
+  "amountInMADPlaceholder": "Montant en MAD",
+  "enterCurrentValueInMAD": "Veuillez entrer le montant en MAD"
 }

@@ -197,7 +197,7 @@ export default function Expenses() {
                   </th>
                   {activeTab === "order_note" && (
                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
-                      {t("remaining")}
+                      {t("remainingBalance")}
                     </th>
                   )}
 

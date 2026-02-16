@@ -627,5 +627,13 @@
   "selectCategory": "اختر الفئة",
   "searchExpenses": "بحث في المصاريف...",
   "orderItems": "عناصر الطلب",
-  "equivalentIn": "معادل بـ"
+  "equivalentIn": "معادل بـ",
+  "amount": "المبلغ",
+  "category": "الفئة",
+  "totalAmount": "المبلغ الإجمالي",
+  "itemDescription": "وصف العنصر",
+  "price": "السعر",
+  "bookingType": "نوع الحجز",
+  "amountInMADPlaceholder": "المبلغ بالدرهم المغربي",
+  "enterCurrentValueInMAD": "يرجى إدخال المبلغ بالدرهم المغربي"
 }

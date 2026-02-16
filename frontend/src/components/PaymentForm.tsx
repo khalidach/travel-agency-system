@@ -154,7 +154,7 @@ export default function PaymentForm({
               min="0"
               step="0.01"
               required
-              placeholder="Value at time of payment"
+              placeholder={t("amountInMADPlaceholder") as string}
             />
             <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
               {t("enterCurrentValueInMAD")}

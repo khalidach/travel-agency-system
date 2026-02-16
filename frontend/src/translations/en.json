@@ -623,5 +623,13 @@
   "selectCategory": "Select Category",
   "searchExpenses": "Search expenses...",
   "orderItems": "Order Items",
-  "equivalentIn": "Equivalent in"
+  "equivalentIn": "Equivalent in",
+  "amount": "Amount",
+  "category": "Category",
+  "totalAmount": "Total Amount",
+  "itemDescription": "Item Description",
+  "price": "Price",
+  "bookingType": "Booking Type",
+  "amountInMADPlaceholder": "Amount in MAD",
+  "enterCurrentValueInMAD": "Enter the current value in MAD"
 }
