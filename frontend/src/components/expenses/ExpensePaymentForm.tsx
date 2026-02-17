@@ -1,21 +1,23 @@
-// frontend/src/components/PaymentForm.tsx
+// frontend/src/components/expenses/ExpensePaymentForm.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Payment } from "../context/models";
+import { Payment } from "../../context/models";
 
-interface PaymentFormProps {
+interface ExpensePaymentFormProps {
   payment?: Payment;
   onSave: (payment: Omit<Payment, "_id" | "id">) => void;
   onCancel: () => void;
   remainingBalance: number;
+  currency?: string;
 }
 
-export default function PaymentForm({
+export default function ExpensePaymentForm({
   payment,
   onSave,
   onCancel,
   remainingBalance,
-}: PaymentFormProps) {
+  currency = "MAD",
+}: ExpensePaymentFormProps) {
   const { t } = useTranslation();
 
   const getInitialFormData = useCallback((): Omit<Payment, "_id" | "id"> => {
@@ -68,7 +70,7 @@ export default function PaymentForm({
     if (formData.amount > validationBalance + 0.1) {
       setError(
         t("amountExceedsBalance", {
-          balance: `${validationBalance.toLocaleString()} MAD`,
+          balance: `${validationBalance.toLocaleString()} ${currency}`,
         }),
       );
       return;
@@ -79,18 +81,27 @@ export default function PaymentForm({
       return;
     }
 
+    // If currency is MAD, ensure amountMAD matches amount
     const finalData = { ...formData };
+    if (currency === "MAD") {
+      finalData.amountMAD = finalData.amount;
+    } else if (!finalData.amountMAD || finalData.amountMAD <= 0) {
+      setError(t("enterEquivalentMAD"));
+      return;
+    }
 
-    // Standard payments (Bookings) are always in base currency, so amountMAD equals amount
-    finalData.amountMAD = finalData.amount;
+    finalData.currency = currency;
 
     onSave(finalData);
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const amount = parseFloat(e.target.value) || 0;
-    // Sync amountMAD with amount for standard payments
-    setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
+    setFormData((prev) => ({ ...prev, amount }));
+    // If currency is MAD, sync amountMAD
+    if (currency === "MAD") {
+      setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
+    }
     setError(null);
   };
 
@@ -101,12 +112,14 @@ export default function PaymentForm({
     { value: "card", label: t("card") },
   ];
 
+  const isForeignCurrency = currency !== "MAD";
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            {t("paymentAmount")} (MAD)
+            {t("paymentAmount")} ({currency})
           </label>
           <input
             type="number"
@@ -118,9 +131,36 @@ export default function PaymentForm({
             required
           />
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t("remainingBalance")}: {remainingBalance.toLocaleString()} MAD
+            {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
+            {currency}
           </p>
         </div>
+
+        {isForeignCurrency && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              {t("equivalentIn")} ({t("currency.MAD")})
+            </label>
+            <input
+              type="number"
+              value={formData.amountMAD || ""}
+              onChange={(e) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  amountMAD: parseFloat(e.target.value) || 0,
+                }))
+              }
+              className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+              min="0"
+              step="0.01"
+              required
+              placeholder={t("amountInMADPlaceholder") as string}
+            />
+            <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
+              {t("enterCurrentValueInMAD")}
+            </p>
+          </div>
+        )}
       </div>
 
       {error && (

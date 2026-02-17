@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, CreditCard } from "lucide-react";
 import Modal from "../Modal";
-import PaymentForm from "../PaymentForm";
+import ExpensePaymentForm from "./ExpensePaymentForm"; // Updated Import
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { Expense, Payment } from "../../context/models";
 import * as api from "../../services/api";
@@ -130,9 +130,9 @@ export default function ExpensePaymentModal({
         onClose={() => setIsPaymentFormOpen(false)}
         title={t("addPayment")}
       >
-        <PaymentForm
+        <ExpensePaymentForm
           remainingBalance={expense.remainingBalance}
-          currency={currency} // Pass the currency
+          currency={currency}
           onSave={(data) => addPaymentMutation.mutate(data)}
           onCancel={() => setIsPaymentFormOpen(false)}
         />
