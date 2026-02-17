@@ -76,11 +76,7 @@ export default function ExpensePaymentModal({
               className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
               disabled={expense.isFullyPaid}
             >
-              <CreditCard
-                className={`w-4 h-4 ${
-                  document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                }`}
-              />
+              <CreditCard className={`w-4 h-4 mr-2`} />
               {t("addPayment")}
             </button>
           </div>

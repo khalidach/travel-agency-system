@@ -89,9 +89,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   const formatCurrency = (amount: number | undefined) =>
     Number(amount || 0).toLocaleString();
 
-  const isRtl = document.documentElement.dir === "rtl";
-  const iconMargin = isRtl ? "ml-2" : "mr-2";
-  const valueMargin = isRtl ? "mr-1" : "ml-1";
+  const iconMargin = "mr-2";
+  const valueMargin = "ml-1";
 
   return (
     <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex flex-col justify-between hover:shadow-md transition-all duration-200">

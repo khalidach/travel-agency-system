@@ -277,8 +277,7 @@ export default function BookingForm({
               onClick={() => append(emptyClient)}
               className="mt-4 inline-flex items-center px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
-              <Plus className="w-4 h-4 mr-1 rtl:ml-1 rtl:mr-0" />{" "}
-              {t("addPerson")}
+              <Plus className="w-4 h-4 mr-1 " /> {t("addPerson")}
             </button>
           </div>
         ) : (

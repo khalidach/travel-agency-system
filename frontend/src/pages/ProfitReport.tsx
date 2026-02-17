@@ -289,11 +289,7 @@ export default function ProfitReport() {
                 ].map((header) => (
                   <th
                     key={header}
-                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider ${
-                      document.documentElement.dir === "rtl"
-                        ? "text-right"
-                        : "text-left"
-                    }`}
+                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left`}
                   >
                     {t(header)}
                   </th>
@@ -339,13 +335,7 @@ export default function ProfitReport() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     <div className="flex items-center">
-                      <span
-                        className={`${
-                          document.documentElement.dir === "rtl"
-                            ? "ml-2"
-                            : "mr-2"
-                        }`}
-                      >
+                      <span className={`mr-2`}>
                         {item.profitMargin.toFixed(1)}%
                       </span>
                       <div className="w-16 bg-secondary rounded-full h-2">

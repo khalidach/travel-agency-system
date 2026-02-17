@@ -274,11 +274,7 @@ export default function EmployeesPage() {
                 : (t("addEmployeeTooltip") as string)
             }
           >
-            <Plus
-              className={`w-5 h-5 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Plus className={`w-5 h-5 mr-2`} />
             {t("addEmployee")}
           </button>
         </div>
@@ -349,13 +345,7 @@ export default function EmployeesPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <Hash
-                        className={`w-4 h-4 text-muted-foreground ${
-                          document.documentElement.dir === "rtl"
-                            ? "ml-2"
-                            : "mr-2"
-                        }`}
-                      />
+                      <Hash className={`w-4 h-4 text-muted-foreground mr-1`} />
                       <span className="text-sm text-foreground">
                         {emp.bookingCount || 0}
                       </span>

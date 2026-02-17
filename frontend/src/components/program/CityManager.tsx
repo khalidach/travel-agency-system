@@ -28,12 +28,7 @@ export default function CityManager() {
           // UPDATED: Added dark:text-white and dark:bg-blue-600
           className="inline-flex items-center px-3 py-1 text-sm bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white rounded-lg hover:bg-primary/90"
         >
-          <Plus
-            className={`w-4 h-4 ${
-              document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
-            }`}
-          />{" "}
-          {t("addCity")}
+          <Plus className={`w-4 h-4 mr-1 `} /> {t("addCity")}
         </button>
       </div>
       <div className="space-y-3">

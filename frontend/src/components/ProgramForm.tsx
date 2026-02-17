@@ -209,7 +209,9 @@ export default function ProgramForm({
                     ></div>
                     <div
                       className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
-                        maxBookings === null ? "translate-x-4" : ""
+                        maxBookings === null
+                          ? "translate-x-4 rtl:-translate-x-4"
+                          : ""
                       }`}
                     ></div>
                   </div>
@@ -237,18 +239,31 @@ export default function ProgramForm({
               {t("commissionBasedProgramDesc")}
             </p>
           </label>
-          <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-            <input
-              type="checkbox"
-              id="isCommissionBased"
-              {...methods.register("isCommissionBased")}
-              className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"
-            />
-            <label
-              htmlFor="isCommissionBased"
-              className="toggle-label block overflow-hidden h-6 rounded-full bg-input cursor-pointer"
-            ></label>
-          </div>
+
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                id="isCommissionBased"
+                {...methods.register("isCommissionBased")}
+                className="sr-only"
+              />
+
+              {/* Track */}
+              <div
+                className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
+                  isCommissionBased ? "bg-primary" : "bg-input"
+                }`}
+              ></div>
+
+              {/* Thumb */}
+              <div
+                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
+                  isCommissionBased ? "translate-x-4 rtl:-translate-x-4" : ""
+                }`}
+              ></div>
+            </div>
+          </label>
         </div>
 
         <VariationManager />

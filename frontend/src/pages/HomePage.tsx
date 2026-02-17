@@ -66,9 +66,7 @@ const FeatureCard = ({
   children: React.ReactNode;
 }) => (
   <div
-    className={`bg-white dark:bg-gray-800/50 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ${
-      document.documentElement.dir === "rtl" ? "text-right" : "text-left"
-    }`}
+    className={`bg-white dark:bg-gray-800/50 p-6 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 text-left`}
   >
     <div className="flex items-center mb-4">
       <Icon className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
@@ -160,13 +158,7 @@ const HomePage = () => {
 
       {/* Hero Section */}
       <main className="container mx-auto px-8 py-16 md:py-24 flex flex-col md:flex-row items-center w-full">
-        <div
-          className={`md:w-1/2 text-center ${
-            document.documentElement.dir === "rtl"
-              ? "md:text-right"
-              : "md:text-left"
-          }`}
-        >
+        <div className={`md:w-1/2 text-center md:text-left`}>
           <h2 className="text-4xl md:text-5xl font-bold leading-tight">
             <Trans i18nKey="home.hero.title">
               Votre agence de voyage,{" "}
@@ -359,13 +351,7 @@ const HomePage = () => {
                   ▼
                 </span>
               </summary>
-              <p
-                className={`text-gray-600 dark:text-gray-400 mt-4 ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <p className={`text-gray-600 dark:text-gray-400 mt-4 text-left `}>
                 {t("home.faqSection.a1")}
               </p>
             </details>
@@ -376,13 +362,7 @@ const HomePage = () => {
                   ▼
                 </span>
               </summary>
-              <p
-                className={`text-gray-600 dark:text-gray-400 mt-4 ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <p className={`text-gray-600 dark:text-gray-400 mt-4 text-left`}>
                 {t("home.faqSection.a2")}
               </p>
             </details>
@@ -393,13 +373,7 @@ const HomePage = () => {
                   ▼
                 </span>
               </summary>
-              <p
-                className={`text-gray-600 dark:text-gray-400 mt-4 ${
-                  document.documentElement.dir === "rtl"
-                    ? "text-right"
-                    : "text-left"
-                }`}
-              >
+              <p className={`text-gray-600 dark:text-gray-400 mt-4 text-left`}>
                 {t("home.faqSection.a3")}
               </p>
             </details>

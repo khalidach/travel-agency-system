@@ -28,7 +28,6 @@ export default function EmployeeAnalysisPage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const isRtl = document.documentElement.dir === "rtl";
 
   // --- Modal State ---
   const [isBookingsModalOpen, setIsBookingsModalOpen] = useState(false);
@@ -177,9 +176,7 @@ export default function EmployeeAnalysisPage() {
       <div className="flex items-center">
         <button
           onClick={() => navigate("/employees")}
-          className={`p-2 bg-secondary rounded-full hover:bg-secondary/80 transition-colors ${
-            isRtl ? "ml-4" : "mr-4"
-          }`}
+          className={`p-2 bg-secondary rounded-full hover:bg-secondary/80 transition-colors mr-4`}
           aria-label={t("back") as string}
         >
           <ChevronLeft className="w-6 h-6 text-foreground" />

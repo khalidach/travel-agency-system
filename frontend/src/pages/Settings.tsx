@@ -215,11 +215,7 @@ export default function Settings() {
             disabled={isPending}
             className="inline-flex items-center px-6 py-3 bg-primary text-white font-semibold rounded-lg hover:bg-primary/90 shadow-sm disabled:opacity-50 transition-colors"
           >
-            <Save
-              className={`w-5 h-5 ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Save className={`w-5 h-5 mr-2`} />
             {isPending ? t("saving") : t("saveSettings")}
           </button>
         </div>

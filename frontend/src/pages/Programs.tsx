@@ -214,11 +214,7 @@ export default function Programs() {
             onClick={handleAddProgram}
             className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
           >
-            <Plus
-              className={`w-5 h-5 text-white ${
-                document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-              }`}
-            />
+            <Plus className={`w-5 h-5 text-white mr-2`} />
             {t("addProgram")}
           </button>
         </div>
@@ -293,11 +289,7 @@ export default function Programs() {
               </div>
               <div className="space-y-3">
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock
-                    className={`w-4 h-4 text-muted-foreground ${
-                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                    }`}
-                  />
+                  <Clock className={`w-4 h-4 text-muted-foreground mr-2`} />
                   <span>
                     {t("durations")}:{" "}
                     {(program.variations || [])
@@ -306,21 +298,13 @@ export default function Programs() {
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Package
-                    className={`w-4 h-4 text-muted-foreground ${
-                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                    }`}
-                  />
+                  <Package className={`w-4 h-4 text-muted-foreground mr-2`} />
                   <span>
                     {packageCount} {t("package", { count: packageCount })}
                   </span>
                 </div>
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Users
-                    className={`w-4 h-4 text-muted-foreground ${
-                      document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"
-                    }`}
-                  />
+                  <Users className={`w-4 h-4 text-muted-foreground mr-2`} />
                   <span>
                     {t("totalBookings")}: {program.totalBookings || 0}
                     {program.maxBookings !== undefined && (

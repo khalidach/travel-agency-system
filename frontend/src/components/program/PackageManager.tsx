@@ -408,9 +408,7 @@ const PriceStructureManager = ({
             >
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
                 <h6 className="text-sm font-semibold text-foreground flex items-center">
-                  <Users
-                    className={`w-4 h-4 text-primary ${document.documentElement.dir === "rtl" ? "ml-2" : "mr-2"}`}
-                  />
+                  <Users className={`w-4 h-4 text-primary mr-2 `} />
                   {currentCombination?.replace(/_/g, " → ") || ""}
                 </h6>
                 <button

@@ -33,11 +33,7 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
           className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary rounded-md hover:bg-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           disabled={areCitiesLocked}
         >
-          <Plus
-            className={`w-3.5 h-3.5 ${
-              document.documentElement.dir === "rtl" ? "ml-1" : "mr-1"
-            }`}
-          />
+          <Plus className={`w-3.5 h-3.5 mr-1 `} />
           {t("addCity")}
         </button>
       </div>
