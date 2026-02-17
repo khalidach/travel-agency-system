@@ -83,7 +83,7 @@ export default function ExpensePaymentForm({
 
     // If currency is MAD, ensure amountMAD matches amount
     const finalData = { ...formData };
-    if (currency === "MAD") {
+    if (currency === t("currency.MAD") || currency === "MAD") {
       finalData.amountMAD = finalData.amount;
     } else if (!finalData.amountMAD || finalData.amountMAD <= 0) {
       setError(t("enterEquivalentMAD"));
@@ -99,7 +99,7 @@ export default function ExpensePaymentForm({
     const amount = parseFloat(e.target.value) || 0;
     setFormData((prev) => ({ ...prev, amount }));
     // If currency is MAD, sync amountMAD
-    if (currency === "MAD") {
+    if (currency === t("currency.MAD") || currency === "MAD") {
       setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
     }
     setError(null);
@@ -112,7 +112,8 @@ export default function ExpensePaymentForm({
     { value: "card", label: t("card") },
   ];
 
-  const isForeignCurrency = currency !== "DH" && currency !== "MAD";
+  const isForeignCurrency =
+    currency !== t("currency.MAD") && currency !== "MAD";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -190,22 +191,6 @@ export default function ExpensePaymentForm({
             </option>
           ))}
         </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {t("labelPaper")}{" "}
-          <span className="text-gray-500 font-normal">({t("optional")})</span>
-        </label>
-        <input
-          type="text"
-          value={formData.labelPaper}
-          onChange={(e) =>
-            setFormData((prev) => ({ ...prev, labelPaper: e.target.value }))
-          }
-          placeholder={t("labelPaperPlaceholder") as string}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-        />
       </div>
 
       <div>

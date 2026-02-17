@@ -644,5 +644,6 @@
     "Visa": "Visa",
     "Transfer": "Transfer",
     "Other": "Other"
-  }
+  },
+  "enterEquivalentMAD": "Enter the equivalent amount in Moroccan Dirhams (MAD) for this expense."
 }

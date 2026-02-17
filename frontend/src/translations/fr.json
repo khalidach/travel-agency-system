@@ -648,5 +648,6 @@
     "Visa": "Visa",
     "Transfer": "Transport",
     "Other": "Autre"
-  }
+  },
+  "enterEquivalentMAD": "Entrez le montant équivalent en MAD"
 }
