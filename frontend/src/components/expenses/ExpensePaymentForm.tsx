@@ -56,6 +56,11 @@ export default function ExpensePaymentForm({
   const [formData, setFormData] = useState(getInitialFormData());
   const [error, setError] = useState<string | null>(null);
 
+  // Determine the maximum allowed amount
+  const maxAmount = payment
+    ? remainingBalance + payment.amount
+    : remainingBalance;
+
   useEffect(() => {
     setFormData(getInitialFormData());
     setError(null);
@@ -63,14 +68,11 @@ export default function ExpensePaymentForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const validationBalance = payment
-      ? remainingBalance + payment.amount
-      : remainingBalance;
 
-    if (formData.amount > validationBalance + 0.1) {
+    if (formData.amount > maxAmount + 0.1) {
       setError(
         t("amountExceedsBalance", {
-          balance: `${validationBalance.toLocaleString()} ${currency}`,
+          balance: `${maxAmount.toLocaleString()} ${currency}`,
         }),
       );
       return;
@@ -96,8 +98,15 @@ export default function ExpensePaymentForm({
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const amount = parseFloat(e.target.value) || 0;
+    let amount = parseFloat(e.target.value) || 0;
+
+    // Strict limit enforcement: cap the value at maxAmount
+    if (amount > maxAmount) {
+      amount = maxAmount;
+    }
+
     setFormData((prev) => ({ ...prev, amount }));
+
     // If currency is MAD, sync amountMAD
     if (currency === t("currency.MAD") || currency === "MAD") {
       setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
@@ -128,6 +137,7 @@ export default function ExpensePaymentForm({
             onChange={handleAmountChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             min="0"
+            max={maxAmount}
             step="0.01"
             required
           />

@@ -40,6 +40,11 @@ export default function Expenses() {
     queryFn: () => api.getExpenses({ type: activeTab }),
   });
 
+  // Find the most up-to-date version of the selected expense from the fetched list
+  const activeExpense = selectedExpense
+    ? expenses?.find((e) => e.id === selectedExpense.id) || selectedExpense
+    : null;
+
   const createMutation = useMutation({
     mutationFn: api.createExpense,
     onSuccess: () => {
@@ -316,7 +321,7 @@ export default function Expenses() {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         title={
-          selectedExpense
+          activeExpense
             ? t("editExpense")
             : activeTab === "order_note"
               ? t("addOrderNote")
@@ -326,10 +331,10 @@ export default function Expenses() {
       >
         {activeTab === "order_note" ? (
           <OrderNoteForm
-            initialData={selectedExpense || undefined}
+            initialData={activeExpense || undefined}
             onSubmit={(data) => {
-              if (selectedExpense) {
-                updateMutation.mutate({ id: selectedExpense.id, data });
+              if (activeExpense) {
+                updateMutation.mutate({ id: activeExpense.id, data });
               } else {
                 createMutation.mutate({ ...data, type: "order_note" });
               }
@@ -338,10 +343,10 @@ export default function Expenses() {
           />
         ) : (
           <RegularExpenseForm
-            initialData={selectedExpense || undefined}
+            initialData={activeExpense || undefined}
             onSubmit={(data) => {
-              if (selectedExpense) {
-                updateMutation.mutate({ id: selectedExpense.id, data });
+              if (activeExpense) {
+                updateMutation.mutate({ id: activeExpense.id, data });
               } else {
                 createMutation.mutate({ ...data, type: "regular" });
               }
@@ -352,7 +357,7 @@ export default function Expenses() {
       </Modal>
 
       <ExpensePaymentModal
-        expense={selectedExpense}
+        expense={activeExpense}
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
       />
