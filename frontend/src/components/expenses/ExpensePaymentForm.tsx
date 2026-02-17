@@ -56,10 +56,11 @@ export default function ExpensePaymentForm({
   const [formData, setFormData] = useState(getInitialFormData());
   const [error, setError] = useState<string | null>(null);
 
-  // Determine the maximum allowed amount
+  // Determine the maximum allowed amount safely
+  // We explicitly convert to Number to avoid any string concatenation issues
   const maxAmount = payment
-    ? remainingBalance + payment.amount
-    : remainingBalance;
+    ? Number(remainingBalance) + Number(payment.amount)
+    : Number(remainingBalance);
 
   useEffect(() => {
     setFormData(getInitialFormData());
@@ -69,7 +70,9 @@ export default function ExpensePaymentForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validation is performed here (Soft Validation), allowing user to correct mistakes
     if (formData.amount > maxAmount + 0.1) {
+      // 0.1 tolerance for floating point math
       setError(
         t("amountExceedsBalance", {
           balance: `${maxAmount.toLocaleString()} ${currency}`,
@@ -98,18 +101,24 @@ export default function ExpensePaymentForm({
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let amount = parseFloat(e.target.value) || 0;
+    // Parse the value, but allow empty string or intermediate typing
+    const value = e.target.value;
+    const amount = parseFloat(value);
 
-    // Strict limit enforcement: cap the value at maxAmount
-    if (amount > maxAmount) {
-      amount = maxAmount;
-    }
+    // If it's not a number (e.g. empty string), default to 0 for state, but keep UI responsive
+    const validAmount = isNaN(amount) ? 0 : amount;
 
-    setFormData((prev) => ({ ...prev, amount }));
+    // REMOVED: The strict `if (amount > maxAmount)` block that was blocking your edits.
+
+    setFormData((prev) => ({ ...prev, amount: validAmount }));
 
     // If currency is MAD, sync amountMAD
     if (currency === t("currency.MAD") || currency === "MAD") {
-      setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
+      setFormData((prev) => ({
+        ...prev,
+        amount: validAmount,
+        amountMAD: validAmount,
+      }));
     }
     setError(null);
   };
@@ -137,14 +146,19 @@ export default function ExpensePaymentForm({
             onChange={handleAmountChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             min="0"
-            max={maxAmount}
             step="0.01"
             required
           />
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
-            {currency}
-          </p>
+          <div className="flex justify-between mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("remainingBalance")}: {remainingBalance.toLocaleString()}{" "}
+              {currency}
+            </p>
+            {/* Show the max amount helper text */}
+            <p className="text-xs text-blue-600 dark:text-blue-400 self-center">
+              Max limit: {maxAmount.toLocaleString()} {currency}
+            </p>
+          </div>
         </div>
 
         {isForeignCurrency && (
