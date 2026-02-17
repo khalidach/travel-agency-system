@@ -641,5 +641,12 @@
   "deleteExpenseMessage": "Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.",
   "noExpensesFound": "Aucune dépense trouvée",
   "createExpenseLead": "Il n'y a aucune dépense à afficher. Commencez par ajouter une nouvelle dépense en utilisant le bouton 'Ajouter une dépense'.",
-  "noPassportYet": "Pas de passeport"
+  "noPassportYet": "Pas de passeport",
+  "bookingTypes": {
+    "Flight": "Vol",
+    "Hotel": "Hôtel",
+    "Visa": "Visa",
+    "Transfer": "Transport",
+    "Other": "Autre"
+  }
 }

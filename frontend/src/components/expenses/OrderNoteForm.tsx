@@ -200,7 +200,7 @@ export default function OrderNoteForm({
             >
               {bookingTypes.map((type) => (
                 <option key={type} value={type}>
-                  {type}
+                  {t(`bookingTypes.${type}`)}
                 </option>
               ))}
             </select>
