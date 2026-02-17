@@ -636,5 +636,10 @@
   "bookingType": "Type de réservation",
   "amountInMADPlaceholder": "Montant en MAD",
   "enterCurrentValueInMAD": "Veuillez entrer le montant en MAD",
-  "reservationNumber": "Numéro de réservation"
+  "reservationNumber": "Numéro de réservation",
+  "deleteExpenseTitle": "Supprimer la dépense",
+  "deleteExpenseMessage": "Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible.",
+  "noExpensesFound": "Aucune dépense trouvée",
+  "createExpenseLead": "Il n'y a aucune dépense à afficher. Commencez par ajouter une nouvelle dépense en utilisant le bouton 'Ajouter une dépense'.",
+  "noPassportYet": "Pas de passeport"
 }
