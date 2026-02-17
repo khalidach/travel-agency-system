@@ -53,15 +53,14 @@ exports.createExpense = async (req, res, next) => {
       amount,
       date,
       paymentMethod,
-      bookingType, // <--- Extract bookingType
-      reservationNumber, // <--- Extract reservationNumber
+      bookingType,
+      reservationNumber,
     } = req.body;
 
     let advancePayments = [];
     let remainingBalance = amount;
     let isFullyPaid = false;
 
-    // --- Regular expenses are paid immediately ---
     if (type === "regular") {
       isFullyPaid = true;
       remainingBalance = 0;
@@ -100,8 +99,8 @@ exports.createExpense = async (req, res, next) => {
         date,
         JSON.stringify(items || []),
         currency || "MAD",
-        bookingType || null, // <--- Pass to DB
-        reservationNumber || null, // <--- Pass to DB
+        bookingType || null,
+        reservationNumber || null,
       ],
     );
 
@@ -124,11 +123,10 @@ exports.updateExpense = async (req, res, next) => {
       amount,
       date,
       paymentMethod,
-      bookingType, // <--- Extract
-      reservationNumber, // <--- Extract
+      bookingType,
+      reservationNumber,
     } = req.body;
 
-    // Fetch existing
     const existing = await req.db.query(
       `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
       [id, req.user.id],
@@ -183,8 +181,8 @@ exports.updateExpense = async (req, res, next) => {
         isFullyPaid,
         JSON.stringify(items || []),
         currency || "MAD",
-        bookingType || null, // <--- Update field
-        reservationNumber || null, // <--- Update field
+        bookingType || null,
+        reservationNumber || null,
         id,
         req.user.id,
       ],
@@ -262,6 +260,80 @@ exports.addPayment = async (req, res, next) => {
   } catch (error) {
     logger.error("Add Payment Error:", error);
     next(new AppError("Failed to add payment", 500));
+  }
+};
+
+// --- NEW: Update Payment Function ---
+exports.updatePayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+    const { amount, date, method, ...otherFields } = req.body;
+
+    const check = await req.db.query(
+      `SELECT type FROM expenses WHERE id = $1`,
+      [id],
+    );
+    if (check.rows.length > 0 && check.rows[0].type === "regular") {
+      return next(
+        new AppError(
+          "Cannot manually edit payments for regular expenses.",
+          400,
+        ),
+      );
+    }
+
+    const { rows } = await req.db.query(
+      `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (rows.length === 0) return next(new AppError("Expense not found", 404));
+
+    const expense = rows[0];
+    const payments = expense.advancePayments || [];
+
+    const paymentIndex = payments.findIndex(
+      (p) => p.id === paymentId || p._id === paymentId,
+    );
+    if (paymentIndex === -1)
+      return next(new AppError("Payment not found", 404));
+
+    const oldPayment = payments[paymentIndex];
+    const updatedPayment = {
+      ...oldPayment,
+      ...req.body,
+      amount: parseFloat(amount),
+      // Preserve IDs
+      id: oldPayment.id,
+      _id: oldPayment._id,
+    };
+
+    const newPayments = [...payments];
+    newPayments[paymentIndex] = updatedPayment;
+
+    const { remainingBalance, isFullyPaid } = calculatePaymentStatus(
+      expense.amount,
+      newPayments,
+    );
+
+    if (remainingBalance < -0.1) {
+      return next(
+        new AppError("Payment amount exceeds total expense amount", 400),
+      );
+    }
+
+    const updated = await req.db.query(
+      `UPDATE expenses 
+       SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+       WHERE id = $4
+       RETURNING *`,
+      [JSON.stringify(newPayments), remainingBalance, isFullyPaid, id],
+    );
+
+    res.status(200).json(updated.rows[0]);
+  } catch (error) {
+    logger.error("Update Payment Error:", error);
+    next(new AppError("Failed to update payment", 500));
   }
 };
 

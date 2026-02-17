@@ -3,7 +3,7 @@ import type {
   Booking,
   DailyService,
   Employee,
-  Expense, // <--- ADDED
+  Expense,
   Facture,
   Payment,
   Program,
@@ -629,6 +629,17 @@ export const addExpensePayment = (
 ) =>
   request(`/expenses/${id}/payments`, {
     method: "POST",
+    body: JSON.stringify(payment),
+  });
+
+// New Update Payment Function
+export const updateExpensePayment = (
+  id: number,
+  paymentId: string,
+  payment: Partial<Payment>,
+) =>
+  request(`/expenses/${id}/payments/${paymentId}`, {
+    method: "PUT",
     body: JSON.stringify(payment),
   });
 

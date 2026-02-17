@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, CreditCard } from "lucide-react";
+import { Trash2, CreditCard, Edit2 } from "lucide-react"; // Added Edit2
 import Modal from "../Modal";
-import ExpensePaymentForm from "./ExpensePaymentForm"; // Updated Import
+import ExpensePaymentForm from "./ExpensePaymentForm";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { Expense, Payment } from "../../context/models";
 import * as api from "../../services/api";
@@ -24,6 +24,7 @@ export default function ExpensePaymentModal({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null); // New state
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
 
   const addPaymentMutation = useMutation({
@@ -33,8 +34,26 @@ export default function ExpensePaymentModal({
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       toast.success(t("paymentAdded"));
       setIsPaymentFormOpen(false);
+      setEditingPayment(null);
     },
     onError: () => toast.error(t("failedToAddPayment")),
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({
+      paymentId,
+      data,
+    }: {
+      paymentId: string;
+      data: Partial<Payment>;
+    }) => api.updateExpensePayment(expense!.id, paymentId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast.success(t("paymentUpdated"));
+      setIsPaymentFormOpen(false);
+      setEditingPayment(null);
+    },
+    onError: () => toast.error(t("failedToUpdatePayment")),
   });
 
   const deletePaymentMutation = useMutation({
@@ -47,6 +66,16 @@ export default function ExpensePaymentModal({
     },
     onError: () => toast.error(t("failedToDeletePayment")),
   });
+
+  const handleEditClick = (payment: Payment) => {
+    setEditingPayment(payment);
+    setIsPaymentFormOpen(true);
+  };
+
+  const handleCloseForm = () => {
+    setIsPaymentFormOpen(false);
+    setEditingPayment(null);
+  };
 
   if (!expense || !isOpen) return null;
 
@@ -108,12 +137,22 @@ export default function ExpensePaymentModal({
                     <span>{new Date(payment.date).toLocaleDateString()}</span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setPaymentToDelete(payment.id)}
-                  className="text-red-500 hover:bg-red-50 p-2 rounded-full"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEditClick(payment)}
+                    className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-full transition-colors"
+                    title={t("edit") as string}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setPaymentToDelete(payment.id)}
+                    className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition-colors"
+                    title={t("delete") as string}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))}
             {!expense.advancePayments?.length && (
@@ -127,14 +166,24 @@ export default function ExpensePaymentModal({
 
       <Modal
         isOpen={isPaymentFormOpen}
-        onClose={() => setIsPaymentFormOpen(false)}
-        title={t("addPayment")}
+        onClose={handleCloseForm}
+        title={editingPayment ? t("editPayment") : t("addPayment")}
       >
         <ExpensePaymentForm
+          payment={editingPayment || undefined} // Pass payment if editing
           remainingBalance={expense.remainingBalance}
           currency={currency}
-          onSave={(data) => addPaymentMutation.mutate(data)}
-          onCancel={() => setIsPaymentFormOpen(false)}
+          onSave={(data) => {
+            if (editingPayment) {
+              updatePaymentMutation.mutate({
+                paymentId: editingPayment.id,
+                data,
+              });
+            } else {
+              addPaymentMutation.mutate(data);
+            }
+          }}
+          onCancel={handleCloseForm}
         />
       </Modal>
 
