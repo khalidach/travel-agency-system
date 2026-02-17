@@ -211,7 +211,7 @@
   "validProgramRequired": "Un programme valide doit être sélectionné.",
   "packageSelectionRequired": "Un forfait doit être sélectionné pour ce programme.",
   "validHotelCombinationRequired": "Une combinaison d'hôtel et de chambre valide est requise pour les programmes avec nuitées.",
-  "paymentAmount": "Montant du Paiement ({{currency}})",
+  "paymentAmount": "Montant du Paiement",
   "paymentMethod": "Moyen de Paiement",
   "cash": "Espèces",
   "cheque": "Chèque",

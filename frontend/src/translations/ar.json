@@ -211,7 +211,7 @@
   "validProgramRequired": "يجب اختيار برنامج صالح.",
   "packageSelectionRequired": "يجب اختيار باقة لهذا البرنامج.",
   "validHotelCombinationRequired": "مطلوب مجموعة فندقية وغرفة صالحة للبرامج التي تتضمن إقامة ليلية.",
-  "paymentAmount": "مبلغ الدفعة ({{currency}})",
+  "paymentAmount": "مبلغ الدفعة ",
   "paymentMethod": "طريقة الدفع",
   "cash": "نقداً",
   "cheque": "شيك",

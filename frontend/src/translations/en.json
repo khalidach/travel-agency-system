@@ -207,7 +207,7 @@
   "validProgramRequired": "A valid program must be selected.",
   "packageSelectionRequired": "A package must be selected for this program.",
   "validHotelCombinationRequired": "A valid hotel and room combination is required for programs with overnight stays.",
-  "paymentAmount": "Payment Amount ({{currency}})",
+  "paymentAmount": "Payment Amount ",
   "paymentMethod": "Payment Method",
   "cash": "Cash",
   "cheque": "Cheque",

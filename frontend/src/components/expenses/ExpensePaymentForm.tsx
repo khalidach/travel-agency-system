@@ -112,7 +112,7 @@ export default function ExpensePaymentForm({
     { value: "card", label: t("card") },
   ];
 
-  const isForeignCurrency = currency !== "MAD";
+  const isForeignCurrency = currency !== "DH";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
