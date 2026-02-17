@@ -50,7 +50,8 @@ export default function ExpensePaymentModal({
 
   if (!expense || !isOpen) return null;
 
-  const currency = expense.currency || "MAD";
+  const currency =
+    t(`currency.${expense.currency}`) || expense.currency || "dh";
 
   return (
     <>

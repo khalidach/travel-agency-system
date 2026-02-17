@@ -230,7 +230,9 @@ export default function Expenses() {
                     {/* Amount - Shows Original Currency */}
                     <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">
                       {Number(expense.amount).toLocaleString()}{" "}
-                      {expense.currency || "MAD"}
+                      {t(`currency.${expense.currency}`) ||
+                        expense.currency ||
+                        "dh"}
                     </td>
 
                     {/* Paid - Shows Original Currency */}
@@ -240,14 +242,18 @@ export default function Expenses() {
                         : Number(expense.amount) -
                           Number(expense.remainingBalance)
                       ).toLocaleString()}{" "}
-                      {expense.currency || "MAD"}
+                      {t(`currency.${expense.currency}`) ||
+                        expense.currency ||
+                        "dh"}
                     </td>
 
                     {/* Remaining - Shows Original Currency */}
                     {activeTab === "order_note" && (
                       <td className="p-4 text-sm text-left text-red-600 font-medium">
                         {Number(expense.remainingBalance).toLocaleString()}{" "}
-                        {expense.currency || "MAD"}
+                        {t(`currency.${expense.currency}`) ||
+                          expense.currency ||
+                          "dh"}
                       </td>
                     )}
 
