@@ -16,21 +16,26 @@ import {
 import * as api from "../services/api";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
-import SupplierForm from "../components/suppliers/SupplierForm";
+import SupplierForm, {
+  SupplierFormData,
+} from "../components/suppliers/SupplierForm";
 import { toast } from "react-hot-toast";
+import { Supplier } from "../context/models";
 
 export default function Suppliers() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<any | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
+    null,
+  );
   const [supplierToDelete, setSupplierToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: suppliers, isLoading } = useQuery({
+  const { data: suppliers, isLoading } = useQuery<Supplier[]>({
     queryKey: ["suppliers", "stats"],
-    queryFn: () => api.getSuppliers(true), // Fetch with stats
+    queryFn: () => api.getSuppliers(true),
   });
 
   const createMutation = useMutation({
@@ -40,18 +45,20 @@ export default function Suppliers() {
       toast.success(t("supplierCreated"));
       setIsFormOpen(false);
     },
-    onError: (err: any) =>
+    onError: (err: Error & { response?: { data?: { message?: string } } }) =>
       toast.error(err.response?.data?.message || t("error")),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
+    mutationFn: ({ id, data }: { id: number; data: SupplierFormData }) =>
       api.updateSupplier(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       toast.success(t("supplierUpdated"));
       setIsFormOpen(false);
     },
+    onError: (err: Error & { response?: { data?: { message?: string } } }) =>
+      toast.error(err.response?.data?.message || t("error")),
   });
 
   const deleteMutation = useMutation({
@@ -61,11 +68,31 @@ export default function Suppliers() {
       toast.success(t("supplierDeleted"));
       setSupplierToDelete(null);
     },
+    onError: (err: Error & { response?: { data?: { message?: string } } }) =>
+      toast.error(err.response?.data?.message || t("error")),
   });
 
-  const filteredSuppliers = suppliers?.filter((s: any) =>
+  const filteredSuppliers = suppliers?.filter((s) =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const handleCreate = (data: SupplierFormData) => {
+    createMutation.mutate(data);
+  };
+
+  const handleUpdate = (data: SupplierFormData) => {
+    if (selectedSupplier) {
+      updateMutation.mutate({ id: selectedSupplier.id, data });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -93,7 +120,7 @@ export default function Suppliers() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder={t("searchSuppliers")}
+            placeholder={t("searchSuppliers") as string}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
@@ -102,7 +129,7 @@ export default function Suppliers() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredSuppliers?.map((supplier: any) => (
+        {filteredSuppliers?.map((supplier) => (
           <div
             key={supplier.id}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer group"
@@ -150,19 +177,19 @@ export default function Suppliers() {
               <div>
                 <p className="text-xs text-gray-500">{t("total")}</p>
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  {supplier.totalAmount?.toLocaleString()}
+                  {supplier.totalAmount?.toLocaleString() ?? "0"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">{t("paid")}</p>
                 <p className="font-semibold text-emerald-600">
-                  {supplier.totalPaid?.toLocaleString()}
+                  {supplier.totalPaid?.toLocaleString() ?? "0"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">{t("remaining")}</p>
                 <p className="font-semibold text-red-600">
-                  {supplier.totalRemaining?.toLocaleString()}
+                  {supplier.totalRemaining?.toLocaleString() ?? "0"}
                 </p>
               </div>
             </div>
@@ -179,9 +206,9 @@ export default function Suppliers() {
           initialData={selectedSupplier}
           onSubmit={(data) => {
             if (selectedSupplier) {
-              updateMutation.mutate({ id: selectedSupplier.id, data });
+              handleUpdate(data);
             } else {
-              createMutation.mutate(data);
+              handleCreate(data);
             }
           }}
           onCancel={() => setIsFormOpen(false)}

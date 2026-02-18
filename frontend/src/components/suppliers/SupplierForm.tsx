@@ -1,10 +1,18 @@
 // frontend/src/components/suppliers/SupplierForm.tsx
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Supplier } from "../../context/models";
+
+export interface SupplierFormData {
+  name: string;
+  email: string;
+  phone: string;
+  landline: string;
+}
 
 interface SupplierFormProps {
-  initialData?: any;
-  onSubmit: (data: any) => void;
+  initialData?: Supplier | null;
+  onSubmit: (data: SupplierFormData) => void;
   onCancel: () => void;
 }
 
@@ -14,7 +22,7 @@ export default function SupplierForm({
   onCancel,
 }: SupplierFormProps) {
   const { t } = useTranslation();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SupplierFormData>({
     name: initialData?.name || "",
     email: initialData?.email || "",
     phone: initialData?.phone || "",

@@ -412,3 +412,16 @@ export interface Expense {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Supplier {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  landline?: string;
+  totalAmount?: number;
+  totalPaid?: number;
+  totalRemaining?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}

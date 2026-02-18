@@ -4,13 +4,19 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Phone, Mail, FileText, Calendar } from "lucide-react";
 import * as api from "../services/api";
+import { Supplier, Expense } from "../context/models";
+
+// Define the specific shape expected for the analysis view (includes expenses)
+interface SupplierDetail extends Supplier {
+  expenses?: Expense[];
+}
 
 export default function SupplierAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const { data: supplier, isLoading } = useQuery({
+  const { data: supplier, isLoading } = useQuery<SupplierDetail>({
     queryKey: ["supplier", id],
     queryFn: () => api.getSupplier(Number(id)),
     enabled: !!id,
@@ -22,14 +28,16 @@ export default function SupplierAnalysis() {
   // Calculate stats from the expenses array returned by the detailed endpoint
   const totalAmount =
     supplier.expenses?.reduce(
-      (acc: number, curr: any) => acc + Number(curr.amount),
+      (acc: number, curr: Expense) => acc + Number(curr.amount),
       0,
     ) || 0;
+
   const totalRemaining =
     supplier.expenses?.reduce(
-      (acc: number, curr: any) => acc + Number(curr.remainingBalance),
+      (acc: number, curr: Expense) => acc + Number(curr.remainingBalance),
       0,
     ) || 0;
+
   const totalPaid = totalAmount - totalRemaining;
 
   return (
@@ -117,7 +125,7 @@ export default function SupplierAnalysis() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {supplier.expenses?.map((expense: any) => (
+            {supplier.expenses?.map((expense: Expense) => (
               <tr
                 key={expense.id}
                 className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
