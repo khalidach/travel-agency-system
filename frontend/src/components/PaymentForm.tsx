@@ -54,6 +54,12 @@ export default function PaymentForm({
   const [formData, setFormData] = useState(getInitialFormData());
   const [error, setError] = useState<string | null>(null);
 
+  // Calculate maximum allowed amount (Remaining + Current Amount if editing)
+  // Converting to Number ensures safe addition
+  const maxAmount = payment
+    ? Number(remainingBalance) + Number(payment.amount)
+    : Number(remainingBalance);
+
   useEffect(() => {
     setFormData(getInitialFormData());
     setError(null);
@@ -61,14 +67,12 @@ export default function PaymentForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const validationBalance = payment
-      ? remainingBalance + payment.amount
-      : remainingBalance;
 
-    if (formData.amount > validationBalance + 0.1) {
+    // Validation: Allow 0.1 tolerance for floating point arithmetic
+    if (formData.amount > maxAmount + 0.1) {
       setError(
         t("amountExceedsBalance", {
-          balance: `${validationBalance.toLocaleString()} MAD`,
+          balance: `${maxAmount.toLocaleString()} MAD`,
         }),
       );
       return;
@@ -88,7 +92,9 @@ export default function PaymentForm({
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const amount = parseFloat(e.target.value) || 0;
+    const value = parseFloat(e.target.value);
+    const amount = isNaN(value) ? 0 : value;
+
     // Sync amountMAD with amount for standard payments
     setFormData((prev) => ({ ...prev, amount, amountMAD: amount }));
     setError(null);
@@ -117,9 +123,14 @@ export default function PaymentForm({
             step="0.01"
             required
           />
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t("remainingBalance")}: {remainingBalance.toLocaleString()} MAD
-          </p>
+          <div className="flex justify-between mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t("remainingBalance")}: {remainingBalance.toLocaleString()} MAD
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 self-center">
+              Max limit: {maxAmount.toLocaleString()} MAD
+            </p>
+          </div>
         </div>
       </div>
 
