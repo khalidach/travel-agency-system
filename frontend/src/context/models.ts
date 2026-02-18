@@ -201,7 +201,9 @@ export interface ExpenseItem {
   description: string;
   quantity: number;
   unitPrice: number;
-  nights?: number; // ADDED: Number of nights for hotel bookings
+  nights?: number;
+  checkIn?: string; // ADDED
+  checkOut?: string; // ADDED
   total: number;
 }
 
@@ -394,7 +396,7 @@ export interface Expense {
   employeeId?: number;
   type: "order_note" | "regular";
   category?: string;
-  bookingType?: "Hotel" | "Flight" | "Visa" | "Transfer" | "Other"; // ADDED
+  bookingType?: "Hotel" | "Flight" | "Visa" | "Transfer" | "Other";
   description: string;
   beneficiary?: string;
   amount: number;

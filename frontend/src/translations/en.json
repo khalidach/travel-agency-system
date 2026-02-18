@@ -645,5 +645,7 @@
     "Transfer": "Transfer",
     "Other": "Other"
   },
-  "enterEquivalentMAD": "Enter the equivalent amount in Moroccan Dirhams (MAD) for this expense."
+  "enterEquivalentMAD": "Enter the equivalent amount in Moroccan Dirhams (MAD) for this expense.",
+  "checkIn": "Check-in",
+  "checkOut": "Check-out"
 }

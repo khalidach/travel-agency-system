@@ -649,5 +649,7 @@
     "Transfer": "Transport",
     "Other": "Autre"
   },
-  "enterEquivalentMAD": "Entrez le montant équivalent en MAD"
+  "enterEquivalentMAD": "Entrez le montant équivalent en MAD",
+  "checkIn": "Arrivée",
+  "checkOut": "Départ"
 }
