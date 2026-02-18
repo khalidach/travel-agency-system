@@ -14,6 +14,7 @@ import type {
   TierLimits,
   User,
   FacturationSettings,
+  Supplier,
 } from "../context/models";
 import type { BookingSaveData } from "../components/booking_form/types";
 
@@ -603,10 +604,10 @@ export const getSuppliers = (withStats = false) =>
 
 export const getSupplier = (id: number) => request(`/suppliers/${id}`);
 
-export const createSupplier = (data: Record<string, any>) =>
+export const createSupplier = (data: Create<Supplier>) =>
   request("/suppliers", { method: "POST", body: JSON.stringify(data) });
 
-export const updateSupplier = (id: number, data: Record<string, any>) =>
+export const updateSupplier = (id: number, data: Update<Supplier>) =>
   request(`/suppliers/${id}`, { method: "PUT", body: JSON.stringify(data) });
 
 export const deleteSupplier = (id: number) =>
