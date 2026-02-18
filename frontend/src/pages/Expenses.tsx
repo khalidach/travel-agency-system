@@ -194,6 +194,16 @@ export default function Expenses() {
                       ? t("beneficiary")
                       : t("category")}
                   </th>
+
+                  {/* NEW: Booking Type & Ref (Order Notes Only) */}
+                  {activeTab === "order_note" && (
+                    <>
+                      <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                        {t("bookingType")}
+                      </th>
+                    </>
+                  )}
+
                   <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("amount")}
                   </th>
@@ -231,6 +241,17 @@ export default function Expenses() {
                         ? expense.beneficiary
                         : t(expense.category || "")}
                     </td>
+
+                    {/* NEW: Booking Type & Ref Data */}
+                    {activeTab === "order_note" && (
+                      <>
+                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
+                          {expense.bookingType
+                            ? t(`bookingTypes.${expense.bookingType}`)
+                            : "-"}
+                        </td>
+                      </>
+                    )}
 
                     {/* Amount - Shows Original Currency */}
                     <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">

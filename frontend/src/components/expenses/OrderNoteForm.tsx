@@ -1,8 +1,9 @@
 // frontend/src/components/expenses/OrderNoteForm.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Expense, ExpenseItem } from "../../context/models";
+import { Expense, ExpenseItem, Supplier } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
+import { getSuppliers } from "../../services/api";
 
 interface OrderNoteFormProps {
   initialData?: Expense;
@@ -36,9 +37,15 @@ export default function OrderNoteForm({
       ? new Date(initialData.date).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0],
   );
+
+  // Beneficiary / Supplier state
   const [beneficiary, setBeneficiary] = useState(
     initialData?.beneficiary || "",
   );
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
   // State for Booking Type
@@ -81,6 +88,46 @@ export default function OrderNoteForm({
     "Transfer",
     "Other",
   ];
+
+  // Fetch suppliers on mount
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const data = await getSuppliers(false); // Fetch without stats for performance
+        if (Array.isArray(data)) {
+          setSuppliers(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch suppliers", error);
+      }
+    };
+    fetchSuppliers();
+  }, []);
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Filter suppliers based on input
+  const filteredSuppliers = useMemo(() => {
+    if (!beneficiary) return suppliers;
+    return suppliers.filter((s) =>
+      s.name.toLowerCase().includes(beneficiary.toLowerCase()),
+    );
+  }, [suppliers, beneficiary]);
 
   // Helper to calculate hotel nights
   const calculateNights = (checkIn: string, checkOut: string): number => {
@@ -250,18 +297,44 @@ export default function OrderNoteForm({
             </div>
           )}
 
-          <div className={`${isHotel ? "col-span-2" : ""}`}>
+          <div
+            className={`${isHotel ? "col-span-2" : ""}`}
+            ref={suggestionsRef}
+          >
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t("beneficiary")}
             </label>
-            <input
-              type="text"
-              required
-              placeholder="e.g., Royal Air Maroc, Hotel Hilton"
-              value={beneficiary}
-              onChange={(e) => setBeneficiary(e.target.value)}
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                required
+                placeholder="e.g., Royal Air Maroc, Hotel Hilton"
+                value={beneficiary}
+                onChange={(e) => {
+                  setBeneficiary(e.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              />
+              {/* Suggestions Dropdown */}
+              {showSuggestions && filteredSuppliers.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
+                  {filteredSuppliers.map((supplier) => (
+                    <li
+                      key={supplier.id}
+                      onClick={() => {
+                        setBeneficiary(supplier.name);
+                        setShowSuggestions(false);
+                      }}
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm"
+                    >
+                      {supplier.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       </div>
