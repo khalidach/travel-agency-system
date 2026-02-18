@@ -597,6 +597,21 @@ export const deleteNotification = (id: number) =>
 export const deleteAllNotifications = () =>
   request("/notifications/clear-all", { method: "DELETE" });
 
+// --- Suppliers API ---
+export const getSuppliers = (withStats = false) =>
+  request(`/suppliers?withStats=${withStats}`);
+
+export const getSupplier = (id: number) => request(`/suppliers/${id}`);
+
+export const createSupplier = (data: Record<string, any>) =>
+  request("/suppliers", { method: "POST", body: JSON.stringify(data) });
+
+export const updateSupplier = (id: number, data: Record<string, any>) =>
+  request(`/suppliers/${id}`, { method: "PUT", body: JSON.stringify(data) });
+
+export const deleteSupplier = (id: number) =>
+  request(`/suppliers/${id}`, { method: "DELETE" });
+
 // --- Expenses API (NEW) ---
 export const getExpenses = (params?: {
   type?: string;

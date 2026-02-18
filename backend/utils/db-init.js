@@ -124,8 +124,6 @@ const applyDatabaseMigrations = async (client) => {
                 'cities', cities
             ))
             WHERE cities IS NOT NULL AND variations IS NULL;
-
-            
         END IF;
       END;
       $$;
@@ -520,6 +518,20 @@ const applyDatabaseMigrations = async (client) => {
       $$;
     `);
 
+    // --- NEW: Suppliers Table ---
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS suppliers (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        landline VARCHAR(50),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // Index for expenses
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_expenses_user_date ON expenses("userId", date DESC);',
@@ -580,6 +592,14 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");',
+    );
+
+    // --- NEW: Suppliers Indexes ---
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_suppliers_user ON suppliers("userId");',
+    );
+    await client.query(
+      "CREATE INDEX IF NOT EXISTS idx_suppliers_name_gin ON suppliers USING GIN (name gin_trgm_ops);",
     );
 
     // --- FIX: Drop old unique constraint and add partial unique constraint for passport ---
