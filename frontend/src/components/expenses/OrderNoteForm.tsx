@@ -18,6 +18,8 @@ const emptyItem: ExpenseItem = {
   total: 0,
   checkIn: "",
   checkOut: "",
+  departureDate: "",
+  returnDate: "",
 };
 
 type BookingType = "Hotel" | "Flight" | "Visa" | "Transfer" | "Other";
@@ -39,17 +41,17 @@ export default function OrderNoteForm({
   );
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
-  // New State for Booking Type
+  // State for Booking Type
   const [bookingType, setBookingType] = useState<BookingType>(
     initialData?.bookingType || "Other",
   );
 
-  // New State for Reservation Number
+  // State for Reservation Number
   const [reservationNumber, setReservationNumber] = useState(
     initialData?.reservationNumber || "",
   );
 
-  // Use existing items or create one from description/amount if migrating from old format
+  // Use existing items or create one
   const [items, setItems] = useState<ExpenseItem[]>(() => {
     if (initialData?.items && initialData.items.length > 0) {
       return initialData.items.map((item) => ({
@@ -80,15 +82,14 @@ export default function OrderNoteForm({
     "Other",
   ];
 
+  // Helper to calculate hotel nights
   const calculateNights = (checkIn: string, checkOut: string): number => {
     if (!checkIn || !checkOut) return 1;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
 
-    // Calculate difference in milliseconds
     const diffTime = end.getTime() - start.getTime();
-    // Convert to days
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     return diffDays > 0 ? diffDays : 1;
@@ -102,7 +103,7 @@ export default function OrderNoteForm({
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
 
-    // Auto-calculate nights if dates change and we are in Hotel mode
+    // Auto-calculate nights only for Hotel
     if (
       bookingType === "Hotel" &&
       (field === "checkIn" || field === "checkOut")
@@ -113,6 +114,7 @@ export default function OrderNoteForm({
     // Recalculate total for this item
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
+    // Nights only affect total if type is Hotel
     const nights = bookingType === "Hotel" ? Number(item.nights) || 1 : 1;
 
     item.total = qty * price * nights;
@@ -172,6 +174,11 @@ export default function OrderNoteForm({
     });
   };
 
+  // Helper booleans for layout
+  const isHotel = bookingType === "Hotel";
+  const isFlight = bookingType === "Flight";
+  const isWideLayout = isHotel || isFlight; // Uses 12 columns instead of 10
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col space-y-4">
@@ -228,7 +235,7 @@ export default function OrderNoteForm({
             </select>
           </div>
 
-          {bookingType === "Hotel" && (
+          {isHotel && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {t("reservationNumber")}
@@ -243,7 +250,7 @@ export default function OrderNoteForm({
             </div>
           )}
 
-          <div className={`${bookingType === "Hotel" ? "col-span-2" : ""}`}>
+          <div className={`${isHotel ? "col-span-2" : ""}`}>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               {t("beneficiary")}
             </label>
@@ -267,42 +274,62 @@ export default function OrderNoteForm({
         {/* Header Row */}
         <div
           className={`grid gap-2 text-xs font-medium text-gray-500 uppercase items-center ${
-            bookingType === "Hotel" ? "grid-cols-12" : "grid-cols-10"
+            isWideLayout ? "grid-cols-12" : "grid-cols-10"
           }`}
         >
-          {/* Adjusted column span for Description to 3 if Hotel, to fit dates */}
+          {/* Description Column */}
           <div
-            className={bookingType === "Hotel" ? "col-span-3" : "col-span-4"}
+            className={
+              isHotel ? "col-span-3" : isFlight ? "col-span-4" : "col-span-4"
+            }
           >
             {t("description")}
           </div>
 
-          {bookingType === "Hotel" && (
+          {/* Hotel Headers */}
+          {isHotel && (
             <>
               <div className="col-span-2 text-left">{t("checkIn")}</div>
               <div className="col-span-2 text-left">{t("checkOut")}</div>
             </>
           )}
 
+          {/* Flight Headers */}
+          {isFlight && (
+            <>
+              <div className="col-span-2 text-left">
+                {t("departureDate") || "Departure"}
+              </div>
+              <div className="col-span-2 text-left">
+                {t("returnDate") || "Return"}
+              </div>
+            </>
+          )}
+
+          {/* Quantity Column */}
           <div
             className={
-              bookingType === "Hotel"
+              isHotel
                 ? "col-span-1 text-left"
-                : "col-span-2 text-left"
+                : isFlight
+                  ? "col-span-1 text-left"
+                  : "col-span-2 text-left"
             }
           >
             {t("quantity")}
           </div>
 
-          {bookingType === "Hotel" && (
-            <div className="col-span-1 text-left">{t("nights")}</div>
-          )}
+          {/* Nights Column (Hotel Only) */}
+          {isHotel && <div className="col-span-1 text-left">{t("nights")}</div>}
 
+          {/* Price Column */}
           <div
             className={
-              bookingType === "Hotel"
+              isHotel
                 ? "col-span-2 text-left"
-                : "col-span-3 text-left"
+                : isFlight
+                  ? "col-span-2 text-left"
+                  : "col-span-3 text-left"
             }
           >
             {t("price")}
@@ -315,12 +342,14 @@ export default function OrderNoteForm({
           <div
             key={index}
             className={`grid gap-2 items-start ${
-              bookingType === "Hotel" ? "grid-cols-12" : "grid-cols-10"
+              isWideLayout ? "grid-cols-12" : "grid-cols-10"
             }`}
           >
             {/* Description */}
             <div
-              className={bookingType === "Hotel" ? "col-span-3" : "col-span-4"}
+              className={
+                isHotel ? "col-span-3" : isFlight ? "col-span-4" : "col-span-4"
+              }
             >
               <input
                 type="text"
@@ -337,8 +366,8 @@ export default function OrderNoteForm({
               </div>
             </div>
 
-            {/* Check-in / Check-out */}
-            {bookingType === "Hotel" && (
+            {/* Hotel Check-in / Check-out */}
+            {isHotel && (
               <>
                 <div className="col-span-2">
                   <input
@@ -366,9 +395,42 @@ export default function OrderNoteForm({
               </>
             )}
 
+            {/* Flight Departure / Return */}
+            {isFlight && (
+              <>
+                <div className="col-span-2">
+                  <input
+                    type="date"
+                    required
+                    placeholder="Departure"
+                    value={item.departureDate || ""}
+                    onChange={(e) =>
+                      handleItemChange(index, "departureDate", e.target.value)
+                    }
+                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <input
+                    type="date"
+                    required
+                    min={item.departureDate}
+                    placeholder="Return"
+                    value={item.returnDate || ""}
+                    onChange={(e) =>
+                      handleItemChange(index, "returnDate", e.target.value)
+                    }
+                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                  />
+                </div>
+              </>
+            )}
+
             {/* Quantity */}
             <div
-              className={bookingType === "Hotel" ? "col-span-1" : "col-span-2"}
+              className={
+                isHotel ? "col-span-1" : isFlight ? "col-span-1" : "col-span-2"
+              }
             >
               <input
                 type="number"
@@ -383,14 +445,14 @@ export default function OrderNoteForm({
               />
             </div>
 
-            {/* Nights */}
-            {bookingType === "Hotel" && (
+            {/* Hotel Nights (Calculated) */}
+            {isHotel && (
               <div className="col-span-1">
                 <input
                   type="number"
                   min="1"
                   required
-                  readOnly // Make it readOnly because it's calculated from dates
+                  readOnly
                   value={item.nights || 1}
                   onChange={(e) =>
                     handleItemChange(index, "nights", Number(e.target.value))
@@ -403,7 +465,9 @@ export default function OrderNoteForm({
 
             {/* Price */}
             <div
-              className={bookingType === "Hotel" ? "col-span-2" : "col-span-3"}
+              className={
+                isHotel ? "col-span-2" : isFlight ? "col-span-2" : "col-span-3"
+              }
             >
               <input
                 type="number"

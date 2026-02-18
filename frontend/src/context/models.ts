@@ -202,8 +202,10 @@ export interface ExpenseItem {
   quantity: number;
   unitPrice: number;
   nights?: number;
-  checkIn?: string; // ADDED
-  checkOut?: string; // ADDED
+  checkIn?: string;
+  checkOut?: string;
+  departureDate?: string; // NEW: For Flights
+  returnDate?: string; // NEW: For Flights
   total: number;
 }
 
