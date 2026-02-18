@@ -189,7 +189,7 @@ export default function Expenses() {
                   <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("description")}
                   </th>
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[12%]">
                     {activeTab === "order_note"
                       ? t("beneficiary")
                       : t("category")}
@@ -198,7 +198,7 @@ export default function Expenses() {
                   {/* NEW: Booking Type & Ref (Order Notes Only) */}
                   {activeTab === "order_note" && (
                     <>
-                      <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                      <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[10%]">
                         {t("bookingType")}
                       </th>
                     </>
@@ -216,7 +216,7 @@ export default function Expenses() {
                     </th>
                   )}
 
-                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
+                  <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[15%]">
                     {t("status")}
                   </th>
                   <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
