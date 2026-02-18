@@ -9,13 +9,14 @@ interface OrderNoteFormProps {
   initialData?: Expense;
   onSubmit: (data: Partial<Expense>) => void;
   onCancel: () => void;
+  readOnly?: boolean; // New prop for preview mode
 }
 
 const emptyItem: ExpenseItem = {
   description: "",
   quantity: 1,
   unitPrice: 0,
-  nights: 1, // Default nights to 1
+  nights: 1,
   total: 0,
   checkIn: "",
   checkOut: "",
@@ -29,6 +30,7 @@ export default function OrderNoteForm({
   initialData,
   onSubmit,
   onCancel,
+  readOnly = false,
 }: OrderNoteFormProps) {
   const { t } = useTranslation();
 
@@ -38,7 +40,6 @@ export default function OrderNoteForm({
       : new Date().toISOString().split("T")[0],
   );
 
-  // Beneficiary / Supplier state
   const [beneficiary, setBeneficiary] = useState(
     initialData?.beneficiary || "",
   );
@@ -48,17 +49,14 @@ export default function OrderNoteForm({
 
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
-  // State for Booking Type
   const [bookingType, setBookingType] = useState<BookingType>(
     initialData?.bookingType || "Other",
   );
 
-  // State for Reservation Number
   const [reservationNumber, setReservationNumber] = useState(
     initialData?.reservationNumber || "",
   );
 
-  // Use existing items or create one
   const [items, setItems] = useState<ExpenseItem[]>(() => {
     if (initialData?.items && initialData.items.length > 0) {
       return initialData.items.map((item) => ({
@@ -89,11 +87,11 @@ export default function OrderNoteForm({
     "Other",
   ];
 
-  // Fetch suppliers on mount
   useEffect(() => {
+    if (readOnly) return; // Skip fetching if read-only
     const fetchSuppliers = async () => {
       try {
-        const data = await getSuppliers(false); // Fetch without stats for performance
+        const data = await getSuppliers(false);
         if (Array.isArray(data)) {
           setSuppliers(data);
         }
@@ -102,9 +100,8 @@ export default function OrderNoteForm({
       }
     };
     fetchSuppliers();
-  }, []);
+  }, [readOnly]);
 
-  // Handle click outside to close suggestions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -121,7 +118,6 @@ export default function OrderNoteForm({
     };
   }, []);
 
-  // Filter suppliers based on input
   const filteredSuppliers = useMemo(() => {
     if (!beneficiary) return suppliers;
     return suppliers.filter((s) =>
@@ -129,16 +125,13 @@ export default function OrderNoteForm({
     );
   }, [suppliers, beneficiary]);
 
-  // Helper to calculate hotel nights
   const calculateNights = (checkIn: string, checkOut: string): number => {
     if (!checkIn || !checkOut) return 1;
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return 1;
-
     const diffTime = end.getTime() - start.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
     return diffDays > 0 ? diffDays : 1;
   };
 
@@ -147,10 +140,10 @@ export default function OrderNoteForm({
     field: keyof ExpenseItem,
     value: string | number,
   ) => {
+    if (readOnly) return;
     const newItems = [...items];
     const item = { ...newItems[index], [field]: value };
 
-    // Auto-calculate nights only for Hotel
     if (
       bookingType === "Hotel" &&
       (field === "checkIn" || field === "checkOut")
@@ -158,38 +151,34 @@ export default function OrderNoteForm({
       item.nights = calculateNights(item.checkIn || "", item.checkOut || "");
     }
 
-    // Recalculate total for this item
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
-    // Nights only affect total if type is Hotel
     const nights = bookingType === "Hotel" ? Number(item.nights) || 1 : 1;
 
     item.total = qty * price * nights;
-
     newItems[index] = item;
     setItems(newItems);
   };
 
-  // Recalculate all items if booking type changes
   const handleBookingTypeChange = (newType: BookingType) => {
+    if (readOnly) return;
     setBookingType(newType);
-
     const updatedItems = items.map((item) => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unitPrice) || 0;
       const nights = newType === "Hotel" ? Number(item.nights) || 1 : 1;
-
-      return {
-        ...item,
-        total: qty * price * nights,
-      };
+      return { ...item, total: qty * price * nights };
     });
     setItems(updatedItems);
   };
 
-  const addItem = () => setItems([...items, { ...emptyItem }]);
-  const removeItem = (index: number) =>
-    setItems(items.filter((_, i) => i !== index));
+  const addItem = () => {
+    if (!readOnly) setItems([...items, { ...emptyItem }]);
+  };
+
+  const removeItem = (index: number) => {
+    if (!readOnly) setItems(items.filter((_, i) => i !== index));
+  };
 
   const totalAmount = useMemo(() => {
     return items.reduce((sum, item) => sum + (item.total || 0), 0);
@@ -197,8 +186,8 @@ export default function OrderNoteForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
 
-    // Generate a summary description
     const description =
       items.length === 1
         ? items[0].description
@@ -221,10 +210,11 @@ export default function OrderNoteForm({
     });
   };
 
-  // Helper booleans for layout
   const isHotel = bookingType === "Hotel";
   const isFlight = bookingType === "Flight";
-  const isWideLayout = isHotel || isFlight; // Uses 12 columns instead of 10
+  const isWideLayout = isHotel || isFlight;
+  const inputClass =
+    "w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark] disabled:opacity-60 disabled:cursor-not-allowed";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -238,9 +228,10 @@ export default function OrderNoteForm({
             <input
               type="date"
               required
+              disabled={readOnly}
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+              className={inputClass}
             />
           </div>
           <div>
@@ -249,8 +240,9 @@ export default function OrderNoteForm({
             </label>
             <select
               value={currency}
+              disabled={readOnly}
               onChange={(e) => setCurrency(e.target.value)}
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              className={inputClass}
             >
               {currencies.map((cur) => (
                 <option key={cur} value={cur}>
@@ -269,10 +261,11 @@ export default function OrderNoteForm({
             </label>
             <select
               value={bookingType}
+              disabled={readOnly}
               onChange={(e) =>
                 handleBookingTypeChange(e.target.value as BookingType)
               }
-              className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              className={inputClass}
             >
               {bookingTypes.map((type) => (
                 <option key={type} value={type}>
@@ -290,9 +283,10 @@ export default function OrderNoteForm({
               <input
                 type="text"
                 placeholder="e.g., 12345ABC"
+                disabled={readOnly}
                 value={reservationNumber}
                 onChange={(e) => setReservationNumber(e.target.value)}
-                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                className={inputClass}
               />
             </div>
           )}
@@ -308,17 +302,18 @@ export default function OrderNoteForm({
               <input
                 type="text"
                 required
+                disabled={readOnly}
                 placeholder="e.g., Royal Air Maroc, Hotel Hilton"
                 value={beneficiary}
                 onChange={(e) => {
                   setBeneficiary(e.target.value);
                   setShowSuggestions(true);
                 }}
-                onFocus={() => setShowSuggestions(true)}
-                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                onFocus={() => !readOnly && setShowSuggestions(true)}
+                className={inputClass}
               />
               {/* Suggestions Dropdown */}
-              {showSuggestions && filteredSuppliers.length > 0 && (
+              {!readOnly && showSuggestions && filteredSuppliers.length > 0 && (
                 <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
                   {filteredSuppliers.map((supplier) => (
                     <li
@@ -350,7 +345,6 @@ export default function OrderNoteForm({
             isWideLayout ? "grid-cols-12" : "grid-cols-10"
           }`}
         >
-          {/* Description Column */}
           <div
             className={
               isHotel ? "col-span-3" : isFlight ? "col-span-4" : "col-span-4"
@@ -359,7 +353,6 @@ export default function OrderNoteForm({
             {t("description")}
           </div>
 
-          {/* Hotel Headers */}
           {isHotel && (
             <>
               <div className="col-span-2 text-left">{t("checkIn")}</div>
@@ -367,7 +360,6 @@ export default function OrderNoteForm({
             </>
           )}
 
-          {/* Flight Headers */}
           {isFlight && (
             <>
               <div className="col-span-2 text-left">
@@ -379,7 +371,6 @@ export default function OrderNoteForm({
             </>
           )}
 
-          {/* Quantity Column */}
           <div
             className={
               isHotel
@@ -392,10 +383,8 @@ export default function OrderNoteForm({
             {t("quantity")}
           </div>
 
-          {/* Nights Column (Hotel Only) */}
           {isHotel && <div className="col-span-1 text-left">{t("nights")}</div>}
 
-          {/* Price Column */}
           <div
             className={
               isHotel
@@ -408,7 +397,7 @@ export default function OrderNoteForm({
             {t("price")}
           </div>
 
-          <div className="col-span-1"></div>
+          {!readOnly && <div className="col-span-1"></div>}
         </div>
 
         {items.map((item, index) => (
@@ -428,11 +417,12 @@ export default function OrderNoteForm({
                 type="text"
                 placeholder={t("itemDescription") as string}
                 required
+                disabled={readOnly}
                 value={item.description}
                 onChange={(e) =>
                   handleItemChange(index, "description", e.target.value)
                 }
-                className="w-full p-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                className={inputClass}
               />
               <div className="md:hidden mt-1 text-xs text-gray-500">
                 Total: {item.total.toLocaleString()} {t(`currency.${currency}`)}
@@ -446,23 +436,25 @@ export default function OrderNoteForm({
                   <input
                     type="date"
                     required
+                    disabled={readOnly}
                     value={item.checkIn || ""}
                     onChange={(e) =>
                       handleItemChange(index, "checkIn", e.target.value)
                     }
-                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                    className={inputClass}
                   />
                 </div>
                 <div className="col-span-2">
                   <input
                     type="date"
                     required
+                    disabled={readOnly}
                     min={item.checkIn}
                     value={item.checkOut || ""}
                     onChange={(e) =>
                       handleItemChange(index, "checkOut", e.target.value)
                     }
-                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                    className={inputClass}
                   />
                 </div>
               </>
@@ -475,25 +467,27 @@ export default function OrderNoteForm({
                   <input
                     type="date"
                     required
+                    disabled={readOnly}
                     placeholder="Departure"
                     value={item.departureDate || ""}
                     onChange={(e) =>
                       handleItemChange(index, "departureDate", e.target.value)
                     }
-                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                    className={inputClass}
                   />
                 </div>
                 <div className="col-span-2">
                   <input
                     type="date"
                     required
+                    disabled={readOnly}
                     min={item.departureDate}
                     placeholder="Return"
                     value={item.returnDate || ""}
                     onChange={(e) =>
                       handleItemChange(index, "returnDate", e.target.value)
                     }
-                    className="w-full p-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:[color-scheme:dark]"
+                    className={inputClass}
                   />
                 </div>
               </>
@@ -509,11 +503,12 @@ export default function OrderNoteForm({
                 type="number"
                 min="1"
                 required
+                disabled={readOnly}
                 value={item.quantity}
                 onChange={(e) =>
                   handleItemChange(index, "quantity", Number(e.target.value))
                 }
-                className="w-full p-2 text-center rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                className={`${inputClass} text-center`}
                 placeholder="Qty"
               />
             </div>
@@ -526,11 +521,12 @@ export default function OrderNoteForm({
                   min="1"
                   required
                   readOnly
+                  disabled={true} // Always disabled as it is calculated
                   value={item.nights || 1}
                   onChange={(e) =>
                     handleItemChange(index, "nights", Number(e.target.value))
                   }
-                  className="w-full p-2 text-center rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 bg-gray-50 dark:bg-gray-800 cursor-not-allowed"
+                  className={`${inputClass} bg-gray-50 dark:bg-gray-800 cursor-not-allowed text-center`}
                   placeholder="Nights"
                 />
               </div>
@@ -547,35 +543,40 @@ export default function OrderNoteForm({
                 min="0"
                 step="0.01"
                 required
+                disabled={readOnly}
                 value={item.unitPrice}
                 onChange={(e) =>
                   handleItemChange(index, "unitPrice", Number(e.target.value))
                 }
-                className="w-full p-2 text-right rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                className={`${inputClass} text-right`}
               />
             </div>
 
             {/* Delete */}
-            <div className="col-span-1 flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={() => removeItem(index)}
-                className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                disabled={items.length === 1}
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="col-span-1 flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => removeItem(index)}
+                  className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                  disabled={items.length === 1}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={addItem}
-          className="flex items-center gap-1 text-sm text-primary hover:text-primary/80"
-        >
-          <Plus className="w-4 h-4" /> {t("addItem")}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={addItem}
+            className="flex items-center gap-1 text-sm text-primary hover:text-primary/80"
+          >
+            <Plus className="w-4 h-4" /> {t("addItem")}
+          </button>
+        )}
       </div>
 
       <div className="flex justify-end items-center gap-4 pt-4 border-t dark:border-gray-700">
@@ -591,14 +592,16 @@ export default function OrderNoteForm({
           onClick={onCancel}
           className="btn-secondary px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
         >
-          {t("cancel")}
+          {readOnly ? t("close") : t("cancel")}
         </button>
-        <button
-          type="submit"
-          className="btn-primary bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg"
-        >
-          {t("save")}
-        </button>
+        {!readOnly && (
+          <button
+            type="submit"
+            className="btn-primary bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg"
+          >
+            {t("save")}
+          </button>
+        )}
       </div>
     </form>
   );

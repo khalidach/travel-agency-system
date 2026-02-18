@@ -1,10 +1,13 @@
 // frontend/src/pages/SupplierAnalysis.tsx
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Phone, Mail, FileText, Calendar } from "lucide-react";
 import * as api from "../services/api";
 import { Supplier, Expense } from "../context/models";
+import Modal from "../components/Modal";
+import OrderNoteForm from "../components/expenses/OrderNoteForm";
 
 // Define the specific shape expected for the analysis view (includes expenses)
 interface SupplierDetail extends Supplier {
@@ -15,6 +18,9 @@ export default function SupplierAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: supplier, isLoading } = useQuery<SupplierDetail>({
     queryKey: ["supplier", id],
@@ -39,6 +45,16 @@ export default function SupplierAnalysis() {
     ) || 0;
 
   const totalPaid = totalAmount - totalRemaining;
+
+  const handleRowClick = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedExpense(null);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -128,7 +144,8 @@ export default function SupplierAnalysis() {
             {supplier.expenses?.map((expense: Expense) => (
               <tr
                 key={expense.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                onClick={() => handleRowClick(expense)}
+                className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
               >
                 <td className="p-4 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
@@ -175,6 +192,22 @@ export default function SupplierAnalysis() {
           </tbody>
         </table>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={t("expenseDetails") || "Expense Details"}
+        size="xl"
+      >
+        {selectedExpense && (
+          <OrderNoteForm
+            initialData={selectedExpense}
+            onSubmit={() => {}} // No-op for read-only
+            onCancel={handleCloseModal}
+            readOnly={true} // Enable preview mode
+          />
+        )}
+      </Modal>
     </div>
   );
 }
