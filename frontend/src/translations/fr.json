@@ -651,5 +651,11 @@
   },
   "enterEquivalentMAD": "Entrez le montant équivalent en MAD",
   "checkIn": "Arrivée",
-  "checkOut": "Départ"
+  "checkOut": "Départ",
+  "totalPurchases": "Achats Totaux",
+  "purchaseHistory": "Historique des Achats",
+  "suppliersManagement": "Gestion des Fournisseurs",
+  "addSupplier": "Ajouter un Fournisseur",
+  "Suppliername": "Nom du Fournisseur",
+  "optional": "Facultatif"
 }

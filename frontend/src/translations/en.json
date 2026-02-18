@@ -647,5 +647,11 @@
   },
   "enterEquivalentMAD": "Enter the equivalent amount in Moroccan Dirhams (MAD) for this expense.",
   "checkIn": "Check-in",
-  "checkOut": "Check-out"
+  "checkOut": "Check-out",
+  "totalPurchases": "Total Purchases",
+  "purchaseHistory": "Purchase History",
+  "suppliersManagement": "Suppliers Management",
+  "addSupplier": "Add Supplier",
+  "Suppliername": "Supplier Name",
+  "optional": "Optional"
 }

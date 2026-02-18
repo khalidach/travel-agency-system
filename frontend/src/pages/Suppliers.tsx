@@ -187,7 +187,7 @@ export default function Suppliers() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">{t("remaining")}</p>
+                <p className="text-xs text-gray-500">{t("remainingBalance")}</p>
                 <p className="font-semibold text-red-600">
                   {supplier.totalRemaining?.toLocaleString() ?? "0"}
                 </p>

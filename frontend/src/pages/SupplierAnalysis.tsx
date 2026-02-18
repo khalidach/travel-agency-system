@@ -70,25 +70,25 @@ export default function SupplierAnalysis() {
           </div>
 
           <div className="flex gap-4">
-            <div className="text-right">
+            <div className="text-left">
               <p className="text-sm text-gray-500">{t("totalPurchases")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {totalAmount.toLocaleString()}{" "}
-                <span className="text-sm font-normal">MAD</span>
+                <span className="text-sm font-normal">{t("currency.MAD")}</span>
               </p>
             </div>
-            <div className="text-right px-4 border-l border-gray-200">
+            <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalPaid")}</p>
               <p className="text-2xl font-bold text-emerald-600">
                 {totalPaid.toLocaleString()}{" "}
-                <span className="text-sm font-normal">MAD</span>
+                <span className="text-sm font-normal">{t("currency.MAD")}</span>
               </p>
             </div>
-            <div className="text-right px-4 border-l border-gray-200">
-              <p className="text-sm text-gray-500">{t("outstandingBalance")}</p>
+            <div className="text-left px-4 border-l border-gray-200">
+              <p className="text-sm text-gray-500">{t("totalRemaining")}</p>
               <p className="text-2xl font-bold text-red-600">
                 {totalRemaining.toLocaleString()}{" "}
-                <span className="text-sm font-normal">MAD</span>
+                <span className="text-sm font-normal">{t("currency.MAD")}</span>
               </p>
             </div>
           </div>
@@ -117,7 +117,7 @@ export default function SupplierAnalysis() {
                 {t("paid")}
               </th>
               <th className="p-4 text-xs uppercase text-gray-500">
-                {t("remaining")}
+                {t("remainingBalance")}
               </th>
               <th className="p-4 text-xs uppercase text-gray-500">
                 {t("status")}
@@ -140,16 +140,17 @@ export default function SupplierAnalysis() {
                   {expense.description}
                 </td>
                 <td className="p-4 text-sm font-medium">
-                  {Number(expense.amount).toLocaleString()} MAD
+                  {Number(expense.amount).toLocaleString()} {t("currency.MAD")}
                 </td>
                 <td className="p-4 text-sm text-emerald-600">
                   {(
                     Number(expense.amount) - Number(expense.remainingBalance)
                   ).toLocaleString()}{" "}
-                  MAD
+                  {t("currency.MAD")}
                 </td>
                 <td className="p-4 text-sm text-red-600">
-                  {Number(expense.remainingBalance).toLocaleString()} MAD
+                  {Number(expense.remainingBalance).toLocaleString()}{" "}
+                  {t("currency.MAD")}
                 </td>
                 <td className="p-4">
                   <span

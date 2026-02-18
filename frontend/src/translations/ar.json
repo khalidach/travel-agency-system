@@ -651,5 +651,11 @@
   },
   "enterEquivalentMAD": "أدخل المبلغ المعادل بالدرهم المغربي",
   "checkIn": "تسجيل الوصول",
-  "checkOut": "تسجيل المغادرة"
+  "checkOut": "تسجيل المغادرة",
+  "totalPurchases": "إجمالي المشتريات",
+  "purchaseHistory": "تاريخ المشتريات",
+  "suppliersManagement": "إدارة الموردين",
+  "addSupplier": "إضافة مورد",
+  "Suppliername": "اسم المورد",
+  "optional": "اختياري"
 }

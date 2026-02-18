@@ -38,7 +38,7 @@ export default function SupplierForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {t("name")} *
+          {t("Suppliername")} *
         </label>
         <input
           type="text"
