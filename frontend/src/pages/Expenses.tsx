@@ -22,6 +22,7 @@ import ExpensePaymentModal from "../components/expenses/ExpensePaymentModal";
 import OrderNoteForm from "../components/expenses/OrderNoteForm";
 import RegularExpenseForm from "../components/expenses/RegularExpenseForm";
 import { toast } from "react-hot-toast";
+import PaginationControls from "../components/ui/PaginationControls";
 
 export default function Expenses() {
   const { t } = useTranslation();
@@ -37,16 +38,67 @@ export default function Expenses() {
   const [selectedBookingType, setSelectedBookingType] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Reset pagination when filters change
+  const handleSearchChange = (val: string) => {
+    setSearchTerm(val);
+    setCurrentPage(1);
+  };
+
+  const handleBookingTypeChange = (val: string) => {
+    setSelectedBookingType(val);
+    setCurrentPage(1);
+  };
+
+  const handleSupplierChange = (val: string) => {
+    setSelectedSupplier(val);
+    setCurrentPage(1);
+  };
+
+  const handleTabChange = (val: "order_note" | "regular") => {
+    setActiveTab(val);
+    setCurrentPage(1);
+    setSearchTerm("");
+    setSelectedBookingType("");
+    setSelectedSupplier("");
+  };
+
   // Fetch Suppliers for filter
   const { data: suppliersList } = useQuery<Supplier[]>({
     queryKey: ["suppliers"],
     queryFn: () => api.getSuppliers(false),
   });
 
-  const { data: expenses, isLoading } = useQuery<Expense[]>({
-    queryKey: ["expenses", activeTab],
-    queryFn: () => api.getExpenses({ type: activeTab }),
+  const { data: expensesData, isLoading } = useQuery<{
+    expenses: Expense[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>({
+    queryKey: [
+      "expenses",
+      activeTab,
+      currentPage,
+      itemsPerPage,
+      searchTerm,
+      selectedBookingType,
+      selectedSupplier,
+    ],
+    queryFn: () =>
+      api.getExpenses({
+        type: activeTab,
+        page: currentPage,
+        limit: itemsPerPage,
+        searchTerm,
+        bookingType: selectedBookingType,
+        beneficiary: selectedSupplier,
+      }),
   });
+
+  const expenses = expensesData?.expenses || [];
 
   // Find the most up-to-date version of the selected expense from the fetched list
   const activeExpense = selectedExpense
@@ -82,22 +134,6 @@ export default function Expenses() {
       setExpenseToDelete(null);
     },
     onError: () => toast.error(t("errorDeletingExpense")),
-  });
-
-  const filteredExpenses = expenses?.filter(
-    (expense: Expense) =>
-      expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expense.beneficiary?.toLowerCase().includes(searchTerm.toLowerCase()),
-  )?.filter((expense: Expense) => {
-    // Booking Type Filter
-    if (activeTab === "order_note" && selectedBookingType) {
-      if (expense.bookingType !== selectedBookingType) return false;
-    }
-    // Supplier Filter (match beneficiary name)
-    if (activeTab === "order_note" && selectedSupplier) {
-      if (expense.beneficiary !== selectedSupplier) return false;
-    }
-    return true;
   });
 
   const handleEdit = (expense: Expense) => {
@@ -139,10 +175,10 @@ export default function Expenses() {
       {/* Tabs */}
       <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
         <button
-          onClick={() => setActiveTab("order_note")}
+          onClick={() => handleTabChange("order_note")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "order_note"
-            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -151,10 +187,10 @@ export default function Expenses() {
           </div>
         </button>
         <button
-          onClick={() => setActiveTab("regular")}
+          onClick={() => handleTabChange("regular")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "regular"
-            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -172,7 +208,7 @@ export default function Expenses() {
             type="text"
             placeholder={t("searchExpenses") as string}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
@@ -182,7 +218,7 @@ export default function Expenses() {
           <>
             <select
               value={selectedBookingType}
-              onChange={(e) => setSelectedBookingType(e.target.value)}
+              onChange={(e) => handleBookingTypeChange(e.target.value)}
               className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">{t("allBookingTypes") || "All Types"}</option>
@@ -195,7 +231,7 @@ export default function Expenses() {
 
             <select
               value={selectedSupplier}
-              onChange={(e) => setSelectedSupplier(e.target.value)}
+              onChange={(e) => handleSupplierChange(e.target.value)}
               className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
             >
               <option value="">{t("allSuppliers") || "All Suppliers"}</option>
@@ -213,7 +249,7 @@ export default function Expenses() {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">{t("loading")}</div>
-        ) : !filteredExpenses?.length ? (
+        ) : !expenses?.length ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
               <Wallet className="w-8 h-8 text-gray-400" />
@@ -272,7 +308,7 @@ export default function Expenses() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {filteredExpenses.map((expense: Expense) => (
+                {expenses.map((expense: Expense) => (
                   <tr
                     key={expense.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -333,8 +369,8 @@ export default function Expenses() {
                     <td className="p-4 text-left">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expense.isFullyPaid
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                           }`}
                       >
                         {expense.isFullyPaid ? (
@@ -380,6 +416,19 @@ export default function Expenses() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {expensesData && expensesData.totalPages > 1 && (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={expensesData.totalPages}
+              totalCount={expensesData.total}
+              limit={itemsPerPage}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
           </div>
         )}
       </div>

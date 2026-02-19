@@ -618,6 +618,11 @@ export const getExpenses = (params?: {
   type?: string;
   startDate?: string;
   endDate?: string;
+  page?: number;
+  limit?: number;
+  searchTerm?: string;
+  bookingType?: string;
+  beneficiary?: string;
 }) => {
   const query = new URLSearchParams();
 
@@ -625,6 +630,11 @@ export const getExpenses = (params?: {
     if (params.type) query.append("type", params.type);
     if (params.startDate) query.append("startDate", params.startDate);
     if (params.endDate) query.append("endDate", params.endDate);
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    if (params.searchTerm) query.append("searchTerm", params.searchTerm);
+    if (params.bookingType) query.append("bookingType", params.bookingType);
+    if (params.beneficiary) query.append("beneficiary", params.beneficiary);
   }
 
   return request(`/expenses?${query.toString()}`);

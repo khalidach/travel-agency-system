@@ -655,5 +655,8 @@
   "Suppliername": "Supplier Name",
   "optional": "Optional",
   "allBookingTypes": "All Booking Types",
-  "allSuppliers": "All Suppliers"
+  "allSuppliers": "All Suppliers",
+  "showing": "Showing",
+  "of": "of",
+  "results": "results"
 }

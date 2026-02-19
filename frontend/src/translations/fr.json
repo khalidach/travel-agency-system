@@ -659,5 +659,8 @@
   "Suppliername": "Nom du Fournisseur",
   "optional": "Facultatif",
   "allBookingTypes": "Tous les Types de Réservations",
-  "allSuppliers": "Tous les Fournisseurs"
+  "allSuppliers": "Tous les Fournisseurs",
+  "showing": "Affichage",
+  "of": "de",
+  "results": "résultats"
 }

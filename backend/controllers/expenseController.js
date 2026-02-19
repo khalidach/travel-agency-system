@@ -17,24 +17,72 @@ const calculatePaymentStatus = (amount, payments) => {
 
 exports.getAllExpenses = async (req, res, next) => {
   try {
-    const { type, startDate, endDate } = req.query;
+    const {
+      type,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 10,
+      searchTerm,
+      bookingType,
+      beneficiary,
+    } = req.query;
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
     let query = `SELECT * FROM expenses WHERE "userId" = $1`;
+    let countQuery = `SELECT COUNT(*) FROM expenses WHERE "userId" = $1`;
     const params = [req.user.id];
 
     if (type) {
       query += ` AND type = $${params.length + 1}`;
+      countQuery += ` AND type = $${params.length + 1}`;
       params.push(type);
     }
 
     if (startDate && endDate) {
       query += ` AND date BETWEEN $${params.length + 1} AND $${params.length + 2}`;
+      countQuery += ` AND date BETWEEN $${params.length + 1} AND $${params.length + 2}`;
       params.push(startDate, endDate);
     }
 
-    query += ` ORDER BY date DESC`;
+    if (searchTerm) {
+      query += ` AND (description ILIKE $${params.length + 1} OR beneficiary ILIKE $${params.length + 1})`;
+      countQuery += ` AND (description ILIKE $${params.length + 1} OR beneficiary ILIKE $${params.length + 1})`;
+      params.push(`%${searchTerm}%`);
+    }
 
-    const result = await req.db.query(query, params);
-    res.status(200).json(result.rows);
+    if (bookingType) {
+      query += ` AND "bookingType" = $${params.length + 1}`;
+      countQuery += ` AND "bookingType" = $${params.length + 1}`;
+      params.push(bookingType);
+    }
+
+    if (beneficiary) {
+      query += ` AND beneficiary = $${params.length + 1}`;
+      countQuery += ` AND beneficiary = $${params.length + 1}`;
+      params.push(beneficiary);
+    }
+
+    query += ` ORDER BY date DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const queryParams = [...params, limitNum, offset];
+
+    const [result, countResult] = await Promise.all([
+      req.db.query(query, queryParams),
+      req.db.query(countQuery, params),
+    ]);
+
+    const total = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.status(200).json({
+      expenses: result.rows,
+      total,
+      page: pageNum,
+      totalPages,
+    });
   } catch (error) {
     logger.error("Get Expenses Error:", error);
     next(new AppError("Failed to fetch expenses", 500));

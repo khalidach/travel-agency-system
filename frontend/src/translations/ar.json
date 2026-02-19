@@ -659,5 +659,8 @@
   "Suppliername": "اسم المورد",
   "optional": "اختياري",
   "allBookingTypes": "جميع أنواع الحجوزات",
-  "allSuppliers": "جميع الموردين"
+  "allSuppliers": "جميع الموردين",
+  "showing": "عرض",
+  "of": "من",
+  "results": "النتائج"
 }
