@@ -22,6 +22,8 @@ import SupplierForm, {
 import { toast } from "react-hot-toast";
 import { Supplier } from "../context/models";
 
+import PaginationControls from "../components/ui/PaginationControls";
+
 export default function Suppliers() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -33,10 +35,21 @@ export default function Suppliers() {
   const [supplierToDelete, setSupplierToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { data: suppliers, isLoading } = useQuery<Supplier[]>({
-    queryKey: ["suppliers", "stats"],
-    queryFn: () => api.getSuppliers(true),
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
+  const { data: suppliersData, isLoading } = useQuery<{
+    suppliers: Supplier[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>({
+    queryKey: ["suppliers", "stats", currentPage],
+    queryFn: () => api.getSuppliers(true, currentPage, itemsPerPage),
   });
+
+  const suppliers = suppliersData?.suppliers || [];
 
   const createMutation = useMutation({
     mutationFn: api.createSupplier,
@@ -196,6 +209,16 @@ export default function Suppliers() {
           </div>
         ))}
       </div>
+
+      {suppliersData && suppliersData.totalPages > 1 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={suppliersData.totalPages}
+          totalCount={suppliersData.total}
+          limit={itemsPerPage}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+      )}
 
       <Modal
         isOpen={isFormOpen}

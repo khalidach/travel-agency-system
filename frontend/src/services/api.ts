@@ -599,8 +599,8 @@ export const deleteAllNotifications = () =>
   request("/notifications/clear-all", { method: "DELETE" });
 
 // --- Suppliers API ---
-export const getSuppliers = (withStats = false) =>
-  request(`/suppliers?withStats=${withStats}`);
+export const getSuppliers = (withStats = false, page = 1, limit = 10) =>
+  request(`/suppliers?withStats=${withStats}&page=${page}&limit=${limit}`);
 
 export const getSupplier = (id: number) => request(`/suppliers/${id}`);
 

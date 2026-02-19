@@ -6,15 +6,29 @@ exports.getAllSuppliers = async (req, res, next) => {
   try {
     const { withStats } = req.query;
 
-    // Base query to get suppliers
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    // Base query to get suppliers with pagination
     let query = `
       SELECT s.* FROM suppliers s 
       WHERE s."userId" = $1 
       ORDER BY s.name ASC
+      LIMIT $2 OFFSET $3
     `;
 
-    const result = await req.db.query(query, [req.user.id]);
+    // Count query
+    const countQuery = `SELECT COUNT(*) FROM suppliers WHERE "userId" = $1`;
+
+    const [result, countResult] = await Promise.all([
+      req.db.query(query, [req.user.id, limit, offset]),
+      req.db.query(countQuery, [req.user.id]),
+    ]);
+
     const suppliers = result.rows;
+    const total = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(total / limit);
 
     if (withStats === "true") {
       // Calculate stats for each supplier based on expenses
@@ -44,10 +58,20 @@ exports.getAllSuppliers = async (req, res, next) => {
         totalRemaining: parseFloat(statsMap[s.name]?.total_remaining || 0),
       }));
 
-      return res.status(200).json(suppliersWithStats);
+      return res.status(200).json({
+        suppliers: suppliersWithStats,
+        total,
+        page,
+        totalPages,
+      });
     }
 
-    res.status(200).json(suppliers);
+    res.status(200).json({
+      suppliers,
+      total,
+      page,
+      totalPages,
+    });
   } catch (error) {
     logger.error("Get Suppliers Error:", error);
     next(new AppError("Failed to fetch suppliers", 500));
