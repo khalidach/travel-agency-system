@@ -66,7 +66,7 @@ exports.getAllExpenses = async (req, res, next) => {
       params.push(beneficiary);
     }
 
-    query += ` ORDER BY date DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    query += ` ORDER BY date DESC, "createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     const queryParams = [...params, limitNum, offset];
 
     const [result, countResult] = await Promise.all([
