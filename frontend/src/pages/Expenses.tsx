@@ -15,7 +15,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import * as api from "../services/api";
-import { Expense } from "../context/models";
+import { Expense, Supplier } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import ExpensePaymentModal from "../components/expenses/ExpensePaymentModal";
@@ -34,6 +34,14 @@ export default function Expenses() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedBookingType, setSelectedBookingType] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+
+  // Fetch Suppliers for filter
+  const { data: suppliersList } = useQuery<Supplier[]>({
+    queryKey: ["suppliers"],
+    queryFn: () => api.getSuppliers(false),
+  });
 
   const { data: expenses, isLoading } = useQuery<Expense[]>({
     queryKey: ["expenses", activeTab],
@@ -80,7 +88,17 @@ export default function Expenses() {
     (expense: Expense) =>
       expense.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expense.beneficiary?.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  )?.filter((expense: Expense) => {
+    // Booking Type Filter
+    if (activeTab === "order_note" && selectedBookingType) {
+      if (expense.bookingType !== selectedBookingType) return false;
+    }
+    // Supplier Filter (match beneficiary name)
+    if (activeTab === "order_note" && selectedSupplier) {
+      if (expense.beneficiary !== selectedSupplier) return false;
+    }
+    return true;
+  });
 
   const handleEdit = (expense: Expense) => {
     setSelectedExpense(expense);
@@ -122,11 +140,10 @@ export default function Expenses() {
       <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab("order_note")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "order_note"
-              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "order_note"
+            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
         >
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -135,11 +152,10 @@ export default function Expenses() {
         </button>
         <button
           onClick={() => setActiveTab("regular")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "regular"
-              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "regular"
+            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
         >
           <div className="flex items-center gap-2">
             <Building className="w-4 h-4" />
@@ -149,7 +165,7 @@ export default function Expenses() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col md:flex-row gap-4 bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -160,6 +176,37 @@ export default function Expenses() {
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
+
+        {/* NEW: Booking Type & Supplier Filters (Order Notes Only) */}
+        {activeTab === "order_note" && (
+          <>
+            <select
+              value={selectedBookingType}
+              onChange={(e) => setSelectedBookingType(e.target.value)}
+              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <option value="">{t("allBookingTypes") || "All Types"}</option>
+              <option value="Hotel">{t("bookingTypes.Hotel")}</option>
+              <option value="Flight">{t("bookingTypes.Flight")}</option>
+              <option value="Visa">{t("bookingTypes.Visa")}</option>
+              <option value="Transfer">{t("bookingTypes.Transfer")}</option>
+              <option value="Other">{t("bookingTypes.Other")}</option>
+            </select>
+
+            <select
+              value={selectedSupplier}
+              onChange={(e) => setSelectedSupplier(e.target.value)}
+              className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
+            >
+              <option value="">{t("allSuppliers") || "All Suppliers"}</option>
+              {suppliersList?.map((supplier) => (
+                <option key={supplier.id} value={supplier.name}>
+                  {supplier.name}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
       </div>
 
       {/* List */}
@@ -266,7 +313,7 @@ export default function Expenses() {
                       {(activeTab === "regular"
                         ? Number(expense.amount)
                         : Number(expense.amount) -
-                          Number(expense.remainingBalance)
+                        Number(expense.remainingBalance)
                       ).toLocaleString()}{" "}
                       {t(`currency.${expense.currency}`) ||
                         expense.currency ||
@@ -285,11 +332,10 @@ export default function Expenses() {
 
                     <td className="p-4 text-left">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          expense.isFullyPaid
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expense.isFullyPaid
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          }`}
                       >
                         {expense.isFullyPaid ? (
                           <>
