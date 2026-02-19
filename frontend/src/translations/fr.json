@@ -657,5 +657,7 @@
   "suppliersManagement": "Gestion des Fournisseurs",
   "addSupplier": "Ajouter un Fournisseur",
   "Suppliername": "Nom du Fournisseur",
-  "optional": "Facultatif"
+  "optional": "Facultatif",
+  "allBookingTypes": "Tous les Types de Réservations",
+  "allSuppliers": "Tous les Fournisseurs"
 }

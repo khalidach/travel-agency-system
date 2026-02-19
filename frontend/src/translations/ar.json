@@ -657,5 +657,7 @@
   "suppliersManagement": "إدارة الموردين",
   "addSupplier": "إضافة مورد",
   "Suppliername": "اسم المورد",
-  "optional": "اختياري"
+  "optional": "اختياري",
+  "allBookingTypes": "جميع أنواع الحجوزات",
+  "allSuppliers": "جميع الموردين"
 }

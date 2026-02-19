@@ -653,5 +653,7 @@
   "suppliersManagement": "Suppliers Management",
   "addSupplier": "Add Supplier",
   "Suppliername": "Supplier Name",
-  "optional": "Optional"
+  "optional": "Optional",
+  "allBookingTypes": "All Booking Types",
+  "allSuppliers": "All Suppliers"
 }
