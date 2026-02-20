@@ -38,6 +38,10 @@ export default function Expenses() {
   const [selectedBookingType, setSelectedBookingType] = useState("");
   const [selectedSupplier, setSelectedSupplier] = useState("");
 
+  // Bulk deletion state
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -46,16 +50,19 @@ export default function Expenses() {
   const handleSearchChange = (val: string) => {
     setSearchTerm(val);
     setCurrentPage(1);
+    setSelectedIds(new Set());
   };
 
   const handleBookingTypeChange = (val: string) => {
     setSelectedBookingType(val);
     setCurrentPage(1);
+    setSelectedIds(new Set());
   };
 
   const handleSupplierChange = (val: string) => {
     setSelectedSupplier(val);
     setCurrentPage(1);
+    setSelectedIds(new Set());
   };
 
   const handleTabChange = (val: "order_note" | "regular") => {
@@ -64,12 +71,13 @@ export default function Expenses() {
     setSearchTerm("");
     setSelectedBookingType("");
     setSelectedSupplier("");
+    setSelectedIds(new Set());
   };
 
   // Fetch Suppliers for filter
-  const { data: suppliersList } = useQuery<Supplier[]>({
+  const { data: suppliersData } = useQuery<{ suppliers: Supplier[]; total: number }>({
     queryKey: ["suppliers"],
-    queryFn: () => api.getSuppliers(false),
+    queryFn: () => api.getSuppliers(false, 1, 1000),
   });
 
   const { data: expensesData, isLoading } = useQuery<{
@@ -136,6 +144,37 @@ export default function Expenses() {
     onError: () => toast.error(t("errorDeletingExpense")),
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: api.bulkDeleteExpenses,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast.success(t("expensesDeleted"));
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+    },
+    onError: () => toast.error(t("errorDeletingExpense")),
+  });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === expenses.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(expenses.map((e) => e.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const handleEdit = (expense: Expense) => {
     setSelectedExpense(expense);
     setIsFormOpen(true);
@@ -158,18 +197,29 @@ export default function Expenses() {
             {t("expensesSubtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setSelectedExpense(null);
-            setIsFormOpen(true);
-          }}
-          className="btn-primary flex items-center gap-2 bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg"
-        >
-          <Plus className="w-4 h-4" />
-          {activeTab === "order_note"
-            ? t("addOrderNote")
-            : t("addRegularExpense")}
-        </button>
+        <div className="flex items-center gap-3">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              className="flex items-center gap-2 bg-red-600 text-white hover:bg-red-700 transition-colors px-4 py-2 rounded-lg"
+            >
+              <Trash2 className="w-4 h-4" />
+              {t("deleteSelected")} ({selectedIds.size})
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setSelectedExpense(null);
+              setIsFormOpen(true);
+            }}
+            className="btn-primary flex items-center gap-2 bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg"
+          >
+            <Plus className="w-4 h-4" />
+            {activeTab === "order_note"
+              ? t("addOrderNote")
+              : t("addRegularExpense")}
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -177,8 +227,8 @@ export default function Expenses() {
         <button
           onClick={() => handleTabChange("order_note")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "order_note"
-              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -189,8 +239,8 @@ export default function Expenses() {
         <button
           onClick={() => handleTabChange("regular")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === "regular"
-              ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
-              : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
+            ? "bg-white dark:bg-gray-700 text-primary shadow-sm"
+            : "text-gray-500 hover:text-gray-900 dark:hover:text-gray-200"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -235,7 +285,7 @@ export default function Expenses() {
               className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[200px]"
             >
               <option value="">{t("allSuppliers") || "All Suppliers"}</option>
-              {suppliersList?.map((supplier) => (
+              {suppliersData?.suppliers?.map((supplier) => (
                 <option key={supplier.id} value={supplier.name}>
                   {supplier.name}
                 </option>
@@ -266,6 +316,17 @@ export default function Expenses() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-gray-50 dark:bg-gray-700/50">
                 <tr>
+                  <th className="p-4 w-[40px]">
+                    <input
+                      type="checkbox"
+                      checked={
+                        expenses.length > 0 &&
+                        selectedIds.size === expenses.length
+                      }
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                    />
+                  </th>
                   <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                     {t("date")}
                   </th>
@@ -313,6 +374,14 @@ export default function Expenses() {
                     key={expense.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   >
+                    <td className="p-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(expense.id)}
+                        onChange={() => toggleSelectOne(expense.id)}
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary/20 cursor-pointer"
+                      />
+                    </td>
                     <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                       {new Date(expense.date).toLocaleDateString()}
                     </td>
@@ -369,8 +438,8 @@ export default function Expenses() {
                     <td className="p-4 text-left">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expense.isFullyPaid
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                           }`}
                       >
                         {expense.isFullyPaid ? (
@@ -487,6 +556,16 @@ export default function Expenses() {
           message={t("deleteExpenseMessage")}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={() =>
+          bulkDeleteMutation.mutate(Array.from(selectedIds))
+        }
+        title={t("deleteExpenseTitle")}
+        message={`${t("bulkDeleteExpenseMessage")} (${selectedIds.size})`}
+      />
     </div>
   );
 }

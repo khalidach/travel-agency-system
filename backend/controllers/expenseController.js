@@ -261,6 +261,29 @@ exports.deleteExpense = async (req, res, next) => {
   }
 };
 
+exports.bulkDeleteExpenses = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return next(new AppError("Please provide an array of expense IDs", 400));
+    }
+
+    const result = await req.db.query(
+      `DELETE FROM expenses WHERE id = ANY($1::int[]) AND "userId" = $2 RETURNING id`,
+      [ids, req.user.id],
+    );
+
+    res.status(200).json({
+      message: `${result.rowCount} expense(s) deleted`,
+      deletedCount: result.rowCount,
+    });
+  } catch (error) {
+    logger.error("Bulk Delete Expenses Error:", error);
+    next(new AppError("Failed to bulk delete expenses", 500));
+  }
+};
+
 exports.addPayment = async (req, res, next) => {
   try {
     const { id } = req.params;

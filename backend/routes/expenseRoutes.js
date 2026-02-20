@@ -5,6 +5,7 @@ const expenseController = require("../controllers/expenseController");
 
 router.get("/", expenseController.getAllExpenses);
 router.post("/", expenseController.createExpense);
+router.post("/bulk-delete", expenseController.bulkDeleteExpenses);
 router.put("/:id", expenseController.updateExpense);
 router.delete("/:id", expenseController.deleteExpense);
 

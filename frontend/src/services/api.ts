@@ -650,6 +650,12 @@ export const updateExpense = (id: number, data: Partial<Expense>) =>
 export const deleteExpense = (id: number) =>
   request(`/expenses/${id}`, { method: "DELETE" });
 
+export const bulkDeleteExpenses = (ids: number[]) =>
+  request("/expenses/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+
 export const addExpensePayment = (
   id: number,
   payment: Omit<Payment, "_id" | "id">,
