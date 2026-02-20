@@ -44,7 +44,7 @@ export default function Expenses() {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const itemsPerPage = 10;
 
   // Reset pagination when filters change
   const handleSearchChange = (val: string) => {
