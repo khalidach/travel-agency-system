@@ -8,43 +8,42 @@ import * as api from "../services/api";
 import { Supplier, Expense } from "../context/models";
 import Modal from "../components/Modal";
 import OrderNoteForm from "../components/expenses/OrderNoteForm";
+import PaginationControls from "../components/ui/PaginationControls";
 
 // Define the specific shape expected for the analysis view (includes expenses)
 interface SupplierDetail extends Supplier {
   expenses?: Expense[];
+  expensesTotal?: number;
+  expensesTotalPages?: number;
+  expensesPage?: number;
+  totalAmount?: number;
+  totalPaid?: number;
+  totalRemaining?: number;
 }
+
+const ITEMS_PER_PAGE = 7;
 
 export default function SupplierAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: supplier, isLoading } = useQuery<SupplierDetail>({
-    queryKey: ["supplier", id],
-    queryFn: () => api.getSupplier(Number(id)),
+    queryKey: ["supplier", id, currentPage],
+    queryFn: () => api.getSupplier(Number(id), currentPage, ITEMS_PER_PAGE),
     enabled: !!id,
   });
 
   if (isLoading) return <div className="p-8 text-center">{t("loading")}</div>;
   if (!supplier) return <div className="p-8 text-center">{t("notFound")}</div>;
 
-  // Calculate stats from the expenses array returned by the detailed endpoint
-  const totalAmount =
-    supplier.expenses?.reduce(
-      (acc: number, curr: Expense) => acc + Number(curr.amount),
-      0,
-    ) || 0;
-
-  const totalRemaining =
-    supplier.expenses?.reduce(
-      (acc: number, curr: Expense) => acc + Number(curr.remainingBalance),
-      0,
-    ) || 0;
-
-  const totalPaid = totalAmount - totalRemaining;
+  const totalAmount = supplier.totalAmount || 0;
+  const totalPaid = supplier.totalPaid || 0;
+  const totalRemaining = supplier.totalRemaining || 0;
 
   const handleRowClick = (expense: Expense) => {
     setSelectedExpense(expense);
@@ -171,11 +170,10 @@ export default function SupplierAnalysis() {
                 </td>
                 <td className="p-4">
                   <span
-                    className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                      expense.isFullyPaid
+                    className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${expense.isFullyPaid
                         ? "bg-green-100 text-green-800"
                         : "bg-yellow-100 text-yellow-800"
-                    }`}
+                      }`}
                   >
                     {expense.isFullyPaid ? t("paid") : t("pending")}
                   </span>
@@ -193,6 +191,14 @@ export default function SupplierAnalysis() {
         </table>
       </div>
 
+      <PaginationControls
+        currentPage={currentPage}
+        totalPages={supplier.expensesTotalPages || 1}
+        totalCount={supplier.expensesTotal || 0}
+        limit={ITEMS_PER_PAGE}
+        onPageChange={setCurrentPage}
+      />
+
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -202,7 +208,7 @@ export default function SupplierAnalysis() {
         {selectedExpense && (
           <OrderNoteForm
             initialData={selectedExpense}
-            onSubmit={() => {}} // No-op for read-only
+            onSubmit={() => { }} // No-op for read-only
             onCancel={handleCloseModal}
             readOnly={true} // Enable preview mode
           />
@@ -211,3 +217,4 @@ export default function SupplierAnalysis() {
     </div>
   );
 }
+

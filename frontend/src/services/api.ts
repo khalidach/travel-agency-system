@@ -602,7 +602,8 @@ export const deleteAllNotifications = () =>
 export const getSuppliers = (withStats = false, page = 1, limit = 10) =>
   request(`/suppliers?withStats=${withStats}&page=${page}&limit=${limit}`);
 
-export const getSupplier = (id: number) => request(`/suppliers/${id}`);
+export const getSupplier = (id: number, page = 1, limit = 7) =>
+  request(`/suppliers/${id}?page=${page}&limit=${limit}`);
 
 export const createSupplier = (data: Create<Supplier>) =>
   request("/suppliers", { method: "POST", body: JSON.stringify(data) });

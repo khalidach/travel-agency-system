@@ -81,6 +81,10 @@ exports.getAllSuppliers = async (req, res, next) => {
 exports.getSupplier = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 7;
+    const offset = (page - 1) * limit;
+
     const result = await req.db.query(
       `SELECT * FROM suppliers WHERE id = $1 AND "userId" = $2`,
       [id, req.user.id],
@@ -92,17 +96,44 @@ exports.getSupplier = async (req, res, next) => {
 
     const supplier = result.rows[0];
 
-    // Get expense history for this supplier
-    const expensesResult = await req.db.query(
-      `SELECT * FROM expenses 
-       WHERE "userId" = $1 AND beneficiary = $2 
-       ORDER BY date DESC`,
-      [req.user.id, supplier.name],
-    );
+    // Run paginated expenses, count, and aggregation in parallel
+    const [expensesResult, countResult, statsResult] = await Promise.all([
+      req.db.query(
+        `SELECT * FROM expenses 
+         WHERE "userId" = $1 AND beneficiary = $2 
+         ORDER BY date DESC
+         LIMIT $3 OFFSET $4`,
+        [req.user.id, supplier.name, limit, offset],
+      ),
+      req.db.query(
+        `SELECT COUNT(*) FROM expenses 
+         WHERE "userId" = $1 AND beneficiary = $2`,
+        [req.user.id, supplier.name],
+      ),
+      req.db.query(
+        `SELECT 
+           COALESCE(SUM(amount), 0) as total_amount,
+           COALESCE(SUM(amount - "remainingBalance"), 0) as total_paid,
+           COALESCE(SUM("remainingBalance"), 0) as total_remaining
+         FROM expenses 
+         WHERE "userId" = $1 AND beneficiary = $2`,
+        [req.user.id, supplier.name],
+      ),
+    ]);
+
+    const expensesTotal = parseInt(countResult.rows[0].count);
+    const expensesTotalPages = Math.ceil(expensesTotal / limit);
+    const stats = statsResult.rows[0];
 
     res.status(200).json({
       ...supplier,
       expenses: expensesResult.rows,
+      expensesTotal,
+      expensesTotalPages,
+      expensesPage: page,
+      totalAmount: parseFloat(stats.total_amount),
+      totalPaid: parseFloat(stats.total_paid),
+      totalRemaining: parseFloat(stats.total_remaining),
     });
   } catch (error) {
     logger.error("Get Supplier Error:", error);
