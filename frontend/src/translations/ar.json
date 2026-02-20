@@ -665,5 +665,8 @@
   "allSuppliers": "جميع الموردين",
   "showing": "عرض",
   "of": "من",
-  "results": "النتائج"
+  "results": "النتائج",
+  "dateOfBooking": "تاريخ الحجز",
+  "for": "لـ",
+  "by": "بواسطة"
 }

@@ -665,5 +665,8 @@
   "allSuppliers": "Tous les Fournisseurs",
   "showing": "Affichage",
   "of": "de",
-  "results": "résultats"
+  "results": "résultats",
+  "dateOfBooking": "Date de réservation",
+  "for": "pour",
+  "by": "par"
 }

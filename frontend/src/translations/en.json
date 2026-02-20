@@ -661,5 +661,8 @@
   "allSuppliers": "All Suppliers",
   "showing": "Showing",
   "of": "of",
-  "results": "results"
+  "results": "results",
+  "dateOfBooking": "Date of Booking",
+  "for": "for",
+  "by": "by"
 }

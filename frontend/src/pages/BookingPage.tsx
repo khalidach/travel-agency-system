@@ -148,12 +148,25 @@ export default function BookingPage() {
       placeholderData: (prev) => prev,
     });
 
+  // Separate query for total (unfiltered) summary stats — not affected by search/filters
+  const { data: totalSummaryResponse } = useQuery<BookingResponse>({
+    queryKey: ["bookingsByProgramTotalSummary", programId],
+    queryFn: () =>
+      api.getBookingsByProgram(programId!, {
+        page: 1,
+        limit: 1,
+      }),
+    enabled: !!programId,
+    staleTime: 30 * 1000, // Cache for 30 seconds to avoid extra requests
+  });
+
   // FIX: Memoize allBookings to prevent reference changes on every render
   const allBookings = useMemo(() => {
     return bookingResponse?.data ?? [];
   }, [bookingResponse]);
 
-  const summaryStats = bookingResponse?.summary;
+  // Use the unfiltered total summary for the BookingSummary cards
+  const summaryStats = totalSummaryResponse?.summary;
   const pagination = bookingResponse?.pagination;
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
@@ -247,6 +260,7 @@ export default function BookingPage() {
         await api.updateBookingStatus(id, status);
         toast.success(t("statusUpdated"));
         queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+        queryClient.invalidateQueries({ queryKey: ["bookingsByProgramTotalSummary"] });
         queryClient.invalidateQueries({ queryKey: ["program", programId] });
         queryClient.invalidateQueries({ queryKey: ["notifications"] });
       } catch (error) {
@@ -403,7 +417,7 @@ export default function BookingPage() {
         handleExport={handleExport}
         isExporting={isExporting}
         employees={employees}
-        onSearchKeyDown={() => {}}
+        onSearchKeyDown={() => { }}
         selectedCount={selectedBookingIds.length}
         onDeleteSelected={handleDeleteSelected}
         programVariations={programVariations}

@@ -32,6 +32,7 @@ export const useBookingOperations = ({
 
   const invalidateAllQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgram"] });
+    queryClient.invalidateQueries({ queryKey: ["bookingsByProgramTotalSummary"] });
     queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
     queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });

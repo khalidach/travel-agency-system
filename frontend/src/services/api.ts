@@ -286,20 +286,20 @@ export const getBookingsByProgram = (
   params: {
     page: number;
     limit: number;
-    searchTerm: string;
-    sortOrder: string;
-    statusFilter: string;
-    employeeFilter: string;
+    searchTerm?: string;
+    sortOrder?: string;
+    statusFilter?: string;
+    employeeFilter?: string;
     variationFilter?: string;
   },
 ) => {
   const queryParams = new URLSearchParams({
     page: String(params.page),
     limit: String(params.limit),
-    searchTerm: params.searchTerm,
-    sortOrder: params.sortOrder,
-    statusFilter: params.statusFilter,
-    employeeFilter: params.employeeFilter,
+    searchTerm: params.searchTerm || "",
+    sortOrder: params.sortOrder || "newest",
+    statusFilter: params.statusFilter || "all",
+    employeeFilter: params.employeeFilter || "all",
     variationFilter: params.variationFilter || "all",
   }).toString();
   return request(`/bookings/program/${programId}?${queryParams}`);

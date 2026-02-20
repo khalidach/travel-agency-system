@@ -83,7 +83,7 @@ export default function ProgramBookingsModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${t("bookings")} for ${programName} by ${username}`}
+      title={`${t("bookings")} ${t("for")} ${programName} ${t("by")} ${username}`}
       size="lg"
     >
       <div className="space-y-4">
