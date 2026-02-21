@@ -1,7 +1,6 @@
 // frontend/src/components/booking/BookingFilters.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Download, Trash2 } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
 import type { Employee } from "../../context/models";
 import { useAuthContext } from "../../context/AuthContext";
@@ -17,23 +16,15 @@ export interface BookingFilterValues {
 
 interface BookingFiltersProps {
   register: UseFormRegister<BookingFilterValues>; // Replaced 'any' with explicit type
-  handleExport: () => void;
-  isExporting: boolean;
   employees: Employee[];
   onSearchKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  selectedCount: number;
-  onDeleteSelected: () => void;
   programVariations: { name: string }[];
 }
 
 export default function BookingFilters({
   register,
-  handleExport,
-  isExporting,
   employees,
   onSearchKeyDown,
-  selectedCount,
-  onDeleteSelected,
   programVariations,
 }: BookingFiltersProps) {
   const { t } = useTranslation();
@@ -98,24 +89,6 @@ export default function BookingFilters({
           </select>
         )}
 
-        {selectedCount > 0 ? (
-          <button
-            onClick={onDeleteSelected}
-            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-sm"
-          >
-            <Trash2 className={`w-4 h-4 mr-2`} />
-            {t("delete")} ({selectedCount})
-          </button>
-        ) : (
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <Download className={`w-4 h-4 mr-2`} />
-            {isExporting ? t("exporting") : t("exportToExcel")}
-          </button>
-        )}
       </div>
     </div>
   );

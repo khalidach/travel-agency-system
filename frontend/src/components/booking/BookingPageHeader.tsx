@@ -2,7 +2,7 @@
 import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { Plus, Download, Upload, ChevronLeft } from "lucide-react";
+import { Plus, Download, Upload, ChevronLeft, Trash2 } from "lucide-react";
 import type { Program } from "../../context/models";
 
 interface BookingPageHeaderProps {
@@ -13,6 +13,10 @@ interface BookingPageHeaderProps {
   onImport: () => void;
   isImporting: boolean;
   importFile: File | null;
+  handleExport: () => void;
+  isExporting: boolean;
+  selectedCount: number;
+  onDeleteSelected: () => void;
 }
 
 export default function BookingPageHeader({
@@ -23,6 +27,10 @@ export default function BookingPageHeader({
   onImport,
   isImporting,
   importFile,
+  handleExport,
+  isExporting,
+  selectedCount,
+  onDeleteSelected,
 }: BookingPageHeaderProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -50,6 +58,24 @@ export default function BookingPageHeader({
 
       {/* Action buttons row */}
       <div className="flex items-center justify-end gap-x-3">
+        {selectedCount > 0 ? (
+          <button
+            onClick={onDeleteSelected}
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-sm"
+          >
+            <Trash2 className={`w-5 h-5 mr-2`} />
+            {t("delete")} ({selectedCount})
+          </button>
+        ) : (
+          <button
+            onClick={handleExport}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <Download className={`w-5 h-5 mr-2`} />
+            {isExporting ? t("exporting") : t("exportToExcel")}
+          </button>
+        )}
 
         <button
           onClick={onExportTemplate}

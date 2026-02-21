@@ -394,6 +394,10 @@ export default function BookingPage() {
         onImport={handleImport}
         isImporting={isImporting}
         importFile={importFile}
+        handleExport={handleExport}
+        isExporting={isExporting}
+        selectedCount={selectedBookingIds.length}
+        onDeleteSelected={handleDeleteSelected}
       />
 
       {summaryStats && !isLoadingBookings ? (
@@ -414,12 +418,8 @@ export default function BookingPage() {
 
       <BookingFilters
         register={register}
-        handleExport={handleExport}
-        isExporting={isExporting}
         employees={employees}
         onSearchKeyDown={() => { }}
-        selectedCount={selectedBookingIds.length}
-        onDeleteSelected={handleDeleteSelected}
         programVariations={programVariations}
       />
 
