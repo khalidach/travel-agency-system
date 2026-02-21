@@ -1,7 +1,6 @@
 // backend/controllers/programCostsController.js
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
-const ProgramCostingService = require("../services/ProgramCostingService");
 
 exports.getProgramCosts = async (req, res, next) => {
   try {
@@ -21,7 +20,6 @@ exports.getProgramCosts = async (req, res, next) => {
         programId: parseInt(programId),
         costs: { hotels: [], custom: [] },
         totalCost: 0,
-        isEnabled: false,
       });
     }
   } catch (error) {
@@ -34,16 +32,13 @@ exports.getProgramCosts = async (req, res, next) => {
 };
 
 exports.saveProgramCosts = async (req, res, next) => {
-  const client = await req.db.connect();
   try {
-    await client.query("BEGIN");
-
     const { programId } = req.params;
     const { adminId } = req.user;
-    const { costs, totalCost, isEnabled } = req.body;
+    const { costs, totalCost } = req.body;
 
     // Check if the program exists and belongs to the user
-    const programRes = await client.query(
+    const programRes = await req.db.query(
       'SELECT id FROM programs WHERE id = $1 AND "userId" = $2',
       [programId, adminId]
     );
@@ -51,39 +46,18 @@ exports.saveProgramCosts = async (req, res, next) => {
       throw new AppError("Program not found or you are not authorized.", 404);
     }
 
-    // 1. Insert/Update the ProgramCost record immediately
-    const { rows } = await client.query(
+    // Insert/Update the ProgramCost record (isEnabled always true)
+    const { rows } = await req.db.query(
       `INSERT INTO program_costs ("programId", "userId", costs, "totalCost", "isEnabled")
-             VALUES ($1, $2, $3, $4, $5)
+             VALUES ($1, $2, $3, $4, TRUE)
              ON CONFLICT ("programId") 
-             DO UPDATE SET costs = $3, "totalCost" = $4, "isEnabled" = $5, "updatedAt" = NOW()
+             DO UPDATE SET costs = $3, "totalCost" = $4, "isEnabled" = TRUE, "updatedAt" = NOW()
              RETURNING *`,
-      [programId, adminId, JSON.stringify(costs), totalCost, isEnabled]
+      [programId, adminId, JSON.stringify(costs), totalCost]
     );
 
-    // 2. Commit the fast transaction first to release the client and send the response immediately.
-    await client.query("COMMIT");
-    client.release(); // Release client back to pool
-
-    const savedCost = rows[0];
-
-    // 3. Offload the slow booking recalculation process using setImmediate.
-    // This allows the main request thread to finish and send the response now.
-    setImmediate(() => {
-      ProgramCostingService.runBookingRecalculation(
-        req.db, // Pass the pool, as the background task needs a new connection
-        adminId,
-        programId,
-        totalCost,
-        isEnabled
-      );
-    });
-
-    // Send success response back to the client immediately
-    res.status(200).json(savedCost);
+    res.status(200).json(rows[0]);
   } catch (error) {
-    await client.query("ROLLBACK");
-    client.release();
     logger.error("Save Program Costs Error:", {
       message: error.message,
       stack: error.stack,

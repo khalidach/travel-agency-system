@@ -1,7 +1,6 @@
 // backend/services/ExcelService.js
 const excel = require("exceljs");
-const { calculateBasePrice } = require("./BookingService");
-const RoomManagementService = require("./RoomManagementService"); // استيراد خدمة إدارة الغرف
+const RoomManagementService = require("./RoomManagementService");
 const BookingService = require("./BookingService");
 
 /**
@@ -256,11 +255,11 @@ exports.generateBookingTemplateForProgramExcel = async (program) => {
           const roomTypeColumnLetter = templateSheet.getColumn(h.key).letter;
           const roomFormula = `=INDIRECT(SUBSTITUTE(${hotelColumnLetter}${i}," ","_")&"_Rooms")`;
           templateSheet.getCell(`${roomTypeColumnLetter}${i}`).dataValidation =
-            {
-              type: "list",
-              allowBlank: true,
-              formulae: [roomFormula],
-            };
+          {
+            type: "list",
+            allowBlank: true,
+            formulae: [roomFormula],
+          };
         }
       });
     }
@@ -392,15 +391,7 @@ exports.importBookings = async (client, filePath, user, programId) => {
     const sellingPrice = Number(rowData["Selling Price"]) || 0;
     const personType = rowData["Person Type"] || "adult";
 
-    const basePrice = await calculateBasePrice(
-      client,
-      userId,
-      programId,
-      packageId,
-      selectedHotel,
-      personType,
-      variationName
-    );
+    const basePrice = 0;
 
     const clientNameFr = {
       lastName: rowData["Last Name (French)"]
@@ -428,7 +419,7 @@ exports.importBookings = async (client, filePath, user, programId) => {
       selectedHotel,
       sellingPrice,
       basePrice,
-      profit: sellingPrice - basePrice,
+      profit: 0,
       advancePayments: [],
       remainingBalance: sellingPrice,
       isFullyPaid: sellingPrice <= 0,

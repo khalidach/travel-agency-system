@@ -1,60 +1,9 @@
 // backend/services/ProgramPricingService.js
-const { calculateBasePrice } = require("./BookingService");
+// Per-booking profit calculation removed — profit is now calculated at program level via ProgramCosting.
 
 /**
- * Recalculates base price and profit for all bookings related to a program.
- * @param {object} client - The database client for the transaction.
- * @param {number} userId - The ID of the admin user.
- * @param {number} programId - The ID of the program whose bookings need updating.
- */
-async function updateRelatedBookings(client, userId, programId) {
-  const { rows: relatedBookings } = await client.query(
-    'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-    [programId, userId]
-  );
-
-  if (relatedBookings.length > 0) {
-    const updatePromises = relatedBookings.map(async (booking) => {
-      const newBasePrice = await calculateBasePrice(
-        client,
-        userId,
-        booking.tripId,
-        booking.packageId,
-        booking.selectedHotel,
-        booking.personType,
-        booking.variationName // Pass variationName for accurate pricing
-      );
-
-      const newProfit = Number(booking.sellingPrice || 0) - newBasePrice;
-      const totalPaid = (booking.advancePayments || []).reduce(
-        (sum, p) => sum + p.amount,
-        0
-      );
-      const newRemainingBalance = Number(booking.sellingPrice || 0) - totalPaid;
-      const newIsFullyPaid = newRemainingBalance <= 0;
-
-      return client.query(
-        'UPDATE bookings SET "basePrice" = $1, profit = $2, "remainingBalance" = $3, "isFullyPaid" = $4 WHERE id = $5',
-        [
-          newBasePrice,
-          newProfit,
-          newRemainingBalance,
-          newIsFullyPaid,
-          booking.id,
-        ]
-      );
-    });
-    await Promise.all(updatePromises);
-  }
-}
-
-/**
- * Creates a new program pricing and recalculates the base price and profit for all related bookings.
- * This is a transactional operation.
- * @param {object} db - The database connection pool.
- * @param {object} user - The user object from the request.
- * @param {object} pricingData - The new pricing data.
- * @returns {Promise<object>} A promise that resolves to the created program pricing record.
+ * Creates a new program pricing record.
+ * No longer recalculates bookings — pricing is display-only in the booking form.
  */
 exports.createPricingAndBookings = async (db, user, pricingData) => {
   const client = await db.connect();
@@ -93,8 +42,6 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
       ]
     );
 
-    await updateRelatedBookings(client, userId, programId);
-
     await client.query("COMMIT");
     return createdPricingRows[0];
   } catch (error) {
@@ -106,13 +53,8 @@ exports.createPricingAndBookings = async (db, user, pricingData) => {
 };
 
 /**
- * Updates a program's pricing and recalculates the base price and profit for all related bookings.
- * This is a transactional operation.
- * @param {object} db - The database connection pool.
- * @param {object} user - The user performing the update.
- * @param {number} pricingId - The ID of the pricing record to update.
- * @param {object} pricingData - The new pricing data.
- * @returns {Promise<object>} A promise that resolves to the updated program pricing record.
+ * Updates a program's pricing record.
+ * No longer recalculates bookings — pricing is display-only in the booking form.
  */
 exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
   const client = await db.connect();
@@ -153,8 +95,6 @@ exports.updatePricingAndBookings = async (db, user, pricingId, pricingData) => {
     if (updatedPricingRows.length === 0) {
       throw new Error("Program pricing not found or user not authorized");
     }
-
-    await updateRelatedBookings(client, user.adminId, pricingData.programId);
 
     await client.query("COMMIT");
     return updatedPricingRows[0];

@@ -26,12 +26,9 @@ const getDashboardStats = async (req, res, next) => {
         
         COUNT(*) as "allTimeBookings",
         COALESCE(SUM(b."sellingPrice"), 0) as "allTimeRevenue",
-        COALESCE(SUM(b.profit), 0) as "allTimeProfit",
         
         COUNT(*) FILTER (WHERE 1=1 ${dateFilterClause}) as "filteredBookingsCount",
         COALESCE(SUM(b."sellingPrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingRevenue",
-        COALESCE(SUM(b.profit) FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingProfit",
-        COALESCE(SUM(b."basePrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredCost",
         COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredPaid",
 
         COALESCE(SUM(CASE WHEN "isFullyPaid" = true THEN 1 ELSE 0 END), 0) as "fullyPaid",
@@ -94,6 +91,12 @@ const getDashboardStats = async (req, res, next) => {
       [adminId]
     );
 
+    // Query all-time total cost from program_costs table
+    const allTimeCostPromise = req.db.query(
+      'SELECT COALESCE(SUM("totalCost"), 0) as "allTimeCost" FROM program_costs WHERE "userId" = $1',
+      [adminId]
+    );
+
     const [
       statsResult,
       dailyServiceStatsResult,
@@ -101,6 +104,7 @@ const getDashboardStats = async (req, res, next) => {
       programTypeResult,
       recentBookingsResult,
       dailyServiceProfitResult,
+      allTimeCostResult,
     ] = await Promise.all([
       statsPromise,
       dailyServiceStatsPromise,
@@ -108,6 +112,7 @@ const getDashboardStats = async (req, res, next) => {
       programTypePromise,
       recentBookingsPromise,
       dailyServiceProfitPromise,
+      allTimeCostPromise,
     ]);
 
     const stats = statsResult.rows[0];
@@ -116,6 +121,9 @@ const getDashboardStats = async (req, res, next) => {
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows;
     const dailyServiceProfits = dailyServiceProfitResult.rows;
+    const allTimeCost = parseFloat(allTimeCostResult.rows[0].allTimeCost);
+    const allTimeRevenue = parseFloat(stats.allTimeRevenue);
+    const allTimeProfit = allTimeRevenue - allTimeCost;
 
     const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
     const filteredServiceRevenue = parseFloat(
@@ -127,8 +135,8 @@ const getDashboardStats = async (req, res, next) => {
     const formattedResponse = {
       allTimeStats: {
         totalBookings: parseInt(stats.allTimeBookings, 10),
-        totalRevenue: parseFloat(stats.allTimeRevenue),
-        totalProfit: parseFloat(stats.allTimeProfit),
+        totalRevenue: allTimeRevenue,
+        totalProfit: allTimeProfit,
         activePrograms: parseInt(stats.activePrograms, 10),
       },
       dateFilteredStats: {
@@ -203,10 +211,12 @@ const getProfitReport = async (req, res, next) => {
           p.type,
           COUNT(b.id) as bookings,
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
-          COALESCE(SUM(b.profit), 0) as "totalProfit",
-          COALESCE(SUM(b."basePrice"), 0) as "totalCost"
-      ${baseFromClause}
-      GROUP BY p.id ORDER BY p."createdAt" DESC
+          COALESCE(pc."totalCost", 0) as "totalCost"
+      FROM programs p
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId"
+      LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
+      ${programWhereClause}
+      GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
       LIMIT $${programParams.length + 1} OFFSET $${programParams.length + 2}
     `;
     const detailedPerformancePromise = req.db.query(
@@ -224,14 +234,27 @@ const getProfitReport = async (req, res, next) => {
     const summaryQuery = `
       SELECT 
         COUNT(b.id) as "totalBookings",
-        COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
-        COALESCE(SUM(b.profit), 0) as "totalProfit",
-        COALESCE(SUM(b."basePrice"), 0) as "totalCost"
+        COALESCE(SUM(b."sellingPrice"), 0) as "totalSales"
       FROM bookings b
       LEFT JOIN programs p ON b."tripId"::int = p.id
       ${summaryWhereClause}
     `;
     const summaryPromise = req.db.query(summaryQuery, summaryParams);
+
+    // Query total cost from program_costs
+    let costWhereClause = `WHERE pc."userId" = $1`;
+    const costParams = [adminId];
+    if (programType && programType !== "all") {
+      costWhereClause += ` AND p.type = $2`;
+      costParams.push(programType);
+    }
+    const totalCostQuery = `
+      SELECT COALESCE(SUM(pc."totalCost"), 0) as "totalCost"
+      FROM program_costs pc
+      LEFT JOIN programs p ON pc."programId" = p.id
+      ${costWhereClause}
+    `;
+    const totalCostPromise = req.db.query(totalCostQuery, costParams);
 
     // --- Count query for pagination (counts programs) (unchanged) ---
     const programCountQuery = `
@@ -258,30 +281,36 @@ const getProfitReport = async (req, res, next) => {
       summaryResult,
       programCountResult,
       monthlyTrendResult,
+      totalCostResult,
     ] = await Promise.all([
       detailedPerformancePromise,
       summaryPromise,
       programCountPromise,
       monthlyTrendPromise,
+      totalCostPromise,
     ]);
 
     // --- REMOVED: topProgramsData logic ---
     const detailedPerformanceData = detailedPerformanceResult.rows.map(
-      (row) => ({
-        ...row,
-        profitMargin:
-          parseFloat(row.totalSales) > 0
-            ? (parseFloat(row.totalProfit) / parseFloat(row.totalSales)) * 100
-            : 0,
-        totalSales: parseFloat(row.totalSales),
-        totalProfit: parseFloat(row.totalProfit),
-        totalCost: parseFloat(row.totalCost),
-        bookings: parseInt(row.bookings, 10),
-      })
+      (row) => {
+        const totalSales = parseFloat(row.totalSales);
+        const totalCost = parseFloat(row.totalCost);
+        const totalProfit = totalSales - totalCost;
+        return {
+          ...row,
+          profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
+          totalSales,
+          totalProfit,
+          totalCost,
+          bookings: parseInt(row.bookings, 10),
+        };
+      }
     );
 
     const programCount = parseInt(programCountResult.rows[0].count, 10);
     const summaryData = summaryResult.rows[0];
+    const summaryTotalCost = parseFloat(totalCostResult.rows[0].totalCost);
+    const summaryTotalSales = parseFloat(summaryData.totalSales);
 
     res.status(200).json({
       // REMOVED: topProgramsData
@@ -298,9 +327,9 @@ const getProfitReport = async (req, res, next) => {
       },
       summary: {
         totalBookings: parseInt(summaryData.totalBookings, 10),
-        totalSales: parseFloat(summaryData.totalSales),
-        totalProfit: parseFloat(summaryData.totalProfit),
-        totalCost: parseFloat(summaryData.totalCost),
+        totalSales: summaryTotalSales,
+        totalProfit: summaryTotalSales - summaryTotalCost,
+        totalCost: summaryTotalCost,
       },
     });
   } catch (error) {

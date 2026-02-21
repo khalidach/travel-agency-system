@@ -186,8 +186,6 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const statsQuery = `
             SELECT
                 COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "sellingPrice" ELSE 0 END), 0) as "totalRevenue",
-                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "basePrice" ELSE 0 END), 0) as "totalCost",
-                COALESCE(SUM(CASE WHEN status = 'confirmed' THEN profit ELSE 0 END), 0) as "totalProfit",
                 COALESCE(SUM(CASE WHEN status = 'confirmed' THEN ("sellingPrice" - "remainingBalance") ELSE 0 END), 0) as "totalPaid"
             FROM bookings b
             ${whereClause.replace(/b\."/g, '"')}
@@ -196,6 +194,13 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const summaryStats = statsResult.rows[0];
       const totalRevenue = parseFloat(summaryStats.totalRevenue);
       const totalPaid = parseFloat(summaryStats.totalPaid);
+
+      // Get program-level cost from program_costs table
+      const costResult = await req.db.query(
+        'SELECT COALESCE("totalCost", 0) as "totalCost" FROM program_costs WHERE "programId" = $1 AND "userId" = $2',
+        [programId, adminId]
+      );
+      const programTotalCost = costResult.rows.length > 0 ? parseFloat(costResult.rows[0].totalCost) : 0;
 
       res.status(200).json({
         data: paginatedBookings,
@@ -208,8 +213,8 @@ exports.getBookingsByProgram = async (req, res, next) => {
         summary: {
           totalBookings: totalCount,
           totalRevenue: totalRevenue,
-          totalCost: parseFloat(summaryStats.totalCost),
-          totalProfit: parseFloat(summaryStats.totalProfit),
+          totalCost: programTotalCost,
+          totalProfit: totalRevenue - programTotalCost,
           totalPaid: totalPaid,
           totalRemaining: totalRevenue - totalPaid,
         },
@@ -242,8 +247,6 @@ exports.getBookingsByProgram = async (req, res, next) => {
             ) t) as bookings,
             (SELECT COUNT(*) FROM FilteredBookings) as "totalCount",
             (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "sellingPrice" ELSE 0 END), 0) FROM FilteredBookings) as "totalRevenue",
-            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN "basePrice" ELSE 0 END), 0) FROM FilteredBookings) as "totalCost",
-            (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN profit ELSE 0 END), 0) FROM FilteredBookings) as "totalProfit",
             (SELECT COALESCE(SUM(CASE WHEN status = 'confirmed' THEN ("sellingPrice" - "remainingBalance") ELSE 0 END), 0) FROM FilteredBookings) as "totalPaid"
         `;
 
@@ -259,6 +262,13 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const totalRevenue = parseFloat(result.totalRevenue);
       const totalPaid = parseFloat(result.totalPaid);
 
+      // Get program-level cost from program_costs table
+      const costResult = await req.db.query(
+        'SELECT COALESCE("totalCost", 0) as "totalCost" FROM program_costs WHERE "programId" = $1 AND "userId" = $2',
+        [programId, adminId]
+      );
+      const programTotalCost = costResult.rows.length > 0 ? parseFloat(costResult.rows[0].totalCost) : 0;
+
       res.status(200).json({
         data: bookings,
         pagination: {
@@ -270,8 +280,8 @@ exports.getBookingsByProgram = async (req, res, next) => {
         summary: {
           totalBookings: totalCount,
           totalRevenue: totalRevenue,
-          totalCost: parseFloat(result.totalCost),
-          totalProfit: parseFloat(result.totalProfit),
+          totalCost: programTotalCost,
+          totalProfit: totalRevenue - programTotalCost,
           totalPaid: totalPaid,
           totalRemaining: totalRevenue - totalPaid,
         },

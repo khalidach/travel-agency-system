@@ -3,7 +3,7 @@ const logger = require("../../utils/logger");
 const AppError = require("../../utils/appError");
 const RoomManagementService = require("../RoomManagementService");
 const { checkProgramCapacity } = require("./capacity.service");
-const { calculateBasePrice } = require("./pricing.service");
+// calculateBasePrice no longer used — profit is calculated at program level via ProgramCosting
 
 /**
  * Handles cascading name updates for a booking.
@@ -164,16 +164,8 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       throw new Error("A package must be selected for this program.");
     }
 
-    const basePrice = await calculateBasePrice(
-      client,
-      user.adminId,
-      tripId,
-      packageId,
-      selectedHotel,
-      personType,
-      variationName,
-    );
-    const profit = sellingPrice - basePrice;
+    const basePrice = 0;
+    const profit = 0;
     const totalPaid = (advancePayments || []).reduce(
       (sum, p) => sum + p.amount,
       0,

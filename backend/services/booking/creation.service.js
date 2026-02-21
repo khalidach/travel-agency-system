@@ -3,7 +3,6 @@ const NotificationService = require("../NotificationService");
 const AppError = require("../../utils/appError");
 const { checkProgramCapacity } = require("./capacity.service");
 const {
-  calculateBasePrice,
   getProgramConfiguredPrice,
 } = require("./pricing.service");
 
@@ -113,16 +112,8 @@ const createBookings = async (db, user, bulkData) => {
         }
       }
 
-      const basePrice = await calculateBasePrice(
-        client,
-        adminId,
-        tripId,
-        packageId,
-        selectedHotel,
-        personType,
-        variationName,
-      );
-      const profit = sellingPrice - basePrice;
+      const basePrice = 0;
+      const profit = 0;
       const remainingBalance = sellingPrice;
       const isFullyPaid = remainingBalance <= 0;
       const employeeId = role === "admin" ? null : id;
@@ -174,11 +165,9 @@ const createBookings = async (db, user, bulkData) => {
         senderId: role === "admin" ? user.id : null,
         senderName: user.username,
         title: "محاولة حجز بسعر منخفض",
-        message: `الموظف ${user.username} قام بإنشاء ${
-          createdBookings.length
-        } حجز بسعر ${sellingPrice} (الحد الأدنى: ${minSellingPrice}) لبرنامج ${
-          program.name
-        }. يرجى الموافقة أو الرفض.`,
+        message: `الموظف ${user.username} قام بإنشاء ${createdBookings.length
+          } حجز بسعر ${sellingPrice} (الحد الأدنى: ${minSellingPrice}) لبرنامج ${program.name
+          }. يرجى الموافقة أو الرفض.`,
         type: "booking_approval",
         referenceId: createdBookings[0].id, // Link to the first booking for approval action
       });

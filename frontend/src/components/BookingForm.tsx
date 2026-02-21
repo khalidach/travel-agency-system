@@ -106,8 +106,8 @@ export default function BookingForm({
     handlePackageChange,
   } = useProgramManager({ programs, setValue, tripId, selectedHotel });
 
-  // 2. Pricing Logic Hook
-  const { calculateTotalBasePrice } = useBookingPricing({
+  // 2. Pricing Logic Hook (display-only, sets basePrice/profit in form for UI)
+  useBookingPricing({
     formState,
     programPricing,
     selectedHotel,
@@ -155,9 +155,8 @@ export default function BookingForm({
   // Handler: Form Submit
   const onSubmit = useCallback(
     (data: BookingFormData) => {
-      const freshBasePrice = calculateTotalBasePrice();
-      data.basePrice = freshBasePrice;
-      data.profit = data.sellingPrice - freshBasePrice;
+      // basePrice and profit are display-only — not sent to backend
+      // Profit is calculated at program level via ProgramCosting
 
       if (!isBulkMode && booking) {
         const { clients: _clients, ...restOfData } = data;
@@ -171,7 +170,7 @@ export default function BookingForm({
       }
       onSave(data, booking?.advancePayments || []);
     },
-    [onSave, booking, isBulkMode, calculateTotalBasePrice],
+    [onSave, booking, isBulkMode],
   );
 
   // Helper: Hotel/Room Updaters

@@ -378,7 +378,6 @@ export interface ProgramCost {
   id: number;
   programId: number;
   costs: ProgramCostDetails;
-  isEnabled: boolean;
   totalCost: number;
 }
 

@@ -15,7 +15,7 @@ import { Program, ProgramCost } from "../context/models";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { useTranslation } from "react-i18next";
 
-type CostingFormData = Omit<ProgramCost, "id" | "programId" | "totalCost">;
+type CostingFormData = Omit<ProgramCost, "id" | "programId" | "totalCost" | "isEnabled">;
 
 export default function ProgramCosting() {
   const { programId } = useParams<{ programId: string }>();
@@ -39,7 +39,6 @@ export default function ProgramCosting() {
   const methods = useForm<CostingFormData>({
     defaultValues: {
       costs: { hotels: [], custom: [] },
-      isEnabled: false,
     },
   });
 
@@ -51,7 +50,15 @@ export default function ProgramCosting() {
   });
 
   const watchedCosts = watch("costs");
-  const isEnabled = watch("isEnabled");
+
+  // Fetch bookings summary for this program to get total revenue
+  const { data: bookingsData } = useQuery<{
+    summary?: { totalRevenue: number };
+  }>({
+    queryKey: ["bookingsByProgram", programId, "summaryOnly"],
+    queryFn: () => api.getBookingsByProgram(programId!, { page: 1, limit: 1 }),
+    enabled: !!programId,
+  });
 
   const distinctHotels = useMemo(() => {
     if (!program) return [];
@@ -83,7 +90,6 @@ export default function ProgramCosting() {
           hotels: hotelCosts,
           custom: existingCosts.costs?.custom || [],
         },
-        isEnabled: existingCosts.isEnabled,
       });
     } else if (program) {
       // Initialize for a new entry
@@ -99,7 +105,6 @@ export default function ProgramCosting() {
           hotels: hotelCosts,
           custom: [],
         },
-        isEnabled: false,
       });
     }
   }, [existingCosts, program, distinctHotels, reset]);
@@ -172,47 +177,6 @@ export default function ProgramCosting() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
-              <span
-                className={`text-sm font-medium  ${
-                  isEnabled ? "text-success" : "text-danger"
-                }`}
-              >
-                {isEnabled ? t("calculationActive") : t("calculationLocked")}
-              </span>
-              <label
-                htmlFor="isEnabledToggle"
-                className="flex items-center cursor-pointer"
-              >
-                <div className="relative">
-                  <Controller
-                    name="isEnabled"
-                    control={control}
-                    render={({ field: { onChange, onBlur, value, ref } }) => (
-                      <input
-                        type="checkbox"
-                        id="isEnabledToggle"
-                        className="sr-only"
-                        onBlur={onBlur}
-                        onChange={onChange}
-                        checked={!!value}
-                        ref={ref}
-                      />
-                    )}
-                  />
-                  <div
-                    className={`block w-14 h-8 rounded-full transition-colors ${
-                      isEnabled ? "bg-primary" : "bg-muted"
-                    }`}
-                  ></div>
-                  <div
-                    className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
-                      isEnabled ? "translate-x-6" : ""
-                    }`}
-                  ></div>
-                </div>
-              </label>
-            </div>
             <button
               type="submit"
               disabled={isSaving}
@@ -354,14 +318,35 @@ export default function ProgramCosting() {
           </div>
         </div>
 
-        <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-sm border border-border flex justify-end">
-          <div className="flex items-center space-x-4">
-            <span className="text-lg font-medium text-foreground">
-              {t("totalProgramCost")}:
-            </span>
-            <span className="text-2xl font-bold text-primary">
-              {totalCost.toLocaleString()} {t("mad")}
-            </span>
+        <div className="bg-card text-card-foreground p-6 rounded-2xl shadow-sm border border-border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <span className="block text-sm font-medium text-muted-foreground">
+                {t("totalRevenue")}
+              </span>
+              <span className="text-2xl font-bold text-foreground">
+                {(bookingsData?.summary?.totalRevenue || 0).toLocaleString()} {t("mad")}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-medium text-muted-foreground">
+                {t("totalProgramCost")}
+              </span>
+              <span className="text-2xl font-bold text-primary">
+                {totalCost.toLocaleString()} {t("mad")}
+              </span>
+            </div>
+            <div className="text-center">
+              <span className="block text-sm font-medium text-muted-foreground">
+                {t("totalProfit")}
+              </span>
+              <span className={`text-2xl font-bold ${(bookingsData?.summary?.totalRevenue || 0) - totalCost >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-red-600 dark:text-red-400"
+                }`}>
+                {((bookingsData?.summary?.totalRevenue || 0) - totalCost).toLocaleString()} {t("mad")}
+              </span>
+            </div>
           </div>
         </div>
       </form>

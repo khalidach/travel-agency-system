@@ -182,47 +182,61 @@ exports.getEmployeeProgramPerformance = async (req, res, next) => {
             p.type,
             COUNT(b.id) as "bookingCount",
             COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
-            COALESCE(SUM(b."basePrice"), 0) as "totalCost",
-            COALESCE(SUM(b.profit), 0) as "totalProfit"
+            COALESCE(pc."totalCost", 0) as "totalCost"
         FROM programs p
         JOIN bookings b ON p.id::text = b."tripId"
+        LEFT JOIN program_costs pc ON p.id = pc."programId"
         ${whereClause}
-        GROUP BY p.id, p.name, p.type
-        ORDER BY "totalProfit" DESC;
+        GROUP BY p.id, p.name, p.type, pc."totalCost"
+        ORDER BY "totalSales" DESC;
     `;
 
     const summaryQuery = `
         SELECT
             COUNT(*) as totalBookings,
-            COALESCE(SUM(b."sellingPrice"), 0) as totalRevenue,
-            COALESCE(SUM(b."basePrice"), 0) as totalCost,
-            COALESCE(SUM(b.profit), 0) as totalProfit
+            COALESCE(SUM(b."sellingPrice"), 0) as totalRevenue
         FROM bookings b
         LEFT JOIN programs p ON b."tripId" = p.id::text
         ${whereClause}
     `;
 
-    const [performanceResult, summaryResult] = await Promise.all([
+    // Query total cost from program_costs for this employee's programs
+    const costQuery = `
+        SELECT COALESCE(SUM(pc."totalCost"), 0) as "totalCost"
+        FROM program_costs pc
+        JOIN programs p ON pc."programId" = p.id
+        JOIN bookings b ON p.id::text = b."tripId"
+        ${whereClause}
+    `;
+
+    const [performanceResult, summaryResult, costResult] = await Promise.all([
       req.db.query(performanceQuery, queryParams),
       req.db.query(summaryQuery, queryParams),
+      req.db.query(costQuery, queryParams),
     ]);
 
     const summary = summaryResult.rows[0] || {};
+    const empTotalCost = parseFloat(costResult.rows[0]?.totalCost || 0);
+    const empTotalRevenue = parseFloat(summary.totalrevenue || 0);
 
     res.status(200).json({
-      programPerformance: performanceResult.rows.map((r) => ({
-        ...r,
-        programId: parseInt(r.programId, 10),
-        bookingCount: parseInt(r.bookingCount, 10),
-        totalSales: parseFloat(r.totalSales),
-        totalCost: parseFloat(r.totalCost),
-        totalProfit: parseFloat(r.totalProfit),
-      })),
+      programPerformance: performanceResult.rows.map((r) => {
+        const totalSales = parseFloat(r.totalSales);
+        const totalCost = parseFloat(r.totalCost);
+        return {
+          ...r,
+          programId: parseInt(r.programId, 10),
+          bookingCount: parseInt(r.bookingCount, 10),
+          totalSales,
+          totalCost,
+          totalProfit: totalSales - totalCost,
+        };
+      }),
       programSummary: {
         totalBookings: parseInt(summary.totalbookings || 0, 10),
-        totalRevenue: parseFloat(summary.totalrevenue || 0),
-        totalCost: parseFloat(summary.totalcost || 0),
-        totalProfit: parseFloat(summary.totalprofit || 0),
+        totalRevenue: empTotalRevenue,
+        totalCost: empTotalCost,
+        totalProfit: empTotalRevenue - empTotalCost,
       },
     });
   } catch (error) {
