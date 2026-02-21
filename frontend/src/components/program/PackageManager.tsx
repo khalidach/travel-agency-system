@@ -338,7 +338,7 @@ const PriceStructureManager = ({
   isCommissionBased: boolean;
 }) => {
   const { t } = useTranslation();
-  const { control, watch, getValues, setValue } = useFormContext();
+  const { control, watch, getValues } = useFormContext();
   const {
     fields: priceFields,
     append,
@@ -349,7 +349,7 @@ const PriceStructureManager = ({
   });
 
   const currentPrices = watch(`packages.${packageIndex}.prices`, []);
-  const hotelOptions = generateAllHotelOptions(packageIndex);
+
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
 
   // Auto-generate hotel combinations when hotel names change
