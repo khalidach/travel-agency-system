@@ -13,7 +13,6 @@ interface BookingPageState {
   currentPage: number;
   selectedBookingIds: number[];
   isSelectAllAcrossPages: boolean;
-  isExportModalOpen: boolean;
 }
 
 interface BookingPageActions {
@@ -28,8 +27,6 @@ interface BookingPageActions {
   toggleIdSelection: (id: number) => void;
   clearSelection: () => void;
   setIsSelectAllAcrossPages: (value: boolean) => void;
-  openExportModal: () => void;
-  closeExportModal: () => void;
 }
 
 // Define the initial state
@@ -43,7 +40,6 @@ const initialState: BookingPageState = {
   currentPage: 1,
   selectedBookingIds: [],
   isSelectAllAcrossPages: false,
-  isExportModalOpen: false,
 };
 
 // Create the Zustand store
@@ -88,9 +84,5 @@ export const useBookingStore = create<BookingPageState & BookingPageActions>()(
 
     setIsSelectAllAcrossPages: (value) =>
       set({ isSelectAllAcrossPages: value }),
-
-    openExportModal: () => set({ isExportModalOpen: true }),
-
-    closeExportModal: () => set({ isExportModalOpen: false }),
   })
 );

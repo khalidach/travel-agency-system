@@ -535,6 +535,9 @@ export const exportBookingsToExcel = (programId: string) =>
 export const exportFlightListToExcel = (programId: string) =>
   request(`/bookings/export-flight-list/program/${programId}`, {}, true);
 
+export const exportCombinedToExcel = (programId: string) =>
+  request(`/bookings/export-combined/program/${programId}`, {}, true);
+
 export const exportBookingTemplateForProgram = (programId: string) =>
   request(`/bookings/export-template/program/${programId}`, {}, true);
 

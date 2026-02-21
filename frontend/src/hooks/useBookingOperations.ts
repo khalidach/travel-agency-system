@@ -222,52 +222,24 @@ export const useBookingOperations = ({
     }
   };
 
-  const handleNormalExport = async () => {
+  const handleExport = async () => {
     if (!programId || store.isExporting) return;
     store.setIsExporting(true);
-    store.closeExportModal();
-    toast.loading("Exporting Normal List...");
+    toast.loading("Exporting...");
     try {
-      const blob = await api.exportBookingsToExcel(programId);
+      const blob = await api.exportCombinedToExcel(programId);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = program
-        ? `${program.name.replace(/\s/g, "_")}_bookings.xlsx`
-        : "bookings.xlsx";
+        ? `${program.name.replace(/\s/g, "_")}_export.xlsx`
+        : "export.xlsx";
       document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
       toast.dismiss();
-      toast.success("Normal List export successful!");
-    } catch (error) {
-      toast.dismiss();
-      toast.error((error as Error).message || "Failed to export.");
-    } finally {
-      store.setIsExporting(false);
-    }
-  };
-
-  const handleFlightListExport = async () => {
-    if (!programId || store.isExporting) return;
-    store.setIsExporting(true);
-    store.closeExportModal();
-    toast.loading("Exporting Flight List...");
-    try {
-      const blob = await api.exportFlightListToExcel(programId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = program
-        ? `${program.name.replace(/\s/g, "_")}_flight_list.xlsx`
-        : "flight_list.xlsx";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      toast.dismiss();
-      toast.success("Flight List export successful!");
+      toast.success("Export successful!");
     } catch (error) {
       toast.dismiss();
       toast.error((error as Error).message || "Failed to export.");
@@ -307,8 +279,8 @@ export const useBookingOperations = ({
     handleUpdatePayment,
     handleDeletePayment,
     confirmDeleteAction,
-    handleNormalExport,
-    handleFlightListExport,
+    handleExport,
     handleExportTemplate,
   };
 };
+

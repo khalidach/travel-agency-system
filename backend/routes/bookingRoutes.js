@@ -18,6 +18,7 @@ const {
   exportBookingTemplateForProgram,
   importBookingsFromExcel,
   exportFlightListToExcel,
+  exportCombinedExcel,
 } = require("../controllers/bookings"); // <--- CHANGED HERE
 const {
   bookingValidation,
@@ -98,6 +99,11 @@ router.get(
   "/export-flight-list/program/:programId",
   checkListExportLimit,
   exportFlightListToExcel,
+);
+router.get(
+  "/export-combined/program/:programId",
+  checkBookingExportLimit,
+  exportCombinedExcel,
 );
 
 // Payment routes (nested under bookings)

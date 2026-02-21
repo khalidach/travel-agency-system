@@ -1,6 +1,5 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { File, List } from "lucide-react";
 import Modal from "../Modal";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import BookingForm from "../BookingForm";
@@ -25,8 +24,6 @@ interface BookingPageModalsProps {
   ) => void;
   onDeletePayment: (paymentId: string) => void;
   onConfirmDelete: () => void;
-  onExportFlightList: () => void;
-  onExportNormalList: () => void;
 }
 
 const BookingPageModals: React.FC<BookingPageModalsProps> = ({
@@ -37,8 +34,6 @@ const BookingPageModals: React.FC<BookingPageModalsProps> = ({
   onUpdatePayment,
   onDeletePayment,
   onConfirmDelete,
-  onExportFlightList,
-  onExportNormalList,
 }) => {
   const { t } = useTranslation();
   const store = useBookingStore();
@@ -89,33 +84,9 @@ const BookingPageModals: React.FC<BookingPageModalsProps> = ({
             : t("deleteBookingMessage")
         }
       />
-
-      {/* Export Format Modal */}
-      <Modal
-        isOpen={store.isExportModalOpen}
-        onClose={store.closeExportModal}
-        title="Choose Export Format"
-        size="sm"
-      >
-        <div className="space-y-4">
-          <button
-            onClick={onExportFlightList}
-            className="w-full inline-flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <File className="mr-2 h-5 w-5" />
-            Flight List
-          </button>
-          <button
-            onClick={onExportNormalList}
-            className="w-full inline-flex items-center justify-center px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
-          >
-            <List className="mr-2 h-5 w-5" />
-            Normal List
-          </button>
-        </div>
-      </Modal>
     </>
   );
 };
 
 export default BookingPageModals;
+

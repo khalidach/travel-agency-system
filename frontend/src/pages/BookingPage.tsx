@@ -60,7 +60,6 @@ export default function BookingPage() {
   const { state: authState } = useAuthContext();
   const userRole = authState.user?.role;
   const userId = authState.user?.id;
-  const user = authState.user;
 
   // Local State for Reject Modal
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -82,7 +81,6 @@ export default function BookingPage() {
     toggleIdSelection,
     clearSelection,
     setIsSelectAllAcrossPages,
-    openExportModal,
     setBookingToDelete: setStoreBookingToDelete,
   } = useBookingStore();
 
@@ -198,8 +196,7 @@ export default function BookingPage() {
     handleUpdatePayment,
     handleDeletePayment,
     confirmDeleteAction,
-    handleNormalExport,
-    handleFlightListExport,
+    handleExport,
     handleExportTemplate,
   } = useBookingOperations({
     programId,
@@ -214,17 +211,6 @@ export default function BookingPage() {
 
   // --- Derived Logic ---
 
-  const hasFlightListExportAccess = useMemo(() => {
-    if (!user) return false;
-    if (typeof user.limits?.flightListExport === "boolean") {
-      return user.limits.flightListExport;
-    }
-    if (typeof user.tierLimits?.flightListExport === "boolean") {
-      return user.tierLimits.flightListExport;
-    }
-    return false;
-  }, [user]);
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImportFile(e.target.files[0]);
@@ -234,14 +220,6 @@ export default function BookingPage() {
   const handleImport = () => {
     if (importFile && programId) {
       importBookings(importFile);
-    }
-  };
-
-  const handleExport = () => {
-    if (hasFlightListExportAccess) {
-      openExportModal();
-    } else {
-      handleNormalExport();
     }
   };
 
@@ -469,8 +447,6 @@ export default function BookingPage() {
         onUpdatePayment={handleUpdatePayment}
         onDeletePayment={handleDeletePayment}
         onConfirmDelete={confirmDeleteAction}
-        onExportFlightList={handleFlightListExport}
-        onExportNormalList={handleNormalExport}
       />
 
       {/* Reject Confirmation Modal */}
