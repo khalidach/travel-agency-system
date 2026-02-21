@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Users, DollarSign, TrendingUp, Package } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Wallet } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 
 interface StatsGridProps {
@@ -7,7 +7,7 @@ interface StatsGridProps {
     totalBookings: number;
     totalRevenue: number;
     totalProfit: number;
-    activePrograms: number;
+    totalCost: number;
   };
 }
 
@@ -32,19 +32,20 @@ export default function StatsGrid({ allTimeStats }: StatsGridProps) {
       roles: ["admin"],
     },
     {
+      title: t("totalCost"),
+      value: `${(allTimeStats.totalCost || 0).toLocaleString()} ${t("mad")}`,
+      icon: Wallet,
+      color: "bg-purple-500",
+      roles: ["admin"],
+    },
+    {
       title: t("totalProfit"),
       value: `${(allTimeStats.totalProfit || 0).toLocaleString()} ${t("mad")}`,
       icon: TrendingUp,
       color: "bg-orange-500",
       roles: ["admin"],
     },
-    {
-      title: t("activePrograms"),
-      value: allTimeStats.activePrograms,
-      icon: Package,
-      color: "bg-purple-500",
-      roles: ["admin", "manager", "employee"],
-    },
+
   ];
 
   const visibleTopStats = topStats.filter((stat) =>

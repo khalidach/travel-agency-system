@@ -137,7 +137,7 @@ const getDashboardStats = async (req, res, next) => {
         totalBookings: parseInt(stats.allTimeBookings, 10),
         totalRevenue: allTimeRevenue,
         totalProfit: allTimeProfit,
-        activePrograms: parseInt(stats.activePrograms, 10),
+        totalCost: allTimeCost,
       },
       dateFilteredStats: {
         totalBookings: parseInt(stats.filteredBookingsCount, 10),

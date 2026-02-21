@@ -16,7 +16,7 @@ import {
   TrendingUp,
   DollarSign,
   Calendar,
-  Package,
+  Wallet,
   HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
@@ -162,7 +162,22 @@ export default function ProfitReport() {
             </div>
           </div>
         </div>
-
+        {/* Total Cost Card */}
+        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">
+                {t("totalCost")}
+              </p>
+              <p className="text-2xl font-bold mt-2">
+                {totals.totalCost.toLocaleString()} {t("mad")}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-chart-4 rounded-xl flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-primary-foreground" />
+            </div>
+          </div>
+        </div>
         {/* Total Profit Card */}
         <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between">
@@ -180,22 +195,7 @@ export default function ProfitReport() {
           </div>
         </div>
 
-        {/* Profit Margin Card */}
-        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("profitMargin")}
-              </p>
-              <p className="text-2xl font-bold mt-2">
-                {totals.profitMargin.toFixed(1)}%
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-chart-4 rounded-xl flex items-center justify-center">
-              <Package className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-        </div>
+
       </div>
 
       <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
@@ -310,13 +310,12 @@ export default function ProfitReport() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        item.type === "Hajj"
-                          ? "bg-chart-1/20 text-chart-1"
-                          : item.type === "Umrah"
-                            ? "bg-chart-2/20 text-chart-2"
-                            : "bg-chart-3/20 text-chart-3"
-                      }`}
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.type === "Hajj"
+                        ? "bg-chart-1/20 text-chart-1"
+                        : item.type === "Umrah"
+                          ? "bg-chart-2/20 text-chart-2"
+                          : "bg-chart-3/20 text-chart-3"
+                        }`}
                     >
                       {t(item.type)}
                     </span>

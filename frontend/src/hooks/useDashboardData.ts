@@ -63,7 +63,7 @@ export function useDashboardData() {
           totalBookings: 0,
           totalRevenue: 0,
           totalProfit: 0,
-          activePrograms: 0,
+          totalCost: 0,
         },
         dateFilteredStats: {
           totalBookings: 0,

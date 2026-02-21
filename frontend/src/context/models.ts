@@ -310,7 +310,7 @@ export interface DashboardStats {
     totalBookings: number;
     totalRevenue: number;
     totalProfit: number;
-    activePrograms: number;
+    totalCost: number;
   };
   dateFilteredStats: {
     totalBookings: number;
