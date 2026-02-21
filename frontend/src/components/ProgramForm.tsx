@@ -32,19 +32,25 @@ export default function ProgramForm({
     defaultValues: program
       ? program
       : ({
-          name: "",
-          type: "Umrah",
-          isCommissionBased: false,
-          maxBookings: null,
-          variations: [
-            {
-              name: t("defaultVariation") as string,
-              duration: 0,
-              cities: [{ name: "", nights: 0 }],
-            },
-          ],
-          packages: [] as Package[],
-        } as unknown as Program),
+        name: "",
+        type: "Umrah",
+        isCommissionBased: false,
+        maxBookings: null,
+        variations: [
+          {
+            name: t("defaultVariation") as string,
+            duration: 0,
+            cities: [{ name: "", nights: 0 }],
+          },
+        ],
+        packages: [
+          {
+            name: t("packageLabel") + " 1",
+            hotels: {},
+            prices: [],
+          },
+        ] as Package[],
+      } as unknown as Program),
   });
 
   const {
@@ -135,9 +141,8 @@ export default function ProgramForm({
                 {...methods.register("name", {
                   required: t("programNameRequired") as string,
                 })}
-                className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${
-                  errors.name ? "border-destructive" : "border-input"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${errors.name ? "border-destructive" : "border-input"
+                  }`}
               />
               {errors.name && (
                 <p className="text-destructive text-xs mt-1">
@@ -203,16 +208,14 @@ export default function ProgramForm({
                       className="sr-only toggle-checkbox"
                     />
                     <div
-                      className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
-                        maxBookings === null ? "bg-primary" : "bg-input"
-                      }`}
+                      className={`block w-10 h-6 rounded-full transition-colors duration-200 ${maxBookings === null ? "bg-primary" : "bg-input"
+                        }`}
                     ></div>
                     <div
-                      className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
-                        maxBookings === null
+                      className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${maxBookings === null
                           ? "translate-x-4 rtl:-translate-x-4"
                           : ""
-                      }`}
+                        }`}
                     ></div>
                   </div>
                 </label>
@@ -251,16 +254,14 @@ export default function ProgramForm({
 
               {/* Track */}
               <div
-                className={`block w-10 h-6 rounded-full transition-colors duration-200 ${
-                  isCommissionBased ? "bg-primary" : "bg-input"
-                }`}
+                className={`block w-10 h-6 rounded-full transition-colors duration-200 ${isCommissionBased ? "bg-primary" : "bg-input"
+                  }`}
               ></div>
 
               {/* Thumb */}
               <div
-                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${
-                  isCommissionBased ? "translate-x-4 rtl:-translate-x-4" : ""
-                }`}
+                className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${isCommissionBased ? "translate-x-4 rtl:-translate-x-4" : ""
+                  }`}
               ></div>
             </div>
           </label>

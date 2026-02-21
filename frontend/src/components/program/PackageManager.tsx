@@ -338,7 +338,7 @@ const PriceStructureManager = ({
   isCommissionBased: boolean;
 }) => {
   const { t } = useTranslation();
-  const { control, watch } = useFormContext();
+  const { control, watch, getValues, setValue } = useFormContext();
   const {
     fields: priceFields,
     append,
@@ -350,52 +350,60 @@ const PriceStructureManager = ({
 
   const currentPrices = watch(`packages.${packageIndex}.prices`, []);
   const hotelOptions = generateAllHotelOptions(packageIndex);
-  const existingCombinations = new Set(
-    currentPrices.map((field: PriceStructure) => field.hotelCombination),
-  );
   const availableRoomTypes = ["ثنائية", "ثلاثية", "رباعية", "خماسية"];
+
+  // Auto-generate hotel combinations when hotel names change
+  const hotelsData = watch(`packages.${packageIndex}.hotels`);
+  const hotelsJson = JSON.stringify(hotelsData || {});
+
+  useEffect(() => {
+    const options = generateAllHotelOptions(packageIndex);
+    const prices: PriceStructure[] =
+      getValues(`packages.${packageIndex}.prices`) || [];
+    const existingCombos = prices.map(
+      (p: PriceStructure) => p.hotelCombination,
+    );
+
+    // Add new combinations that don't exist yet
+    const newCombos = options.filter(
+      (opt) => !existingCombos.includes(opt),
+    );
+    newCombos.forEach((combo) => {
+      append(
+        {
+          hotelCombination: combo,
+          roomTypes: availableRoomTypes.map((type) => ({
+            type,
+            guests: getGuestsForType(type),
+            purchasePrice: 0,
+          })),
+        },
+        { shouldFocus: false },
+      );
+    });
+
+    // Remove combinations whose hotels no longer exist
+    const indicesToRemove: number[] = [];
+    prices.forEach((price: PriceStructure, idx: number) => {
+      if (
+        price.hotelCombination &&
+        !options.includes(price.hotelCombination)
+      ) {
+        indicesToRemove.push(idx);
+      }
+    });
+    // Remove in reverse order to preserve indices
+    indicesToRemove.reverse().forEach((idx) => {
+      remove(idx);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotelsJson, packageIndex]);
 
   return (
     <div>
       <h5 className="text-sm font-semibold text-foreground mb-4">
         {t("hotelCombinationsTitle")}
       </h5>
-      <div className="mb-6 p-4 bg-background rounded-lg border border-border">
-        <div className="flex flex-wrap gap-2">
-          {hotelOptions.map((hotelOption) => {
-            const isAlreadyAdded = existingCombinations.has(hotelOption);
-            return (
-              <button
-                key={hotelOption}
-                type="button"
-                onClick={() =>
-                  append({
-                    hotelCombination: hotelOption,
-                    roomTypes: availableRoomTypes.map((type) => ({
-                      type,
-                      guests: getGuestsForType(type),
-                      purchasePrice: 0,
-                    })),
-                  })
-                }
-                disabled={isAlreadyAdded}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
-                  isAlreadyAdded
-                    ? "bg-muted text-muted-foreground cursor-not-allowed border-transparent opacity-50"
-                    : "bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 hover:border-primary"
-                }`}
-              >
-                + {hotelOption.replace(/_/g, " → ")}
-              </button>
-            );
-          })}
-          {hotelOptions.length === 0 && (
-            <span className="text-xs text-muted-foreground italic">
-              {t("addHotelsToGenerateOptions")}
-            </span>
-          )}
-        </div>
-      </div>
       <div className="space-y-4">
         {priceFields.map((price, priceIndex) => {
           const currentCombination =
@@ -458,9 +466,8 @@ const RoomTypeManager = ({
         return (
           <div
             key={room.id}
-            className={`grid grid-cols-1 md:grid-cols-${
-              (isCommissionBased ? 1 : 0) + (canManagePrices ? 1 : 0) + 3
-            } gap-4 p-4 bg-muted/20 rounded-lg border border-border/50 items-end`}
+            className={`grid grid-cols-1 md:grid-cols-${(isCommissionBased ? 1 : 0) + (canManagePrices ? 1 : 0) + 3
+              } gap-4 p-4 bg-muted/20 rounded-lg border border-border/50 items-end`}
           >
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">
