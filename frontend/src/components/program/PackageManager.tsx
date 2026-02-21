@@ -382,11 +382,11 @@ const PriceStructureManager = ({
       );
     });
 
-    // Remove combinations whose hotels no longer exist
+    // Remove combinations whose hotels no longer exist or are empty
     const indicesToRemove: number[] = [];
     prices.forEach((price: PriceStructure, idx: number) => {
       if (
-        price.hotelCombination &&
+        !price.hotelCombination ||
         !options.includes(price.hotelCombination)
       ) {
         indicesToRemove.push(idx);
