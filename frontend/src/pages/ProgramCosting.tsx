@@ -148,7 +148,21 @@ export default function ProgramCosting() {
   });
 
   const onSubmit = (data: CostingFormData) => {
-    saveCosts({ ...data, totalCost });
+    // Calculate totalCost from the submitted data directly to avoid stale useMemo values
+    let computedTotal = 0;
+    const costs = data.costs;
+    if (costs) {
+      computedTotal += Number(costs.flightTickets) || 0;
+      computedTotal += Number(costs.visa) || 0;
+      computedTotal += Number(costs.transport) || 0;
+      (costs.hotels || []).forEach(
+        (hotel) => (computedTotal += Number(hotel.amount) || 0),
+      );
+      (costs.custom || []).forEach(
+        (custom) => (computedTotal += Number(custom.amount) || 0),
+      );
+    }
+    saveCosts({ ...data, totalCost: computedTotal });
   };
 
   if (isLoadingProgram || isLoadingCosts) {
