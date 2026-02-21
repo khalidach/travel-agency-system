@@ -9,12 +9,13 @@ const { checkProgramCapacity } = require("./capacity.service");
  * Handles cascading name updates for a booking.
  */
 async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
-  const nameChanged = !isEqual(
+  const frNameChanged = !isEqual(
     oldBooking.clientNameFr,
     updatedBooking.clientNameFr,
   );
+  const arNameChanged = oldBooking.clientNameAr !== updatedBooking.clientNameAr;
 
-  if (!nameChanged) {
+  if (!frNameChanged && !arNameChanged) {
     return;
   }
 
@@ -58,7 +59,7 @@ async function handleNameChangeCascades(client, oldBooking, updatedBooking) {
       const updatedOccupants = room.occupants.map((occupant) => {
         if (occupant && occupant.id === bookingId) {
           roomsChanged = true;
-          return { ...occupant, clientName: updatedBooking.clientNameAr };
+          return { ...occupant, clientName: updatedBooking.clientNameAr || `${updatedBooking.clientNameFr?.firstName || ''} ${updatedBooking.clientNameFr?.lastName || ''}`.trim() };
         }
         return occupant;
       });

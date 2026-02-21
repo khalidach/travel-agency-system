@@ -75,7 +75,7 @@ class AutoAssigner {
       remainingMembers.forEach((member, index) => {
         targetRoom.occupants[index] = {
           id: member.id,
-          clientName: member.clientNameAr,
+          clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
           gender: member.gender,
         };
       });
@@ -113,7 +113,7 @@ class AutoAssigner {
             if (emptySlotIndex !== -1) {
               room.occupants[emptySlotIndex] = {
                 id: member.id,
-                clientName: member.clientNameAr,
+                clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
                 gender: member.gender,
               };
             }
@@ -133,7 +133,7 @@ class AutoAssigner {
           membersForNewRoom.forEach((member, index) => {
             newRoom.occupants[index] = {
               id: member.id,
-              clientName: member.clientNameAr,
+              clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
               gender: member.gender,
             };
           });

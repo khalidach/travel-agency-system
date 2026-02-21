@@ -246,7 +246,10 @@ exports.searchUnassignedOccupants = async (
   );
 
   let query = `
-    SELECT id, "clientNameAr" as "clientName"
+    SELECT id, COALESCE(
+      NULLIF("clientNameAr", ''),
+      CONCAT_WS(' ', "clientNameFr"->>'firstName', "clientNameFr"->>'lastName')
+    ) as "clientName"
     FROM bookings
     WHERE "userId" = $1
   `;
@@ -260,7 +263,7 @@ exports.searchUnassignedOccupants = async (
   }
 
   if (searchTerm) {
-    query += ` AND ("clientNameFr" ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex})`;
+    query += ` AND ("clientNameFr"->>'firstName' ILIKE $${paramIndex} OR "clientNameFr"->>'lastName' ILIKE $${paramIndex} OR "clientNameAr" ILIKE $${paramIndex})`;
     params.push(`%${searchTerm}%`);
     paramIndex++;
   }
