@@ -147,13 +147,11 @@ export default function BookingTable({
               return (
                 <React.Fragment key={booking.id}>
                   <tr
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                      booking.isRelated ? "bg-blue-50 dark:bg-blue-900/20" : ""
-                    } ${
-                      selectedIds.includes(booking.id)
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${booking.isRelated ? "bg-blue-50 dark:bg-blue-900/20" : ""
+                      } ${selectedIds.includes(booking.id)
                         ? "bg-blue-100 dark:bg-blue-900/30"
                         : ""
-                    }`}
+                      }`}
                   >
                     <td className="px-4 py-4">
                       <input
@@ -166,18 +164,16 @@ export default function BookingTable({
                       />
                     </td>
                     <td
-                      className={`px-3 py-4 align-top ${
-                        booking.isRelated ? "pl-12" : ""
-                      }`}
+                      className={`px-3 py-4 align-top ${booking.isRelated ? "pl-12" : ""
+                        }`}
                     >
                       <div className="flex items-center">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            booking.relatedPersons &&
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${booking.relatedPersons &&
                             booking.relatedPersons.length > 0
-                              ? "bg-gradient-to-br from-purple-500 to-purple-600"
-                              : "bg-gradient-to-br from-blue-500 to-blue-600"
-                          }`}
+                            ? "bg-gradient-to-br from-purple-500 to-purple-600"
+                            : "bg-gradient-to-br from-blue-500 to-blue-600"
+                            }`}
                         >
                           {booking.isRelated ? (
                             <User className="w-5 h-5 text-white" />
@@ -315,30 +311,34 @@ export default function BookingTable({
                             </div>
                           )}
 
-                        <button
-                          onClick={() => onManagePayments(booking)}
-                          disabled={!canModify}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <CreditCard className={`w-3 h-3 mr-1 `} />{" "}
-                          {t("managePayments")}
-                        </button>
-                        <button
-                          onClick={() => onEditBooking(booking)}
-                          disabled={!canModify}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Edit2 className={`w-3 h-3 mr-1 `} />{" "}
-                          {t("editBooking")}
-                        </button>
-                        <button
-                          onClick={() => onDeleteBooking(booking.id)}
-                          disabled={!canModify}
-                          className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className={`w-3 h-3 mr-1`} />{" "}
-                          {t("deleteBooking")}
-                        </button>
+                        {booking.status !== "pending_approval" && (
+                          <>
+                            <button
+                              onClick={() => onManagePayments(booking)}
+                              disabled={!canModify}
+                              className="inline-flex items-center justify-center px-3 py-1 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <CreditCard className={`w-3 h-3 mr-1 `} />{" "}
+                              {t("managePayments")}
+                            </button>
+                            <button
+                              onClick={() => onEditBooking(booking)}
+                              disabled={!canModify}
+                              className="inline-flex items-center justify-center px-3 py-1 text-xs bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Edit2 className={`w-3 h-3 mr-1 `} />{" "}
+                              {t("editBooking")}
+                            </button>
+                            <button
+                              onClick={() => onDeleteBooking(booking.id)}
+                              disabled={!canModify}
+                              className="inline-flex items-center justify-center px-3 py-1 text-xs bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 className={`w-3 h-3 mr-1`} />{" "}
+                              {t("deleteBooking")}
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
