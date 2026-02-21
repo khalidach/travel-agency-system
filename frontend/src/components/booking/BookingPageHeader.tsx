@@ -29,7 +29,8 @@ export default function BookingPageHeader({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between">
+    <div className="space-y-4">
+      {/* Title row */}
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate("/booking")}
@@ -46,7 +47,10 @@ export default function BookingPageHeader({
           </p>
         </div>
       </div>
-      <div className="mt-4 sm:mt-0 flex items-center gap-x-3">
+
+      {/* Action buttons row */}
+      <div className="flex items-center justify-end gap-x-3">
+
         <button
           onClick={onExportTemplate}
           className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm"
@@ -79,6 +83,8 @@ export default function BookingPageHeader({
             {t("import")}
           </button>
         )}
+
+
         <button
           onClick={onAddBooking}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
