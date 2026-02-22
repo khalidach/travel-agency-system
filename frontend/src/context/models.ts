@@ -317,6 +317,8 @@ export interface DashboardStats {
     totalDailyServices: number;
     totalFactures: number;
     totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
   };
   programTypeData: {
     Hajj: number;

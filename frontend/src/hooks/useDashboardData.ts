@@ -35,6 +35,9 @@ export function useDashboardData() {
           };
         }
         return { startDate: undefined, endDate: undefined };
+      case "allTime":
+        startDate = new Date(0); // Epoch start
+        break;
       case "7days":
       default:
         startDate = startOfDay(subDays(now, 7));
@@ -72,8 +75,6 @@ export function useDashboardData() {
           totalRevenue: 0,
           totalCost: 0,
           totalProfit: 0,
-          totalPaid: 0,
-          totalRemaining: 0,
         },
         dailyServiceProfitData: [],
         paymentStatus: { fullyPaid: 0, pending: 0 },

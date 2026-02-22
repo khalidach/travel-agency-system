@@ -28,6 +28,7 @@ export default function DateMetricsSection({
     { key: "7days", label: t("last7Days") },
     { key: "month", label: t("last30Days") },
     { key: "year", label: t("lastYear") },
+    { key: "allTime", label: t("allTime") || "All Time" },
     { key: "custom", label: t("customRange") },
   ];
 
@@ -52,6 +53,16 @@ export default function DateMetricsSection({
       value: `${(dateFilteredStats.totalRevenue || 0).toLocaleString()} ${t("mad")}`,
       icon: DollarSign,
     },
+    {
+      title: t("totalCost") || "Total Cost",
+      value: `${(dateFilteredStats.totalCost || 0).toLocaleString()} ${t("mad")}`,
+      icon: DollarSign,
+    },
+    {
+      title: t("totalProfit"),
+      value: `${(dateFilteredStats.totalProfit || 0).toLocaleString()} ${t("mad")}`,
+      icon: DollarSign,
+    },
   ];
 
   const employeeMetrics = [...adminManagerMetrics];
@@ -67,11 +78,10 @@ export default function DateMetricsSection({
               <button
                 key={f.key}
                 onClick={() => setDateFilter(f.key)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  dateFilter === f.key
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === f.key
                     ? "bg-background text-primary shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-background/50"
-                }`}
+                  }`}
               >
                 {f.label}
               </button>
