@@ -9,7 +9,7 @@ import { useDashboardData } from "../hooks/useDashboardData";
 // Imported Components
 import StatsGrid from "../components/dashboard/StatsGrid";
 import DateMetricsSection from "../components/dashboard/DateMetricsSection";
-import ServiceProfitChart from "../components/dashboard/ServiceProfitChart";
+// import ServiceProfitChart from "../components/dashboard/ServiceProfitChart";
 import QuickActionsCard from "../components/dashboard/QuickActionsCard";
 import PaymentStatusCard from "../components/dashboard/PaymentStatusCard";
 import RecentBookingsCard from "../components/dashboard/RecentBookingsCard";
@@ -66,7 +66,7 @@ export default function Dashboard() {
           setCustomDateRange={setCustomDateRange}
           dateFilteredStats={stats.dateFilteredStats}
         />
-        <ServiceProfitChart data={stats.dailyServiceProfitData} />
+        {/* <ServiceProfitChart data={stats.dailyServiceProfitData} /> */}
       </div>
 
       {/* Bottom Grid: Actions & Summary */}
