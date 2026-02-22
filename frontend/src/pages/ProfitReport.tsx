@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -13,10 +13,6 @@ import {
 } from "recharts";
 import {
   Filter,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Wallet,
   HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
@@ -25,6 +21,8 @@ import { usePagination } from "../hooks/usePagination";
 import PaginationControls from "../components/booking/PaginationControls";
 import { ProgramType, Pagination } from "../context/models";
 import VideoHelpModal from "../components/VideoHelpModal";
+import { useDashboardData } from "../hooks/useDashboardData";
+import StatsGrid from "../components/dashboard/StatsGrid";
 
 // Defined interface for the performance table rows
 interface DetailedPerformanceItem {
@@ -62,6 +60,13 @@ export default function ProfitReport() {
   const navigate = useNavigate();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
+  const {
+    stats,
+  } = useDashboardData();
+
+
+
+
   const [filterType, setFilterType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
@@ -78,21 +83,6 @@ export default function ProfitReport() {
   const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
   const pagination = reportData?.pagination;
-  const summary = reportData?.summary;
-
-  const totals = useMemo(() => {
-    const totalSales = summary?.totalSales ?? 0;
-    const totalProfit = summary?.totalProfit ?? 0;
-    const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
-
-    return {
-      totalBookings: summary?.totalBookings ?? 0,
-      totalSales,
-      totalProfit,
-      profitMargin,
-      totalCost: summary?.totalCost ?? 0,
-    };
-  }, [summary]);
 
   const paginationRange = usePagination({
     currentPage,
@@ -128,74 +118,9 @@ export default function ProfitReport() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Bookings Card */}
-        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("totalBookings")}
-              </p>
-              <p className="text-2xl font-bold mt-2">
-                {totals.totalBookings.toLocaleString()}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-chart-1 rounded-xl flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-        </div>
-
-        {/* Total Sales Card */}
-        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("totalSales")}
-              </p>
-              <p className="text-2xl font-bold mt-2">
-                {totals.totalSales.toLocaleString()} {t("mad")}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-chart-2 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-        </div>
-        {/* Total Cost Card */}
-        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("totalCost")}
-              </p>
-              <p className="text-2xl font-bold mt-2">
-                {totals.totalCost.toLocaleString()} {t("mad")}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-chart-4 rounded-xl flex items-center justify-center">
-              <Wallet className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-        </div>
-        {/* Total Profit Card */}
-        <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">
-                {t("totalProfit")}
-              </p>
-              <p className="text-2xl font-bold mt-2">
-                {totals.totalProfit.toLocaleString()} {t("mad")}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-chart-3 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-primary-foreground" />
-            </div>
-          </div>
-        </div>
-
-
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+        <StatsGrid allTimeStats={stats.allTimeStats} />
+        {/* <ServiceProfitChart data={stats.dailyServiceProfitData} /> */}
       </div>
 
       <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
