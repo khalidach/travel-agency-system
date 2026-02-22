@@ -79,8 +79,8 @@ export default function DateMetricsSection({
                 key={f.key}
                 onClick={() => setDateFilter(f.key)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${dateFilter === f.key
-                    ? "bg-background text-primary shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
                   }`}
               >
                 {f.label}

@@ -5,6 +5,7 @@ import { useAuthContext } from "../../context/AuthContext";
 interface StatsGridProps {
   allTimeStats: {
     totalBookings: number;
+    totalDailyServices?: number;
     totalRevenue: number;
     totalProfit: number;
     totalCost: number;
@@ -18,8 +19,8 @@ export default function StatsGrid({ allTimeStats }: StatsGridProps) {
 
   const topStats = [
     {
-      title: t("totalBookings"),
-      value: allTimeStats.totalBookings,
+      title: t("totalSalesCount") || "Total Sales",
+      value: allTimeStats.totalBookings + (allTimeStats.totalDailyServices || 0),
       icon: Users,
       color: "bg-blue-500",
       roles: ["admin", "manager", "employee"],

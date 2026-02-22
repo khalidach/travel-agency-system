@@ -47,6 +47,7 @@ const getDashboardStats = async (req, res, next) => {
     const dailyServiceStatsQuery = `
       SELECT 
         COUNT(*) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}) AS "filteredServicesCount",
+        COUNT(*) AS "allTimeServicesCount",
         COALESCE(SUM("totalPrice" - "remainingBalance") FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
         COALESCE(SUM("totalPrice" - "remainingBalance"), 0) AS "allTimeServiceRevenue"
       FROM daily_services
@@ -148,6 +149,7 @@ const getDashboardStats = async (req, res, next) => {
     const formattedResponse = {
       allTimeStats: {
         totalBookings: parseInt(stats.allTimeBookings, 10),
+        totalDailyServices: parseInt(dailyServiceStats.allTimeServicesCount, 10),
         totalRevenue: allTimeRevenue,
         totalProfit: allTimeProfit,
         totalCost: allTimeCost,
