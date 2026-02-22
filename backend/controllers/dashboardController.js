@@ -25,10 +25,10 @@ const getDashboardStats = async (req, res, next) => {
         (SELECT COUNT(*) FROM programs WHERE "userId" = $1) as "activePrograms",
         
         COUNT(*) as "allTimeBookings",
-        COALESCE(SUM(b."sellingPrice"), 0) as "allTimeRevenue",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance"), 0) as "allTimeRevenue",
         
         COUNT(*) FILTER (WHERE 1=1 ${dateFilterClause}) as "filteredBookingsCount",
-        COALESCE(SUM(b."sellingPrice") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingRevenue",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingRevenue",
         COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredPaid",
 
         COALESCE(SUM(CASE WHEN "isFullyPaid" = true THEN 1 ELSE 0 END), 0) as "fullyPaid",
@@ -46,15 +46,29 @@ const getDashboardStats = async (req, res, next) => {
     }
     const dailyServiceStatsQuery = `
       SELECT 
-        COUNT(*) AS "filteredServicesCount",
-        COALESCE(SUM("totalPrice"), 0) AS "filteredServiceRevenue"
+        COUNT(*) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}) AS "filteredServicesCount",
+        COALESCE(SUM("totalPrice" - "remainingBalance") FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
+        COALESCE(SUM("totalPrice" - "remainingBalance"), 0) AS "allTimeServiceRevenue"
       FROM daily_services
-      WHERE "userId" = $1 ${dailyServiceDateFilterClause}
+      WHERE "userId" = $1
     `;
     const dailyServiceStatsPromise = req.db.query(
       dailyServiceStatsQuery,
-      servicesFilteredDateParams
+      queryParams
     );
+
+    let expenseDateFilterClause = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      expenseDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
+    }
+    const expensesStatsQuery = `
+      SELECT
+        COALESCE(SUM(amount - "remainingBalance") FILTER (WHERE 1=1 ${expenseDateFilterClause}), 0) AS "filteredExpensesCost",
+        COALESCE(SUM(amount - "remainingBalance"), 0) AS "allTimeExpensesCost"
+      FROM expenses
+      WHERE "userId" = $1 AND type IN ('order_note', 'regular')
+    `;
+    const expensesStatsPromise = req.db.query(expensesStatsQuery, queryParams);
 
     // NEW: Query for Factures Count
     let factureDateFilterClause = "";
@@ -91,11 +105,7 @@ const getDashboardStats = async (req, res, next) => {
       [adminId]
     );
 
-    // Query all-time total cost from program_costs table
-    const allTimeCostPromise = req.db.query(
-      'SELECT COALESCE(SUM("totalCost"), 0) as "allTimeCost" FROM program_costs WHERE "userId" = $1',
-      [adminId]
-    );
+
 
     const [
       statsResult,
@@ -104,7 +114,7 @@ const getDashboardStats = async (req, res, next) => {
       programTypeResult,
       recentBookingsResult,
       dailyServiceProfitResult,
-      allTimeCostResult,
+      expensesStatsResult,
     ] = await Promise.all([
       statsPromise,
       dailyServiceStatsPromise,
@@ -112,7 +122,7 @@ const getDashboardStats = async (req, res, next) => {
       programTypePromise,
       recentBookingsPromise,
       dailyServiceProfitPromise,
-      allTimeCostPromise,
+      expensesStatsPromise,
     ]);
 
     const stats = statsResult.rows[0];
@@ -121,15 +131,18 @@ const getDashboardStats = async (req, res, next) => {
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows;
     const dailyServiceProfits = dailyServiceProfitResult.rows;
-    const allTimeCost = parseFloat(allTimeCostResult.rows[0].allTimeCost);
-    const allTimeRevenue = parseFloat(stats.allTimeRevenue);
+    const expensesStats = expensesStatsResult.rows[0];
+    const allTimeCost = parseFloat(expensesStats.allTimeExpensesCost);
+    const allTimeRevenue = parseFloat(stats.allTimeRevenue) + parseFloat(dailyServiceStats.allTimeServiceRevenue);
     const allTimeProfit = allTimeRevenue - allTimeCost;
 
     const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
     const filteredServiceRevenue = parseFloat(
       dailyServiceStats.filteredServiceRevenue
     );
+    const filteredCost = parseFloat(expensesStats.filteredExpensesCost);
     const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue; // Combined Revenue
+    const filteredProfit = filteredRevenue - filteredCost;
     const filteredPaid = parseFloat(stats.filteredPaid);
 
     const formattedResponse = {
@@ -147,6 +160,8 @@ const getDashboardStats = async (req, res, next) => {
         ),
         totalFactures: parseInt(facturesCount.filteredFacturesCount, 10),
         totalRevenue: filteredRevenue,
+        totalCost: filteredCost,
+        totalProfit: filteredProfit,
       },
       programTypeData: {
         Hajj:
