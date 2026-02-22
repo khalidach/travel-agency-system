@@ -10,7 +10,7 @@ const getDailyServices = async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     const servicesPromise = req.db.query(
-      'SELECT *, "totalPrice" - "remainingBalance" AS "totalPaid" FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+      'SELECT *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid" FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
       [adminId, limit, offset],
     );
 
@@ -60,16 +60,16 @@ const createDailyService = async (req, res, next) => {
     const profit = totalPrice - originalPrice;
 
     const totalPaid = (advancePayments || []).reduce(
-      (sum, p) => sum + p.amount,
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
-    const remainingBalance = totalPrice - totalPaid;
+    const remainingBalance = Number(totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
       // REMOVED 'commission' COLUMN FROM INSERT QUERY
       `INSERT INTO daily_services ("userId", "employeeId", type, "serviceName", "originalPrice", "totalPrice", profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -112,17 +112,17 @@ const updateDailyService = async (req, res, next) => {
     const profit = totalPrice - originalPrice;
 
     const totalPaid = (advancePayments || []).reduce(
-      (sum, p) => sum + p.amount,
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
-    const remainingBalance = totalPrice - totalPaid;
+    const remainingBalance = Number(totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
       // REMOVED 'commission' COLUMN FROM UPDATE QUERY
       `UPDATE daily_services 
        SET type = $1, "serviceName" = $2, "originalPrice" = $3, "totalPrice" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "updatedAt" = NOW()
-       WHERE id = $10 AND "userId" = $11 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+       WHERE id = $10 AND "userId" = $11 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
       [
         type,
         serviceName,
@@ -312,14 +312,14 @@ const addDailyServicePayment = async (req, res, next) => {
     };
     const advancePayments = [...(service.advancePayments || []), newPayment];
     const totalPaid = advancePayments.reduce(
-      (sum, p) => sum + Number(p.amount),
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
-    const remainingBalance = service.totalPrice - totalPaid;
+    const remainingBalance = Number(service.totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,
@@ -356,14 +356,14 @@ const updateDailyServicePayment = async (req, res, next) => {
           : p, // MODIFIED: Update labelPaper
     );
     const totalPaid = advancePayments.reduce(
-      (sum, p) => sum + Number(p.amount),
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
-    const remainingBalance = service.totalPrice - totalPaid;
+    const remainingBalance = Number(service.totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,
@@ -396,14 +396,14 @@ const deleteDailyServicePayment = async (req, res, next) => {
       (p) => p._id !== paymentId,
     );
     const totalPaid = advancePayments.reduce(
-      (sum, p) => sum + Number(p.amount),
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
-    const remainingBalance = service.totalPrice - totalPaid;
+    const remainingBalance = Number(service.totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - "remainingBalance" AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,

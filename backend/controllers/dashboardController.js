@@ -48,8 +48,8 @@ const getDashboardStats = async (req, res, next) => {
       SELECT 
         COUNT(*) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}) AS "filteredServicesCount",
         COUNT(*) AS "allTimeServicesCount",
-        COALESCE(SUM("totalPrice" - "remainingBalance") FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
-        COALESCE(SUM("totalPrice" - "remainingBalance"), 0) AS "allTimeServiceRevenue"
+        COALESCE(SUM("totalPrice" - COALESCE("remainingBalance", "totalPrice")) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
+        COALESCE(SUM("totalPrice" - COALESCE("remainingBalance", "totalPrice")), 0) AS "allTimeServiceRevenue"
       FROM daily_services
       WHERE "userId" = $1
     `;
