@@ -343,7 +343,7 @@ export default function RoomManage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -358,7 +358,7 @@ export default function RoomManage() {
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-end gap-4">
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -390,11 +390,10 @@ export default function RoomManage() {
           <button
             key={hotel}
             onClick={() => setCurrentHotelIndex(index)}
-            className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
-              currentHotelIndex === index
+            className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${currentHotelIndex === index
                 ? "bg-card text-primary shadow-sm"
                 : "text-muted-foreground hover:bg-background/50"
-            }`}
+              }`}
           >
             <Hotel size={16} />
             {hotel}
@@ -417,8 +416,8 @@ export default function RoomManage() {
                 >
                   <div className="flex justify-between items-center mb-2">
                     {editingRoom &&
-                    editingRoom.name === room.name &&
-                    editingRoom.type === room.type ? (
+                      editingRoom.name === room.name &&
+                      editingRoom.type === room.type ? (
                       <input
                         type="text"
                         value={tempRoomName}

@@ -56,13 +56,17 @@ export default function BookingTable({
   const { state: authState } = useAuthContext();
   const currentUser = authState.user;
 
-  const getStatusColor = (isFullyPaid: boolean) =>
-    isFullyPaid
-      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-      : "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
+  const getStatusColor = (isFullyPaid: boolean, totalPaid: number) => {
+    if (isFullyPaid) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
+    if (totalPaid === 0) return "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300";
+    return "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
+  };
 
-  const getStatusText = (isFullyPaid: boolean) =>
-    t(isFullyPaid ? "fullyPaid" : "pending");
+  const getStatusText = (isFullyPaid: boolean, totalPaid: number) => {
+    if (isFullyPaid) return t("fullyPaid");
+    if (totalPaid === 0) return t("notPaid");
+    return t("pending");
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -254,26 +258,12 @@ export default function BookingTable({
                       </div>
                     </td>
                     <td className="px-2 py-4 align-top">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {t("selling")}:{" "}
-                        {Number(booking.sellingPrice).toLocaleString()}{" "}
-                        {t("mad")}
-                      </div>
-                    </td>
-                    <td className="px-3 py-4 align-top">
                       <div className="space-y-2">
-                        {booking.status === "pending_approval" && (
-                          <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                            {t("pendingApproval") || "Pending Approval"}
-                          </div>
-                        )}
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            booking.isFullyPaid,
-                          )}`}
-                        >
-                          {getStatusText(booking.isFullyPaid)}
-                        </span>
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {t("selling")}:{" "}
+                          {Number(booking.sellingPrice).toLocaleString()}{" "}
+                          {t("mad")}
+                        </div>
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
                         </div>
@@ -284,7 +274,24 @@ export default function BookingTable({
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-4 align-top">
+                    <td className="px-3 py-4 align-center">
+                      <div className="space-y-2 flex flex-col items-center">
+                        {booking.status === "pending_approval" && (
+                          <div className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                            {t("pendingApproval") || "Pending Approval"}
+                          </div>
+                        )}
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                            booking.isFullyPaid,
+                            totalPaid
+                          )}`}
+                        >
+                          {getStatusText(booking.isFullyPaid, totalPaid)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-4 align-center">
                       <div className="flex flex-col space-y-2">
                         {booking.status === "pending_approval" &&
                           (currentUser?.role === "admin" ||
@@ -351,15 +358,13 @@ export default function BookingTable({
                       >
                         {t("familyTotal")}
                       </td>
-                      <td className="px-2 py-2 text-sm">
-                        <div className="dark:text-gray-100">
-                          {t("selling")}:{" "}
-                          {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
-                          {t("mad")}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 align-top">
+                      <td className="px-2 py-2 text-sm align-top">
                         <div className="space-y-1">
+                          <div className="dark:text-gray-100">
+                            {t("selling")}:{" "}
+                            {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {t("paid")}:{" "}
                             {familyLeader.familySummary.totalPaid.toLocaleString()}{" "}
@@ -371,6 +376,8 @@ export default function BookingTable({
                             {t("mad")}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-3 py-2 align-top">
                       </td>
                       <td></td>
                     </tr>
