@@ -349,15 +349,6 @@ const applyDatabaseMigrations = async (client) => {
           ALTER TABLE daily_services ADD COLUMN "isFullyPaid" BOOLEAN DEFAULT FALSE;
         END IF;
 
-        -- Migrate old data: Set initial remaining balance to totalPrice and advancePayments to empty.
-        UPDATE daily_services
-        SET "remainingBalance" = "totalPrice"
-        WHERE "remainingBalance" = 0;
-
-        -- Migrate old data: Set initial isFullyPaid based on remainingBalance
-        UPDATE daily_services
-        SET "isFullyPaid" = ("remainingBalance" <= 0);
-
       END;
       $$;
     `);
