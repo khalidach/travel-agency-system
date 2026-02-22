@@ -36,26 +36,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // Add columns if they don't exist for existing installations
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='ownerName') THEN
-          ALTER TABLE users ADD COLUMN "ownerName" VARCHAR(255);
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='phone') THEN
-          ALTER TABLE users ADD COLUMN "phone" VARCHAR(50);
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email') THEN
-          ALTER TABLE users ADD COLUMN "email" VARCHAR(255) UNIQUE;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='trialExpiresAt') THEN
-          ALTER TABLE users ADD COLUMN "trialExpiresAt" TIMESTAMPTZ;
-        END IF;
-      END;
-      $$;
-    `);
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS employees (
         id SERIAL PRIMARY KEY,
@@ -67,18 +47,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // Add 'active' column if it doesn't exist for existing installations
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='active') THEN
-          ALTER TABLE employees ADD COLUMN active BOOLEAN DEFAULT TRUE;
-        END IF;
-      END;
-      $$;
-    `);
-
-    // Modified programs table
     await client.query(`
       CREATE TABLE IF NOT EXISTS programs (
           id SERIAL PRIMARY KEY,
@@ -91,52 +59,10 @@ const applyDatabaseMigrations = async (client) => {
           "totalBookings" INTEGER DEFAULT 0,
           "isCommissionBased" BOOLEAN DEFAULT FALSE, -- New field for commission-based programs
           "maxBookings" INTEGER DEFAULT NULL, -- NEW: Max number of bookings (NULL for unlimited)
+          "exportCounts" JSONB DEFAULT '{}'::jsonb,
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
-    `);
-
-    // Add columns if they don't exist for existing installations
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='isCommissionBased') THEN
-          ALTER TABLE programs ADD COLUMN "isCommissionBased" BOOLEAN DEFAULT FALSE;
-        END IF;
-        
-        -- NEW: Add maxBookings column if it doesn't exist
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='maxBookings') THEN
-          ALTER TABLE programs ADD COLUMN "maxBookings" INTEGER DEFAULT NULL;
-        END IF;
-
-        -- Add the new 'variations' column if it doesn't exist (legacy migration handling)
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='variations') THEN
-          ALTER TABLE programs ADD COLUMN "variations" JSONB;
-        END IF;
-
-        -- Check if migration is needed (i.e., the old 'cities' column still exists)
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='cities') THEN
-            -- Migrate data from 'cities' and 'duration' into a default variation for existing programs
-            UPDATE programs
-            SET variations = jsonb_build_array(jsonb_build_object(
-                'name', 'Default Variation',
-                'duration', duration,
-                'cities', cities
-            ))
-            WHERE cities IS NOT NULL AND variations IS NULL;
-        END IF;
-      END;
-      $$;
-    `);
-
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='programs' AND column_name='exportCounts') THEN
-          ALTER TABLE programs ADD COLUMN "exportCounts" JSONB DEFAULT '{}'::jsonb;
-        END IF;
-      END;
-      $$;
     `);
 
     await client.query(`
@@ -159,32 +85,21 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // Add 'ticketPricesByVariation' column to program_pricing if it doesn't exist
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='program_pricing' AND column_name='ticketPricesByVariation') THEN
-          ALTER TABLE program_pricing ADD COLUMN "ticketPricesByVariation" JSONB;
-        END IF;
-      END;
-      $$;
-    `);
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS bookings (
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
-        "clientNameAr" VARCHAR(255), -- REMOVED NOT NULL
+        "clientNameAr" VARCHAR(255), 
         "clientNameFr" JSONB,
         "personType" VARCHAR(50) NOT NULL,
         "phoneNumber" VARCHAR(50),
-        "passportNumber" VARCHAR(255), -- REMOVED NOT NULL
+        "passportNumber" VARCHAR(255), 
         "dateOfBirth" VARCHAR(20),
         "passportExpirationDate" DATE,
         "gender" VARCHAR(10),
         "tripId" VARCHAR(255) NOT NULL,
-        "variationName" VARCHAR(255), -- New field for variation
+        "variationName" VARCHAR(255), 
         "packageId" VARCHAR(255),
         "selectedHotel" JSONB,
         "sellingPrice" NUMERIC(10, 2) NOT NULL,
@@ -194,98 +109,13 @@ const applyDatabaseMigrations = async (client) => {
         "remainingBalance" NUMERIC(10, 2) NOT NULL,
         "isFullyPaid" BOOLEAN NOT NULL,
         "relatedPersons" JSONB,
-        "bookingSource" TEXT, -- NEW: Source of the booking
+        "bookingSource" TEXT, 
+        "status" VARCHAR(50) DEFAULT 'confirmed',
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
 
-    // Migration for clientNameFr
-    await client.query(`
-      DO $$
-      BEGIN
-        IF (SELECT data_type FROM information_schema.columns WHERE table_name='bookings' AND column_name='clientNameFr') = 'character varying' THEN
-          -- 1. Add a temporary column
-          ALTER TABLE bookings ADD COLUMN "clientNameFr_json" JSONB;
-
-          -- 2. Migrate data
-          UPDATE bookings
-          SET "clientNameFr_json" = jsonb_build_object(
-            'lastName', SPLIT_PART("clientNameFr", ' ', 1),
-            'firstName', SUBSTRING("clientNameFr" FROM POSITION(' ' IN "clientNameFr") + 1)
-          )
-          WHERE "clientNameFr" IS NOT NULL AND "clientNameFr" LIKE '% %';
-
-          UPDATE bookings
-          SET "clientNameFr_json" = jsonb_build_object(
-            'lastName', "clientNameFr",
-            'firstName', ''
-          )
-          WHERE "clientNameFr" IS NOT NULL AND "clientNameFr" NOT LIKE '% %';
-
-          -- 3. Drop old column
-          ALTER TABLE bookings DROP COLUMN "clientNameFr";
-
-          -- 4. Rename new column
-          ALTER TABLE bookings RENAME COLUMN "clientNameFr_json" TO "clientNameFr";
-        END IF;
-      END;
-      $$;
-    `);
-
-    // Add 'variationName' column to bookings if it doesn't exist
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='variationName') THEN
-          ALTER TABLE bookings ADD COLUMN "variationName" VARCHAR(255);
-        END IF;
-      END;
-      $$;
-    `);
-
-    // --- NEW: Add 'bookingSource' column to bookings if it doesn't exist ---
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='bookingSource') THEN
-          ALTER TABLE bookings ADD COLUMN "bookingSource" TEXT;
-        END IF;
-      END;
-      $$;
-    `);
-    // --- END NEW ---
-
-    // --- FIX: Alter columns to allow NULL for "No Passport" and "Name AR/FR" features ---
-    await client.query(`
-      DO $$
-      BEGIN
-        -- Alter passportNumber to allow NULL
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='passportNumber' AND is_nullable = 'NO') THEN
-          ALTER TABLE bookings ALTER COLUMN "passportNumber" DROP NOT NULL;
-        END IF;
-
-        -- Alter clientNameAr to allow NULL
-        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='clientNameAr' AND is_nullable = 'NO') THEN
-          ALTER TABLE bookings ALTER COLUMN "clientNameAr" DROP NOT NULL;
-        END IF;
-      END;
-      $$;
-    `);
-    // --- END FIX ---
-
-    // --- UPDATE: Add status column to bookings ---
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bookings' AND column_name='status') THEN
-          ALTER TABLE bookings ADD COLUMN status VARCHAR(50) DEFAULT 'confirmed';
-        END IF;
-      END;
-      $$;
-    `);
-
-    // --- NEW: Create Notifications Table ---
     await client.query(`
       CREATE TABLE IF NOT EXISTS notifications (
         id SERIAL PRIMARY KEY,
@@ -296,24 +126,10 @@ const applyDatabaseMigrations = async (client) => {
         type VARCHAR(50) NOT NULL,
         "referenceId" INTEGER,
         "isRead" BOOLEAN DEFAULT FALSE,
+        "senderName" VARCHAR(255),
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-
-    // --- FIX: Add senderName column to notifications to allow non-User senders (Employees) ---
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='notifications' AND column_name='senderName') THEN
-          ALTER TABLE notifications ADD COLUMN "senderName" VARCHAR(255);
-        END IF;
-      END;
-      $$;
-    `);
-
-    await client.query(
-      'CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications("recipientId", "isRead");',
-    );
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_services (
@@ -333,71 +149,6 @@ const applyDatabaseMigrations = async (client) => {
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-
-    // Add and migrate new columns for Daily Services
-    await client.query(`
-      DO $$
-      BEGIN
-        -- Add new columns if they don't exist
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='advancePayments') THEN
-          ALTER TABLE daily_services ADD COLUMN "advancePayments" JSONB DEFAULT '[]'::jsonb;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='remainingBalance') THEN
-          ALTER TABLE daily_services ADD COLUMN "remainingBalance" NUMERIC(10, 2) DEFAULT 0;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='daily_services' AND column_name='isFullyPaid') THEN
-          ALTER TABLE daily_services ADD COLUMN "isFullyPaid" BOOLEAN DEFAULT FALSE;
-        END IF;
-
-      END;
-      $$;
-    `);
-
-    // --- NEW: Migration to add labelPaper to advancePayments JSONB in bookings and daily_services ---
-    const updatePaymentJsonb = (tableName) => `
-      DO $$
-      DECLARE
-        r record;
-        payment_record jsonb;
-        has_new_field boolean := FALSE;
-      BEGIN
-        -- Check if any record in advancePayments lacks the labelPaper field
-        IF EXISTS (
-            SELECT 1 FROM ${tableName}
-            WHERE "advancePayments" IS NOT NULL
-            AND jsonb_typeof("advancePayments") = 'array'
-            AND EXISTS (
-                SELECT 1 FROM jsonb_array_elements("advancePayments") AS payment
-                WHERE payment ->> 'labelPaper' IS NULL
-            )
-        ) THEN
-            FOR r IN SELECT id, "advancePayments" FROM ${tableName} WHERE "advancePayments" IS NOT NULL AND jsonb_typeof("advancePayments") = 'array'
-            LOOP
-                has_new_field := FALSE;
-                payment_record := '[]'::jsonb;
-
-                SELECT jsonb_agg(
-                    CASE 
-                        WHEN elem ->> 'labelPaper' IS NULL THEN elem || jsonb_build_object('labelPaper', '')
-                        ELSE elem
-                    END
-                ) INTO payment_record
-                FROM jsonb_array_elements(r."advancePayments") AS elem;
-
-                IF payment_record IS DISTINCT FROM r."advancePayments" THEN
-                    UPDATE ${tableName} SET "advancePayments" = payment_record WHERE id = r.id;
-                END IF;
-            END LOOP;
-        END IF;
-      END;
-      $$;
-    `;
-
-    // Apply the JSONB structure update to both tables
-    await client.query(updatePaymentJsonb("bookings"));
-    await client.query(updatePaymentJsonb("daily_services"));
-
-    // --- END NEW: Migration ---
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_managements (
@@ -436,22 +187,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- Add/Alter columns for existing installations ---
-    const alterFacturesTable = `
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='factures' AND column_name='showMargin') THEN
-          ALTER TABLE factures ADD COLUMN "showMargin" BOOLEAN DEFAULT TRUE;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='factures' AND column_name='clientICE') THEN
-          ALTER TABLE factures ADD COLUMN "clientICE" TEXT;
-        END IF;
-        ALTER TABLE factures ALTER COLUMN "clientName" DROP NOT NULL;
-      END;
-      $$;
-    `;
-    await client.query(alterFacturesTable);
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS program_costs (
         id SERIAL PRIMARY KEY,
@@ -465,7 +200,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- NEW: Expenses Table (Updated with bookingType and reservationNumber) ---
     await client.query(`
       CREATE TABLE IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,
@@ -489,27 +223,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // --- MIGRATION: Add items, currency, bookingType, and reservationNumber to expenses if they don't exist ---
-    await client.query(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='items') THEN
-          ALTER TABLE expenses ADD COLUMN "items" JSONB DEFAULT '[]'::jsonb;
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='currency') THEN
-          ALTER TABLE expenses ADD COLUMN "currency" VARCHAR(10) DEFAULT 'MAD';
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='bookingType') THEN
-          ALTER TABLE expenses ADD COLUMN "bookingType" VARCHAR(50);
-        END IF;
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='reservationNumber') THEN
-          ALTER TABLE expenses ADD COLUMN "reservationNumber" VARCHAR(100);
-        END IF;
-      END;
-      $$;
-    `);
-
-    // --- NEW: Suppliers Table ---
     await client.query(`
       CREATE TABLE IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,
@@ -523,19 +236,18 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // Index for expenses
+    console.log("All tables checked/created successfully.");
+
+    // --- Index Creation ---
+    console.log("Applying database indexes for performance...");
+    await client.query("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
+
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_expenses_user_date ON expenses("userId", date DESC);',
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_expenses_type ON expenses("userId", type);',
     );
-
-    console.log("All tables checked/created successfully.");
-
-    // --- Index Creation ---
-    console.log("Applying database indexes for performance...");
-    await client.query("CREATE EXTENSION IF NOT EXISTS pg_trgm;");
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");',
     );
@@ -584,36 +296,20 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_program_costs_program ON program_costs("programId");',
     );
-
-    // --- NEW: Suppliers Indexes ---
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_suppliers_user ON suppliers("userId");',
     );
     await client.query(
       "CREATE INDEX IF NOT EXISTS idx_suppliers_name_gin ON suppliers USING GIN (name gin_trgm_ops);",
     );
-
-    // --- FIX: Drop old unique constraint and add partial unique constraint for passport ---
     await client.query(`
-      DO $$
-      BEGIN
-        -- 1. Drop the old, problematic unique constraint if it exists
-        -- Note: 'bookings_passport_trip_unique' seems to be the name from your error
-        IF EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'bookings_passport_trip_unique' AND contype = 'u'
-        ) THEN
-          ALTER TABLE bookings DROP CONSTRAINT bookings_passport_trip_unique;
-        END IF;
-
-        -- 2. Add a new partial unique index that only enforces uniqueness for non-empty passport numbers
-        CREATE UNIQUE INDEX IF NOT EXISTS bookings_passport_trip_unique_partial
-        ON bookings ("passportNumber", "tripId")
-        WHERE "passportNumber" IS NOT NULL AND "passportNumber" != '';
-      END;
-      $$;
+      CREATE UNIQUE INDEX IF NOT EXISTS bookings_passport_trip_unique_partial
+      ON bookings ("passportNumber", "tripId")
+      WHERE "passportNumber" IS NOT NULL AND "passportNumber" != '';
     `);
-    // --- END FIX ---
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications("recipientId", "isRead");',
+    );
 
     console.log("Database indexes applied successfully.");
     console.log("Database initialization complete.");
