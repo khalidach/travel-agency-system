@@ -15,9 +15,11 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Modal from "../components/Modal";
-import OccupantSearchBox from "../components/room/OccupantSearchBox";
+import OccupantSearchBox, { DraggedOccupantItem } from "../components/room/OccupantSearchBox";
 import { useTranslation } from "react-i18next";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 type MovePersonState = {
   occupant: Occupant;
@@ -193,6 +195,27 @@ export default function RoomManage() {
     });
   };
 
+  const handleDropOccupant = (
+    source: DraggedOccupantItem,
+    target: { roomName: string; roomType: string; slotIndex: number; occupant: Occupant | null }
+  ) => {
+    setRooms((currentRooms) => {
+      const newRooms = JSON.parse(JSON.stringify(currentRooms));
+      const sourceRoom = newRooms.find(
+        (r: Room) => r.name === source.roomName && r.type === source.roomType,
+      );
+      const targetRoom = newRooms.find(
+        (r: Room) => r.name === target.roomName && r.type === target.roomType,
+      );
+
+      if (sourceRoom && targetRoom) {
+        sourceRoom.occupants[source.slotIndex] = target.occupant;
+        targetRoom.occupants[target.slotIndex] = source.occupant;
+      }
+      return newRooms;
+    });
+  };
+
   const handleMoveOccupant = (
     occupant: Occupant,
     fromRoomName: string,
@@ -342,228 +365,234 @@ export default function RoomManage() {
   if (isLoadingProgram || isLoadingRooms) return <BookingSkeleton />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => navigate("/room-management")}
-            className="p-2 bg-muted rounded-full hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors"
-          >
-            <ChevronLeft />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              {program?.name} - {t("roomManagementTitle")}
-            </h1>
+    <DndProvider backend={HTML5Backend}>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => navigate("/room-management")}
+              className="p-2 bg-muted rounded-full hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors"
+            >
+              <ChevronLeft />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                {program?.name} - {t("roomManagementTitle")}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-4">
+            <button
+              onClick={handleExport}
+              disabled={isExporting}
+              className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Download className={`mr-2`} />{" "}
+              {isExporting ? t("exporting") : t("exportToExcelRooming")}
+            </button>
+            <button
+              onClick={() =>
+                saveRooms(
+                  rooms.map((r) => ({
+                    ...r,
+                    occupants: r.occupants.filter((o) => o),
+                  })),
+                )
+              }
+              disabled={isSaving || !hasChanges}
+              className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save className={`mr-2`} />{" "}
+              {isSaving ? t("saving") : t("saveChanges")}
+            </button>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-4">
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Download className={`mr-2`} />{" "}
-            {isExporting ? t("exporting") : t("exportToExcelRooming")}
-          </button>
-          <button
-            onClick={() =>
-              saveRooms(
-                rooms.map((r) => ({
-                  ...r,
-                  occupants: r.occupants.filter((o) => o),
-                })),
-              )
-            }
-            disabled={isSaving || !hasChanges}
-            className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Save className={`mr-2`} />{" "}
-            {isSaving ? t("saving") : t("saveChanges")}
-          </button>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-        {hotels.map((hotel, index) => (
-          <button
-            key={hotel}
-            onClick={() => setCurrentHotelIndex(index)}
-            className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${currentHotelIndex === index
+        <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
+          {hotels.map((hotel, index) => (
+            <button
+              key={hotel}
+              onClick={() => setCurrentHotelIndex(index)}
+              className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${currentHotelIndex === index
                 ? "bg-card text-primary shadow-sm"
                 : "text-muted-foreground hover:bg-background/50"
-              }`}
-          >
-            <Hotel size={16} />
-            {hotel}
-          </button>
-        ))}
-      </div>
+                }`}
+            >
+              <Hotel size={16} />
+              {hotel}
+            </button>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Array.from(roomTypesForCurrentHotel.keys()).map((type) => {
-          const roomsInType = groupedRooms[type] || [];
-          return (
-            <div key={type} className="col-span-1 space-y-4">
-              <h3 className="text-center font-bold text-xl text-foreground">
-                {type}
-              </h3>
-              {roomsInType.map((room) => (
-                <div
-                  key={`${room.name}-${room.type}`}
-                  className="bg-card text-card-foreground p-4 rounded-lg shadow-sm border border-border"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    {editingRoom &&
-                      editingRoom.name === room.name &&
-                      editingRoom.type === room.type ? (
-                      <input
-                        type="text"
-                        value={tempRoomName}
-                        onChange={(e) => setTempRoomName(e.target.value)}
-                        onBlur={() =>
-                          handleRoomNameChange(room.name, room.type)
-                        }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleRoomNameChange(room.name, room.type);
-                          } else if (e.key === "Escape") {
-                            setEditingRoom(null);
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from(roomTypesForCurrentHotel.keys()).map((type) => {
+            const roomsInType = groupedRooms[type] || [];
+            return (
+              <div key={type} className="col-span-1 space-y-4">
+                <h3 className="text-center font-bold text-xl text-foreground">
+                  {type}
+                </h3>
+                {roomsInType.map((room) => (
+                  <div
+                    key={`${room.name}-${room.type}`}
+                    className="bg-card text-card-foreground p-4 rounded-lg shadow-sm border border-border"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      {editingRoom &&
+                        editingRoom.name === room.name &&
+                        editingRoom.type === room.type ? (
+                        <input
+                          type="text"
+                          value={tempRoomName}
+                          onChange={(e) => setTempRoomName(e.target.value)}
+                          onBlur={() =>
+                            handleRoomNameChange(room.name, room.type)
                           }
-                        }}
-                        className="font-semibold border-b-2 border-primary focus:outline-none bg-transparent text-foreground"
-                        autoFocus
-                      />
-                    ) : (
-                      <h4
-                        className="font-semibold cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => {
-                          setEditingRoom({ name: room.name, type: room.type });
-                          setTempRoomName(room.name);
-                        }}
-                      >
-                        {room.name}
-                      </h4>
-                    )}
-                    <div className="flex items-center text-muted-foreground">
-                      <Users size={16} className={`mr-1`} />
-                      <span>
-                        {room.occupants.filter((o) => o).length}/{room.capacity}
-                      </span>
-                      <button
-                        onClick={() => handleDeleteRoom(room.name, room.type)}
-                        className="ml-2 text-destructive hover:text-destructive/80 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleRoomNameChange(room.name, room.type);
+                            } else if (e.key === "Escape") {
+                              setEditingRoom(null);
+                            }
+                          }}
+                          className="font-semibold border-b-2 border-primary focus:outline-none bg-transparent text-foreground"
+                          autoFocus
+                        />
+                      ) : (
+                        <h4
+                          className="font-semibold cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => {
+                            setEditingRoom({ name: room.name, type: room.type });
+                            setTempRoomName(room.name);
+                          }}
+                        >
+                          {room.name}
+                        </h4>
+                      )}
+                      <div className="flex items-center text-muted-foreground">
+                        <Users size={16} className={`mr-1`} />
+                        <span>
+                          {room.occupants.filter((o) => o).length}/{room.capacity}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteRoom(room.name, room.type)}
+                          className="ml-2 text-destructive hover:text-destructive/80 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {Array.from({ length: room.capacity }).map((_, i) => (
+                        <OccupantSearchBox
+                          key={i}
+                          programId={programId!}
+                          hotelName={currentHotelName}
+                          assignedOccupant={room.occupants[i]}
+                          assignedIds={assignedIds}
+                          roomName={room.name}
+                          roomType={room.type}
+                          slotIndex={i}
+                          onAssign={(occ) =>
+                            handleAssignOccupant(room.name, room.type, i, occ)
+                          }
+                          onUnassign={() =>
+                            handleUnassignOccupant(room.name, room.type, i)
+                          }
+                          onMove={(occ) =>
+                            handleMoveOccupant(occ, room.name, room.type)
+                          }
+                          onDropOccupant={handleDropOccupant}
+                        />
+                      ))}
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    {Array.from({ length: room.capacity }).map((_, i) => (
-                      <OccupantSearchBox
-                        key={i}
-                        programId={programId!}
-                        hotelName={currentHotelName}
-                        assignedOccupant={room.occupants[i]}
-                        assignedIds={assignedIds}
-                        onAssign={(occ) =>
-                          handleAssignOccupant(room.name, room.type, i, occ)
-                        }
-                        onUnassign={() =>
-                          handleUnassignOccupant(room.name, room.type, i)
-                        }
-                        onMove={(occ) =>
-                          handleMoveOccupant(occ, room.name, room.type)
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+                ))}
+                <button
+                  onClick={() => {
+                    setNewRoomDetails({
+                      name: ``,
+                      type: type,
+                    });
+                    setIsNewRoomModalOpen(true);
+                  }}
+                  className="w-full mt-2 p-2 bg-muted text-white rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                >
+                  <Plus size={16} className={`mr-1`} /> {t("addRoom")}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <Modal
+          isOpen={!!movePersonState}
+          onClose={() => setMovePersonState(null)}
+          title={t("movePerson")}
+        >
+          {movePersonState && (
+            <div className="space-y-4">
+              <p className="text-foreground">
+                {t("movePersonTo", {
+                  personName: movePersonState.occupant.clientName,
+                })}
+              </p>
+              <div className="max-h-64 overflow-y-auto space-y-2">
+                {rooms.map((room) => (
+                  <button
+                    key={`${room.name}-${room.type}`}
+                    onClick={() => executeMove(room.name, room.type)}
+                    disabled={
+                      room.occupants.filter((o) => o).length >= room.capacity
+                    }
+                    className={`w-full p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 transition-colors text-left`}
+                  >
+                    {room.name} ({room.type}) (
+                    {room.occupants.filter((o) => o).length}/{room.capacity})
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        <Modal
+          isOpen={isNewRoomModalOpen}
+          onClose={() => setIsNewRoomModalOpen(false)}
+          title={t("addNewRoom")}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="text-foreground block mb-1">
+                {t("roomName")}
+              </label>
+              <input
+                type="text"
+                value={newRoomDetails.name}
+                onChange={(e) =>
+                  setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
+                }
+                className="w-full p-2 border border-input rounded bg-background text-foreground focus:ring-1 focus:ring-ring focus:outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
               <button
-                onClick={() => {
-                  setNewRoomDetails({
-                    name: ``,
-                    type: type,
-                  });
-                  setIsNewRoomModalOpen(true);
-                }}
-                className="w-full mt-2 p-2 bg-muted text-white rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                onClick={() => setIsNewRoomModalOpen(false)}
+                className="p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground transition-colors"
               >
-                <Plus size={16} className={`mr-1`} /> {t("addRoom")}
+                {t("cancel")}
+              </button>
+              <button
+                onClick={handleAddNewRoom}
+                className="p-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+              >
+                {t("addRoom")}
               </button>
             </div>
-          );
-        })}
+          </div>
+        </Modal>
       </div>
-
-      <Modal
-        isOpen={!!movePersonState}
-        onClose={() => setMovePersonState(null)}
-        title={t("movePerson")}
-      >
-        {movePersonState && (
-          <div className="space-y-4">
-            <p className="text-foreground">
-              {t("movePersonTo", {
-                personName: movePersonState.occupant.clientName,
-              })}
-            </p>
-            <div className="max-h-64 overflow-y-auto space-y-2">
-              {rooms.map((room) => (
-                <button
-                  key={`${room.name}-${room.type}`}
-                  onClick={() => executeMove(room.name, room.type)}
-                  disabled={
-                    room.occupants.filter((o) => o).length >= room.capacity
-                  }
-                  className={`w-full p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground disabled:opacity-50 transition-colors text-left`}
-                >
-                  {room.name} ({room.type}) (
-                  {room.occupants.filter((o) => o).length}/{room.capacity})
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
-        isOpen={isNewRoomModalOpen}
-        onClose={() => setIsNewRoomModalOpen(false)}
-        title={t("addNewRoom")}
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="text-foreground block mb-1">
-              {t("roomName")}
-            </label>
-            <input
-              type="text"
-              value={newRoomDetails.name}
-              onChange={(e) =>
-                setNewRoomDetails({ ...newRoomDetails, name: e.target.value })
-              }
-              className="w-full p-2 border border-input rounded bg-background text-foreground focus:ring-1 focus:ring-ring focus:outline-none"
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setIsNewRoomModalOpen(false)}
-              className="p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {t("cancel")}
-            </button>
-            <button
-              onClick={handleAddNewRoom}
-              className="p-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-            >
-              {t("addRoom")}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
+    </DndProvider>
   );
 }
