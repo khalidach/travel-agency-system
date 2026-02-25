@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { DailyService, Payment } from "../../context/models";
+import NumberInput from "../ui/NumberInput";
 
 interface DailyServiceFormProps {
   service?: DailyService | null;
@@ -116,8 +117,7 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
         </div>
         <div>
           <label className={labelClass}>{t("originalPrice")}</label>
-          <input
-            type="number"
+          <NumberInput
             value={formData.originalPrice}
             onChange={(e) =>
               setFormData({
@@ -132,8 +132,7 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
         </div>
         <div>
           <label className={labelClass}>{t("totalPrice")}</label>
-          <input
-            type="number"
+          <NumberInput
             value={formData.totalPrice}
             onChange={(e) =>
               setFormData({ ...formData, totalPrice: Number(e.target.value) })

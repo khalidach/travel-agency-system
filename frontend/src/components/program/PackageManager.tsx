@@ -11,6 +11,7 @@ import type {
 import { useAuthContext } from "../../context/AuthContext";
 import { useDebounce } from "../../hooks/useDebounce";
 import Accordion from "../ui/Accordion";
+import NumberInput from "../ui/NumberInput";
 
 function getGuestsForType(type: string): number {
   switch (type.toLowerCase()) {
@@ -484,8 +485,7 @@ const RoomTypeManager = ({
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                 {t("guests")}
               </label>
-              <input
-                type="number"
+              <NumberInput
                 {...register(
                   `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.guests`,
                   { valueAsNumber: true },
@@ -505,8 +505,7 @@ const RoomTypeManager = ({
                   </span>
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <NumberInput
                     {...register(
                       `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.sellingPrice`,
                       { valueAsNumber: true },
@@ -526,8 +525,7 @@ const RoomTypeManager = ({
                 <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                   {t("purchasePrice")}
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   {...register(
                     `packages.${packageIndex}.prices.${priceIndex}.roomTypes.${roomIndex}.purchasePrice`,
                     { valueAsNumber: true },

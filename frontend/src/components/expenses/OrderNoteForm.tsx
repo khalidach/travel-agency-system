@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Expense, ExpenseItem, Supplier } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
 import { getSuppliers } from "../../services/api";
+import NumberInput from "../ui/NumberInput";
 
 interface OrderNoteFormProps {
   initialData?: Expense;
@@ -192,9 +193,9 @@ export default function OrderNoteForm({
       items.length === 1
         ? items[0].description
         : `${items.length} items (${items
-            .map((i) => i.description)
-            .join(", ")
-            .slice(0, 50)}...)`;
+          .map((i) => i.description)
+          .join(", ")
+          .slice(0, 50)}...)`;
 
     onSubmit({
       date,
@@ -341,9 +342,8 @@ export default function OrderNoteForm({
 
         {/* Header Row */}
         <div
-          className={`grid gap-2 text-xs font-medium text-gray-500 uppercase items-center ${
-            isWideLayout ? "grid-cols-12" : "grid-cols-10"
-          }`}
+          className={`grid gap-2 text-xs font-medium text-gray-500 uppercase items-center ${isWideLayout ? "grid-cols-12" : "grid-cols-10"
+            }`}
         >
           <div
             className={
@@ -403,9 +403,8 @@ export default function OrderNoteForm({
         {items.map((item, index) => (
           <div
             key={index}
-            className={`grid gap-2 items-start ${
-              isWideLayout ? "grid-cols-12" : "grid-cols-10"
-            }`}
+            className={`grid gap-2 items-start ${isWideLayout ? "grid-cols-12" : "grid-cols-10"
+              }`}
           >
             {/* Description */}
             <div
@@ -499,8 +498,7 @@ export default function OrderNoteForm({
                 isHotel ? "col-span-1" : isFlight ? "col-span-1" : "col-span-2"
               }
             >
-              <input
-                type="number"
+              <NumberInput
                 min="1"
                 required
                 disabled={readOnly}
@@ -516,8 +514,7 @@ export default function OrderNoteForm({
             {/* Hotel Nights (Calculated) */}
             {isHotel && (
               <div className="col-span-1">
-                <input
-                  type="number"
+                <NumberInput
                   min="1"
                   required
                   readOnly
@@ -538,8 +535,7 @@ export default function OrderNoteForm({
                 isHotel ? "col-span-2" : isFlight ? "col-span-2" : "col-span-3"
               }
             >
-              <input
-                type="number"
+              <NumberInput
                 min="0"
                 step="0.01"
                 required

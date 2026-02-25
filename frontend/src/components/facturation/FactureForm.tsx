@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Facture, FactureItem } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
+import NumberInput from "../ui/NumberInput";
 
 interface FactureFormProps {
   onSave: (
@@ -302,8 +303,7 @@ export default function FactureForm({
               />
             </div>
             <div className="col-span-4 md:col-span-1">
-              <input
-                type="number"
+              <NumberInput
                 value={item.quantity}
                 onChange={(e) =>
                   handleItemChange(index, "quantity", Number(e.target.value))
@@ -313,8 +313,7 @@ export default function FactureForm({
               />
             </div>
             <div className={`col-span-8 ${priceColSpan}`}>
-              <input
-                type="number"
+              <NumberInput
                 value={item.prixUnitaire}
                 onChange={(e) =>
                   handleItemChange(
@@ -329,8 +328,7 @@ export default function FactureForm({
             </div>
             {showMargin && (
               <div className="col-span-8 md:col-span-2">
-                <input
-                  type="number"
+                <NumberInput
                   value={item.fraisServiceUnitaire}
                   onChange={(e) =>
                     handleItemChange(

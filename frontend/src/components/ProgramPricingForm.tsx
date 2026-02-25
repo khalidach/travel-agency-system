@@ -7,6 +7,7 @@ import type {
   HotelPrice,
   ProgramVariation,
 } from "../context/models";
+import NumberInput from "./ui/NumberInput";
 
 interface ProgramPricingFormProps {
   program: Program;
@@ -178,8 +179,7 @@ export default function ProgramPricingForm({
               {t("flightTicketPrice")}{" "}
               {hasMultipleVariations && `(${t("default")})`}
             </label>
-            <input
-              type="number"
+            <NumberInput
               value={currentPricing.ticketAirline || ""}
               onChange={(e) => handleTicketPriceChange(e.target.value)}
               className={inputClasses}
@@ -187,8 +187,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className={labelClasses}>{t("transportFees")}</label>
-            <input
-              type="number"
+            <NumberInput
               value={currentPricing.transportFees || ""}
               onChange={(e) =>
                 setCurrentPricing((prev) => ({
@@ -201,8 +200,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className={labelClasses}>{t("visaFees")}</label>
-            <input
-              type="number"
+            <NumberInput
               value={currentPricing.visaFees || ""}
               onChange={(e) =>
                 setCurrentPricing((prev) => ({
@@ -215,8 +213,7 @@ export default function ProgramPricingForm({
           </div>
           <div>
             <label className={labelClasses}>{t("guideFees")}</label>
-            <input
-              type="number"
+            < NumberInput
               value={currentPricing.guideFees || ""}
               onChange={(e) =>
                 setCurrentPricing((prev) => ({
@@ -238,11 +235,10 @@ export default function ProgramPricingForm({
               {program.variations.map((variation) => (
                 <div key={variation.name}>
                   <label className={labelClasses}>{variation.name}</label>
-                  <input
-                    type="number"
+                  <NumberInput
                     value={
                       currentPricing.ticketPricesByVariation?.[
-                        variation.name
+                      variation.name
                       ] || ""
                     }
                     placeholder={currentPricing.ticketAirline?.toString() || ""}
@@ -268,8 +264,7 @@ export default function ProgramPricingForm({
                   {t("ticketPercentage", { personType: t(personType.type) })}
                 </label>
                 <div className="relative">
-                  <input
-                    type="number"
+                  <NumberInput
                     min="0"
                     max="100"
                     value={personType.ticketPercentage}
@@ -311,8 +306,7 @@ export default function ProgramPricingForm({
                     <label className={`${labelClasses} capitalize`}>
                       {t("roomTypePrice", { roomType: t(roomType) })}
                     </label>
-                    <input
-                      type="number"
+                    <NumberInput
                       min="0"
                       step="any"
                       value={hotel.PricePerNights?.[roomType] || ""}

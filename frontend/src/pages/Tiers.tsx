@@ -7,6 +7,7 @@ import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
 import type { Tier, TierLimits } from "../context/models";
+import NumberInput from "../components/ui/NumberInput";
 
 // Define the shape of data required to save a tier (excluding ID)
 type TierFormData = Omit<Tier, "id">;
@@ -111,15 +112,15 @@ const TierForm = ({
     | "profitReport"
     | "employeeAnalysis"
   >)[] = [
-    "bookingsPerMonth",
-    "programsPerMonth",
-    "programPricingsPerMonth",
-    "employees",
-    "facturesPerMonth",
-    "dailyServicesPerMonth",
-    "bookingExcelExportsPerMonth",
-    "listExcelExportsPerMonth",
-  ];
+      "bookingsPerMonth",
+      "programsPerMonth",
+      "programPricingsPerMonth",
+      "employees",
+      "facturesPerMonth",
+      "dailyServicesPerMonth",
+      "bookingExcelExportsPerMonth",
+      "listExcelExportsPerMonth",
+    ];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -144,8 +145,7 @@ const TierForm = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
               {field.replace(/([A-Z])/g, " $1").trim()}
             </label>
-            <input
-              type="number"
+            <NumberInput
               name={field}
               value={formData.limits[field]}
               onChange={handleLimitChange}

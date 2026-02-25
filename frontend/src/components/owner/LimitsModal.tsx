@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
 import { User, TierLimits } from "../../context/models";
+import NumberInput from "../ui/NumberInput";
 
 interface LimitsModalProps {
   user: User | null;
@@ -111,15 +112,15 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
     | "profitReport"
     | "employeeAnalysis"
   >)[] = [
-    "bookingsPerMonth",
-    "programsPerMonth",
-    "programPricingsPerMonth",
-    "employees",
-    "facturesPerMonth",
-    "dailyServicesPerMonth",
-    "bookingExcelExportsPerMonth",
-    "listExcelExportsPerMonth",
-  ];
+      "bookingsPerMonth",
+      "programsPerMonth",
+      "programPricingsPerMonth",
+      "employees",
+      "facturesPerMonth",
+      "dailyServicesPerMonth",
+      "bookingExcelExportsPerMonth",
+      "listExcelExportsPerMonth",
+    ];
 
   return (
     <Modal
@@ -139,8 +140,7 @@ const LimitsModal: React.FC<LimitsModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
               {field.replace(/([A-Z])/g, " $1").trim()}
             </label>
-            <input
-              type="number"
+            <NumberInput
               name={field}
               // Use `?? ''` to prevent React's uncontrolled/controlled component warning
               value={limits[field] ?? ""}

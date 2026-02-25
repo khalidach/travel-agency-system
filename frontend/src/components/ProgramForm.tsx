@@ -12,6 +12,7 @@ import type {
 import PackageManager from "./program/PackageManager";
 import LoadingSpinner from "./ui/LoadingSpinner";
 import VariationManager from "./program/VariationManager";
+import NumberInput from "./ui/NumberInput";
 
 interface ProgramFormProps {
   program?: Program | null;
@@ -172,8 +173,7 @@ export default function ProgramForm({
               </label>
               <div className="flex items-start md:items-center flex-col md:flex-row gap-4">
                 <div className="flex-1 w-full md:w-auto">
-                  <input
-                    type="number"
+                  <NumberInput
                     {...methods.register("maxBookings", {
                       valueAsNumber: true,
                       min: 0,
@@ -213,8 +213,8 @@ export default function ProgramForm({
                     ></div>
                     <div
                       className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform duration-200 ${maxBookings === null
-                          ? "translate-x-4 rtl:-translate-x-4"
-                          : ""
+                        ? "translate-x-4 rtl:-translate-x-4"
+                        : ""
                         }`}
                     ></div>
                   </div>

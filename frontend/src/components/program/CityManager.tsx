@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin } from "lucide-react";
+import NumberInput from "../ui/NumberInput";
 
 export default function CityManager() {
   const { t } = useTranslation();
@@ -46,12 +47,10 @@ export default function CityManager() {
                     required: t("cityNameRequired") as string,
                   })}
                   placeholder={t("enterCityName") as string}
-                  className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground ${
-                    nameError ? "border-destructive" : "border-input"
-                  }`}
+                  className={`flex-1 px-3 py-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground ${nameError ? "border-destructive" : "border-input"
+                    }`}
                 />
-                <input
-                  type="number"
+                <NumberInput
                   {...register(`cities.${index}.nights`, {
                     valueAsNumber: true,
                     min: 0,

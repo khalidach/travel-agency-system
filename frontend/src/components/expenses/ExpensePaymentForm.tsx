@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Payment } from "../../context/models";
+import NumberInput from "../ui/NumberInput";
 
 interface ExpensePaymentFormProps {
   payment?: Payment;
@@ -140,8 +141,7 @@ export default function ExpensePaymentForm({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {t("paymentAmount")} ({currency})
           </label>
-          <input
-            type="number"
+          <NumberInput
             value={formData.amount || ""}
             onChange={handleAmountChange}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -166,8 +166,7 @@ export default function ExpensePaymentForm({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t("equivalentIn")} ({t("currency.MAD")})
             </label>
-            <input
-              type="number"
+            <NumberInput
               value={formData.amountMAD || ""}
               onChange={(e) =>
                 setFormData((prev) => ({

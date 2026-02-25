@@ -5,6 +5,7 @@ import { useFormContext, useFieldArray, FieldError } from "react-hook-form";
 import { Plus, Trash2, MapPin, Clock, Copy } from "lucide-react";
 import Accordion from "../ui/Accordion";
 import { Program, CityData } from "../../context/models";
+import NumberInput from "../ui/NumberInput";
 
 const CityManager = ({ variationIndex }: { variationIndex: number }) => {
   const { t } = useTranslation();
@@ -55,15 +56,13 @@ const CityManager = ({ variationIndex }: { variationIndex: number }) => {
                     },
                   )}
                   placeholder={t("enterCityName") as string}
-                  className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary transition-colors disabled:bg-muted disabled:text-muted-foreground ${
-                    nameError ? "border-destructive" : "border-input"
-                  }`}
+                  className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-primary focus:border-primary transition-colors disabled:bg-muted disabled:text-muted-foreground ${nameError ? "border-destructive" : "border-input"
+                    }`}
                   disabled={areCitiesLocked}
                 />
               </div>
               <div className="w-24">
-                <input
-                  type="number"
+                <NumberInput
                   {...register(
                     `variations.${variationIndex}.cities.${cityIndex}.nights`,
                     {
@@ -123,7 +122,7 @@ export default function VariationManager() {
         name: firstCity.name,
         nights:
           currentCities[index] &&
-          typeof currentCities[index].nights === "number"
+            typeof currentCities[index].nights === "number"
             ? currentCities[index].nights
             : 0,
       }));

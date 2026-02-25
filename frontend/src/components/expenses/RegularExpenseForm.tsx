@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Expense, Payment } from "../../context/models";
+import NumberInput from "../ui/NumberInput";
 
 // Define the strict type based on your models
 type PaymentMethod = Payment["method"];
@@ -120,8 +121,7 @@ export default function RegularExpenseForm({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             {t("totalAmount")} ({t("mad")})
           </label>
-          <input
-            type="number"
+          <NumberInput
             required
             min="0"
             step="0.01"

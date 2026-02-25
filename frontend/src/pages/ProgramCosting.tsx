@@ -14,6 +14,7 @@ import * as api from "../services/api";
 import { Program, ProgramCost } from "../context/models";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { useTranslation } from "react-i18next";
+import NumberInput from "../components/ui/NumberInput";
 
 type CostingFormData = Omit<ProgramCost, "id" | "programId" | "totalCost" | "isEnabled">;
 
@@ -212,8 +213,7 @@ export default function ProgramCosting() {
                 name="costs.flightTickets"
                 control={control}
                 render={({ field }) => (
-                  <input
-                    type="number"
+                  <NumberInput
                     {...field}
                     className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
@@ -228,8 +228,7 @@ export default function ProgramCosting() {
                 name="costs.visa"
                 control={control}
                 render={({ field }) => (
-                  <input
-                    type="number"
+                  <NumberInput
                     {...field}
                     className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
@@ -244,8 +243,7 @@ export default function ProgramCosting() {
                 name="costs.transport"
                 control={control}
                 render={({ field }) => (
-                  <input
-                    type="number"
+                  <NumberInput
                     {...field}
                     className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                   />
@@ -267,8 +265,7 @@ export default function ProgramCosting() {
                     name={`costs.hotels.${index}.amount`}
                     control={control}
                     render={({ field }) => (
-                      <input
-                        type="number"
+                      <NumberInput
                         {...field}
                         className="mt-1 w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"
                       />
@@ -304,8 +301,7 @@ export default function ProgramCosting() {
                     name={`costs.custom.${index}.amount`}
                     control={control}
                     render={({ field }) => (
-                      <input
-                        type="number"
+                      <NumberInput
                         {...field}
                         placeholder={t("costAmount") as string}
                         className="w-full px-3 py-2 border border-input bg-background text-foreground rounded-lg focus:ring-2 focus:ring-ring focus:border-input outline-none transition-all"

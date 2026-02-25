@@ -3,6 +3,7 @@ import { useFormContext, Controller } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../../context/AuthContext";
 import { BookingFormData } from "./types";
+import NumberInput from "../ui/NumberInput";
 
 interface PricingFieldsProps {
   handleSellingPriceChange: (price: number) => void;
@@ -19,9 +20,8 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
 
   return (
     <div
-      className={`grid grid-cols-1 ${
-        userRole === "admin" ? "md:grid-cols-3" : ""
-      } gap-4`}
+      className={`grid grid-cols-1 ${userRole === "admin" ? "md:grid-cols-3" : ""
+        } gap-4`}
     >
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -35,9 +35,8 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
             min: 0,
           }}
           render={({ field }) => (
-            <input
+            <NumberInput
               {...field}
-              type="number"
               onChange={(e) => {
                 field.onChange(e.target.value);
                 handleSellingPriceChange(Number(e.target.value));
@@ -65,9 +64,8 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
               name="basePrice"
               control={control}
               render={({ field }) => (
-                <input
+                <NumberInput
                   {...field}
-                  type="number"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   readOnly
                 />
@@ -82,9 +80,8 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
               name="profit"
               control={control}
               render={({ field }) => (
-                <input
+                <NumberInput
                   {...field}
-                  type="number"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   readOnly
                 />
