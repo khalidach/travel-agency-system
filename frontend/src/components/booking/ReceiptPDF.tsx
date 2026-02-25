@@ -29,7 +29,7 @@ export default function ReceiptPDF({
   const user = authState.user;
 
   // Memoize the calculation to get the total of payments made BEFORE the current one
-  const { displayClientNameFr, displayClientNameAr, totalSellingPrice, paymentsBeforeThis, remainingAfterThisPayment, currentPaymentAmount } = useMemo(() => {
+  const { isGroup, displayClientNameFr, displayClientNameAr, totalSellingPrice, paymentsBeforeThis, remainingAfterThisPayment, currentPaymentAmount } = useMemo(() => {
     if (!booking || !payment || !booking.advancePayments) {
       return {
         isGroup: false,
@@ -245,6 +245,16 @@ export default function ReceiptPDF({
                 <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
                   المبلغ
                 </th>
+                {!isGroup && (
+                  <>
+                    <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
+                      مبلغ الوصل
+                    </th>
+                    <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
+                      طريقة الدفع
+                    </th>
+                  </>
+                )}
                 <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
                   رقم الإيصال
                 </th>
@@ -257,8 +267,18 @@ export default function ReceiptPDF({
               {paymentsBeforeThis.map((prevPayment) => (
                 <tr key={prevPayment._id}>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                    {Number(prevPayment.groupAmount || prevPayment.amount || 0).toLocaleString()} درهم
+                    {Number(isGroup ? (prevPayment.groupAmount || prevPayment.amount || 0) : (prevPayment.amount || 0)).toLocaleString()} درهم
                   </td>
+                  {!isGroup && (
+                    <>
+                      <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
+                        {Number((prevPayment.isGroupPayment ? prevPayment.amountMAD : prevPayment.amount) || 0).toLocaleString()} درهم
+                      </td>
+                      <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
+                        {t(prevPayment.method)}
+                      </td>
+                    </>
+                  )}
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                     {booking.id}-{prevPayment._id.substring(0, 5).toUpperCase()}
                   </td>
