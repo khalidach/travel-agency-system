@@ -223,6 +223,9 @@ export interface Payment {
   chequeCashingDate?: string;
   transferPayerName?: string;
   transferReference?: string;
+  isGroupPayment?: boolean;
+  isLeader?: boolean;
+  groupAmount?: number;
 }
 
 export interface HotelPrice {

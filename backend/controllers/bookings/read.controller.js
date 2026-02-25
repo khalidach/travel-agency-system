@@ -368,3 +368,17 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
     next(new AppError("Failed to retrieve booking IDs.", 500));
   }
 };
+
+exports.getGroupBookings = async (req, res, next) => {
+  try {
+    const bookings = await BookingService.getGroupBookings(req.db, req.user, req.params.bookingId);
+    res.status(200).json(bookings);
+  } catch (error) {
+    logger.error("Get Group Bookings Error:", {
+      message: error.message,
+      stack: error.stack,
+      bookingId: req.params.bookingId,
+    });
+    next(new AppError("Failed to retrieve group bookings.", 500));
+  }
+};

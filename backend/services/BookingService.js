@@ -8,6 +8,7 @@ const {
 const {
   getAllBookings,
   findBookingForUser,
+  getGroupBookings,
 } = require("./booking/retrieval.service");
 const { createBookings } = require("./booking/creation.service");
 const {
@@ -22,6 +23,9 @@ const {
   addPayment,
   updatePayment,
   deletePayment,
+  addGroupPayment,
+  updateGroupPayment,
+  deleteGroupPayment,
 } = require("./booking/payment.service");
 
 module.exports = {
@@ -35,6 +39,7 @@ module.exports = {
   // Retrieval
   getAllBookings,
   findBookingForUser,
+  getGroupBookings,
 
   // Creation
   createBookings,
@@ -51,4 +56,7 @@ module.exports = {
   addPayment,
   updatePayment,
   deletePayment,
+  addGroupPayment,
+  updateGroupPayment,
+  deleteGroupPayment,
 };

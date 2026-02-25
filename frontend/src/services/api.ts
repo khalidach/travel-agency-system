@@ -392,6 +392,31 @@ export const updatePayment = (
 export const deletePayment = (bookingId: number, paymentId: string) =>
   request(`/bookings/${bookingId}/payments/${paymentId}`, { method: "DELETE" });
 
+export const getGroupBookings = (bookingId: number) =>
+  request(`/bookings/${bookingId}/group`);
+
+export const addGroupPayment = (
+  bookingId: number,
+  payment: Omit<Payment, "_id" | "id">,
+) =>
+  request(`/bookings/${bookingId}/group-payments`, {
+    method: "POST",
+    body: JSON.stringify(payment),
+  });
+
+export const updateGroupPayment = (
+  bookingId: number,
+  paymentId: string,
+  payment: Partial<Payment>,
+) =>
+  request(`/bookings/${bookingId}/group-payments/${paymentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payment),
+  });
+
+export const deleteGroupPayment = (bookingId: number, paymentId: string) =>
+  request(`/bookings/${bookingId}/group-payments/${paymentId}`, { method: "DELETE" });
+
 // --- Employee API ---
 export const getEmployees = () => request("/employees");
 export const createEmployee = (

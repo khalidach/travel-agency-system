@@ -47,7 +47,26 @@ const findBookingForUser = async (
   return booking;
 };
 
+const getGroupBookings = async (db, user, bookingId) => {
+  const leaderBooking = await findBookingForUser(db, user, bookingId, false);
+  const bookings = [leaderBooking];
+
+  if (leaderBooking.relatedPersons && leaderBooking.relatedPersons.length > 0) {
+    const memberIds = leaderBooking.relatedPersons.map(p => p.ID);
+    if (memberIds.length > 0) {
+      const placeholders = memberIds.map((_, i) => `$${i + 2}`).join(', ');
+      const { rows } = await db.query(
+        `SELECT * FROM bookings WHERE id IN (${placeholders}) AND "userId" = $1`,
+        [user.adminId, ...memberIds]
+      );
+      bookings.push(...rows);
+    }
+  }
+  return bookings;
+};
+
 module.exports = {
   getAllBookings,
   findBookingForUser,
+  getGroupBookings,
 };

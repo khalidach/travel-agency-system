@@ -41,6 +41,7 @@ export const useBookingOperations = ({
     queryClient.invalidateQueries({ queryKey: ["unassignedOccupantsSearch"] });
     queryClient.invalidateQueries({ queryKey: ["programsForBooking"] });
     queryClient.invalidateQueries({ queryKey: ["programsForRoomManagement"] });
+    queryClient.invalidateQueries({ queryKey: ["groupBookings"] });
   };
 
   // --- Booking Mutations ---
@@ -146,6 +147,56 @@ export const useBookingOperations = ({
       toast.error(error.message || "Failed to delete payment."),
   });
 
+  const { mutate: addGroupPayment } = useMutation({
+    mutationFn: (data: {
+      bookingId: number;
+      payment: Omit<Payment, "_id" | "id">;
+    }) => api.addGroupPayment(data.bookingId, data.payment),
+    onSuccess: (updatedBookings) => {
+      invalidateAllQueries();
+      if (store.selectedBookingForPayment && Array.isArray(updatedBookings)) {
+        const updatedLeader = updatedBookings.find(b => b.id === store.selectedBookingForPayment?.id);
+        if (updatedLeader) store.setSelectedForPayment(updatedLeader);
+      }
+      toast.success("Group Payment added!");
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || "Failed to add group payment."),
+  });
+
+  const { mutate: updateGroupPayment } = useMutation({
+    mutationFn: (data: {
+      bookingId: number;
+      paymentId: string;
+      payment: Partial<Payment>;
+    }) => api.updateGroupPayment(data.bookingId, data.paymentId, data.payment),
+    onSuccess: (updatedBookings) => {
+      invalidateAllQueries();
+      if (store.selectedBookingForPayment && Array.isArray(updatedBookings)) {
+        const updatedLeader = updatedBookings.find(b => b.id === store.selectedBookingForPayment?.id);
+        if (updatedLeader) store.setSelectedForPayment(updatedLeader);
+      }
+      toast.success("Group Payment updated!");
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || "Failed to update group payment."),
+  });
+
+  const { mutate: deleteGroupPayment } = useMutation({
+    mutationFn: (data: { bookingId: number; paymentId: string }) =>
+      api.deleteGroupPayment(data.bookingId, data.paymentId),
+    onSuccess: (updatedBookings) => {
+      invalidateAllQueries();
+      if (store.selectedBookingForPayment && Array.isArray(updatedBookings)) {
+        const updatedLeader = updatedBookings.find(b => b.id === store.selectedBookingForPayment?.id);
+        if (updatedLeader) store.setSelectedForPayment(updatedLeader);
+      }
+      toast.success("Group Payment deleted!");
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || "Failed to delete group payment."),
+  });
+
   // --- Import/Export ---
 
   const { mutate: importBookings, isPending: isImporting } = useMutation({
@@ -201,6 +252,34 @@ export const useBookingOperations = ({
   const handleDeletePayment = (paymentId: string) => {
     if (store.selectedBookingForPayment) {
       deletePayment({
+        bookingId: store.selectedBookingForPayment.id,
+        paymentId,
+      });
+    }
+  };
+
+  const handleAddGroupPayment = (payment: Omit<Payment, "_id" | "id">) => {
+    if (store.selectedBookingForPayment) {
+      addGroupPayment({ bookingId: store.selectedBookingForPayment.id, payment });
+    }
+  };
+
+  const handleUpdateGroupPayment = (
+    paymentId: string,
+    payment: Partial<Payment>,
+  ) => {
+    if (store.selectedBookingForPayment) {
+      updateGroupPayment({
+        bookingId: store.selectedBookingForPayment.id,
+        paymentId,
+        payment,
+      });
+    }
+  };
+
+  const handleDeleteGroupPayment = (paymentId: string) => {
+    if (store.selectedBookingForPayment) {
+      deleteGroupPayment({
         bookingId: store.selectedBookingForPayment.id,
         paymentId,
       });
@@ -278,6 +357,9 @@ export const useBookingOperations = ({
     handleSavePayment,
     handleUpdatePayment,
     handleDeletePayment,
+    handleAddGroupPayment,
+    handleUpdateGroupPayment,
+    handleDeleteGroupPayment,
     confirmDeleteAction,
     handleExport,
     handleExportTemplate,

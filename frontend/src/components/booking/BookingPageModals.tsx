@@ -23,6 +23,12 @@ interface BookingPageModalsProps {
     payment: Omit<Payment, "_id" | "id">,
   ) => void;
   onDeletePayment: (paymentId: string) => void;
+  onAddGroupPayment: (payment: Omit<Payment, "_id" | "id">) => void;
+  onUpdateGroupPayment: (
+    paymentId: string,
+    payment: Partial<Payment>,
+  ) => void;
+  onDeleteGroupPayment: (paymentId: string) => void;
   onConfirmDelete: () => void;
 }
 
@@ -33,6 +39,9 @@ const BookingPageModals: React.FC<BookingPageModalsProps> = ({
   onSavePayment,
   onUpdatePayment,
   onDeletePayment,
+  onAddGroupPayment,
+  onUpdateGroupPayment,
+  onDeleteGroupPayment,
   onConfirmDelete,
 }) => {
   const { t } = useTranslation();
@@ -66,6 +75,9 @@ const BookingPageModals: React.FC<BookingPageModalsProps> = ({
         onSavePayment={onSavePayment}
         onUpdatePayment={onUpdatePayment}
         onDeletePayment={onDeletePayment}
+        onAddGroupPayment={onAddGroupPayment}
+        onUpdateGroupPayment={onUpdateGroupPayment}
+        onDeleteGroupPayment={onDeleteGroupPayment}
       />
 
       {/* Delete Confirmation Modal */}

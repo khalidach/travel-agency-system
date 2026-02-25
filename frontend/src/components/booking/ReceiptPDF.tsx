@@ -14,6 +14,7 @@ interface ReceiptPDFProps {
   payment: Payment;
   program?: Program;
   settings?: FacturationSettings;
+  groupBookings?: Booking[];
 }
 
 export default function ReceiptPDF({
@@ -21,49 +22,89 @@ export default function ReceiptPDF({
   payment,
   program,
   settings,
+  groupBookings,
 }: ReceiptPDFProps) {
   const { t } = useTranslation();
   const { state: authState } = useAuthContext();
   const user = authState.user;
 
   // Memoize the calculation to get the total of payments made BEFORE the current one
-  const { paymentsBeforeThis, remainingAfterThisPayment } = useMemo(() => {
+  const { displayClientNameFr, displayClientNameAr, totalSellingPrice, paymentsBeforeThis, remainingAfterThisPayment, currentPaymentAmount } = useMemo(() => {
     if (!booking || !payment || !booking.advancePayments) {
       return {
+        isGroup: false,
+        displayClientNameFr: "",
+        displayClientNameAr: "",
+        totalSellingPrice: Number(booking?.sellingPrice || 0),
         paymentsBeforeThis: [],
-        remainingAfterThisPayment: booking.sellingPrice,
+        remainingAfterThisPayment: Number(booking?.sellingPrice || 0),
+        currentPaymentAmount: Number(payment?.amount || 0),
       };
     }
 
-    // Find the index of the current payment in the array. We use `_id` for uniqueness.
-    const currentPaymentIndex = booking.advancePayments.findIndex(
-      (p) => p._id === payment._id,
-    );
+    if (payment.isGroupPayment && groupBookings && groupBookings.length > 0) {
+      const allPaymentsMap = new Map<string, Payment>();
+      groupBookings.forEach(b => {
+        (b.advancePayments || []).forEach(p => {
+          if (p.isGroupPayment && !p.isLeader) return;
+          allPaymentsMap.set(p._id, p);
+        });
+      });
 
-    // Get the array of all payments that occurred before the current one.
-    const paymentsBeforeThis = booking.advancePayments.slice(
-      0,
-      currentPaymentIndex,
-    );
+      const allUniquePayments = Array.from(allPaymentsMap.values());
+      let currentPaymentIndex = allUniquePayments.findIndex(p => p._id === payment._id);
 
-    // Sum all payments up to and including the current one to get the new remaining balance.
-    const paymentsUpToThisPoint = booking.advancePayments.slice(
-      0,
-      currentPaymentIndex + 1,
-    );
-    const totalPaidUpToThisPoint = paymentsUpToThisPoint.reduce(
-      (sum, p) => sum + p.amount,
-      0,
-    );
+      // If the payment is missing from groupBookings (e.g., stale data), add it manually
+      if (currentPaymentIndex === -1) {
+        allUniquePayments.push(payment);
+      }
 
-    const remainingAfterThisPayment =
-      booking.sellingPrice - totalPaidUpToThisPoint;
+      // Sort chronologically by ID
+      allUniquePayments.sort((a, b) => Number(a._id) - Number(b._id));
+      currentPaymentIndex = allUniquePayments.findIndex(p => p._id === payment._id);
 
-    return { paymentsBeforeThis, remainingAfterThisPayment };
-  }, [booking, payment]);
+      const paymentsBeforeThis = allUniquePayments.slice(0, currentPaymentIndex);
+      const paymentsUpToThisPoint = allUniquePayments.slice(0, currentPaymentIndex + 1);
 
-  const clientNameFr =
-    `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim();
+      const totalPaidUpToThisPoint = paymentsUpToThisPoint.reduce((sum, p) => sum + Number(p.groupAmount || p.amount || 0), 0);
+      const totalSellingPrice = groupBookings.reduce((sum, b) => sum + Number(b.sellingPrice || 0), 0);
+      const remainingAfterThisPayment = totalSellingPrice - totalPaidUpToThisPoint;
+
+      const combinedNamesFr = groupBookings.map(b => `${b.clientNameFr.firstName} ${b.clientNameFr.lastName}`).join(" & ");
+      const combinedNamesAr = groupBookings.map(b => b.clientNameAr || `${b.clientNameFr.firstName} ${b.clientNameFr.lastName}`).join(" و ");
+
+      // The leader's copy has the full groupAmount. If only the member's copy is available, fallback.
+      const leaderCopy = allUniquePayments.find(p => p._id === payment._id);
+      const correctCurrentPaymentAmount = leaderCopy?.groupAmount || payment.groupAmount || payment.amount || 0;
+
+      return {
+        isGroup: true,
+        displayClientNameFr: combinedNamesFr,
+        displayClientNameAr: combinedNamesAr,
+        totalSellingPrice,
+        paymentsBeforeThis,
+        remainingAfterThisPayment,
+        currentPaymentAmount: Number(correctCurrentPaymentAmount),
+      };
+    }
+
+    // Normal logic
+    const currentPaymentIndex = booking.advancePayments.findIndex((p) => p._id === payment._id);
+    const paymentsBeforeThis = booking.advancePayments.slice(0, currentPaymentIndex);
+    const paymentsUpToThisPoint = booking.advancePayments.slice(0, currentPaymentIndex + 1);
+    const totalPaidUpToThisPoint = paymentsUpToThisPoint.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const remainingAfterThisPayment = Number(booking.sellingPrice || 0) - totalPaidUpToThisPoint;
+
+    return {
+      isGroup: false,
+      displayClientNameFr: `${booking.clientNameFr.firstName} ${booking.clientNameFr.lastName}`.trim(),
+      displayClientNameAr: booking.clientNameAr || "",
+      totalSellingPrice: Number(booking.sellingPrice || 0),
+      paymentsBeforeThis,
+      remainingAfterThisPayment,
+      currentPaymentAmount: Number(payment.amount || 0),
+    };
+  }, [booking, payment, groupBookings]);
 
   return (
     <div
@@ -124,7 +165,7 @@ export default function ReceiptPDF({
       <div className="border-2 border-blue-800 rounded-lg p-4 mb-6 flex flex-col text-gray-900">
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">الإسم :</p>
-          <p className="text-lg font-bold text-gray-900">{booking.clientNameAr ? booking.clientNameAr : clientNameFr}</p>
+          <p className="text-lg font-bold text-gray-900">{displayClientNameAr ? displayClientNameAr : displayClientNameFr}</p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Nom :
           </p>
@@ -133,7 +174,7 @@ export default function ReceiptPDF({
           <p className="text-lg font-bold text-cyan-800">السعر الإجمالي :</p>
           <p className="text-lg font-bold text-gray-900">
             {" "}
-            {booking.sellingPrice.toLocaleString()} درهم
+            {totalSellingPrice.toLocaleString()} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Prix Total :
@@ -144,7 +185,7 @@ export default function ReceiptPDF({
             المبلغ المدفوع حاليا :
           </p>
           <p className="text-lg font-bold text-gray-900">
-            {payment.amount.toLocaleString()} درهم
+            {currentPaymentAmount.toLocaleString()} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Montant Payé actuel :
@@ -216,7 +257,7 @@ export default function ReceiptPDF({
               {paymentsBeforeThis.map((prevPayment) => (
                 <tr key={prevPayment._id}>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                    {prevPayment.amount.toLocaleString()} درهم
+                    {Number(prevPayment.groupAmount || prevPayment.amount || 0).toLocaleString()} درهم
                   </td>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                     {booking.id}-{prevPayment._id.substring(0, 5).toUpperCase()}

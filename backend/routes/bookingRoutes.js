@@ -6,6 +6,7 @@ const {
   getAllBookings,
   getBookingsByProgram,
   getBookingIdsByProgram,
+  getGroupBookings,
   createBooking,
   updateBooking,
   updateBookingStatus, // Imported
@@ -14,6 +15,9 @@ const {
   addPayment,
   updatePayment,
   deletePayment,
+  addGroupPayment,
+  updateGroupPayment,
+  deleteGroupPayment,
   exportBookingsToExcel,
   exportBookingTemplateForProgram,
   importBookingsFromExcel,
@@ -54,6 +58,11 @@ router.get(
   bookingFilterValidation,
   handleValidationErrors,
   getBookingIdsByProgram,
+);
+router.get(
+  "/:bookingId/group",
+  handleValidationErrors,
+  getGroupBookings,
 );
 router.post(
   "/",
@@ -120,5 +129,20 @@ router.put(
   updatePayment,
 );
 router.delete("/:bookingId/payments/:paymentId", deletePayment);
+
+// Group Payment routes
+router.post(
+  "/:bookingId/group-payments",
+  paymentValidation,
+  handleValidationErrors,
+  addGroupPayment,
+);
+router.put(
+  "/:bookingId/group-payments/:paymentId",
+  paymentValidation,
+  handleValidationErrors,
+  updateGroupPayment,
+);
+router.delete("/:bookingId/group-payments/:paymentId", deleteGroupPayment);
 
 module.exports = router;

@@ -195,6 +195,9 @@ export default function BookingPage() {
     handleSavePayment,
     handleUpdatePayment,
     handleDeletePayment,
+    handleAddGroupPayment,
+    handleUpdateGroupPayment,
+    handleDeleteGroupPayment,
     confirmDeleteAction,
     handleExport,
     handleExportTemplate,
@@ -446,6 +449,9 @@ export default function BookingPage() {
         onSavePayment={handleSavePayment}
         onUpdatePayment={handleUpdatePayment}
         onDeletePayment={handleDeletePayment}
+        onAddGroupPayment={handleAddGroupPayment}
+        onUpdateGroupPayment={handleUpdateGroupPayment}
+        onDeleteGroupPayment={handleDeleteGroupPayment}
         onConfirmDelete={confirmDeleteAction}
       />
 
