@@ -67,7 +67,7 @@ export default function ReceiptPDF({
 
   return (
     <div
-      className="bg-white p-10 font-sans text-sm"
+      className="bg-white text-gray-900 p-10 font-sans text-sm"
       style={{ direction: "rtl", fontFamily: "Arial, sans-serif" }}
     >
       <div className="flex justify-between items-center mb-10 pb-4 border-gray-300">
@@ -96,42 +96,42 @@ export default function ReceiptPDF({
         </div>
       </div>
       <div className="mt-6 pb-1 flex justify-center items-center">
-        <p className="text-xl mt-2 font-bold">
+        <p className="text-xl text-gray-900 mt-2 font-bold">
           N°: {booking.id}-{payment._id.substring(0, 5).toUpperCase()}
         </p>
       </div>
       <div className="pb-4 flex justify-center items-center">
-        <p className="text-xl font-bold">
+        <div className="text-xl font-bold text-gray-900">
           {/* NEW: Display labelPaper here */}
           {payment.labelPaper && (
-            <p className="text-lg font-bold mt-1">
+            <p className="text-lg font-bold text-gray-900 mt-1">
               Label Papier N°: {payment.labelPaper}
             </p>
           )}
-        </p>
+        </div>
       </div>
       <div className="mt-6 pb-4 flex justify-between items-center">
         <div className="flex-1 text-right">
-          <p className="text-xl font-bold">
+          <p className="text-xl font-bold text-gray-900">
             التاريخ: {new Date(payment.date).toLocaleDateString()}
           </p>
         </div>
         <div className="flex-1 text-left">
-          <p className="text-xl font-bold">OFFICIAL RECEIPT</p>
+          <p className="text-xl font-bold text-gray-900">OFFICIAL RECEIPT</p>
         </div>
       </div>
 
-      <div className="border-2 border-blue-800 rounded-lg p-4 mb-6 flex flex-col">
+      <div className="border-2 border-blue-800 rounded-lg p-4 mb-6 flex flex-col text-gray-900">
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">الإسم :</p>
-          <p className="text-lg font-bold">{booking.clientNameAr}</p>
+          <p className="text-lg font-bold text-gray-900">{booking.clientNameAr ? booking.clientNameAr : clientNameFr}</p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
-            Nom : {clientNameFr}
+            Nom :
           </p>
         </div>
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">السعر الإجمالي :</p>
-          <p className="text-lg font-bold">
+          <p className="text-lg font-bold text-gray-900">
             {" "}
             {booking.sellingPrice.toLocaleString()} درهم
           </p>
@@ -143,7 +143,7 @@ export default function ReceiptPDF({
           <p className="text-lg font-bold text-cyan-800">
             المبلغ المدفوع حاليا :
           </p>
-          <p className="text-lg font-bold">
+          <p className="text-lg font-bold text-gray-900">
             {payment.amount.toLocaleString()} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
@@ -152,7 +152,7 @@ export default function ReceiptPDF({
         </div>
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800"> الباقي :</p>
-          <p className="text-lg font-bold">
+          <p className="text-lg font-bold text-gray-900">
             {remainingAfterThisPayment.toLocaleString()} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
@@ -162,7 +162,7 @@ export default function ReceiptPDF({
         </div>
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">وذلك عن :</p>
-          <p className="text-lg font-bold">
+          <p className="text-lg font-bold text-gray-900">
             {program?.name || t("unknownProgram")}
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
@@ -171,17 +171,17 @@ export default function ReceiptPDF({
         </div>
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">نوع الدفع :</p>
-          <p className="text-lg font-bold">
+          <p className="text-lg font-bold text-gray-900">
             {t(payment.method)}
             {payment.method === "cheque" && (
-              <div className="text-sm text-blue-800 mt-1">
-                <p>
+              <span className="block text-sm text-blue-800 mt-1">
+                <span className="block">
                   {t("chequeNumber")}: {payment.chequeNumber}
-                </p>
-                <p>
+                </span>
+                <span className="block">
                   {t("bankName")}: {payment.bankName}
-                </p>
-              </div>
+                </span>
+              </span>
             )}
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
@@ -198,7 +198,7 @@ export default function ReceiptPDF({
           <h3 className="text-xl font-bold text-gray-900 mb-4">
             الدفوعات السابقة
           </h3>
-          <table className="w-full text-sm text-gray-600 table-auto border border-cyan-900 p-3">
+          <table className="w-full text-sm text-gray-900 table-auto border border-cyan-900 p-3">
             <thead>
               <tr>
                 <th className="border border-cyan-900 font-bold text-lg text-cyan-800 text-right  px-4 py-2 align-middle">
