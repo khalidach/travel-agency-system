@@ -5,7 +5,6 @@ import {
   User,
   Payment,
 } from "../../context/models";
-import { numberToWordsFr } from "../../services/numberToWords";
 
 interface ServiceReceiptPDFProps {
   service: DailyService;
@@ -30,7 +29,6 @@ export default function ServiceReceiptPDF({
 
   const remainingAfterThisPayment = service.totalPrice - totalPaidUpToThisPoint;
 
-  const totalInWords = numberToWordsFr(payment.amount);
 
 
   // Helper to format currency
@@ -186,18 +184,14 @@ export default function ServiceReceiptPDF({
           </p>
         </div>
       </div>
-
-      {/* Amount in Words */}
-      <div className="mt-8 text-lg font-medium">
-        <p style={{ direction: "rtl" }}>:المبلغ المدفوع هو</p>
-        <p className="font-bold capitalize text-xl text-blue-800">
-          {totalInWords}
-        </p>
+      {/* Footer / Signature */}
+      <div className="flex justify-start mt-16" style={{ direction: "rtl" }}>
+        <p className="text-xl font-bold text-cyan-800">الامضاء</p>
       </div>
 
       {/* Previous Payments Table */}
       {paymentsBeforeThis.length > 0 && (
-        <div className="mt-12 border-t pt-6">
+        <div className="mt-32 border-t pt-6">
           <h3
             className="text-xl font-bold text-gray-900 mb-4"
             style={{ direction: "rtl" }}
@@ -219,22 +213,14 @@ export default function ServiceReceiptPDF({
               </tr>
             </thead>
             <tbody>
-              {paymentsBeforeThis.map((prevPayment, index) => {
-                // Calculate the sequential receipt number for the previous payment
-                const prevPaymentIndex =
-                  service.advancePayments?.findIndex(
-                    (p) => p._id === prevPayment._id,
-                  ) ?? index;
-                const prevReceiptNumber = `SRV-${service.id}-${prevPaymentIndex + 1
-                  }`;
-
+              {paymentsBeforeThis.map((prevPayment) => {
                 return (
                   <tr key={prevPayment._id}>
                     <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
                       {formatMAD(prevPayment.amount)}
                     </td>
                     <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
-                      {prevReceiptNumber}
+                      {prevPayment.paymentID ? prevPayment.paymentID : prevPayment._id}
                     </td>
                     <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
                       {new Date(prevPayment.date).toLocaleDateString()}
@@ -246,11 +232,6 @@ export default function ServiceReceiptPDF({
           </table>
         </div>
       )}
-
-      {/* Footer / Signature */}
-      <div className="flex justify-end mt-16" style={{ direction: "rtl" }}>
-        <p className="text-xl font-bold text-cyan-800">الامضاء</p>
-      </div>
     </div>
   );
 }
