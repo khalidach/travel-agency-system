@@ -2,6 +2,7 @@
 const RoomRepository = require("./room/RoomRepository");
 const FamilyHandler = require("./room/FamilyHandler");
 const AutoAssigner = require("./room/AutoAssigner");
+const logger = require("../utils/logger");
 
 /**
  * Main RoomManagementService Facade.
@@ -219,13 +220,69 @@ exports.getRooms = async (db, userId, programId, hotelName) => {
  * Saves rooms for a specific hotel (Delegates to Repo).
  */
 exports.saveRooms = async (db, userId, programId, hotelName, rooms) => {
-  return await RoomRepository.saveRooms(
+  const savedRooms = await RoomRepository.saveRooms(
     db,
     userId,
     programId,
     hotelName,
     rooms,
   );
+
+  try {
+    const assignments = [];
+    savedRooms.forEach((room) => {
+      (room.occupants || []).forEach((occupant) => {
+        if (occupant && occupant.id) {
+          assignments.push({ bookingId: occupant.id, roomType: room.type });
+        }
+      });
+    });
+
+    if (assignments.length > 0) {
+      const bookingIds = assignments.map((a) => a.bookingId);
+      const { rows: bookings } = await db.query(
+        'SELECT id, "selectedHotel" FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
+        [bookingIds, userId],
+      );
+
+      for (const booking of bookings) {
+        const assignment = assignments.find((a) => a.bookingId === booking.id);
+        if (!assignment || !booking.selectedHotel) continue;
+
+        let changed = false;
+        const updatedSelectedHotel = JSON.parse(
+          JSON.stringify(booking.selectedHotel),
+        );
+
+        const hotelNames = updatedSelectedHotel.hotelNames || [];
+        const roomTypes = updatedSelectedHotel.roomTypes || [];
+
+        const hotelIndex = hotelNames.findIndex((name) => name === hotelName);
+
+        if (hotelIndex !== -1) {
+          while (roomTypes.length <= hotelIndex) {
+            roomTypes.push(null);
+          }
+          if (roomTypes[hotelIndex] !== assignment.roomType) {
+            roomTypes[hotelIndex] = assignment.roomType;
+            updatedSelectedHotel.roomTypes = roomTypes;
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          await db.query(
+            'UPDATE bookings SET "selectedHotel" = $1 WHERE id = $2',
+            [JSON.stringify(updatedSelectedHotel), booking.id],
+          );
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Failed to sync room assignments to bookings:", error);
+  }
+
+  return savedRooms;
 };
 
 /**
