@@ -309,8 +309,8 @@ const addDailyServicePayment = async (req, res, next) => {
     // MODIFIED: Include labelPaper in newPayment
     const newPayment = {
       ...paymentData,
-      _id: paymentId,
-      id: paymentId,
+      _id: new Date().getTime().toString(),
+      paymentID: paymentId,
       labelPaper: labelPaper || "",
     };
     const advancePayments = [...(service.advancePayments || []), newPayment];

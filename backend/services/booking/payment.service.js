@@ -9,8 +9,8 @@ const addPayment = async (db, user, bookingId, paymentData) => {
 
   const newPayment = {
     ...restOfPaymentData,
-    _id: paymentId,
-    id: paymentId,
+    _id: new Date().getTime().toString(),
+    paymentID: paymentId,
     labelPaper: labelPaper || "",
   };
 
@@ -149,8 +149,8 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
     const isLeader = booking.id == bookingId;
     const newPayment = {
       ...restOfPaymentData,
-      _id: paymentId,
-      id: paymentId,
+      _id: new Date().getTime().toString(),
+      paymentID: paymentId,
       labelPaper: labelPaper || "",
       amount: distribution[booking.id].assigned,
       isGroupPayment: true,

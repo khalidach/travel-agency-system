@@ -138,7 +138,7 @@ export default function ReceiptPDF({
       </div>
       <div className="mt-6 pb-1 flex justify-center items-center">
         <p className="text-xl text-gray-900 mt-2 font-bold">
-          N°: {booking.id}-{payment._id.substring(0, 5).toUpperCase()}
+          N°: {payment.paymentID ? payment.paymentID : payment._id}
         </p>
       </div>
       <div className="pb-4 flex justify-center items-center">
@@ -280,7 +280,7 @@ export default function ReceiptPDF({
                     </>
                   )}
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                    {booking.id}-{prevPayment._id.substring(0, 5).toUpperCase()}
+                    {prevPayment.paymentID ? prevPayment.paymentID : prevPayment._id}
                   </td>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                     {new Date(prevPayment.date).toLocaleDateString()}

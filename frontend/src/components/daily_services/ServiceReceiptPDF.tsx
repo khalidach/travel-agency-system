@@ -32,16 +32,6 @@ export default function ServiceReceiptPDF({
 
   const totalInWords = numberToWordsFr(payment.amount);
 
-  // Find the current payment's index to generate a unique receipt number
-  const currentPaymentIndex = service.advancePayments?.findIndex(
-    (p) => p._id === payment._id,
-  );
-
-  const receiptNumber = `SRV-${service.id}-${
-    currentPaymentIndex !== undefined && currentPaymentIndex > -1
-      ? currentPaymentIndex + 1
-      : 1
-  }`;
 
   // Helper to format currency
   const formatMAD = (amount: number) =>
@@ -91,7 +81,7 @@ export default function ServiceReceiptPDF({
         className="text-xl font-bold text-gray-800 mt-6 pb-1 flex justify-center items-center"
         style={{ direction: "ltr" }}
       >
-        N°: <span className="text-blue-600">{receiptNumber}</span>
+        N°: <span className="text-blue-600">{payment.paymentID ? payment.paymentID : payment._id} </span>
       </div>
       {/* Receipt Details */}
       <div className="flex justify-between items-center mb-6">
@@ -235,9 +225,8 @@ export default function ServiceReceiptPDF({
                   service.advancePayments?.findIndex(
                     (p) => p._id === prevPayment._id,
                   ) ?? index;
-                const prevReceiptNumber = `SRV-${service.id}-${
-                  prevPaymentIndex + 1
-                }`;
+                const prevReceiptNumber = `SRV-${service.id}-${prevPaymentIndex + 1
+                  }`;
 
                 return (
                   <tr key={prevPayment._id}>

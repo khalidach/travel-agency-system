@@ -116,8 +116,9 @@ exports.createExpense = async (req, res, next) => {
       const paymentId = await getNextPaymentId(req.db, req.user.id);
       advancePayments = [
         {
-          _id: paymentId,
-          id: paymentId,
+          _id: uuidv4(),
+          id: uuidv4(),
+          paymentID: paymentId,
           date: date,
           amount: amount,
           amountMAD: amount,
@@ -194,8 +195,9 @@ exports.updateExpense = async (req, res, next) => {
       const paymentId = await getNextPaymentId(req.db, req.user.id);
       advancePayments = [
         {
-          _id: paymentId,
-          id: paymentId,
+          _id: uuidv4(),
+          id: uuidv4(),
+          paymentID: paymentId,
           date: date,
           amount: amount,
           amountMAD: amount,
@@ -302,7 +304,7 @@ exports.addPayment = async (req, res, next) => {
     }
 
     const paymentId = await getNextPaymentId(req.db, req.user.id);
-    const payment = { ...req.body, _id: paymentId, id: paymentId };
+    const payment = { ...req.body, _id: uuidv4(), paymentID: paymentId };
 
     const { rows } = await req.db.query(
       `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,

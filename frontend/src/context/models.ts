@@ -211,7 +211,7 @@ export interface ExpenseItem {
 
 export interface Payment {
   _id: string;
-  id: string;
+  paymentID?: string;
   amount: number;
   amountMAD?: number;
   currency?: string;
