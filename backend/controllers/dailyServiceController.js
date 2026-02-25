@@ -1,6 +1,6 @@
-// backend/controllers/dailyServiceController.js
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { getNextPaymentId } = require("../services/sequence.service");
 
 const getDailyServices = async (req, res, next) => {
   try {
@@ -304,10 +304,13 @@ const addDailyServicePayment = async (req, res, next) => {
 
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
 
+    const paymentId = await getNextPaymentId(req.db, adminId);
+
     // MODIFIED: Include labelPaper in newPayment
     const newPayment = {
       ...paymentData,
-      _id: new Date().getTime().toString(),
+      _id: paymentId,
+      id: paymentId,
       labelPaper: labelPaper || "",
     };
     const advancePayments = [...(service.advancePayments || []), newPayment];

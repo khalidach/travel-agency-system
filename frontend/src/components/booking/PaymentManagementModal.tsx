@@ -236,6 +236,11 @@ export default function PaymentManagementModal({
                   <div>
                     <div className="flex items-center">
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {payment.id && (
+                          <span className="text-emerald-600 mr-2 border border-emerald-600 rounded px-1 text-xs">
+                            #{payment.id}
+                          </span>
+                        )}
                         {(payment.groupAmount && payment.isLeader)
                           ? Number(payment.groupAmount).toLocaleString()
                           : Number(payment.amount).toLocaleString()} {t("mad")}

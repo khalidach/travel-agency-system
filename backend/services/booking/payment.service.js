@@ -1,12 +1,16 @@
 const { findBookingForUser, getGroupBookings } = require("./retrieval.service");
+const { getNextPaymentId } = require("../sequence.service");
 
 const addPayment = async (db, user, bookingId, paymentData) => {
   const booking = await findBookingForUser(db, user, bookingId, true);
   const { labelPaper, ...restOfPaymentData } = paymentData;
 
+  const paymentId = await getNextPaymentId(db, user.id);
+
   const newPayment = {
     ...restOfPaymentData,
-    _id: new Date().getTime().toString(),
+    _id: paymentId,
+    id: paymentId,
     labelPaper: labelPaper || "",
   };
 
@@ -137,7 +141,7 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
   }));
   const distribution = distributeAmount(paymentData.amount, bookingsData);
 
-  const paymentId = new Date().getTime().toString();
+  const paymentId = await getNextPaymentId(db, user.id);
 
   const updatedBookings = [];
 
@@ -146,6 +150,7 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
     const newPayment = {
       ...restOfPaymentData,
       _id: paymentId,
+      id: paymentId,
       labelPaper: labelPaper || "",
       amount: distribution[booking.id].assigned,
       isGroupPayment: true,

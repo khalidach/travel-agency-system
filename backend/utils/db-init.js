@@ -236,6 +236,15 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS payment_sequences (
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        year INTEGER NOT NULL,
+        last_value INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY ("userId", year)
+      );
+    `);
+
     console.log("All tables checked/created successfully.");
 
     // --- Index Creation ---
