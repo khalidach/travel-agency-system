@@ -1,6 +1,5 @@
 // backend/controllers/expenseController.js
 const { v4: uuidv4 } = require("uuid");
-const { getNextPaymentId } = require("../services/sequence.service");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 
@@ -113,12 +112,10 @@ exports.createExpense = async (req, res, next) => {
     if (type === "regular") {
       isFullyPaid = true;
       remainingBalance = 0;
-      const paymentId = await getNextPaymentId(req.db, req.user.id);
       advancePayments = [
         {
           _id: uuidv4(),
           id: uuidv4(),
-          paymentID: paymentId,
           date: date,
           amount: amount,
           amountMAD: amount,
@@ -192,12 +189,10 @@ exports.updateExpense = async (req, res, next) => {
     let isFullyPaid;
 
     if (expense.type === "regular") {
-      const paymentId = await getNextPaymentId(req.db, req.user.id);
       advancePayments = [
         {
           _id: uuidv4(),
           id: uuidv4(),
-          paymentID: paymentId,
           date: date,
           amount: amount,
           amountMAD: amount,
@@ -303,8 +298,7 @@ exports.addPayment = async (req, res, next) => {
       );
     }
 
-    const paymentId = await getNextPaymentId(req.db, req.user.id);
-    const payment = { ...req.body, _id: uuidv4(), paymentID: paymentId };
+    const payment = { ...req.body, _id: uuidv4() };
 
     const { rows } = await req.db.query(
       `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
