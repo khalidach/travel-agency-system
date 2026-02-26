@@ -21,183 +21,427 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
 
   return (
     <div
-      className="bg-white p-10 font-sans text-xs"
-      style={{ width: "210mm", minHeight: "297mm" }}
+      className="pdf-container"
+      style={{
+        width: "210mm",
+        minHeight: "297mm",
+        backgroundColor: "white",
+        padding: "40px",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: "'Inter', sans-serif",
+      }}
     >
-      <div className="grid grid-cols-2 gap-10 mb-8">
-        <div>
-          <h1 className="text-xl font-bold mb-2">
-            {authState.user?.agencyName || "Your Agency"}
-          </h1>
-          {settings?.address && <p>{settings.address}</p>}
-          {settings?.phone && <p>Tél: {settings.phone}</p>}
-          {settings?.email && <p>Email: {settings.email}</p>}
-        </div>
-        <div className="text-right">
-          <h2 className="text-3xl font-bold uppercase text-gray-700">
-            {facture.type}
-          </h2>
-          <p className="text-sm mt-1">N°: {facture.facture_number}</p>
-          <p className="text-sm">
-            Date: {new Date(facture.date).toLocaleDateString()}
-          </p>
-          {settings?.ice && <p className="text-sm">ICE: {settings.ice}</p>}
-        </div>
-      </div>
-      {facture?.clientName && (
-        <div className="mt-8 border-t border-b py-4">
-          {/* <h3 className="font-semibold">Client:</h3> */}
-          <p>{facture.clientName}</p>
-          <p>{facture.clientAddress}</p>
-          {facture.clientICE && <p>ICE: {facture.clientICE}</p>}
-        </div>
-      )}
+      {/* Styles critiques pour le moteur de rendu PDF */}
+      <style>
+        {`
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+          
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { margin: 0; size: A4; }
+          }
+          .pdf-container { box-sizing: border-box; line-height: 1.5; color: #111827; }
+          .pdf-container * { box-sizing: border-box; }
+          
+          /* Layout */
+          .pdf-container .flex { display: flex; }
+          .pdf-container .flex-col { flex-direction: column; }
+          .pdf-container .flex-grow { flex-grow: 1; }
+          .pdf-container .justify-between { justify-content: space-between; }
+          .pdf-container .justify-center { justify-content: center; }
+          .pdf-container .justify-end { justify-content: flex-end; }
+          .pdf-container .items-center { align-items: center; }
+          .pdf-container .items-start { align-items: flex-start; }
+          .pdf-container .items-end { align-items: flex-end; }
+          .pdf-container .flex-wrap { flex-wrap: wrap; }
+          
+          /* Spacing */
+          .pdf-container .mb-1 { margin-bottom: 4px; }
+          .pdf-container .mb-2 { margin-bottom: 8px; }
+          .pdf-container .mb-4 { margin-bottom: 16px; }
+          .pdf-container .mb-8 { margin-bottom: 32px; }
+          .pdf-container .mt-1 { margin-top: 4px; }
+          .pdf-container .mt-2 { margin-top: 8px; }
+          .pdf-container .mt-4 { margin-top: 16px; }
+          .pdf-container .p-2 { padding: 8px; }
+          .pdf-container .p-4 { padding: 16px; }
+          .pdf-container .pt-2 { padding-top: 8px; }
+          .pdf-container .gap-2 { gap: 8px; }
+          .pdf-container .gap-4 { gap: 16px; }
+          
+          /* Typography */
+          .pdf-container .text-right { text-align: right; }
+          .pdf-container .text-center { text-align: center; }
+          .pdf-container .uppercase { text-transform: uppercase; }
+          .pdf-container .font-bold { font-weight: 700; }
+          .pdf-container .font-medium { font-weight: 500; }
+          .pdf-container .text-sm { font-size: 14px; }
+          .pdf-container .text-xs { font-size: 12px; }
+          .pdf-container .italic { font-style: italic; }
+          
+          /* Tables */
+          .pdf-container table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          .pdf-container th, .pdf-container td { padding: 12px 8px; border-bottom: 1px solid #e5e7eb; }
+          .pdf-container tr { page-break-inside: avoid; }
+        `}
+      </style>
 
-      <table className="w-full mt-28 text-xs border-collapse">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2 text-left font-semibold border">DESIGNATION</th>
-            <th className="p-2 text-center font-semibold border">QU</th>
-            <th className="p-2 text-right font-semibold border">
-              PRIX UNITAIRE
-            </th>
-            {showMargin && (
-              <th className="p-2 text-right font-semibold border">
-                FRAIS. SCE UNITAIRE
-              </th>
-            )}
-            <th className="p-2 text-right font-semibold border">
-              MONTANT TOTAL
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {facture.items.map((item, index) => (
-            <tr key={index}>
-              <td className="p-2 border">{item.description}</td>
-              <td className="p-2 text-center border">{item.quantity}</td>
-              <td className="p-2 text-right border">
-                {(Number(item.prixUnitaire) || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </td>
-              {showMargin && (
-                <td className="p-2 text-right border">
-                  {(Number(item.fraisServiceUnitaire) || 0).toLocaleString(
-                    undefined,
-                    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
-                  )}
-                </td>
-              )}
-              <td className="p-2 text-right border font-semibold">
-                {(Number(item.total) || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="flex-grow">
+        {/* HEADER - Logo and Document Type only */}
+        <header>
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-4">
+              <h1
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                }}
+              >
+                {authState.user?.agencyName || "Votre Agence"}
+              </h1>
+            </div>
 
-      <div className="flex justify-end mt-5">
-        <div className="w-1/2 space-y-1 text-xs">
-          {showMargin && (
-            <>
-              <div className="flex justify-between p-2">
-                <span className="font-medium">Prix Total H. Frais de SCE</span>
-                <span>
-                  {Number(facture.prixTotalHorsFrais).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    },
-                  )}{" "}
-                  MAD
-                </span>
-              </div>
-              <div className="flex justify-between p-2">
-                <span className="font-medium">Frais de Service Hors TVA</span>
-                <span>
-                  {Number(facture.totalFraisServiceHT).toLocaleString(
-                    undefined,
-                    {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    },
-                  )}{" "}
-                  MAD
-                </span>
-              </div>
-              <div className="flex justify-between p-2">
-                <span className="font-medium">TVA 20%</span>
-                <span>
-                  {Number(facture.tva).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  MAD
-                </span>
-              </div>
-            </>
-          )}
-          <div className="flex justify-between font-bold text-sm bg-gray-100 p-2 rounded mt-1">
-            <span>Total {facture.type == "devis" ? "Devis" : "Factures"}</span>
-            <span>
-              {Number(facture.total).toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{" "}
-              MAD
-            </span>
+            <div className="flex flex-col items-end text-right">
+              <h2
+                className="uppercase"
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "900",
+                  color: "#2563eb",
+                }}
+              >
+                {facture.type === "devis" ? "Devis" : "Facture"}
+              </h2>
+            </div>
           </div>
-        </div>
-      </div>
+        </header>
 
-      <div className="mt-8 text-xs">
-        <p>Arrêté la présente facture à la somme de :</p>
-        <p className="font-bold capitalize">{totalInWords}</p>
-        {!showMargin && (
-          <p className="font-bold mt-4">
-            Régime particulier – agences de voyages
-          </p>
-        )}
-      </div>
+        {/* BODY - Client Info, Facture Number and Date in a shared bordered box */}
+        <main>
+          {facture.clientName && (
+            <div
+              className="flex justify-between items-start"
+              style={{
+                marginBottom: "30px",
+                padding: "20px",
+                backgroundColor: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                borderRadius: "12px",
+                marginTop: "100px",
+              }}
+            >
+              {/* Left: Client Information */}
+              <div className="flex flex-col justify-center " style={{ justifyContent: "center" }}>
+                <p
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {facture.clientName}
+                </p>
+                <p
+                  style={{
+                    fontSize: "12px",
+                    color: "#4b5563",
+                  }}
+                >
+                  {facture.clientAddress}
+                </p>
+                {facture.clientICE && (
+                  <p
+                    style={{
+                      fontSize: "11px",
+                      marginTop: "4px",
+                    }}
+                  >
+                    ICE : {facture.clientICE}
+                  </p>
+                )}
+              </div>
 
-      <div className="mt-16 border-t pt-5">
-        <div className="flex gap-2 justify-center flex-wrap">
-          <div className="flex gap-2 flex-wrap justify-center w-full">
-            {settings?.address && (
-              <p className="text-lg">Address: {settings.address} </p>
-            )}
-            {settings?.phone && (
-              <p className="text-lg"> Tel: {settings.phone} </p>
-            )}
-            {settings?.email && (
-              <p className="text-lg"> Email: {settings.email}</p>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap justify-center w-full">
-            {settings?.ice && <p className="text-sm">ICE: {settings.ice}</p>}
-            {settings?.if && <p className="text-sm">/ IF: {settings.if}</p>}
-            {settings?.rc && <p className="text-sm">/ RC: {settings.rc}</p>}
-            {settings?.patente && (
-              <p className="text-sm">/ Patente: {settings.patente}</p>
-            )}
-            {settings?.cnss && (
-              <p className="text-sm">/ CNSS: {settings.cnss}</p>
-            )}
-          </div>
-          {settings?.bankName && (
-            <div className="flex gap-2 flex-wrap justify-center w-full">
-              <p className="text-sm">Bank: {settings.bankName}</p>
-              <p className="text-sm">RIB: {settings.rib}</p>
+              {/* Right: Document Number and Date */}
+              <div className="flex flex-col items-end justify-center text-right" style={{ justifyContent: "center" }}>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "bold",
+                    color: "#111827",
+                  }}
+                >
+                  N° : {facture.facture_number}
+                </p>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#374151",
+                    marginTop: "4px",
+                  }}
+                >
+                  Date : {new Date(facture.date).toLocaleDateString("fr-FR")}
+                </p>
+              </div>
             </div>
           )}
-        </div>
+
+          {!facture.clientName && (
+            <div className="flex justify-end mb-8">
+              {/* Document Number and Date when no client info */}
+              <div className="flex flex-col items-end text-right">
+                <p
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "bold",
+                    color: "#111827",
+                  }}
+                >
+                  N° : {facture.facture_number}
+                </p>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#374151",
+                    marginTop: "4px",
+                  }}
+                >
+                  Date : {new Date(facture.date).toLocaleDateString("fr-FR")}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <table
+            style={{
+              minHeight: "300px",
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  backgroundColor: "#f3f4f6",
+                }}
+              >
+                <th
+                  style={{
+                    textAlign: "left",
+                    border: "1px solid #000",
+                  }}
+                >
+                  DÉSIGNATION
+                </th>
+                <th
+                  style={{
+                    textAlign: "center",
+                    width: "60px",
+                    border: "1px solid #000",
+                  }}
+                >
+                  QTÉ
+                </th>
+                <th
+                  style={{
+                    textAlign: "left",
+                    border: "1px solid #000",
+                  }}
+                >
+                  P.U
+                </th>
+                {showMargin && (
+                  <th
+                    style={{
+                      textAlign: "left",
+                      border: "1px solid #000",
+                    }}
+                  >
+                    Frais SERV.
+                  </th>
+                )}
+                <th
+                  style={{
+                    textAlign: "left",
+                    border: "1px solid #000",
+                  }}
+                >
+                  TOTAL TTC
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {facture.items.map((item, index) => (
+                <tr key={index}>
+                  <td
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      border: "1px solid #000",
+                    }}
+                  >
+                    {item.description}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: "center",
+                      border: "1px solid #000",
+                    }}
+                  >
+                    {item.quantity}
+                  </td>
+                  <td
+                    style={{
+                      textAlign: "left",
+                      border: "1px solid #000",
+                    }}
+                  >
+                    {(Number(item.prixUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                  {showMargin && (
+                    <td
+                      style={{
+                        textAlign: "left",
+                        border: "1px solid #000",
+                      }}
+                    >
+                      {(Number(item.fraisServiceUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  )}
+                  <td
+                    style={{
+                      textAlign: "left",
+                      fontWeight: "bold",
+                      border: "1px solid #000",
+                    }}
+                  >
+                    {(Number(item.total) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* TOTALS */}
+          <div
+            style={{
+              marginTop: "20px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+            }}
+          >
+            <div style={{ width: "250px" }}>
+              {showMargin && (
+                <>
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span>Total Hors Frais :</span>
+                    <span>
+                      {(Number(facture.prixTotalHorsFrais) || 0).toLocaleString(
+                        'de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}{" "}
+                      DH
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span>Frais Service HT :</span>
+                    <span>
+                      {(Number(facture.totalFraisServiceHT) || 0).toLocaleString(
+                        'de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}{" "}
+                      DH
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span>TVA (20%) :</span>
+                    <span>
+                      {(Number(facture.tva) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                      DH
+                    </span>
+                  </div>
+                </>
+              )}
+              <div
+                className="flex justify-between mt-2 pt-2"
+                style={{
+                  borderTop: "2px solid #000",
+                  fontWeight: "900",
+                  fontSize: "14px",
+                }}
+              >
+                <span>TOTAL TTC :</span>
+                <span>
+                  {(Number(facture.total) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+                  DH
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "40px",
+              fontStyle: "italic",
+            }}
+          >
+            <p
+              style={{
+                fontSize: "11px",
+              }}
+            >
+              Arrêté la présente facture à la somme de :
+            </p>
+            <p
+              style={{
+                fontWeight: "bold",
+                textTransform: "capitalize",
+              }}
+            >
+              {totalInWords}
+            </p>
+            {!showMargin && (
+              <p
+                style={{
+                  fontWeight: "bold",
+                  marginTop: "16px",
+                  fontSize: "11px",
+                }}
+              >
+                Régime particulier – agences de voyages
+              </p>
+            )}
+          </div>
+        </main>
       </div>
+
+      {/* FOOTER */}
+      <footer
+        style={{
+          borderTop: "1px solid #eee",
+          paddingTop: "20px",
+        }}
+      >
+        <div
+          className="flex gap-2 justify-center flex-wrap"
+          style={{ fontSize: "12px", color: "#6b7280", textAlign: "center" }}
+        >
+          {[
+            `Sté. ${authState.user?.agencyName || "Votre Agence"}`,
+            settings?.address && `Siège : ${settings.address}`,
+            settings?.phone && `Tél : ${settings.phone}`,
+            settings?.email && `Email : ${settings.email}`,
+            settings?.ice && `ICE : ${settings.ice}`,
+            settings?.if && `IF : ${settings.if}`,
+            settings?.rc && `RC : ${settings.rc}`,
+            settings?.patente && `Patente : ${settings.patente}`,
+            settings?.cnss && `CNSS : ${settings.cnss}`,
+            settings?.bankName &&
+            settings?.rib &&
+            `RIB (${settings.bankName}) : ${settings.rib}`,
+          ]
+            .filter(Boolean)
+            .map((item, idx) => (
+              <p key={idx}>{idx > 0 ? `| ${item}` : item}</p>
+            ))}
+        </div>
+      </footer>
     </div>
   );
 }
