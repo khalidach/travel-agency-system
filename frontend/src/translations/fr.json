@@ -669,5 +669,6 @@
   "dateOfBooking": "Date de réservation",
   "for": "pour",
   "by": "par",
-  "allTime": "Toutes les périodes"
+  "allTime": "Toutes les périodes",
+  "clientNameRequired": "Le nom du client est requis"
 }

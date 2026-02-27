@@ -79,7 +79,6 @@ export default function BookingForm({
     setValue,
     reset,
     trigger,
-    formState: { isValid },
   } = methods;
 
   const { fields, append, remove } = useFieldArray({
@@ -148,6 +147,18 @@ export default function BookingForm({
     (errors: FieldErrors<BookingFormData>) => {
       console.log("Form Errors:", errors);
       toast.error(t("correctFormErrors")); // Translate toast
+
+      setTimeout(() => {
+        const firstErrorElement = document.querySelector(
+          ".border-red-500, [aria-invalid='true'], .text-red-500"
+        );
+        if (firstErrorElement) {
+          firstErrorElement.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      }, 100);
     },
     [t],
   );
@@ -339,7 +350,6 @@ export default function BookingForm({
 
         <FormActions
           onCancel={onCancel}
-          isValid={isValid}
           isEditing={!!booking}
         />
       </form>

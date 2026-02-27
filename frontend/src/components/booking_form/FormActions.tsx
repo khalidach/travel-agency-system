@@ -3,13 +3,11 @@ import { useTranslation } from "react-i18next";
 
 interface FormActionsProps {
   onCancel: () => void;
-  isValid: boolean;
   isEditing: boolean;
 }
 
 export const FormActions = ({
   onCancel,
-  isValid,
   isEditing,
 }: FormActionsProps) => {
   const { t } = useTranslation();
@@ -25,8 +23,7 @@ export const FormActions = ({
       </button>
       <button
         type="submit"
-        disabled={!isValid}
-        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
+        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
       >
         {isEditing ? t("update") : t("save")}
       </button>

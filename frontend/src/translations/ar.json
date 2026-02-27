@@ -669,5 +669,6 @@
   "dateOfBooking": "تاريخ الحجز",
   "for": "لـ",
   "by": "بواسطة",
-  "allTime": "جميع الفترات"
+  "allTime": "جميع الفترات",
+  "clientNameRequired": "اسم العميل مطلوب"
 }

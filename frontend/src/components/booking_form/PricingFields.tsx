@@ -66,7 +66,9 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
               render={({ field }) => (
                 <NumberInput
                   {...field}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+                 rounded-lg bg-gray-200 dark:bg-card dark:text-gray-100 
+                 cursor-not-allowed opacity-70"
                   readOnly
                 />
               )}
@@ -82,7 +84,9 @@ const PricingFields = ({ handleSellingPriceChange }: PricingFieldsProps) => {
               render={({ field }) => (
                 <NumberInput
                   {...field}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 
+                 rounded-lg bg-gray-200 dark:bg-card dark:text-gray-100 
+                 cursor-not-allowed opacity-70"
                   readOnly
                 />
               )}

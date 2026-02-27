@@ -12,7 +12,7 @@ const ClientInfoFields = () => {
   const { t } = useTranslation();
   const {
     control,
-    formState: { errors },
+    formState: { errors, isSubmitted },
     setValue,
     trigger,
     getValues,
@@ -32,7 +32,7 @@ const ClientInfoFields = () => {
     e: React.ChangeEvent<HTMLInputElement>,
     field: "clients.0.dob_day" | "clients.0.dob_month",
     maxLength: number,
-    nextFieldRef?: React.RefObject<HTMLInputElement>,
+    nextFieldRef?: React.RefObject<HTMLInputElement | null>,
   ) => {
     const { value } = e.target;
     const numericValue = value.replace(/[^0-9]/g, "");
@@ -96,12 +96,11 @@ const ClientInfoFields = () => {
                   {...field}
                   type="text"
                   placeholder={t("lastNamePlaceholder") as string}
-                  className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.clientNameFr.lastName") &&
+                  className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.clientNameFr.lastName") &&
                     !clientNameAr
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                   onChange={(e) => {
                     field.onChange(e);
                     trigger("clients.0.clientNameAr");
@@ -117,11 +116,10 @@ const ClientInfoFields = () => {
                   {...field}
                   type="text"
                   placeholder={t("firstNamePlaceholder") as string}
-                  className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.clientNameFr.firstName")
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.clientNameFr.firstName")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                 />
               )}
             />
@@ -150,11 +148,10 @@ const ClientInfoFields = () => {
               <input
                 {...field}
                 type="text"
-                className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                  get(errors, "clients.0.clientNameAr") && !clientNameFrLastName
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.clientNameAr") && !clientNameFrLastName
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+                  }`}
                 dir="rtl"
                 onChange={(e) => {
                   field.onChange(e);
@@ -222,28 +219,31 @@ const ClientInfoFields = () => {
             name="clients.0.passportNumber"
             control={control}
             rules={passportRules}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                disabled={noPassport}
-                className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${
-                  get(errors, "clients.0.passportNumber")
-                    ? "border-red-500"
-                    : "border-gray-300 dark:border-gray-600"
-                } ${
-                  noPassport
-                    ? "bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50"
-                    : ""
-                }`}
-              />
-            )}
+            render={({ field, fieldState: { isTouched, error } }) => {
+              const showPassportError = !!error && (isTouched || isSubmitted);
+              return (
+                <>
+                  <input
+                    {...field}
+                    type="text"
+                    disabled={noPassport}
+                    className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-100 ${showPassportError
+                      ? "border-red-500"
+                      : "border-gray-300 dark:border-gray-600"
+                      } ${noPassport
+                        ? "bg-gray-100 dark:bg-gray-800 cursor-not-allowed opacity-50"
+                        : ""
+                      }`}
+                  />
+                  {showPassportError && error?.message && (
+                    <p className="text-red-500 dark:text-red-400 text-sm mt-1">
+                      {error.message}
+                    </p>
+                  )}
+                </>
+              );
+            }}
           />
-          {get(errors, "clients.0.passportNumber") && (
-            <p className="text-red-500 dark:text-red-400 text-sm mt-1">
-              {(get(errors, "clients.0.passportNumber") as FieldError).message}
-            </p>
-          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -290,11 +290,10 @@ const ClientInfoFields = () => {
                   }
                   type="text"
                   placeholder={t("day") as string}
-                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.dob_day")
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.dob_day")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                 />
               )}
             />
@@ -316,11 +315,10 @@ const ClientInfoFields = () => {
                   }
                   type="text"
                   placeholder={t("month") as string}
-                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.dob_month")
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.dob_month")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                 />
               )}
             />
@@ -349,11 +347,10 @@ const ClientInfoFields = () => {
                       });
                     }
                   }}
-                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.dob_year")
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                  className={`w-full px-2 py-2 border rounded-lg text-center dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.dob_year")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                 />
               )}
             />
@@ -389,11 +386,10 @@ const ClientInfoFields = () => {
                   {...field}
                   value={field.value ? field.value.split("T")[0] : ""}
                   min={new Date().toISOString().split("T")[0]}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors dark:bg-gray-700 dark:text-gray-100 ${
-                    get(errors, "clients.0.passportExpirationDate")
-                      ? "border-red-500"
-                      : "border-gray-300 dark:border-gray-600"
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors dark:bg-gray-700 dark:text-gray-100 ${get(errors, "clients.0.passportExpirationDate")
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                    }`}
                 />
               )}
             />

@@ -665,5 +665,6 @@
   "dateOfBooking": "Date of Booking",
   "for": "for",
   "by": "by",
-  "allTime": "All Time"
+  "allTime": "All Time",
+  "clientNameRequired": "Client name is required"
 }
