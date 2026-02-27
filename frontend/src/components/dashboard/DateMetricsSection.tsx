@@ -32,7 +32,7 @@ export default function DateMetricsSection({
     { key: "custom", label: t("customRange") },
   ];
 
-  const adminManagerMetrics = [
+  const adminMetrics = [
     {
       title: t("totalBookings"),
       value: dateFilteredStats.totalBookings,
@@ -65,9 +65,9 @@ export default function DateMetricsSection({
     },
   ];
 
-  const employeeMetrics = [...adminManagerMetrics];
+  const employeeMetrics = adminMetrics.slice(0, 4);
 
-  const metrics = userRole === "admin" ? adminManagerMetrics : employeeMetrics;
+  const metrics = userRole === "admin" ? adminMetrics : employeeMetrics;
 
   return (
     <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border">
