@@ -1,18 +1,19 @@
-// frontend/src/components/employee_analysis/StatCardsRow.tsx
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Package, Calendar, ConciergeBell } from "lucide-react";
+import { Package, Calendar, ConciergeBell, FileText } from "lucide-react";
 
 interface StatCardsRowProps {
   programsCount: number;
   bookingsCount: number;
   servicesCount: number;
+  facturesCount: number;
 }
 
 const StatCardsRow: React.FC<StatCardsRowProps> = ({
   programsCount,
   bookingsCount,
   servicesCount,
+  facturesCount,
 }) => {
   const { t } = useTranslation();
 
@@ -35,10 +36,16 @@ const StatCardsRow: React.FC<StatCardsRowProps> = ({
       icon: ConciergeBell,
       color: "bg-purple-500",
     },
+    {
+      title: t("totalFactures"),
+      value: facturesCount,
+      icon: FileText,
+      color: "bg-amber-500",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {cards.map((card) => (
         <div
           key={card.title}

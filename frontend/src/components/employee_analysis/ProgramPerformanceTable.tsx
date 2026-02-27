@@ -36,8 +36,6 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
     "programType",
     "bookings",
     "totalSales",
-    "totalCost",
-    "totalProfit",
   ];
 
   return (
@@ -60,7 +58,7 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={4}
                   className="text-center p-8 text-muted-foreground"
                 >
                   <div className="flex justify-center items-center gap-2">
@@ -71,7 +69,7 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
             ) : !data?.programPerformance?.length ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={4}
                   className="text-center p-8 text-muted-foreground"
                 >
                   {t("noDataAvailable")}
@@ -106,12 +104,6 @@ const ProgramPerformanceTable: React.FC<ProgramPerformanceTableProps> = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {Number(item.totalSales).toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {Number(item.totalCost).toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                    {Number(item.totalProfit).toLocaleString()} {t("mad")}
                   </td>
                 </tr>
               ))

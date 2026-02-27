@@ -114,12 +114,17 @@ exports.getEmployeeAnalysis = async (req, res, next) => {
       'SELECT COUNT(*) FROM daily_services WHERE "employeeId" = $1',
       [employee.id]
     );
+    const facturesCreatedPromise = req.db.query(
+      'SELECT COUNT(*) FROM factures WHERE "employeeId" = $1',
+      [employee.id]
+    );
 
-    const [programsCreatedResult, bookingsMadeResult, dailyServicesMadeResult] =
+    const [programsCreatedResult, bookingsMadeResult, dailyServicesMadeResult, facturesCreatedResult] =
       await Promise.all([
         programsCreatedPromise,
         bookingsMadePromise,
         dailyServicesMadePromise,
+        facturesCreatedPromise,
       ]);
 
     res.status(200).json({
@@ -130,6 +135,7 @@ exports.getEmployeeAnalysis = async (req, res, next) => {
         dailyServicesMadeResult.rows[0].count,
         10
       ),
+      facturesCreatedCount: parseInt(facturesCreatedResult.rows[0].count, 10),
     });
   } catch (error) {
     logger.error("Employee Analysis Error:", {

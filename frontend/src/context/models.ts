@@ -344,6 +344,7 @@ export interface EmployeeAnalysisData {
   programsCreatedCount: number;
   bookingsMadeCount: number;
   dailyServicesMadeCount: number;
+  facturesCreatedCount: number;
 }
 
 export interface PerformanceMetric {

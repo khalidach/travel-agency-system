@@ -116,6 +116,7 @@ export default function EmployeeAnalysisPage() {
     programsCreatedCount,
     bookingsMadeCount,
     dailyServicesMadeCount,
+    facturesCreatedCount,
   } = analysisData;
 
   // --- Data Preparation for Child Components ---
@@ -130,16 +131,6 @@ export default function EmployeeAnalysisPage() {
       value: programData?.programSummary.totalRevenue || 0,
       unit: t("mad"),
     },
-    {
-      title: t("totalCost"),
-      value: programData?.programSummary.totalCost || 0,
-      unit: t("mad"),
-    },
-    {
-      title: t("totalProfit"),
-      value: programData?.programSummary.totalProfit || 0,
-      unit: t("mad"),
-    },
   ];
 
   const serviceSummaryMetrics = [
@@ -151,16 +142,6 @@ export default function EmployeeAnalysisPage() {
     {
       title: t("totalRevenue"),
       value: serviceData?.serviceSummary.totalRevenue || 0,
-      unit: t("mad"),
-    },
-    {
-      title: t("totalCost"),
-      value: serviceData?.serviceSummary.totalCost || 0,
-      unit: t("mad"),
-    },
-    {
-      title: t("totalProfit"),
-      value: serviceData?.serviceSummary.totalProfit || 0,
       unit: t("mad"),
     },
   ];
@@ -196,6 +177,7 @@ export default function EmployeeAnalysisPage() {
         programsCount={programsCreatedCount}
         bookingsCount={bookingsMadeCount}
         servicesCount={dailyServicesMadeCount}
+        facturesCount={facturesCreatedCount}
       />
 
       {/* Performance Summary Cards Grid */}
