@@ -120,17 +120,17 @@ export default function ReceiptPDF({
             {user?.agencyName || "Nom de l'Agence"}
           </h1>
           {settings?.address && (
-            <p className="text-2xl font-bold text-cyan-800 mt-1">
+            <p className="text-sm font-bold text-cyan-800 mt-1">
               {settings.address}
             </p>
           )}
           {settings?.phone && (
-            <p className="text-2xl font-bold text-cyan-800">
+            <p className="text-sm font-bold text-cyan-800">
               Tél: {settings.phone}
             </p>
           )}
           {settings?.email && (
-            <p className="text-2xl font-bold text-cyan-800">
+            <p className="text-sm font-bold text-cyan-800">
               Email: {settings.email}
             </p>
           )}
