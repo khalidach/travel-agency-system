@@ -494,6 +494,8 @@
   "transferReference": "Transfer reference",
   "labelPaper": "Label Paper",
   "labelPaperPlaceholder": "Enter optional paper label",
+  "forWhat": "FOR",
+  "forWhatPlaceholder": "Override program/service name in receipt",
   "password": "Password",
   "login": "Login",
   "signUp": "Sign Up",

@@ -498,6 +498,8 @@
   "transferReference": "Référence du virement",
   "labelPaper": "Étiquette papier",
   "labelPaperPlaceholder": "Saisir l'étiquette papier optionnelle",
+  "forWhat": "POUR",
+  "forWhatPlaceholder": "Remplacer le nom du programme/service dans le reçu",
   "password": "Mot de passe",
   "login": "Se connecter",
   "signUp": "S'inscrire",

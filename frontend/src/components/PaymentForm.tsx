@@ -183,7 +183,7 @@ export default function PaymentForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          FOR <span className="text-gray-500 font-normal">({t("optional")})</span>
+          {t("forWhat")} <span className="text-gray-500 font-normal">({t("optional")})</span>
         </label>
         <input
           type="text"
@@ -191,7 +191,7 @@ export default function PaymentForm({
           onChange={(e) =>
             setFormData((prev) => ({ ...prev, forWhat: e.target.value }))
           }
-          placeholder="Override program/service name in receipt"
+          placeholder={t("forWhatPlaceholder") as string}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
       </div>

@@ -498,6 +498,8 @@
   "transferReference": "رقم التحويل",
   "labelPaper": "الوصل الورقي",
   "labelPaperPlaceholder": "مثال: 12345",
+  "forWhat": "لأجل",
+  "forWhatPlaceholder": "استبدال اسم البرنامج/الخدمة في الإيصال",
   "password": "كلمة المرور",
   "login": "تسجيل الدخول",
   "signUp": "إنشاء حساب",
