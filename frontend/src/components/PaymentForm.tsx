@@ -36,6 +36,7 @@ export default function PaymentForm({
           : "",
         transferReference: payment.transferReference || "",
         transferPayerName: payment.transferPayerName || "",
+        forWhat: payment.forWhat || "",
       };
     }
     return {
@@ -49,6 +50,7 @@ export default function PaymentForm({
       chequeCashingDate: "",
       transferReference: "",
       transferPayerName: "",
+      forWhat: "",
     };
   }, [payment]);
 
@@ -175,6 +177,21 @@ export default function PaymentForm({
             setFormData((prev) => ({ ...prev, labelPaper: e.target.value }))
           }
           placeholder={t("labelPaperPlaceholder") as string}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          FOR <span className="text-gray-500 font-normal">({t("optional")})</span>
+        </label>
+        <input
+          type="text"
+          value={formData.forWhat}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, forWhat: e.target.value }))
+          }
+          placeholder="Override program/service name in receipt"
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
         />
       </div>

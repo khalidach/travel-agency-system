@@ -174,7 +174,7 @@ export default function ReceiptPDF({
           <p className="text-lg font-bold text-cyan-800">السعر الإجمالي :</p>
           <p className="text-lg font-bold text-gray-900">
             {" "}
-            {totalSellingPrice.toLocaleString()} درهم
+            {totalSellingPrice.toLocaleString("de-DE")} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Prix Total :
@@ -185,7 +185,7 @@ export default function ReceiptPDF({
             المبلغ المدفوع حاليا :
           </p>
           <p className="text-lg font-bold text-gray-900">
-            {currentPaymentAmount.toLocaleString()} درهم
+            {currentPaymentAmount.toLocaleString("de-DE")} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Montant Payé actuel :
@@ -194,7 +194,7 @@ export default function ReceiptPDF({
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800"> الباقي :</p>
           <p className="text-lg font-bold text-gray-900">
-            {remainingAfterThisPayment.toLocaleString()} درهم
+            {remainingAfterThisPayment.toLocaleString("de-DE")} درهم
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             {" "}
@@ -204,7 +204,7 @@ export default function ReceiptPDF({
         <div className="flex justify-between items-center mb-2">
           <p className="text-lg font-bold text-cyan-800">وذلك عن :</p>
           <p className="text-lg font-bold text-gray-900">
-            {program?.name || t("unknownProgram")}
+            {payment.forWhat || program?.name || t("unknownProgram")}
           </p>
           <p dir="ltr" className="text-lg font-bold text-cyan-800">
             Pour :
@@ -267,12 +267,12 @@ export default function ReceiptPDF({
               {paymentsBeforeThis.map((prevPayment) => (
                 <tr key={prevPayment._id}>
                   <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                    {Number(isGroup ? (prevPayment.groupAmount || prevPayment.amount || 0) : (prevPayment.amount || 0)).toLocaleString()} درهم
+                    {Number(isGroup ? (prevPayment.groupAmount || prevPayment.amount || 0) : (prevPayment.amount || 0)).toLocaleString("de-DE")} درهم
                   </td>
                   {!isGroup && (
                     <>
                       <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                        {Number((prevPayment.isGroupPayment ? prevPayment.amountMAD : prevPayment.amount) || 0).toLocaleString()} درهم
+                        {Number((prevPayment.isGroupPayment ? prevPayment.amountMAD : prevPayment.amount) || 0).toLocaleString("de-DE")} درهم
                       </td>
                       <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                         {t(prevPayment.method)}

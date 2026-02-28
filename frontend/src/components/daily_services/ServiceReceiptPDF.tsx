@@ -33,10 +33,7 @@ export default function ServiceReceiptPDF({
 
   // Helper to format currency
   const formatMAD = (amount: number) =>
-    `${Number(amount).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })} ${t("mad")}`;
+    `${Number(amount).toLocaleString("de-DE")} درهم`;
 
   return (
     <div
@@ -112,7 +109,7 @@ export default function ServiceReceiptPDF({
           >
             الخدمة:
           </p>
-          <p className="text-lg font-bold text-right">{service.serviceName}</p>
+          <p className="text-lg font-bold text-right">{payment.forWhat || service.serviceName}</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <p

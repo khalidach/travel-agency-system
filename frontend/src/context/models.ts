@@ -226,6 +226,7 @@ export interface Payment {
   isGroupPayment?: boolean;
   isLeader?: boolean;
   groupAmount?: number;
+  forWhat?: string;
 }
 
 export interface HotelPrice {
