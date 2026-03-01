@@ -150,36 +150,6 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
-    // Migration for missing columns in daily_services
-    await client.query(`
-      ALTER TABLE daily_services 
-      ADD COLUMN IF NOT EXISTS "clientName" VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS "bookingRef" VARCHAR(100),
-      ADD COLUMN IF NOT EXISTS "items" JSONB DEFAULT '[]'::jsonb;
-    `);
-
-    // Drop redundant columns now that we have items JSONB array
-    await client.query(`
-      ALTER TABLE daily_services 
-      DROP COLUMN IF EXISTS "serviceName",
-      DROP COLUMN IF EXISTS "originalPrice",
-      DROP COLUMN IF EXISTS "totalPrice";
-    `);
-
-    // // Data Migration for existing daily_services to populate the items array
-    // await client.query(`
-    //   UPDATE daily_services 
-    //   SET "items" = jsonb_build_array(
-    //       jsonb_build_object(
-    //           'description', "serviceName",
-    //           'quantity', 1,
-    //           'purchasePrice', "originalPrice",
-    //           'sellPrice', "totalPrice"
-    //       )
-    //   )
-    //   WHERE "items" IS NULL OR jsonb_array_length("items") = 0;
-    // `);
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS room_managements (
         id SERIAL PRIMARY KEY,
