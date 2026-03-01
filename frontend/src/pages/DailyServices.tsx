@@ -329,8 +329,8 @@ export default function DailyServices() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(service.date).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                    {service.serviceName}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground text-wrap">
+                    {service.items?.map(item => item.description).join(" - ")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-foreground">
                     {service.totalPrice.toLocaleString()} {t("mad")}

@@ -153,7 +153,9 @@ export default function ServiceReceiptPDF({
           >
             الخدمة الأساسية:
           </p>
-          <p className="text-lg font-bold text-right">{payment.forWhat || service.serviceName}</p>
+          <p className="text-lg font-bold text-right">
+            {payment.forWhat || service.items?.map(item => item.description).join(" - ")}
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <p
