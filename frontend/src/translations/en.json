@@ -668,5 +668,6 @@
   "for": "for",
   "by": "by",
   "allTime": "All Time",
-  "clientNameRequired": "Client name is required"
+  "clientNameRequired": "Client name is required",
+  "global": "Global"
 }

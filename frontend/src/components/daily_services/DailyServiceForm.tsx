@@ -232,11 +232,11 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
           {isBookingRelated && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t("bookingRef")} (Global)
+                {t("reservationNumber")} ({t("global")})
               </label>
               <input
                 type="text"
-                placeholder={t("bookingRef") as string}
+                placeholder={t("reservationNumber") as string}
                 value={bookingRef}
                 onChange={(e) => setBookingRef(e.target.value)}
                 className={inputClass}
@@ -261,7 +261,7 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
           </div>
 
           {isBookingRelated && (
-            <div className="col-span-2 text-left">{t("bookingRef")}</div>
+            <div className="col-span-2 text-left">{t("reservationNumber")}</div>
           )}
 
           <div className="col-span-1 text-center">{t("quantity")}</div>

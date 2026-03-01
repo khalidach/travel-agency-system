@@ -672,5 +672,6 @@
   "for": "pour",
   "by": "par",
   "allTime": "Toutes les périodes",
-  "clientNameRequired": "Le nom du client est requis"
+  "clientNameRequired": "Le nom du client est requis",
+  "global": " Global"
 }
