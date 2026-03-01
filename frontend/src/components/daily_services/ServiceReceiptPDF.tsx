@@ -73,18 +73,12 @@ export default function ServiceReceiptPDF({
         </div>
       </div>
       <div
-        className="text-xl font-bold text-gray-800 mt-6 pb-1 flex justify-center items-center"
+        className="text-xl font-bold text-gray-800 mt-6 pb-1 flex flex-col justify-center items-center"
         style={{ direction: "ltr" }}
       >
-        N°: <span className="text-blue-600">{payment.paymentID ? payment.paymentID : payment._id} </span>
-      </div>
-      {/* Receipt Details */}
-      <div className="flex justify-between items-center mb-6">
-        <div
-          className="text-xl font-bold text-gray-800"
-          style={{ direction: "rtl" }}
-        >
-          {/* NEW: Display labelPaper here */}
+        <div>N°: <span className="text-blue-600">{payment.paymentID ? payment.paymentID : payment._id} </span></div>
+        <div className="text-xl font-bold text-gray-800"
+          style={{ direction: "rtl" }}>
           {payment.labelPaper && (
             <div className="text-xl font-bold text-gray-800">
               رقم الوصل الورقي:{" "}
@@ -92,13 +86,66 @@ export default function ServiceReceiptPDF({
             </div>
           )}
         </div>
+      </div>
+      {/* Receipt Details */}
+      <div className="flex justify-start items-center mb-6 mt-4">
         <div className="text-xl font-bold text-gray-800">
           التاريخ:{" "}
           <span className="text-blue-600">
-            {new Date(payment.date).toLocaleDateString()}
+            {new Date(payment.date).toLocaleDateString("fr-FR")}
           </span>
         </div>
       </div>
+
+      {(service.clientName || service.bookingRef) && (
+        <div className="flex justify-between items-center mb-6 border-b pb-4">
+          <div className="text-xl font-bold text-gray-800">
+            {service.clientName && (
+              <p>
+                العميل: <span className="text-blue-600 font-normal">{service.clientName}</span>
+              </p>
+            )}
+          </div>
+          <div className="text-xl font-bold text-gray-800">
+            {service.bookingRef && (
+              <p>
+                رقم الحجز: <span className="text-blue-600 font-normal">{service.bookingRef}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Items Table */}
+      {service.items && service.items.length > 0 && (
+        <div className="mb-6">
+          <table className="w-full text-base text-gray-800 table-auto border-collapse border border-cyan-800">
+            <thead>
+              <tr className="bg-cyan-100">
+                <th className="border border-cyan-800 px-3 py-2 text-right w-1/2 font-bold">البيان</th>
+                <th className="border border-cyan-800 px-3 py-2 text-center font-bold">الكمية</th>
+                <th className="border border-cyan-800 px-3 py-2 text-right font-bold">السعر</th>
+                <th className="border border-cyan-800 px-3 py-2 text-right font-bold">المجموع</th>
+              </tr>
+            </thead>
+            <tbody>
+              {service.items.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="border border-cyan-800 px-3 py-2 text-right font-medium">
+                    {item.description}
+                    {item.bookingRef && (
+                      <span className="text-sm text-gray-500 block mt-1">رقم الحجز: {item.bookingRef}</span>
+                    )}
+                  </td>
+                  <td className="border border-cyan-800 px-3 py-2 text-center font-bold text-lg">{item.quantity}</td>
+                  <td className="border border-cyan-800 px-3 py-2 text-right font-bold text-lg">{formatMAD(item.sellPrice)}</td>
+                  <td className="border border-cyan-800 px-3 py-2 text-right font-bold text-lg text-cyan-800">{formatMAD(item.sellPrice * item.quantity)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Transaction Summary */}
       <div className="border-2 border-blue-800 rounded-lg p-6 mb-8 flex flex-col space-y-3 bg-blue-50/50">
@@ -107,7 +154,7 @@ export default function ServiceReceiptPDF({
             className="text-lg font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
-            الخدمة:
+            الخدمة الأساسية:
           </p>
           <p className="text-lg font-bold text-right">{payment.forWhat || service.serviceName}</p>
         </div>
