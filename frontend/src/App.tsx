@@ -190,10 +190,6 @@ function AppRoutes() {
                           <Route path="/expenses" element={<Expenses />} />
                           {/* --- NEW: Suppliers Routes --- */}
                           <Route path="/suppliers" element={<Suppliers />} />
-                          <Route
-                            path="/suppliers/:id"
-                            element={<SupplierAnalysis />}
-                          />
                         </>
                       )}
 
@@ -206,6 +202,10 @@ function AppRoutes() {
                       {/* Admin Only Routes */}
                       {userRole === "admin" && (
                         <>
+                          <Route
+                            path="/suppliers/:id"
+                            element={<SupplierAnalysis />}
+                          />
                           <Route
                             path="/profit-report"
                             element={

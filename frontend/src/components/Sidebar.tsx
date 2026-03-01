@@ -23,7 +23,11 @@ import {
   BarChart2,
   ShipWheel,
   Wallet,
+  Truck,
+  Dock,
 } from "lucide-react";
+
+import NewBadge from "./ui/NewBadge";
 
 type MenuItem = {
   key: string;
@@ -149,6 +153,28 @@ const allMenuItems: MenuItem[] = [
     ],
   },
   {
+    key: "expensesManagement",
+    icon: Dock,
+    roles: ["admin", "manager"],
+    new: true,
+    children: [
+      {
+        key: "expenses",
+        path: "/expenses",
+        icon: Wallet,
+        roles: ["admin", "manager"],
+        new: true,
+      },
+      {
+        key: "suppliers",
+        path: "/suppliers",
+        icon: Truck,
+        roles: ["admin", "manager"],
+        new: true,
+      },
+    ],
+  },
+  {
     key: "facturation",
     path: "/facturation",
     icon: FileText,
@@ -175,13 +201,7 @@ const allMenuItems: MenuItem[] = [
     icon: Settings,
     roles: ["admin"],
   },
-  {
-    key: "expenses",
-    path: "/expenses",
-    icon: Wallet, // Import Wallet from lucide-react
-    roles: [""],
-    isDisabled: true, // Mark as disabled since it's not implemented yet
-  },
+
 ];
 
 const MenuItemContent = ({
@@ -196,17 +216,17 @@ const MenuItemContent = ({
   return (
     <>
       <Icon
-        className={`mx-3 h-5 w-5 transition-colors ${
-          isActive && !item.isDisabled
-            ? "text-primary"
-            : item.isDisabled
-              ? "text-muted-foreground/50"
-              : "text-muted-foreground group-hover:text-foreground"
-        }`}
+        className={`mx-3 h-5 w-5 transition-colors ${isActive && !item.isDisabled
+          ? "text-primary"
+          : item.isDisabled
+            ? "text-muted-foreground/50"
+            : "text-muted-foreground group-hover:text-foreground"
+          }`}
       />
       <span className={`${item.isDisabled ? "text-muted-foreground/50" : ""}`}>
         {t(item.key)}
       </span>
+      {item.new && <NewBadge />}
       {item.isDisabled && (
         <Lock className="ml-auto mr-3 h-4 w-4 text-muted-foreground/50" />
       )}
@@ -291,29 +311,25 @@ export default function Sidebar() {
                 <li key={item.key}>
                   <button
                     onClick={() => handleMenuClick(item)}
-                    className={`group flex items-center justify-between w-full px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                      isParentActive && !isOpen && !item.isDisabled
-                        ? "bg-primary/10 text-primary shadow-sm"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    } ${
-                      item.isDisabled ? "cursor-not-allowed opacity-60" : ""
-                    }`}
+                    className={`relative group flex items-center justify-between w-full px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isParentActive && !isOpen && !item.isDisabled
+                      ? "bg-primary/10 text-primary shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""
+                      }`}
                   >
                     <div className="flex items-center">
                       <MenuItemContent item={item} isActive={isParentActive} />
                     </div>
                     {!item.isDisabled && (
                       <ChevronDown
-                        className={`w-5 h-5 transition-transform duration-300 ${
-                          isOpen ? "rotate-180" : ""
-                        }`}
+                        className={`w-5 h-5 transition-transform duration-300 ${isOpen ? "rotate-180" : ""
+                          }`}
                       />
                     )}
                   </button>
                   <div
-                    className={`overflow-hidden transition-[max-height] duration-500 ease-in-out ${
-                      isOpen ? "max-h-96" : "max-h-0"
-                    }`}
+                    className={`overflow-hidden transition-[max-height] duration-500 ease-in-out ${isOpen ? "max-h-96" : "max-h-0"
+                      }`}
                   >
                     <ul className="pl-8 pt-2 space-y-1">
                       {item.children.map((child) => {
@@ -324,15 +340,13 @@ export default function Sidebar() {
                           <li key={child.key}>
                             <Link
                               to={child.isDisabled ? "#" : child.path!}
-                              className={`relative group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${
-                                isChildActive && !child.isDisabled
-                                  ? "text-primary bg-primary/10"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                              } ${
-                                child.isDisabled
+                              className={`relative group flex items-center px-1 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${isChildActive && !child.isDisabled
+                                ? "text-primary bg-primary/10"
+                                : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                } ${child.isDisabled
                                   ? "cursor-not-allowed opacity-60"
                                   : ""
-                              }`}
+                                }`}
                               onClick={(e) =>
                                 child.isDisabled && e.preventDefault()
                               }
@@ -356,11 +370,10 @@ export default function Sidebar() {
                 <Link
                   to={item.isDisabled ? "#" : item.path!}
                   onClick={(e) => item.isDisabled && e.preventDefault()}
-                  className={`group flex items-center px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
-                    isActive && !item.isDisabled
-                      ? "bg-primary/10 text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
+                  className={`relative group flex items-center px-1 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive && !item.isDisabled
+                    ? "bg-primary/10 text-primary shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    } ${item.isDisabled ? "cursor-not-allowed opacity-60" : ""}`}
                 >
                   <MenuItemContent item={item} isActive={isActive} />
                 </Link>
