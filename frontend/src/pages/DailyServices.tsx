@@ -345,10 +345,10 @@ export default function DailyServices() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${Number(service.totalPaid) === 0
-                          ? "bg-destructive/10 text-destructive"
-                          : service.isFullyPaid
-                            ? "bg-success/10 text-success"
-                            : "bg-warning/10 text-warning"
+                        ? "bg-destructive/10 text-destructive"
+                        : service.isFullyPaid
+                          ? "bg-success/10 text-success"
+                          : "bg-warning/10 text-warning"
                         }`}
                     >
                       {Number(service.totalPaid) === 0
@@ -415,6 +415,7 @@ export default function DailyServices() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingService ? t("edit") : t("newService")}
+        size="xl"
       >
         <DailyServiceForm
           service={editingService}

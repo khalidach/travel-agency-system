@@ -291,12 +291,23 @@ export interface BookingSummaryStats {
   totalRemaining: number;
 }
 
+export interface DailyServiceItem {
+  description: string;
+  bookingRef?: string;
+  quantity: number;
+  purchasePrice: number;
+  sellPrice: number;
+}
+
 export interface DailyService {
   id: number;
   userId: number;
   employeeId?: number;
   type: "airline-ticket" | "hotel-reservation" | "reservation-ticket" | "visa";
-  serviceName: string;
+  serviceName: string; // Kept for legacy compatibility
+  clientName?: string;
+  bookingRef?: string;
+  items?: DailyServiceItem[];
   originalPrice: number;
   totalPrice: number;
   profit: number;

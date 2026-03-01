@@ -287,18 +287,44 @@ const dailyServiceValidation = [
   body("type")
     .isIn(["airline-ticket", "hotel-reservation", "reservation-ticket", "visa"])
     .withMessage("Invalid service type."),
-  body("serviceName")
-    .notEmpty()
-    .trim()
-    .withMessage("Service name is required."),
-  body("originalPrice")
-    .isFloat({ gte: 0 })
-    .withMessage("Original price must be a non-negative number."),
+  body("clientName")
+    .optional({ nullable: true, checkFalsy: true })
+    .isString()
+    .withMessage("Client name must be a string."),
+  body("bookingRef")
+    .optional({ nullable: true, checkFalsy: true })
+    .isString()
+    .withMessage("Booking reference must be a string."),
+  body("items")
+    .optional({ nullable: true, checkFalsy: true })
+    .isArray()
+    .withMessage("Items must be an array.")
+    .custom((items) => {
+      if (items && items.length > 0) {
+        items.forEach((item, index) => {
+          if (!item.description || item.description.trim() === "") {
+            throw new Error(`Item at index ${index} must have a valid description.`);
+          }
+          if (typeof item.quantity !== "number" || item.quantity <= 0) {
+            throw new Error(`Item at index ${index} must have a valid positive quantity.`);
+          }
+          if (typeof item.purchasePrice !== "number" || item.purchasePrice < 0) {
+            throw new Error(`Item at index ${index} must have a valid non-negative purchase price.`);
+          }
+          if (typeof item.sellPrice !== "number" || item.sellPrice < 0) {
+            throw new Error(`Item at index ${index} must have a valid non-negative sell price.`);
+          }
+        });
+      }
+      return true;
+    }),
   body("totalPrice")
+    .optional() // Total price is now calculated on backend but keep validation if passed
     .isFloat({ gte: 0 })
     .withMessage("Total price must be a non-negative number.")
     .custom((value, { req }) => {
-      if (value < req.body.originalPrice) {
+      // If we pass originalPrice explicitly
+      if (req.body.originalPrice !== undefined && value < req.body.originalPrice) {
         throw new Error("Total price cannot be less than the original price.");
       }
       return true;

@@ -2,6 +2,33 @@ const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 const { getNextPaymentId } = require("../services/sequence.service");
 
+// Helper to compute derived properties from items JSONB
+const mapServiceData = (row) => {
+  const items = typeof row.items === "string" ? JSON.parse(row.items) : (row.items || []);
+  const originalPrice = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
+  const totalPrice = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
+
+  let serviceName = "";
+  if (items.length > 0) {
+    serviceName = items.length === 1
+      ? items[0].description
+      : `${items.length} items (${items.map(i => i.description).join(", ").slice(0, 50)}...)`;
+  }
+
+  const advancePayments = typeof row.advancePayments === "string" ? JSON.parse(row.advancePayments) : (row.advancePayments || []);
+  const totalPaid = advancePayments.reduce((sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0), 0);
+
+  return {
+    ...row,
+    items,
+    originalPrice,
+    totalPrice,
+    serviceName,
+    advancePayments,
+    totalPaid
+  };
+};
+
 const getDailyServices = async (req, res, next) => {
   try {
     const { adminId } = req.user;
@@ -10,7 +37,7 @@ const getDailyServices = async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     const servicesPromise = req.db.query(
-      'SELECT *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid" FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
+      'SELECT * FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
       [adminId, limit, offset],
     );
 
@@ -27,7 +54,7 @@ const getDailyServices = async (req, res, next) => {
     const totalCount = parseInt(totalCountResult.rows[0].count, 10);
 
     res.status(200).json({
-      data: servicesResult.rows,
+      data: servicesResult.rows.map(mapServiceData),
       pagination: {
         page,
         limit,
@@ -49,14 +76,16 @@ const createDailyService = async (req, res, next) => {
     const { adminId, id: employeeId, role } = req.user;
     const {
       type,
-      serviceName,
-      originalPrice,
-      totalPrice,
+      clientName,
+      bookingRef,
+      items,
       date,
       advancePayments,
     } = req.body;
 
-    // Calculate profit (replaces commission logic)
+    const originalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
+    const totalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
+
     const profit = totalPrice - originalPrice;
 
     const totalPaid = (advancePayments || []).reduce(
@@ -67,24 +96,23 @@ const createDailyService = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      // REMOVED 'commission' COLUMN FROM INSERT QUERY
-      `INSERT INTO daily_services ("userId", "employeeId", type, "serviceName", "originalPrice", "totalPrice", profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
+      `INSERT INTO daily_services ("userId", "employeeId", type, "clientName", "bookingRef", "items", profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
         type,
-        serviceName,
-        originalPrice,
-        totalPrice,
-        profit, // Using profit instead of commission
+        clientName || null,
+        bookingRef || null,
+        JSON.stringify(items || []),
+        profit,
         date,
         JSON.stringify(advancePayments || []),
         remainingBalance,
         isFullyPaid,
       ],
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json(mapServiceData(rows[0]));
   } catch (error) {
     logger.error("Create Daily Service Error:", {
       message: error.message,
@@ -101,14 +129,15 @@ const updateDailyService = async (req, res, next) => {
     const { adminId } = req.user;
     const {
       type,
-      serviceName,
-      originalPrice,
-      totalPrice,
+      clientName,
+      bookingRef,
+      items,
       date,
       advancePayments,
     } = req.body;
 
-    // Recalculate profit (replaces commission logic)
+    const originalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
+    const totalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
     const profit = totalPrice - originalPrice;
 
     const totalPaid = (advancePayments || []).reduce(
@@ -119,16 +148,15 @@ const updateDailyService = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      // REMOVED 'commission' COLUMN FROM UPDATE QUERY
       `UPDATE daily_services 
-       SET type = $1, "serviceName" = $2, "originalPrice" = $3, "totalPrice" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "updatedAt" = NOW()
-       WHERE id = $10 AND "userId" = $11 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
+       SET type = $1, "clientName" = $2, "bookingRef" = $3, "items" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "updatedAt" = NOW()
+       WHERE id = $10 AND "userId" = $11 RETURNING *`,
       [
         type,
-        serviceName,
-        originalPrice,
-        totalPrice,
-        profit, // Using profit instead of commission
+        clientName || null,
+        bookingRef || null,
+        JSON.stringify(items || []),
+        profit,
         date,
         JSON.stringify(advancePayments || []),
         remainingBalance,
@@ -141,7 +169,7 @@ const updateDailyService = async (req, res, next) => {
     if (rows.length === 0) {
       return next(new AppError("Service not found or not authorized.", 404));
     }
-    res.status(200).json(rows[0]);
+    res.status(200).json(mapServiceData(rows[0]));
   } catch (error) {
     logger.error("Update Daily Service Error:", {
       message: error.message,
@@ -181,90 +209,79 @@ const getDailyServiceReport = async (req, res, next) => {
     const { adminId } = req.user;
     const { startDate, endDate } = req.query;
 
-    const isValidDate = (dateString) =>
-      dateString && !isNaN(new Date(dateString));
+    const isValidDate = (dateString) => dateString && !isNaN(new Date(dateString));
 
-    const lifetimeSummaryQuery = `
-      SELECT
-        COUNT(*) as "totalSalesCount",
-        COALESCE(SUM("totalPrice"), 0) as "totalRevenue",
-        COALESCE(SUM(profit), 0) as "totalProfit",
-        COALESCE(SUM("originalPrice"), 0) as "totalCost"
-      FROM daily_services
-      WHERE "userId" = $1
-    `;
-    const lifetimeSummaryPromise = req.db.query(lifetimeSummaryQuery, [
-      adminId,
-    ]);
+    // Fetch all for user and calculate stats in JS
+    const { rows } = await req.db.query('SELECT * FROM daily_services WHERE "userId" = $1', [adminId]);
+    const mappedServices = rows.map(mapServiceData);
 
-    const monthlyTrendQuery = `
-      SELECT
-          TO_CHAR(date, 'YYYY-MM') as month,
-          SUM(profit) as profit
-      FROM daily_services
-      WHERE "userId" = $1 AND date >= date_trunc('month', NOW()) - interval '5 months'
-      GROUP BY month
-      ORDER BY month ASC
-    `;
-    const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
+    // Lifetime summary
+    const lifetimeSummary = {
+      totalSalesCount: mappedServices.length,
+      totalRevenue: mappedServices.reduce((sum, s) => sum + s.totalPrice, 0),
+      totalProfit: mappedServices.reduce((sum, s) => sum + Number(s.profit), 0),
+      totalCost: mappedServices.reduce((sum, s) => sum + s.originalPrice, 0),
+    };
 
-    let dateFilterClause = "";
-    const queryParams = [adminId];
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      queryParams.push(startDate, endDate);
-      dateFilterClause = `AND date::date BETWEEN $2 AND $3`;
+    // Monthly Trend
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+
+    const monthlyTrendMap = {};
+    for (const s of mappedServices) {
+      const d = new Date(s.date);
+      if (d >= sixMonthsAgo) {
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        monthlyTrendMap[monthKey] = (monthlyTrendMap[monthKey] || 0) + Number(s.profit);
+      }
     }
+    const monthlyTrend = Object.keys(monthlyTrendMap).sort().map(month => ({ month, profit: monthlyTrendMap[month] }));
 
-    const filteredDataQuery = `
-      WITH FilteredServices AS (
-        SELECT *
-        FROM daily_services
-        WHERE "userId" = $1 ${dateFilterClause}
-      )
-      SELECT
-        (SELECT json_build_object(
-          'totalSalesCount', COUNT(*),
-          'totalRevenue', COALESCE(SUM("totalPrice"), 0),
-          'totalProfit', COALESCE(SUM(profit), 0),
-          'totalCost', COALESCE(SUM("originalPrice"), 0)
-        ) FROM FilteredServices) as "dateFilteredSummary",
+    // Filtering logic
+    const startDateObj = isValidDate(startDate) ? new Date(startDate) : null;
+    const endDateObj = isValidDate(endDate) ? new Date(endDate) : null;
 
-        (SELECT json_agg(t) FROM (
-          SELECT
-            type,
-            COUNT(*) as "count",
-            COALESCE(SUM("originalPrice"), 0) as "totalOriginalPrice",
-            COALESCE(SUM("totalPrice"), 0) as "totalSalePrice",
-            COALESCE(SUM(profit), 0) as "totalProfit"
-          FROM FilteredServices
-          GROUP BY type
-          ORDER BY type
-        ) t) as "byType"
-    `;
-    const filteredDataPromise = req.db.query(filteredDataQuery, queryParams);
+    // Using UTC to avoid timezone drift errors
+    if (startDateObj) startDateObj.setUTCHours(0, 0, 0, 0);
+    if (endDateObj) endDateObj.setUTCHours(23, 59, 59, 999);
 
-    const [lifetimeSummaryResult, monthlyTrendResult, filteredDataResult] =
-      await Promise.all([
-        lifetimeSummaryPromise,
-        monthlyTrendPromise,
-        filteredDataPromise,
-      ]);
+    const filteredMapped = mappedServices.filter(s => {
+      if (!startDateObj && !endDateObj) return true;
+      const d = new Date(s.date);
+      d.setUTCHours(0, 0, 0, 0);
+      let ok = true;
+      if (startDateObj && d < startDateObj) ok = false;
+      if (endDateObj && d > endDateObj) ok = false;
+      return ok;
+    });
 
-    const filteredData = filteredDataResult.rows[0];
+    const dateFilteredSummary = {
+      totalSalesCount: filteredMapped.length,
+      totalRevenue: filteredMapped.reduce((sum, s) => sum + s.totalPrice, 0),
+      totalProfit: filteredMapped.reduce((sum, s) => sum + Number(s.profit), 0),
+      totalCost: filteredMapped.reduce((sum, s) => sum + s.originalPrice, 0),
+    };
+
+    const byTypeMap = {};
+    for (const s of filteredMapped) {
+      if (!byTypeMap[s.type]) {
+        byTypeMap[s.type] = { type: s.type, count: 0, totalOriginalPrice: 0, totalSalePrice: 0, totalProfit: 0 };
+      }
+      byTypeMap[s.type].count += 1;
+      byTypeMap[s.type].totalOriginalPrice += s.originalPrice;
+      byTypeMap[s.type].totalSalePrice += s.totalPrice;
+      byTypeMap[s.type].totalProfit += Number(s.profit);
+    }
+    const byType = Object.values(byTypeMap).sort((a, b) => a.type.localeCompare(b.type));
 
     res.status(200).json({
-      lifetimeSummary: lifetimeSummaryResult.rows[0],
-      dateFilteredSummary: filteredData.dateFilteredSummary || {
-        totalSalesCount: 0,
-        totalRevenue: 0,
-        totalProfit: 0,
-        totalCost: 0,
+      lifetimeSummary,
+      dateFilteredSummary: Object.keys(dateFilteredSummary).length > 0 ? dateFilteredSummary : {
+        totalSalesCount: 0, totalRevenue: 0, totalProfit: 0, totalCost: 0
       },
-      byType: filteredData.byType || [],
-      monthlyTrend: monthlyTrendResult.rows.map((row) => ({
-        ...row,
-        profit: parseFloat(row.profit),
-      })),
+      byType,
+      monthlyTrend
     });
   } catch (error) {
     logger.error("Daily Service Report Error:", {
@@ -283,7 +300,7 @@ const findDailyServiceForUser = async (db, user, serviceId) => {
   if (rows.length === 0)
     throw new Error("Daily service not found or not authorized");
 
-  const service = rows[0];
+  const service = mapServiceData(rows[0]);
   if (user.role === "manager") {
     throw new Error("Managers are not authorized to modify payments.");
   }
@@ -299,20 +316,18 @@ const addDailyServicePayment = async (req, res, next) => {
   try {
     const { serviceId } = req.params;
     const { adminId } = req.user;
-    // MODIFIED: Extract labelPaper
     const { labelPaper, ...paymentData } = req.body;
 
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
-
     const paymentId = await getNextPaymentId(req.db, adminId);
 
-    // MODIFIED: Include labelPaper in newPayment
     const newPayment = {
       ...paymentData,
       _id: new Date().getTime().toString(),
       paymentID: paymentId,
       labelPaper: labelPaper || "",
     };
+
     const advancePayments = [...(service.advancePayments || []), newPayment];
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
@@ -322,7 +337,7 @@ const addDailyServicePayment = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,
@@ -332,7 +347,7 @@ const addDailyServicePayment = async (req, res, next) => {
       ],
     );
 
-    res.status(200).json(updatedRows[0]);
+    res.status(200).json(mapServiceData(updatedRows[0]));
   } catch (error) {
     logger.error("Add Daily Service Payment Error:", {
       message: error.message,
@@ -347,7 +362,6 @@ const updateDailyServicePayment = async (req, res, next) => {
   try {
     const { serviceId, paymentId } = req.params;
     const { adminId } = req.user;
-    // MODIFIED: Extract labelPaper
     const { labelPaper, ...paymentData } = req.body;
 
     const service = await findDailyServiceForUser(req.db, req.user, serviceId);
@@ -356,7 +370,7 @@ const updateDailyServicePayment = async (req, res, next) => {
       (p) =>
         p._id === paymentId
           ? { ...p, ...paymentData, _id: p._id, labelPaper: labelPaper || "" }
-          : p, // MODIFIED: Update labelPaper
+          : p,
     );
     const totalPaid = advancePayments.reduce(
       (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
@@ -366,7 +380,7 @@ const updateDailyServicePayment = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,
@@ -376,7 +390,7 @@ const updateDailyServicePayment = async (req, res, next) => {
       ],
     );
 
-    res.status(200).json(updatedRows[0]);
+    res.status(200).json(mapServiceData(updatedRows[0]));
   } catch (error) {
     logger.error("Update Daily Service Payment Error:", {
       message: error.message,
@@ -406,7 +420,7 @@ const deleteDailyServicePayment = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows: updatedRows } = await req.db.query(
-      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *, "totalPrice" - COALESCE("remainingBalance", "totalPrice") AS "totalPaid"`,
+      `UPDATE daily_services SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3 WHERE id = $4 AND "userId" = $5 RETURNING *`,
       [
         JSON.stringify(advancePayments),
         remainingBalance,
@@ -416,7 +430,7 @@ const deleteDailyServicePayment = async (req, res, next) => {
       ],
     );
 
-    res.status(200).json(updatedRows[0]);
+    res.status(200).json(mapServiceData(updatedRows[0]));
   } catch (error) {
     logger.error("Delete Daily Service Payment Error:", {
       message: error.message,
