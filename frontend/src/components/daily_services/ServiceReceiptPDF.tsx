@@ -87,24 +87,21 @@ export default function ServiceReceiptPDF({
           )}
         </div>
       </div>
-      {/* Receipt Details */}
-      <div className="flex justify-start items-center mb-6 mt-4">
-        <div className="text-xl font-bold text-gray-800">
-          التاريخ:{" "}
-          <span className="text-blue-600">
-            {new Date(payment.date).toLocaleDateString("fr-FR")}
-          </span>
-        </div>
-      </div>
 
-      {(service.clientName || service.bookingRef) && (
-        <div className="flex justify-between items-center mb-6 border-b pb-4">
+      {(service.clientName || service.bookingRef || payment.date) && (
+        <div className="flex justify-between items-center mb-6 mt-4 border-b pb-4">
           <div className="text-xl font-bold text-gray-800">
             {service.clientName && (
               <p>
                 العميل: <span className="text-blue-600 font-normal">{service.clientName}</span>
               </p>
             )}
+          </div>
+          <div className="text-xl font-bold text-gray-800">
+            التاريخ:{" "}
+            <span className="text-blue-600">
+              {new Date(payment.date).toLocaleDateString("fr-FR")}
+            </span>
           </div>
           <div className="text-xl font-bold text-gray-800">
             {service.bookingRef && (
@@ -134,7 +131,7 @@ export default function ServiceReceiptPDF({
                   <td className="border border-cyan-800 px-3 py-2 text-right font-medium">
                     {item.description}
                     {item.bookingRef && (
-                      <span className="text-sm text-gray-500 block mt-1">رقم الحجز: {item.bookingRef}</span>
+                      <span className="text-sm text-gray-500 mr-1">(رقم الحجز: {item.bookingRef})</span>
                     )}
                   </td>
                   <td className="border border-cyan-800 px-3 py-2 text-center font-bold text-lg">{item.quantity}</td>
@@ -228,30 +225,25 @@ export default function ServiceReceiptPDF({
           </p>
         </div>
       </div>
-      {/* Footer / Signature */}
-      <div className="flex justify-start mt-16" style={{ direction: "rtl" }}>
-        <p className="text-xl font-bold text-cyan-800">الامضاء</p>
-      </div>
-
       {/* Previous Payments Table */}
       {paymentsBeforeThis.length > 0 && (
-        <div className="mt-32 border-t pt-6">
+        <div className="mt-8 border-t pt-6 border-cyan-300">
           <h3
-            className="text-xl font-bold text-gray-900 mb-4"
+            className="text-xl font-bold text-cyan-900 mb-4"
             style={{ direction: "rtl" }}
           >
             الدفوعات السابقة (قبل هذا الوصل)
           </h3>
-          <table className="w-full text-sm text-gray-600 table-auto border border-cyan-900">
+          <table className="w-full text-base text-gray-800 table-auto border-collapse border border-cyan-800">
             <thead>
-              <tr className="bg-cyan-50">
-                <th className="border border-cyan-900 font-bold text-base text-cyan-800 text-right px-4 py-2 align-middle">
+              <tr className="bg-cyan-100">
+                <th className="border border-cyan-800 font-bold text-right px-4 py-2 align-middle">
                   المبلغ
                 </th>
-                <th className="border border-cyan-900 font-bold text-base text-cyan-800 text-right px-4 py-2 align-middle">
+                <th className="border border-cyan-800 font-bold text-right px-4 py-2 align-middle">
                   رقم الوصل
                 </th>
-                <th className="border border-cyan-900 font-bold text-base text-cyan-800 text-right px-4 py-2 align-middle">
+                <th className="border border-cyan-800 font-bold text-right px-4 py-2 align-middle">
                   التاريخ
                 </th>
               </tr>
@@ -260,14 +252,14 @@ export default function ServiceReceiptPDF({
               {paymentsBeforeThis.map((prevPayment) => {
                 return (
                   <tr key={prevPayment._id}>
-                    <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
+                    <td className="border border-cyan-800 px-4 py-2 align-middle font-bold text-cyan-800">
                       {formatMAD(prevPayment.amount)}
                     </td>
-                    <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
+                    <td className="border border-cyan-800 px-4 py-2 align-middle text-blue-600 font-medium tracking-wide">
                       {prevPayment.paymentID ? prevPayment.paymentID : prevPayment._id}
                     </td>
-                    <td className="border border-cyan-900 text-base px-4 py-2 align-middle">
-                      {new Date(prevPayment.date).toLocaleDateString()}
+                    <td className="border border-cyan-800 px-4 py-2 align-middle font-medium">
+                      {new Date(prevPayment.date).toLocaleDateString("fr-FR")}
                     </td>
                   </tr>
                 );
@@ -276,6 +268,11 @@ export default function ServiceReceiptPDF({
           </table>
         </div>
       )}
+
+      {/* Footer / Signature */}
+      <div className="flex justify-start mt-12 mb-8" style={{ direction: "rtl" }}>
+        <p className="text-xl font-bold text-cyan-800">الامضاء</p>
+      </div>
     </div>
   );
 }

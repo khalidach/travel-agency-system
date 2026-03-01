@@ -45,13 +45,23 @@ const getDashboardStats = async (req, res, next) => {
       dailyServiceDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
     const dailyServiceStatsQuery = `
+      WITH ds_calc AS (
+        SELECT 
+          date,
+          "remainingBalance",
+          (
+            SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'sellPrice')::numeric), 0) 
+            FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item
+          ) as total_price
+        FROM daily_services
+        WHERE "userId" = $1
+      )
       SELECT 
         COUNT(*) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}) AS "filteredServicesCount",
         COUNT(*) AS "allTimeServicesCount",
-        COALESCE(SUM("totalPrice" - COALESCE("remainingBalance", "totalPrice")) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
-        COALESCE(SUM("totalPrice" - COALESCE("remainingBalance", "totalPrice")), 0) AS "allTimeServiceRevenue"
-      FROM daily_services
-      WHERE "userId" = $1
+        COALESCE(SUM(total_price - COALESCE("remainingBalance", total_price)) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}), 0) AS "filteredServiceRevenue",
+        COALESCE(SUM(total_price - COALESCE("remainingBalance", total_price)), 0) AS "allTimeServiceRevenue"
+      FROM ds_calc
     `;
     const dailyServiceStatsPromise = req.db.query(
       dailyServiceStatsQuery,

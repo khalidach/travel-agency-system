@@ -389,26 +389,41 @@ exports.getEmployeeServicePerformance = async (req, res, next) => {
         : "";
 
     const performanceQuery = `
+        WITH ds_calc AS (
+          SELECT 
+            type,
+            profit,
+            (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'sellPrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item) as "totalPrice",
+            (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'purchasePrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item) as "originalPrice"
+          FROM daily_services
+          ${whereClause}
+        )
         SELECT
             type,
             COUNT(*) as "serviceCount",
             COALESCE(SUM("totalPrice"), 0) as "totalSales",
             COALESCE(SUM("originalPrice"), 0) as "totalCost",
             COALESCE(SUM(profit), 0) as "totalProfit"
-        FROM daily_services
-        ${whereClause}
+        FROM ds_calc
         GROUP BY type
         ORDER BY "totalProfit" DESC;
     `;
 
     const summaryQuery = `
+        WITH ds_calc AS (
+          SELECT
+            profit,
+            (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'sellPrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item) as "totalPrice",
+            (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'purchasePrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item) as "originalPrice"
+          FROM daily_services
+          ${whereClause}
+        )
         SELECT
             COUNT(*) as totalServices,
             COALESCE(SUM("totalPrice"), 0) as totalRevenue,
             COALESCE(SUM("originalPrice"), 0) as totalCost,
             COALESCE(SUM(profit), 0) as totalProfit
-        FROM daily_services
-        ${whereClause}
+        FROM ds_calc
     `;
 
     const [performanceResult, summaryResult] = await Promise.all([
