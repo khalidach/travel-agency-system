@@ -63,6 +63,8 @@
   "activePrograms": "البرامج النشطة",
   "welcomeMessage": "مرحباً، {{name}}",
   "dashboardSubtitle": "هذه لوحة تحكم إدارة السفر الخاصة بك",
+  "noSuppliersFound": "لم يتم العثور على موردين",
+  "createNewSupplier": "إنشاء مورد جديد",
   "today": "اليوم",
   "last7Days": "اخر 7 ايام",
   "last30Days": "اخر 30 يوما",

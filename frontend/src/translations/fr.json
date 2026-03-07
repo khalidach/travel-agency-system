@@ -71,6 +71,8 @@
   "errorLoadingDashboard": "Erreur de chargement des données du tableau de bord.",
   "totalPaid": "Total Payé",
   "totalRemaining": "Total Restant",
+  "noSuppliersFound": "Aucun fournisseur trouvé",
+  "createNewSupplier": "Créer un nouveau fournisseur",
   "programTypeDistribution": "Distribution des Types de Programmes",
   "profitByServiceType": "Profit par Type de Service",
   "quickActions": "Actions Rapides",

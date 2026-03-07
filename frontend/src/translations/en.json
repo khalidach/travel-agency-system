@@ -59,6 +59,8 @@
   "activePrograms": "Active Programs",
   "welcomeMessage": "Welcome, {{name}}",
   "dashboardSubtitle": "Here's your travel management dashboard",
+  "noSuppliersFound": "No suppliers found",
+  "createNewSupplier": "Create New Supplier",
   "today": "Today",
   "last7Days": "Last 7 Days",
   "last30Days": "Last 30 Days",
