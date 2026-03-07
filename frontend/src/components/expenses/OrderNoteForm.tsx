@@ -3,8 +3,10 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Expense, ExpenseItem, Supplier } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
-import { getSuppliers } from "../../services/api";
+import { getSuppliers, createSupplier } from "../../services/api";
 import NumberInput from "../ui/NumberInput";
+import Modal from "../Modal";
+import SupplierForm, { SupplierFormData } from "../suppliers/SupplierForm";
 
 interface OrderNoteFormProps {
   initialData?: Expense;
@@ -47,6 +49,7 @@ export default function OrderNoteForm({
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
 
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
@@ -93,7 +96,10 @@ export default function OrderNoteForm({
     const fetchSuppliers = async () => {
       try {
         const data = await getSuppliers(false);
-        if (Array.isArray(data)) {
+        if (data && Array.isArray(data.suppliers)) {
+          setSuppliers(data.suppliers);
+        } else if (Array.isArray(data)) {
+          // Fallback just in case some other endpoint format exists
           setSuppliers(data);
         }
       } catch (error) {
@@ -102,6 +108,20 @@ export default function OrderNoteForm({
     };
     fetchSuppliers();
   }, [readOnly]);
+
+  const handleCreateSupplier = async (data: SupplierFormData) => {
+    try {
+      const newSupplier = await createSupplier(data);
+      if (newSupplier) {
+        setSuppliers((prev) => [...prev, newSupplier]);
+        setBeneficiary(newSupplier.name);
+        setIsSupplierModalOpen(false);
+        setShowSuggestions(false);
+      }
+    } catch (error) {
+      console.error("Failed to create supplier", error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -314,20 +334,40 @@ export default function OrderNoteForm({
                 className={inputClass}
               />
               {/* Suggestions Dropdown */}
-              {!readOnly && showSuggestions && filteredSuppliers.length > 0 && (
+              {!readOnly && showSuggestions && (
                 <ul className="absolute z-10 w-full mt-1 max-h-60 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-                  {filteredSuppliers.map((supplier) => (
-                    <li
-                      key={supplier.id}
-                      onClick={() => {
-                        setBeneficiary(supplier.name);
-                        setShowSuggestions(false);
-                      }}
-                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm"
-                    >
-                      {supplier.name}
+                  {filteredSuppliers.length > 0 ? (
+                    filteredSuppliers.map((supplier) => (
+                      <li
+                        key={supplier.id}
+                        onMouseDown={() => {
+                          setBeneficiary(supplier.name);
+                          setShowSuggestions(false);
+                        }}
+                        className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm"
+                      >
+                        {supplier.name}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="px-4 py-3 text-sm flex flex-col items-center justify-center gap-2">
+                      <span className="text-gray-500">
+                        {t("noSuppliersFound", { defaultValue: "No suppliers found" })}
+                      </span>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setShowSuggestions(false);
+                          setIsSupplierModalOpen(true);
+                        }}
+                        className="text-primary hover:text-primary/80 font-medium flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        {t("createNewSupplier", { defaultValue: "Create New Supplier" })}
+                      </button>
                     </li>
-                  ))}
+                  )}
                 </ul>
               )}
             </div>
@@ -599,6 +639,17 @@ export default function OrderNoteForm({
           </button>
         )}
       </div>
+
+      <Modal
+        isOpen={isSupplierModalOpen}
+        onClose={() => setIsSupplierModalOpen(false)}
+        title={t("createNewSupplier", { defaultValue: "Create New Supplier" })}
+      >
+        <SupplierForm
+          onSubmit={handleCreateSupplier}
+          onCancel={() => setIsSupplierModalOpen(false)}
+        />
+      </Modal>
     </form>
   );
 }
