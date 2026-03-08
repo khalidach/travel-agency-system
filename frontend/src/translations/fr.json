@@ -678,5 +678,7 @@
   "by": "par",
   "allTime": "Toutes les périodes",
   "clientNameRequired": "Le nom du client est requis",
-  "global": " Global"
+  "global": " Global",
+  "deleteSupplier": "Supprimer le Fournisseur",
+  "deleteSupplierConfirm": "Êtes-vous sûr de vouloir supprimer ce fournisseur ? Cette action est irréversible."
 }

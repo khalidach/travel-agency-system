@@ -678,5 +678,7 @@
   "by": "بواسطة",
   "allTime": "جميع الفترات",
   "clientNameRequired": "اسم العميل مطلوب",
-  "global": "عام"
+  "global": "عام",
+  "deleteSupplier": "حذف المورد",
+  "deleteSupplierConfirm": "هل أنت متأكد أنك تريد حذف هذا المورد؟ لا يمكن التراجع عن هذا الإجراء."
 }

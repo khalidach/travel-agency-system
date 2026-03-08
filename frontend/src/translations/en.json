@@ -674,5 +674,7 @@
   "by": "by",
   "allTime": "All Time",
   "clientNameRequired": "Client name is required",
-  "global": "Global"
+  "global": "Global",
+  "deleteSupplier": "Delete Supplier",
+  "deleteSupplierConfirm": "Are you sure you want to delete this supplier? This action cannot be undone."
 }
