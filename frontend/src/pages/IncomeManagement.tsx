@@ -14,6 +14,7 @@ import {
     CheckCircle,
     AlertCircle,
     ArrowRightLeft,
+    Download,
 } from "lucide-react";
 import * as api from "../services/api";
 import { Income } from "../context/models";
@@ -24,6 +25,9 @@ import DeliveryNoteForm from "../components/incomes/DeliveryNoteForm";
 import IncomeForm from "../components/incomes/IncomeForm";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
+import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 
 export default function IncomeManagement() {
     const { t } = useTranslation();
@@ -36,6 +40,7 @@ export default function IncomeManagement() {
     const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
     const [incomeToDelete, setIncomeToDelete] = useState<number | null>(null);
     const [incomeToConvert, setIncomeToConvert] = useState<number | null>(null);
+    const [incomeToPreview, setIncomeToPreview] = useState<Income | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBookingType, setSelectedBookingType] = useState("");
     const [selectedClient, setSelectedClient] = useState("");
@@ -154,6 +159,25 @@ export default function IncomeManagement() {
         },
         onError: () => toast.error(t("errorConvertingToFacture", { defaultValue: "Error converting to invoice" })),
     });
+
+    const handleDownloadPDF = async (income: Income) => {
+        setIncomeToPreview(income);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        const input = document.getElementById("pdf-preview");
+        if (input) {
+            html2canvas(input, { scale: 2 }).then((canvas) => {
+                const imgData = canvas.toDataURL("image/png");
+                const pdf = new jsPDF("p", "mm", "a4");
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+                const clientName = income.client ? income.client.replace(/\s/g, "_") : income.id.toString();
+                pdf.save(`Bon_de_Livraison_${clientName}.pdf`);
+                setIncomeToPreview(null);
+            });
+        }
+    };
 
     const toggleSelectAll = () => {
         if (selectedIds.size === incomes.length) {
@@ -443,6 +467,13 @@ export default function IncomeManagement() {
                                                 {activeTab === "delivery_note" && (
                                                     <>
                                                         <button
+                                                            onClick={() => handleDownloadPDF(income)}
+                                                            className="p-2 text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                            title={t("download", { defaultValue: "Download" }) as string}
+                                                        >
+                                                            <Download className="w-4 h-4" />
+                                                        </button>
+                                                        <button
                                                             onClick={() => handleManagePayments(income)}
                                                             className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
                                                             title={t("managePayments") as string}
@@ -566,6 +597,14 @@ export default function IncomeManagement() {
                 title={t("deleteIncomeTitle", { defaultValue: "Delete Income" })}
                 message={`${t("bulkDeleteIncomeMessage", { defaultValue: "Are you sure you want to delete the selected incomes?" })} (${selectedIds.size})`}
             />
+
+            {incomeToPreview && (
+                <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
+                    <div id="pdf-preview">
+                        <DeliveryNotePDF income={incomeToPreview} />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
