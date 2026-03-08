@@ -224,6 +224,31 @@ const applyDatabaseMigrations = async (client) => {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS incomes (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "employeeId" INTEGER REFERENCES employees(id) ON DELETE SET NULL,
+        type VARCHAR(50) NOT NULL, -- 'delivery_note' or 'regular'
+        category VARCHAR(100), 
+        description TEXT NOT NULL,
+        client VARCHAR(255), 
+        amount NUMERIC(12, 2) NOT NULL,
+        "advancePayments" JSONB DEFAULT '[]'::jsonb,
+        "remainingBalance" NUMERIC(12, 2) DEFAULT 0,
+        "isFullyPaid" BOOLEAN DEFAULT FALSE,
+        date DATE NOT NULL,
+        "items" JSONB DEFAULT '[]'::jsonb, 
+        "currency" VARCHAR(10) DEFAULT 'MAD', 
+        "bookingType" VARCHAR(50), 
+        "referenceNumber" VARCHAR(100), 
+        "factureId" INTEGER REFERENCES factures(id) ON DELETE SET NULL, -- NEW: Link to generated facture
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS suppliers (
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -256,6 +281,12 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_expenses_type ON expenses("userId", type);',
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_incomes_user_date ON incomes("userId", date DESC);',
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_incomes_type ON incomes("userId", type);',
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_bookings_user_trip ON bookings("userId", "tripId");',

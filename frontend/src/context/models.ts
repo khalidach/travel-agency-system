@@ -442,3 +442,26 @@ export interface Supplier {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface Income {
+  id: number;
+  userId: number;
+  employeeId?: number;
+  type: "delivery_note" | "regular";
+  category?: string;
+  bookingType?: "Hotel" | "Flight" | "Visa" | "Transfer" | "Other";
+  description: string;
+  client?: string;
+  amount: number;
+  currency?: string;
+  items?: ExpenseItem[];
+  referenceNumber?: string;
+  advancePayments: Payment[];
+  remainingBalance: number;
+  isFullyPaid: boolean;
+  date: string;
+  factureId?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+

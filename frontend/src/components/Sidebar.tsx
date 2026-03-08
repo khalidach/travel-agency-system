@@ -25,6 +25,7 @@ import {
   Wallet,
   Truck,
   Dock,
+  Coins,
 } from "lucide-react";
 
 import NewBadge from "./ui/NewBadge";
@@ -169,6 +170,21 @@ const allMenuItems: MenuItem[] = [
         key: "suppliers",
         path: "/suppliers",
         icon: Truck,
+        roles: ["admin", "manager"],
+        new: true,
+      },
+    ],
+  },
+  {
+    key: "incomesManagement",
+    icon: Coins,
+    roles: ["admin", "manager"],
+    new: true,
+    children: [
+      {
+        key: "incomes",
+        path: "/incomes",
+        icon: Coins,
         roles: ["admin", "manager"],
         new: true,
       },

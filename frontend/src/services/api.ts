@@ -693,7 +693,6 @@ export const addExpensePayment = (
     body: JSON.stringify(payment),
   });
 
-// New Update Payment Function
 export const updateExpensePayment = (
   id: number,
   paymentId: string,
@@ -706,3 +705,71 @@ export const updateExpensePayment = (
 
 export const deleteExpensePayment = (id: number, paymentId: string) =>
   request(`/expenses/${id}/payments/${paymentId}`, { method: "DELETE" });
+
+// --- Incomes API (NEW) ---
+export const getIncomes = (params?: {
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+  searchTerm?: string;
+  bookingType?: string;
+  client?: string;
+}) => {
+  const query = new URLSearchParams();
+
+  if (params) {
+    if (params.type) query.append("type", params.type);
+    if (params.startDate) query.append("startDate", params.startDate);
+    if (params.endDate) query.append("endDate", params.endDate);
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    if (params.searchTerm) query.append("searchTerm", params.searchTerm);
+    if (params.bookingType) query.append("bookingType", params.bookingType);
+    if (params.client) query.append("client", params.client);
+  }
+
+  return request(`/incomes?${query.toString()}`);
+};
+
+export const createIncome = (data: Partial<any>) =>
+  request("/incomes", { method: "POST", body: JSON.stringify(data) });
+
+export const updateIncome = (id: number, data: Partial<any>) =>
+  request(`/incomes/${id}`, { method: "PUT", body: JSON.stringify(data) });
+
+export const deleteIncome = (id: number) =>
+  request(`/incomes/${id}`, { method: "DELETE" });
+
+export const bulkDeleteIncomes = (ids: number[]) =>
+  request("/incomes/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
+
+export const addIncomePayment = (
+  id: number,
+  payment: Omit<Payment, "_id" | "id">,
+) =>
+  request(`/incomes/${id}/payments`, {
+    method: "POST",
+    body: JSON.stringify(payment),
+  });
+
+export const updateIncomePayment = (
+  id: number,
+  paymentId: string,
+  payment: Partial<Payment>,
+) =>
+  request(`/incomes/${id}/payments/${paymentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payment),
+  });
+
+export const deleteIncomePayment = (id: number, paymentId: string) =>
+  request(`/incomes/${id}/payments/${paymentId}`, { method: "DELETE" });
+
+export const convertIncomeToFacture = (id: number) =>
+  request(`/incomes/${id}/convert-to-facture`, { method: "POST" });
+

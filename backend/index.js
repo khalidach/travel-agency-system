@@ -30,8 +30,9 @@ const tierRoutes = require("./routes/tierRoutes");
 const dailyServiceRoutes = require("./routes/dailyServiceRoutes");
 const accountRoutes = require("./routes/accountRoutes");
 const notificationRoutes = require("./routes/notificationRoutes"); // Import new notification routes
-const expenseRoutes = require("./routes/expenseRoutes"); // <--- ADD THIS
+const expenseRoutes = require("./routes/expenseRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
+const incomeRoutes = require("./routes/incomeRoutes");
 
 const app = express();
 
@@ -139,8 +140,9 @@ app.use("/api/facturation", protect, factureRoutes);
 app.use("/api/settings", protect, settingsRoutes);
 app.use("/api/daily-services", protect, dailyServiceRoutes);
 app.use("/api/notifications", notificationRoutes); // Add this line
-app.use("/api/expenses", protect, expenseRoutes); // <--- ADD THIS
+app.use("/api/expenses", protect, expenseRoutes);
 app.use("/api/suppliers", protect, supplierRoutes);
+app.use("/api/incomes", protect, incomeRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

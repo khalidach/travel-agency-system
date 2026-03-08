@@ -41,6 +41,7 @@ const DailyServices = lazy(() => import("./pages/DailyServices"));
 const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
 const Expenses = lazy(() => import("./pages/Expenses"));
+const IncomeManagement = lazy(() => import("./pages/IncomeManagement")); // <--- NEW IMPORT
 const Suppliers = lazy(() => import("./pages/Suppliers")); // <--- NEW IMPORT
 const SupplierAnalysis = lazy(() => import("./pages/SupplierAnalysis")); // <--- NEW IMPORT
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
@@ -188,6 +189,7 @@ function AppRoutes() {
                             element={<ProgramPricing />}
                           />
                           <Route path="/expenses" element={<Expenses />} />
+                          <Route path="/incomes" element={<IncomeManagement />} />
                           {/* --- NEW: Suppliers Routes --- */}
                           <Route path="/suppliers" element={<Suppliers />} />
                         </>
