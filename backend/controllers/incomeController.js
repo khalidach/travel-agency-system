@@ -24,7 +24,6 @@ exports.getAllIncomes = async (req, res, next) => {
             page = 1,
             limit = 10,
             searchTerm,
-            bookingType,
             client,
         } = req.query;
 
@@ -54,11 +53,7 @@ exports.getAllIncomes = async (req, res, next) => {
             params.push(`%${searchTerm}%`);
         }
 
-        if (bookingType) {
-            query += ` AND "bookingType" = $${params.length + 1}`;
-            countQuery += ` AND "bookingType" = $${params.length + 1}`;
-            params.push(bookingType);
-        }
+
 
         if (client) {
             query += ` AND client ILIKE $${params.length + 1}`;
@@ -96,13 +91,10 @@ exports.createIncome = async (req, res, next) => {
             category,
             description,
             items,
-            currency,
             client,
             amount,
             date,
             paymentMethod,
-            bookingType,
-            referenceNumber,
         } = req.body;
 
         let advancePayments = [];
@@ -119,7 +111,6 @@ exports.createIncome = async (req, res, next) => {
                     date: date,
                     amount: amount,
                     amountMAD: amount,
-                    currency: currency || "MAD",
                     method: paymentMethod || "cash",
                     labelPaper: "Auto-payment for Regular Income",
                 },
@@ -141,9 +132,8 @@ exports.createIncome = async (req, res, next) => {
         const { rows } = await req.db.query(
             `INSERT INTO incomes 
       ("userId", "employeeId", type, category, description, client, amount, 
-       "advancePayments", "remainingBalance", "isFullyPaid", date, items, currency, 
-       "bookingType", "referenceNumber")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       "advancePayments", "remainingBalance", "isFullyPaid", date, items)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *`,
             [
                 req.user.id,
@@ -158,9 +148,6 @@ exports.createIncome = async (req, res, next) => {
                 isFullyPaid,
                 date,
                 JSON.stringify(items || []),
-                currency || "MAD",
-                bookingType || null,
-                referenceNumber || null,
             ]
         );
 
@@ -178,13 +165,10 @@ exports.updateIncome = async (req, res, next) => {
             category,
             description,
             items,
-            currency,
             client,
             amount,
             date,
             paymentMethod,
-            bookingType,
-            referenceNumber,
         } = req.body;
 
         const existing = await req.db.query(
@@ -208,7 +192,6 @@ exports.updateIncome = async (req, res, next) => {
                     date: date,
                     amount: amount,
                     amountMAD: amount,
-                    currency: currency || "MAD",
                     method: paymentMethod || "cash",
                     labelPaper: "Auto-payment (Updated)",
                 },
@@ -225,10 +208,9 @@ exports.updateIncome = async (req, res, next) => {
             `UPDATE incomes 
       SET category = $1, description = $2, client = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
-          items = $9, currency = $10, 
-          "bookingType" = $11, "referenceNumber" = $12, 
+          items = $9, 
           "updatedAt" = NOW()
-      WHERE id = $13 AND "userId" = $14
+      WHERE id = $10 AND "userId" = $11
       RETURNING *`,
             [
                 category,
@@ -240,9 +222,6 @@ exports.updateIncome = async (req, res, next) => {
                 remainingBalance,
                 isFullyPaid,
                 JSON.stringify(items || []),
-                currency || "MAD",
-                bookingType || null,
-                referenceNumber || null,
                 id,
                 req.user.id,
             ]

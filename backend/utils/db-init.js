@@ -238,9 +238,6 @@ const applyDatabaseMigrations = async (client) => {
         "isFullyPaid" BOOLEAN DEFAULT FALSE,
         date DATE NOT NULL,
         "items" JSONB DEFAULT '[]'::jsonb, 
-        "currency" VARCHAR(10) DEFAULT 'MAD', 
-        "bookingType" VARCHAR(50), 
-        "referenceNumber" VARCHAR(100), 
         "factureId" INTEGER REFERENCES factures(id) ON DELETE SET NULL, -- NEW: Link to generated facture
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
