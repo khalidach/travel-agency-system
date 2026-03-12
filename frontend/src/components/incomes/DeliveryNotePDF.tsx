@@ -19,7 +19,7 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
     const totalInWords = numberToWordsFr(income.amount || 0);
 
     // The type for "Bon de Livraison"
-    const documentType = "Bon de Livraison";
+    const documentType = "Bon de Vente";
 
     return (
         <div
@@ -247,7 +247,10 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
                                             border: "1px solid #000",
                                         }}
                                     >
-                                        {(Number(item.unitPrice) || 0).toLocaleString("de-DE", {
+                                        {(
+                                            (Number(item.prixUnitaire || item.unitPrice) || 0) +
+                                            (Number(item.fraisServiceUnitaire) || 0)
+                                        ).toLocaleString("de-DE", {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
                                         })}
@@ -300,7 +303,7 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
 
                     <div style={{ marginTop: "40px", fontStyle: "italic" }}>
                         <p style={{ fontSize: "11px" }}>
-                            Arrêté le présent bon de livraison à la somme de :
+                            Arrêté le présent bon de Vente à la somme de :
                         </p>
                         <p style={{ fontWeight: "bold", textTransform: "capitalize" }}>
                             {totalInWords}
