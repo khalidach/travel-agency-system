@@ -205,10 +205,10 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
                                     QTÉ
                                 </th>
                                 <th style={{ textAlign: "left", border: "1px solid #000" }}>
-                                    P.U ({income.currency || "MAD"})
+                                    P.U
                                 </th>
                                 <th style={{ textAlign: "left", border: "1px solid #000" }}>
-                                    TOTAL ({income.currency || "MAD"})
+                                    TOTAL
                                 </th>
                             </tr>
                         </thead>
