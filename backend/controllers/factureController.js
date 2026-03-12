@@ -63,33 +63,38 @@ const createFacture = async (req, res, next) => {
       tva,
       total,
       notes,
+      facture_number,
     } = req.body;
 
-    const currentYear = new Date(date).getFullYear();
-    const yearPrefix = `${currentYear}-`;
+    let formattedFactureNumber = facture_number;
 
-    const lastFactureRes = await client.query(
-      `SELECT facture_number FROM factures 
-       WHERE "userId" = $1 AND facture_number LIKE $2 
-       ORDER BY id DESC LIMIT 1`,
-      [adminId, `${yearPrefix}%`]
-    );
+    if (!formattedFactureNumber) {
+      const currentYear = new Date(date).getFullYear();
+      const yearPrefix = `${currentYear}-`;
 
-    let nextFactureNumber = 1;
-    if (lastFactureRes.rows.length > 0) {
-      const lastNum = lastFactureRes.rows[0].facture_number;
-      const parts = lastNum.split("-");
-      if (parts.length > 1) {
-        const lastCount = parseInt(parts[parts.length - 1], 10);
-        if (!isNaN(lastCount)) {
-          nextFactureNumber = lastCount + 1;
+      const lastFactureRes = await client.query(
+        `SELECT facture_number FROM factures 
+         WHERE "userId" = $1 AND facture_number LIKE $2 
+         ORDER BY id DESC LIMIT 1`,
+        [adminId, `${yearPrefix}%`]
+      );
+
+      let nextFactureNumber = 1;
+      if (lastFactureRes.rows.length > 0) {
+        const lastNum = lastFactureRes.rows[0].facture_number;
+        const parts = lastNum.split("-");
+        if (parts.length > 1) {
+          const lastCount = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastCount)) {
+            nextFactureNumber = lastCount + 1;
+          }
         }
       }
-    }
 
-    const formattedFactureNumber = `${yearPrefix}${nextFactureNumber
-      .toString()
-      .padStart(4, "0")}`;
+      formattedFactureNumber = `${yearPrefix}${nextFactureNumber
+        .toString()
+        .padStart(4, "0")}`;
+    }
 
     const { rows } = await client.query(
       `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)

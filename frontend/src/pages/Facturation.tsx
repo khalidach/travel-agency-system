@@ -59,7 +59,7 @@ export default function Facturation() {
       data: Omit<
         Facture,
         "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
-      >,
+      > & { facture_number?: string },
     ) => {
       return api.createFacture(
         data as unknown as Omit<Facture, "id" | "createdAt" | "updatedAt">,
@@ -97,7 +97,7 @@ export default function Facturation() {
     data: Omit<
       Facture,
       "id" | "facture_number" | "createdAt" | "updatedAt" | "userId"
-    >,
+    > & { facture_number?: string },
   ) => {
     if (editingFacture) {
       updateFacture({ ...editingFacture, ...data });
