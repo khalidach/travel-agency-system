@@ -197,6 +197,7 @@ exports.updateIncome = async (req, res, next) => {
             date,
             deliveryNoteNumber,
             paymentMethod,
+            factureId,
         } = req.body;
 
         const existing = await req.db.query(
@@ -208,26 +209,39 @@ exports.updateIncome = async (req, res, next) => {
             return next(new AppError("Income not found", 404));
 
         const income = existing.rows[0];
+
+        // Use new values if provided, otherwise fallback to existing
+        const finalCategory = category !== undefined ? category : income.category;
+        const finalDescription = description !== undefined ? description : income.description;
+        const finalItems = items !== undefined ? items : income.items;
+        const finalClient = client !== undefined ? client : income.client;
+        const finalAmount = amount !== undefined ? amount : income.amount;
+        const finalDate = date !== undefined ? date : income.date;
+        const finalDeliveryNoteNumber = deliveryNoteNumber !== undefined ? deliveryNoteNumber : income.deliveryNoteNumber;
+        const finalFactureId = factureId !== undefined ? factureId : income.factureId;
+
         let advancePayments = income.advancePayments || [];
         let remainingBalance;
         let isFullyPaid;
 
         if (income.type === "regular") {
-            advancePayments = [
-                {
-                    _id: uuidv4(),
-                    id: uuidv4(),
-                    date: date,
-                    amount: amount,
-                    amountMAD: amount,
-                    method: paymentMethod || "cash",
-                    labelPaper: "Auto-payment (Updated)",
-                },
-            ];
+            if (amount !== undefined || date !== undefined || paymentMethod !== undefined) {
+                advancePayments = [
+                    {
+                        _id: uuidv4(),
+                        id: uuidv4(),
+                        date: finalDate,
+                        amount: finalAmount,
+                        amountMAD: finalAmount,
+                        method: paymentMethod || "cash",
+                        labelPaper: "Auto-payment (Updated)",
+                    },
+                ];
+            }
             remainingBalance = 0;
             isFullyPaid = true;
         } else {
-            const status = calculatePaymentStatus(amount, advancePayments);
+            const status = calculatePaymentStatus(finalAmount, advancePayments);
             remainingBalance = status.remainingBalance;
             isFullyPaid = status.isFullyPaid;
         }
@@ -236,21 +250,22 @@ exports.updateIncome = async (req, res, next) => {
             `UPDATE incomes 
       SET category = $1, description = $2, client = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
-          items = $9, "deliveryNoteNumber" = $10,
+          items = $9, "deliveryNoteNumber" = $10, "factureId" = $11,
           "updatedAt" = NOW()
-      WHERE id = $11 AND "userId" = $12
+      WHERE id = $12 AND "userId" = $13
       RETURNING *`,
             [
-                category,
-                description,
-                client,
-                amount,
-                date,
+                finalCategory,
+                finalDescription,
+                finalClient,
+                finalAmount,
+                finalDate,
                 JSON.stringify(advancePayments),
                 remainingBalance,
                 isFullyPaid,
-                JSON.stringify(items || []),
-                deliveryNoteNumber,
+                JSON.stringify(finalItems || []),
+                finalDeliveryNoteNumber,
+                finalFactureId,
                 id,
                 req.user.id,
             ]

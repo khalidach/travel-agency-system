@@ -23,6 +23,8 @@ import ConfirmationModal from "../components/modals/ConfirmationModal";
 import IncomePaymentModal from "../components/incomes/IncomePaymentModal";
 import DeliveryNoteForm from "../components/incomes/DeliveryNoteForm";
 import IncomeForm from "../components/incomes/IncomeForm";
+import FactureForm from "../components/facturation/FactureForm";
+import { Facture } from "../context/models";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
 import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
@@ -39,7 +41,8 @@ export default function IncomeManagement() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
     const [incomeToDelete, setIncomeToDelete] = useState<number | null>(null);
-    const [incomeToConvert, setIncomeToConvert] = useState<number | null>(null);
+    const [incomeToConvert, setIncomeToConvert] = useState<Income | null>(null);
+    const [isFactureModalOpen, setIsFactureModalOpen] = useState(false);
     const [incomeToPreview, setIncomeToPreview] = useState<Income | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBookingType, setSelectedBookingType] = useState("");
@@ -159,6 +162,25 @@ export default function IncomeManagement() {
         },
         onError: () => toast.error(t("errorConvertingToFacture", { defaultValue: "Error converting to invoice" })),
     });
+
+    const handleFactureSave = async (data: any) => {
+        try {
+            // Create the facture using the provided data
+            const newFacture = await api.createFacture(data);
+
+            // Link the new facture to the source income
+            if (incomeToConvert) {
+                await api.updateIncome(incomeToConvert.id, { factureId: newFacture.id });
+                toast.success(t("convertedToFacture", { defaultValue: "Successfully converted to invoice" }));
+            }
+
+            queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            setIsFactureModalOpen(false);
+            setIncomeToConvert(null);
+        } catch (error: any) {
+            toast.error(error.message || t("errorConvertingToFacture", { defaultValue: "Error converting to invoice" }));
+        }
+    };
 
     const handleDownloadPDF = async (income: Income) => {
         setIncomeToPreview(income);
@@ -473,7 +495,10 @@ export default function IncomeManagement() {
                                                         </button>
                                                         {!income.factureId && (
                                                             <button
-                                                                onClick={() => setIncomeToConvert(income.id)}
+                                                                onClick={() => {
+                                                                    setIncomeToConvert(income);
+                                                                    setIsFactureModalOpen(true);
+                                                                }}
                                                                 className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
                                                                 title={t("convertToFacture", { defaultValue: "Convert to Invoice" }) as string}
                                                             >
@@ -571,14 +596,44 @@ export default function IncomeManagement() {
                 />
             )}
 
-            {incomeToConvert && (
-                <ConfirmationModal
-                    isOpen={!!incomeToConvert}
-                    onClose={() => setIncomeToConvert(null)}
-                    onConfirm={() => convertToFactureMutation.mutate(incomeToConvert)}
+            {isFactureModalOpen && incomeToConvert && (
+                <Modal
+                    isOpen={isFactureModalOpen}
+                    onClose={() => {
+                        setIsFactureModalOpen(false);
+                        setIncomeToConvert(null);
+                    }}
                     title={t("convertToFacture", { defaultValue: "Convert to Invoice" })}
-                    message={t("convertToFactureMessage", { defaultValue: "Are you sure you want to convert this delivery note into an invoice? This action will generate a new invoice." })}
-                />
+                    size="xl"
+                >
+                    <FactureForm
+                        onSave={handleFactureSave}
+                        onCancel={() => {
+                            setIsFactureModalOpen(false);
+                            setIncomeToConvert(null);
+                        }}
+                        existingFacture={{
+                            clientName: incomeToConvert.client || "",
+                            clientAddress: incomeToConvert.clientAddress || "",
+                            clientICE: incomeToConvert.clientICE || "",
+                            date: incomeToConvert.date,
+                            items: (incomeToConvert.items || []).map((item: any) => ({
+                                description: item.description || "",
+                                quantity: Number(item.quantity) || 1,
+                                prixUnitaire: Number(item.prixUnitaire || item.unitPrice) || 0,
+                                fraisServiceUnitaire: Number(item.fraisServiceUnitaire) || 0,
+                                total: Number(item.total) || 0
+                            })),
+                            type: "facture",
+                            showMargin: incomeToConvert.showMargin ?? true,
+                            prixTotalHorsFrais: incomeToConvert.prixTotalHorsFrais || incomeToConvert.amount,
+                            totalFraisServiceHT: incomeToConvert.totalFraisServiceHT || 0,
+                            tva: incomeToConvert.tva || 0,
+                            total: incomeToConvert.amount,
+                            notes: incomeToConvert.notes || `Converted from Delivery Note #${incomeToConvert.deliveryNoteNumber || incomeToConvert.id}`
+                        } as any}
+                    />
+                </Modal>
             )}
 
             <ConfirmationModal
