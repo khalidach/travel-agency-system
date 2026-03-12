@@ -315,16 +315,16 @@ export default function DeliveryNoteForm({
             className={`grid ${gridColsClass} gap-2 items-center`}
           >
             <div className={`col-span-12 ${descColSpan}`}>
-              <input
-                type="text"
+              <textarea
                 placeholder={t("description") as string}
                 value={item.description}
                 disabled={readOnly}
                 onChange={(e) =>
                   handleItemChange(index, "description", e.target.value)
                 }
-                className={inputClass}
+                className={`${inputClass} min-h-[42px] leading-tight resize-y`}
                 required
+                rows={1}
               />
             </div>
             <div className="col-span-4 md:col-span-1">
