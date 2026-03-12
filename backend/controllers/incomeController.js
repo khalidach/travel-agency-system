@@ -94,6 +94,7 @@ exports.createIncome = async (req, res, next) => {
             client,
             amount,
             date,
+            deliveryNoteNumber,
             paymentMethod,
         } = req.body;
 
@@ -132,8 +133,8 @@ exports.createIncome = async (req, res, next) => {
         const { rows } = await req.db.query(
             `INSERT INTO incomes 
       ("userId", "employeeId", type, category, description, client, amount, 
-       "advancePayments", "remainingBalance", "isFullyPaid", date, items)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       "advancePayments", "remainingBalance", "isFullyPaid", date, items, "deliveryNoteNumber")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *`,
             [
                 req.user.id,
@@ -148,6 +149,7 @@ exports.createIncome = async (req, res, next) => {
                 isFullyPaid,
                 date,
                 JSON.stringify(items || []),
+                deliveryNoteNumber,
             ]
         );
 
@@ -168,6 +170,7 @@ exports.updateIncome = async (req, res, next) => {
             client,
             amount,
             date,
+            deliveryNoteNumber,
             paymentMethod,
         } = req.body;
 
@@ -208,9 +211,9 @@ exports.updateIncome = async (req, res, next) => {
             `UPDATE incomes 
       SET category = $1, description = $2, client = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
-          items = $9, 
+          items = $9, "deliveryNoteNumber" = $10,
           "updatedAt" = NOW()
-      WHERE id = $10 AND "userId" = $11
+      WHERE id = $11 AND "userId" = $12
       RETURNING *`,
             [
                 category,
@@ -222,6 +225,7 @@ exports.updateIncome = async (req, res, next) => {
                 remainingBalance,
                 isFullyPaid,
                 JSON.stringify(items || []),
+                deliveryNoteNumber,
                 id,
                 req.user.id,
             ]

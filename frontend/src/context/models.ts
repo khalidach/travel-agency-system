@@ -447,6 +447,7 @@ export interface Income {
   type: "delivery_note" | "regular";
   category?: string;
   description: string;
+  deliveryNoteNumber?: string;
   client?: string;
   clientAddress?: string;
   clientICE?: string;
@@ -460,6 +461,7 @@ export interface Income {
   advancePayments: Payment[];
   remainingBalance: number;
   isFullyPaid: boolean;
+  currency?: string;
   date: string;
   factureId?: number;
   createdAt: string;

@@ -239,6 +239,7 @@ const applyDatabaseMigrations = async (client) => {
         date DATE NOT NULL,
         "items" JSONB DEFAULT '[]'::jsonb, 
         "factureId" INTEGER REFERENCES factures(id) ON DELETE SET NULL, -- NEW: Link to generated facture
+        "deliveryNoteNumber" VARCHAR(255),
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -265,6 +266,21 @@ const applyDatabaseMigrations = async (client) => {
         last_value INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY ("userId", year)
       );
+    `);
+
+    // --- Schema Updates for Existing Tables ---
+    console.log("Checking for missing columns in existing tables...");
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='incomes' AND column_name='deliveryNoteNumber'
+        ) THEN
+          ALTER TABLE incomes ADD COLUMN "deliveryNoteNumber" VARCHAR(255);
+        END IF;
+      END $$;
     `);
 
     console.log("All tables checked/created successfully.");

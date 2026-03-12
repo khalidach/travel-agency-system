@@ -341,7 +341,9 @@ export default function IncomeManagement() {
                                         {t("date")}
                                     </th>
                                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
-                                        {t("description")}
+                                        {activeTab === "delivery_note"
+                                            ? t("deliveryNoteNumber", { defaultValue: "N° of delivery note" })
+                                            : t("description")}
                                     </th>
                                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[12%]">
                                         {activeTab === "delivery_note"
@@ -349,13 +351,7 @@ export default function IncomeManagement() {
                                             : t("category")}
                                     </th>
 
-                                    {activeTab === "delivery_note" && (
-                                        <>
-                                            <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[10%]">
-                                                {t("bookingType")}
-                                            </th>
-                                        </>
-                                    )}
+                                    {/* Removed Booking Type column */}
 
                                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                                         {t("amount")}
@@ -397,7 +393,9 @@ export default function IncomeManagement() {
                                             {new Date(income.date).toLocaleDateString()}
                                         </td>
                                         <td className="p-4 text-sm font-medium text-gray-900 dark:text-white">
-                                            {income.description}
+                                            {activeTab === "delivery_note"
+                                                ? income.deliveryNoteNumber || "-"
+                                                : income.description}
                                         </td>
                                         <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                                             {activeTab === "delivery_note"
@@ -405,15 +403,7 @@ export default function IncomeManagement() {
                                                 : t(income.category || "", { defaultValue: income.category })}
                                         </td>
 
-                                        {activeTab === "delivery_note" && (
-                                            <>
-                                                <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
-                                                    {income.bookingType
-                                                        ? t(`bookingTypes.${income.bookingType}`, { defaultValue: income.bookingType })
-                                                        : "-"}
-                                                </td>
-                                            </>
-                                        )}
+                                        {/* Removed Booking Type data cell */}
 
                                         <td className="p-4 text-sm text-left font-medium text-gray-900 dark:text-white">
                                             {Number(income.amount).toLocaleString()}{" "}
