@@ -24,7 +24,6 @@ import IncomePaymentModal from "../components/incomes/IncomePaymentModal";
 import DeliveryNoteForm from "../components/incomes/DeliveryNoteForm";
 import IncomeForm from "../components/incomes/IncomeForm";
 import FactureForm from "../components/facturation/FactureForm";
-import { Facture } from "../context/models";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
 import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
@@ -153,15 +152,7 @@ export default function IncomeManagement() {
         onError: () => toast.error(t("errorDeletingIncome", { defaultValue: "Error Deleting Income" })),
     });
 
-    const convertToFactureMutation = useMutation({
-        mutationFn: api.convertIncomeToFacture,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["incomes"] });
-            toast.success(t("convertedToFacture", { defaultValue: "Successfully converted to invoice" }));
-            setIncomeToConvert(null);
-        },
-        onError: () => toast.error(t("errorConvertingToFacture", { defaultValue: "Error converting to invoice" })),
-    });
+
 
     const handleFactureSave = async (data: any) => {
         try {
