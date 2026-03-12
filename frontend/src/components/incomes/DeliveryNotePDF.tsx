@@ -149,7 +149,7 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
                                         color: "#111827",
                                     }}
                                 >
-                                    N° : {income.referenceNumber || income.id}
+                                    N° : {income.deliveryNoteNumber || income.id}
                                 </p>
                                 <p
                                     style={{
@@ -174,7 +174,7 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
                                         color: "#111827",
                                     }}
                                 >
-                                    N° : {income.referenceNumber || income.id}
+                                    N° : {income.deliveryNoteNumber || income.id}
                                 </p>
                                 <p
                                     style={{
@@ -213,7 +213,7 @@ export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
                             </tr>
                         </thead>
                         <tbody>
-                            {(income.items || []).map((item, index) => (
+                            {(income.items as any[] || []).map((item, index) => (
                                 <tr key={index}>
                                     <td
                                         style={{

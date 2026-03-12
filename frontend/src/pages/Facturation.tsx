@@ -119,8 +119,9 @@ export default function Facturation() {
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        const docNumber = facture.facture_number || facture.id;
         pdf.save(
-          `${facture.type}_${facture.clientName.replace(/\s/g, "_")}.pdf`,
+          `${facture.type}_${docNumber}_${facture.clientName.replace(/\s/g, "_")}.pdf`,
         );
         setFactureToPreview(null);
       });

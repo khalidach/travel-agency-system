@@ -173,7 +173,8 @@ export default function IncomeManagement() {
                 const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
                 pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
                 const clientName = income.client ? income.client.replace(/\s/g, "_") : income.id.toString();
-                pdf.save(`Bon_de_Livraison_${clientName}.pdf`);
+                const docNumber = income.deliveryNoteNumber || income.id;
+                pdf.save(`Bon_de_Livraison_${docNumber}_${clientName}.pdf`);
                 setIncomeToPreview(null);
             });
         }

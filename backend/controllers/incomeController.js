@@ -48,8 +48,8 @@ exports.getAllIncomes = async (req, res, next) => {
         }
 
         if (searchTerm) {
-            query += ` AND (description ILIKE $${params.length + 1} OR client ILIKE $${params.length + 1} OR "referenceNumber" ILIKE $${params.length + 1})`;
-            countQuery += ` AND (description ILIKE $${params.length + 1} OR client ILIKE $${params.length + 1} OR "referenceNumber" ILIKE $${params.length + 1})`;
+            query += ` AND (description ILIKE $${params.length + 1} OR client ILIKE $${params.length + 1} OR "deliveryNoteNumber" ILIKE $${params.length + 1})`;
+            countQuery += ` AND (description ILIKE $${params.length + 1} OR client ILIKE $${params.length + 1} OR "deliveryNoteNumber" ILIKE $${params.length + 1})`;
             params.push(`%${searchTerm}%`);
         }
 
@@ -129,6 +129,31 @@ exports.createIncome = async (req, res, next) => {
                 isFullyPaid = status.isFullyPaid;
             }
         }
+        if (type === "delivery_note" && !deliveryNoteNumber) {
+            const currentYear = new Date(date).getFullYear();
+            const yearPrefix = `${currentYear}-`;
+            
+            const lastIncomeRes = await req.db.query(
+                `SELECT "deliveryNoteNumber" FROM incomes 
+                 WHERE "userId" = $1 AND type = 'delivery_note' 
+                 AND "deliveryNoteNumber" LIKE $2
+                 ORDER BY id DESC LIMIT 1`,
+                [req.user.id, `${yearPrefix}%`]
+            );
+
+            let nextNumber = 1;
+            if (lastIncomeRes.rows.length > 0) {
+                const lastNum = lastIncomeRes.rows[0].deliveryNoteNumber;
+                const parts = lastNum.split("-");
+                if (parts.length > 1) {
+                    const lastCount = parseInt(parts[parts.length - 1], 10);
+                    if (!isNaN(lastCount)) {
+                        nextNumber = lastCount + 1;
+                    }
+                }
+            }
+            req.body.deliveryNoteNumber = `${yearPrefix}${nextNumber.toString().padStart(4, "0")}`;
+        }
 
         const { rows } = await req.db.query(
             `INSERT INTO incomes 
@@ -149,7 +174,7 @@ exports.createIncome = async (req, res, next) => {
                 isFullyPaid,
                 date,
                 JSON.stringify(items || []),
-                deliveryNoteNumber,
+                req.body.deliveryNoteNumber || deliveryNoteNumber,
             ]
         );
 
@@ -472,17 +497,29 @@ exports.convertToFacture = async (req, res, next) => {
             return next(new AppError("This delivery note has already been converted to a facture.", 400));
         }
 
+        const currentYear = new Date(income.date).getFullYear();
+        const yearPrefix = `${currentYear}-`;
+
         // Get next facture number
         const lastFactureRes = await dbClient.query(
-            `SELECT facture_number FROM factures WHERE "userId" = $1 AND facture_number IS NOT NULL ORDER BY CAST(facture_number AS INTEGER) DESC LIMIT 1`,
-            [adminId]
+            `SELECT facture_number FROM factures 
+             WHERE "userId" = $1 AND facture_number LIKE $2 
+             ORDER BY id DESC LIMIT 1`,
+            [adminId, `${yearPrefix}%`]
         );
 
         let nextFactureNumber = 1;
         if (lastFactureRes.rows.length > 0) {
-            nextFactureNumber = parseInt(lastFactureRes.rows[0].facture_number, 10) + 1;
+            const lastNum = lastFactureRes.rows[0].facture_number;
+            const parts = lastNum.split("-");
+            if (parts.length > 1) {
+                const lastCount = parseInt(parts[parts.length - 1], 10);
+                if (!isNaN(lastCount)) {
+                    nextFactureNumber = lastCount + 1;
+                }
+            }
         }
-        const formattedFactureNumber = nextFactureNumber.toString().padStart(5, "0");
+        const formattedFactureNumber = `${yearPrefix}${nextFactureNumber.toString().padStart(4, "0")}`;
 
         // Prepare Facture data from Delivery Note
         // A Delivery Note has "items" typically structured similarly to facture items.
@@ -513,7 +550,7 @@ exports.convertToFacture = async (req, res, next) => {
                 totalFraisServiceHT,
                 tva,
                 total,
-                `Converted from Delivery Note #${id}`,
+                `Converted from Delivery Note #${income.deliveryNoteNumber || id}`,
                 formattedFactureNumber,
             ]
         );
