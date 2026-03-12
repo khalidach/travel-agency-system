@@ -57,6 +57,7 @@ export interface FactureItem {
   quantity: number;
   prixUnitaire: number;
   fraisServiceUnitaire: number;
+  montant: number;
   total: number;
 }
 

@@ -246,25 +246,15 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                     border: "1px solid #000",
                   }}
                 >
-                  P.U
+                  Prix unitaire
                 </th>
-                {showMargin && (
-                  <th
-                    style={{
-                      textAlign: "left",
-                      border: "1px solid #000",
-                    }}
-                  >
-                    Frais SERV.
-                  </th>
-                )}
                 <th
                   style={{
                     textAlign: "left",
                     border: "1px solid #000",
                   }}
                 >
-                  TOTAL TTC
+                  Montant
                 </th>
               </tr>
             </thead>
@@ -295,16 +285,6 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                   >
                     {(Number(item.prixUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
-                  {showMargin && (
-                    <td
-                      style={{
-                        textAlign: "left",
-                        border: "1px solid #000",
-                      }}
-                    >
-                      {(Number(item.fraisServiceUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                  )}
                   <td
                     style={{
                       textAlign: "left",
@@ -312,7 +292,7 @@ export default function FacturePDF({ facture }: FacturePDFProps) {
                       border: "1px solid #000",
                     }}
                   >
-                    {(Number(item.total) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {(Number(item.montant) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
                 </tr>
               ))}

@@ -17,7 +17,7 @@ interface FactureFormProps {
   showMarginOnNew?: boolean;
 }
 
-interface FactureItemForm extends Omit<FactureItem, "total"> {
+interface FactureItemForm extends Omit<FactureItem, "total" | "montant"> {
   prixUnitaire: number;
   fraisServiceUnitaire: number;
 }
@@ -116,13 +116,13 @@ export default function FactureForm({
         ? Number(item.fraisServiceUnitaire) || 0
         : 0;
 
-      const montantTotal =
-        quantite * prixUnitaire + quantite * fraisServiceUnitaireTTC;
+      const montant = quantite * prixUnitaire;
+      const montantTotal = montant + quantite * fraisServiceUnitaireTTC;
 
-      prixTotalHorsFrais += quantite * prixUnitaire;
+      prixTotalHorsFrais += montant;
       totalFraisServiceTTC += quantite * fraisServiceUnitaireTTC;
 
-      return { ...item, total: montantTotal };
+      return { ...item, montant, total: montantTotal };
     });
 
     const totalFraisServiceHT = totalFraisServiceTTC / 1.2;
@@ -145,6 +145,7 @@ export default function FactureForm({
       quantity: item.quantity,
       prixUnitaire: item.prixUnitaire,
       fraisServiceUnitaire: item.fraisServiceUnitaire,
+      montant: item.montant,
       total: item.total,
     }));
 
