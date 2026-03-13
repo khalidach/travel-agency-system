@@ -75,7 +75,7 @@ export default function IncomeForm({
                 <input
                     type="text"
                     required
-                    placeholder="e.g., Consulting Fees"
+                    placeholder={t("incomeDescriptionPlaceholder", { defaultValue: "e.g., Consulting Fees" }) as string}
                     value={formData.description}
                     onChange={(e) =>
                         setFormData({ ...formData, description: e.target.value })

@@ -235,10 +235,10 @@ export default function IncomeManagement() {
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Wallet className="w-8 h-8 text-primary" />
-                        {t("incomesManagement", { defaultValue: "Income Management" })}
+                        {t("incomesManagement")}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        {t("incomesSubtitle", { defaultValue: "Manage your incomes and delivery notes." })}
+                        {t("incomesSubtitle")}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -260,8 +260,8 @@ export default function IncomeManagement() {
                     >
                         <Plus className="w-4 h-4" />
                         {activeTab === "delivery_note"
-                            ? t("addDeliveryNote", { defaultValue: "Add Delivery Note" })
-                            : t("addRegularIncome", { defaultValue: "Add Income" })}
+                            ? t("addDeliveryNote")
+                            : t("addRegularIncome")}
                     </button>
                 </div>
             </div>
@@ -277,7 +277,7 @@ export default function IncomeManagement() {
                 >
                     <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        {t("deliveryNotes", { defaultValue: "Bon de livraison" })}
+                        {t("deliveryNotes")}
                     </div>
                 </button>
                 <button
@@ -289,7 +289,7 @@ export default function IncomeManagement() {
                 >
                     <div className="flex items-center gap-2">
                         <Building className="w-4 h-4" />
-                        {t("regularIncomes", { defaultValue: "Income" })}
+                        {t("regularIncomes")}
                     </div>
                 </button>
             </div>
@@ -300,7 +300,7 @@ export default function IncomeManagement() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input
                         type="text"
-                        placeholder={t("searchIncomes", { defaultValue: "Search incomes..." }) as string}
+                        placeholder={t("searchIncomes") as string}
                         value={searchTerm}
                         onChange={(e) => handleSearchChange(e.target.value)}
                         className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
@@ -338,7 +338,7 @@ export default function IncomeManagement() {
                             {t("noIncomesFound", { defaultValue: "No Incomes Found" })}
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                            {t("createIncomeLead", { defaultValue: "Create a new income or delivery note to get started." })}
+                            {t("createIncomeLead")}
                         </p>
                     </div>
                 ) : (
@@ -362,7 +362,7 @@ export default function IncomeManagement() {
                                     </th>
                                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left">
                                         {activeTab === "delivery_note"
-                                            ? t("deliveryNoteNumber", { defaultValue: "N° of delivery note" })
+                                            ? t("deliveryNoteNumber")
                                             : t("description")}
                                     </th>
                                     <th className="p-4 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase text-left w-[12%]">
@@ -455,19 +455,19 @@ export default function IncomeManagement() {
                                                 {income.isFullyPaid ? (
                                                     <>
                                                         <CheckCircle className="w-3 h-3 mr-1" />
-                                                        {t("fullyPaid", { defaultValue: "Fully Paid" })}
+                                                        {t("fullyPaid")}
                                                     </>
                                                 ) : (
                                                     <>
                                                         <AlertCircle className="w-3 h-3 mr-1" />
-                                                        {t("pending", { defaultValue: "Pending" })}
+                                                        {t("pending")}
                                                     </>
                                                 )}
                                             </span>
                                             {activeTab === "delivery_note" && income.factureId && (
                                                 <div className="mt-1">
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                        {t("invoiced", { defaultValue: "Invoiced" })}
+                                                        {t("invoiced")}
                                                     </span>
                                                 </div>
                                             )}
@@ -479,7 +479,7 @@ export default function IncomeManagement() {
                                                         <button
                                                             onClick={() => handleDownloadPDF(income)}
                                                             className="p-2 text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                                            title={t("download", { defaultValue: "Download" }) as string}
+                                                            title={t("download") as string}
                                                         >
                                                             <Download className="w-4 h-4" />
                                                         </button>
@@ -497,7 +497,7 @@ export default function IncomeManagement() {
                                                                     setIsFactureModalOpen(true);
                                                                 }}
                                                                 className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                                                                title={t("convertToFacture", { defaultValue: "Convert to Invoice" }) as string}
+                                                                title={t("convertToFacture") as string}
                                                             >
                                                                 <ArrowRightLeft className="w-4 h-4" />
                                                             </button>
@@ -543,10 +543,10 @@ export default function IncomeManagement() {
                 onClose={() => setIsFormOpen(false)}
                 title={
                     activeIncome
-                        ? t("editIncome", { defaultValue: "Edit Entry" })
+                        ? t("editIncome")
                         : activeTab === "delivery_note"
-                            ? t("addDeliveryNote", { defaultValue: "Add Delivery Note" })
-                            : t("addRegularIncome", { defaultValue: "Add Income" })
+                            ? t("addDeliveryNote")
+                            : t("addRegularIncome")
                 }
                 size={activeTab === "delivery_note" ? "xl2" : "xl"}
             >

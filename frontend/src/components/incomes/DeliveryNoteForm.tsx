@@ -189,7 +189,7 @@ export default function DeliveryNoteForm({
           htmlFor="show-margin-toggle"
           className="font-medium text-foreground"
         >
-          Display Service Fees & TVA
+          {t("showMargin")}
         </label>
         <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
           <input
@@ -297,15 +297,15 @@ export default function DeliveryNoteForm({
 
       <div className="space-y-4">
         <div
-          className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-medium text-muted-foreground`}
+          className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-medium text-muted-foreground uppercase`}
         >
-          <div className={descColSpan}>DESIGNATION</div>
-          <div className="col-span-1 text-center">QU</div>
-          <div className={`${priceColSpan} text-left`}>PRIX UNITAIRE</div>
+          <div className={descColSpan}>{t("designation")}</div>
+          <div className="col-span-1 text-center">{t("qty")}</div>
+          <div className={`${priceColSpan} text-left`}>{t("unitPrice")}</div>
           {showMargin && (
-            <div className="col-span-2 text-left">FRAIS. SCE UNITAIRE</div>
+            <div className="col-span-2 text-left">{t("fraisUnitaire")}</div>
           )}
-          <div className={`${totalColSpan} text-left`}>MONTANT TOTAL</div>
+          <div className={`${totalColSpan} text-left`}>{t("totalAmount")}</div>
           {!readOnly && <div className="col-span-1"></div>}
         </div>
 
@@ -410,7 +410,7 @@ export default function DeliveryNoteForm({
             <>
               <div className="flex justify-between p-2 bg-muted/30 rounded-md">
                 <span className="font-medium text-muted-foreground">
-                  Prix Total H. Frais de SCE
+                  {t("totalPriceHT")}
                 </span>
                 <span className="font-semibold text-foreground">
                   {calculatedTotals.prixTotalHorsFrais.toLocaleString(
@@ -420,12 +420,12 @@ export default function DeliveryNoteForm({
                       maximumFractionDigits: 2,
                     },
                   )}{" "}
-                  MAD
+                  {t("currency.MAD")}
                 </span>
               </div>
               <div className="flex justify-between p-2">
                 <span className="font-medium text-muted-foreground">
-                  Frais de Service Hors TVA
+                  {t("fraisServiceHTVA")}
                 </span>
                 <span className="font-semibold text-foreground">
                   {calculatedTotals.totalFraisServiceHT.toLocaleString(
@@ -435,19 +435,19 @@ export default function DeliveryNoteForm({
                       maximumFractionDigits: 2,
                     },
                   )}{" "}
-                  MAD
+                  {t("currency.MAD")}
                 </span>
               </div>
               <div className="flex justify-between p-2">
                 <span className="font-medium text-muted-foreground">
-                  TVA 20%
+                  {t("tva20")}
                 </span>
                 <span className="font-semibold text-foreground">
                   {calculatedTotals.tva.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}{" "}
-                  MAD
+                  {t("currency.MAD")}
                 </span>
               </div>
             </>
@@ -459,7 +459,7 @@ export default function DeliveryNoteForm({
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}{" "}
-              MAD
+              {t("currency.MAD")}
             </span>
           </div>
         </div>
