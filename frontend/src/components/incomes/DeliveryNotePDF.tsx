@@ -1,347 +1,293 @@
 // frontend/src/components/incomes/DeliveryNotePDF.tsx
-import { useQuery } from "@tanstack/react-query";
-import * as api from "../../services/api";
+import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { Income, FacturationSettings } from "../../context/models";
-import { useAuthContext } from "../../context/AuthContext";
 import { numberToWordsFr } from "../../services/numberToWords";
 
+// Register Inter font
+Font.register({
+  family: 'Inter',
+  fonts: [
+    { src: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/ttf/Inter-Regular.ttf', fontWeight: 400 },
+    { src: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/ttf/Inter-Bold.ttf', fontWeight: 700 },
+    { src: 'https://cdn.jsdelivr.net/npm/inter-font@3.19.0/ttf/Inter-ExtraBold.ttf', fontWeight: 800 },
+    // { src: 'https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/cyrillic-ext-400-normal.ttf', fontWeight: 400, fontStyle: 'italic' },
+
+  ]
+});
+
+
+
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    fontFamily: 'Inter',
+    fontSize: 10,
+    color: '#111827',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  agencyName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  docType: {
+    fontSize: 22,
+    fontWeight: 800,
+    color: '#2563eb',
+    textTransform: 'uppercase',
+  },
+  clientBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 80,
+    marginBottom: 30,
+    padding: 15,
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: 8,
+  },
+  clientInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  clientName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  docDetails: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  docDetailsLabel: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  docDetailsValue: {
+    fontSize: 12,
+    color: '#374151',
+    marginTop: 2,
+  },
+  table: {
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#000',
+    minHeight: 200,
+
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    fontWeight: 'bold',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+    flex: 1,
+  },
+  lastTableRow: {
+    flexDirection: 'row',
+    flex: 1,
+  },
+  colDesignation: {
+    flex: 2,
+    padding: 6,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+  },
+  colQty: {
+    width: 50,
+    textAlign: 'center',
+    padding: 6,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+  },
+  colPrice: {
+    width: 100,
+    textAlign: 'left',
+    padding: 6,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+  },
+  colAmount: {
+    width: 100,
+    textAlign: 'left',
+    padding: 6,
+    fontWeight: 'bold',
+    justifyContent: 'center',
+  },
+  itemDate: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  totalsContainer: {
+    marginTop: 20,
+    alignItems: 'flex-end',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: 200,
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 2,
+    borderTopColor: '#000',
+    fontWeight: 800,
+    fontSize: 12,
+  },
+  wordsSection: {
+    marginTop: 30,
+    // fontStyle: 'italic',
+  },
+  wordsLabel: {
+    fontSize: 9,
+    marginBottom: 4,
+  },
+  wordsValue: {
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+    fontSize: 10,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 10,
+    fontSize: 9,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  footerContent: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 5,
+  }
+});
+
 interface DeliveryNotePDFProps {
-    income: Income;
+  income: Income;
+  settings?: FacturationSettings;
+  agencyName?: string;
 }
 
-export default function DeliveryNotePDF({ income }: DeliveryNotePDFProps) {
-    const { data: settings } = useQuery<FacturationSettings>({
-        queryKey: ["settings"],
-        queryFn: api.getSettings,
-    });
-    const { state: authState } = useAuthContext();
+export default function DeliveryNotePDF({ income, settings, agencyName }: DeliveryNotePDFProps) {
+  const totalInWords = numberToWordsFr(income.amount || 0);
 
-    const totalInWords = numberToWordsFr(income.amount || 0);
+  const footerItems = [
+    `Sté. ${agencyName || "Votre Agence"}`,
+    settings?.address && `Siège : ${settings.address}`,
+    settings?.phone && `Tél : ${settings.phone}`,
+    settings?.email && `Email : ${settings.email}`,
+    settings?.ice && `ICE : ${settings.ice}`,
+    settings?.if && `IF : ${settings.if}`,
+    settings?.rc && `RC : ${settings.rc}`,
+    settings?.patente && `Patente : ${settings.patente}`,
+    settings?.cnss && `CNSS : ${settings.cnss}`,
+    settings?.bankName && settings?.rib && `RIB (${settings.bankName}) : ${settings.rib}`,
+  ].filter(Boolean);
 
-    // The type for "Bon de Livraison"
-    const documentType = "Bon de Vente";
+  return (
+    <Document title={`Bon_de_Vente_${income.deliveryNoteNumber || income.id}`}>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.agencyName}>{agencyName || "Votre Agence"}</Text>
+          <Text style={styles.docType}>Bon de Vente</Text>
+        </View>
 
-    return (
-        <div
-            className="pdf-container"
-            style={{
-                width: "210mm",
-                minHeight: "297mm",
-                backgroundColor: "white",
-                padding: "40px",
-                display: "flex",
-                flexDirection: "column",
-                fontFamily: "'Inter', sans-serif",
-            }}
-        >
-            <style>
-                {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-          
-          @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            @page { margin: 0; size: A4; }
-          }
-          .pdf-container { box-sizing: border-box; line-height: 1.5; color: #111827; }
-          .pdf-container * { box-sizing: border-box; }
-          
-          .pdf-container .flex { display: flex; }
-          .pdf-container .flex-col { flex-direction: column; }
-          .pdf-container .flex-grow { flex-grow: 1; }
-          .pdf-container .justify-between { justify-content: space-between; }
-          .pdf-container .justify-center { justify-content: center; }
-          .pdf-container .justify-end { justify-content: flex-end; }
-          .pdf-container .items-center { align-items: center; }
-          .pdf-container .items-start { align-items: flex-start; }
-          .pdf-container .items-end { align-items: flex-end; }
-          .pdf-container .flex-wrap { flex-wrap: wrap; }
-          
-          .pdf-container .mb-1 { margin-bottom: 4px; }
-          .pdf-container .mb-2 { margin-bottom: 8px; }
-          .pdf-container .mb-4 { margin-bottom: 16px; }
-          .pdf-container .mb-8 { margin-bottom: 32px; }
-          .pdf-container .mt-1 { margin-top: 4px; }
-          .pdf-container .mt-2 { margin-top: 8px; }
-          .pdf-container .mt-4 { margin-top: 16px; }
-          .pdf-container .p-2 { padding: 8px; }
-          .pdf-container .p-4 { padding: 16px; }
-          .pdf-container .pt-2 { padding-top: 8px; }
-          .pdf-container .gap-2 { gap: 8px; }
-          .pdf-container .gap-4 { gap: 16px; }
-          
-          .pdf-container .text-right { text-align: right; }
-          .pdf-container .text-center { text-align: center; }
-          .pdf-container .uppercase { text-transform: uppercase; }
-          .pdf-container .font-bold { font-weight: 700; }
-          .pdf-container .font-medium { font-weight: 500; }
-          .pdf-container .text-sm { font-size: 14px; }
-          .pdf-container .text-xs { font-size: 12px; }
-          .pdf-container .italic { font-style: italic; }
-          
-          .pdf-container table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          .pdf-container th, .pdf-container td { padding: 12px 8px; border-bottom: 1px solid #e5e7eb; }
-          .pdf-container tr { page-break-inside: avoid; }
-        `}
-            </style>
+        <View style={styles.clientBox}>
+          <View style={styles.clientInfo}>
+            <Text style={styles.clientName}>{income.client}</Text>
+          </View>
+          <View style={styles.docDetails}>
+            <Text style={styles.docDetailsLabel}>N° : {income.deliveryNoteNumber || income.id}</Text>
+            <Text style={styles.docDetailsValue}>Date : {new Date(income.date || new Date()).toLocaleDateString("fr-FR")}</Text>
+          </View>
+        </View>
 
-            <div className="flex-grow">
-                <header>
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="flex items-center gap-4">
-                            <h1 style={{ fontSize: "20px", fontWeight: "bold" }}>
-                                {authState.user?.agencyName || "Votre Agence"}
-                            </h1>
-                        </div>
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <View style={styles.colDesignation}><Text>DÉSIGNATION</Text></View>
+            <View style={styles.colQty}><Text>QTÉ</Text></View>
+            <View style={styles.colPrice}><Text>P.U</Text></View>
+            <View style={styles.colAmount}><Text>TOTAL</Text></View>
+          </View>
 
-                        <div className="flex flex-col items-end text-right">
-                            <h2
-                                className="uppercase"
-                                style={{
-                                    fontSize: "24px",
-                                    fontWeight: "900",
-                                    color: "#2563eb",
-                                }}
-                            >
-                                {documentType}
-                            </h2>
-                        </div>
-                    </div>
-                </header>
+          {(income.items as any[] || []).map((item, index) => (
+            <View key={index} style={index === (income.items?.length || 0) - 1 ? styles.lastTableRow : styles.tableRow} wrap={false}>
+              <View style={styles.colDesignation}>
+                <Text>{item.description}</Text>
+                {item.checkIn && item.checkOut && (
+                  <Text style={styles.itemDate}>
+                    Du {new Date(item.checkIn).toLocaleDateString("fr-FR")} au {new Date(item.checkOut).toLocaleDateString("fr-FR")}
+                  </Text>
+                )}
+                {item.departureDate && item.returnDate && (
+                  <Text style={styles.itemDate}>
+                    Aller: {new Date(item.departureDate).toLocaleDateString("fr-FR")} | Retour: {new Date(item.returnDate).toLocaleDateString("fr-FR")}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.colQty}>
+                <Text>{item.quantity}</Text>
+              </View>
+              <View style={styles.colPrice}>
+                <Text>
+                  {((Number(item.prixUnitaire || item.unitPrice) || 0) + (Number(item.fraisServiceUnitaire) || 0)).toLocaleString("de-DE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Text>
+              </View>
+              <View style={styles.colAmount}>
+                <Text style={{ fontWeight: 'bold' }}>
+                  {(Number(item.total) || 0).toLocaleString("de-DE", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
 
-                <main>
-                    {income.client && (
-                        <div
-                            className="flex justify-between items-start"
-                            style={{
-                                marginBottom: "30px",
-                                padding: "20px",
-                                backgroundColor: "#f9fafb",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "12px",
-                                marginTop: "100px",
-                            }}
-                        >
-                            <div
-                                className="flex flex-col justify-center "
-                                style={{ justifyContent: "center" }}
-                            >
-                                <p
-                                    style={{
-                                        fontWeight: "bold",
-                                        fontSize: "14px",
-                                        marginBottom: "4px",
+        <View style={styles.totalsContainer}>
+          <View style={styles.totalRow}>
+            <Text>TOTAL A PAYER :</Text>
+            <Text>{(Number(income.amount) || 0).toLocaleString("de-DE", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} {income.currency || "MAD"}</Text>
+          </View>
+        </View>
 
-                                    }}
-                                >
-                                    {income.client}
-                                </p>
-                                {/* Delivery Notes generally have these if stored under properties or we can just fall back. In Income, we only have client name. */}
-                            </div>
+        <View style={styles.wordsSection}>
+          <Text style={styles.wordsLabel}>Arrêté le présent bon de Vente à la somme de :</Text>
+          <Text style={styles.wordsValue}>{totalInWords}</Text>
+        </View>
 
-                            <div
-                                className="flex flex-col items-end justify-center text-right"
-                                style={{ justifyContent: "center" }}
-                            >
-                                <p
-                                    style={{
-                                        fontSize: "14px",
-                                        fontWeight: "bold",
-                                        color: "#111827",
-                                    }}
-                                >
-                                    N° : {income.deliveryNoteNumber || income.id}
-                                </p>
-                                <p
-                                    style={{
-                                        fontSize: "14px",
-                                        color: "#374151",
-                                        marginTop: "4px",
-                                    }}
-                                >
-                                    Date : {new Date(income.date || new Date()).toLocaleDateString("fr-FR")}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    {!income.client && (
-                        <div className="flex justify-end mb-8">
-                            <div className="flex flex-col items-end text-right">
-                                <p
-                                    style={{
-                                        fontSize: "14px",
-                                        fontWeight: "bold",
-                                        color: "#111827",
-                                    }}
-                                >
-                                    N° : {income.deliveryNoteNumber || income.id}
-                                </p>
-                                <p
-                                    style={{
-                                        fontSize: "14px",
-                                        color: "#374151",
-                                        marginTop: "4px",
-                                    }}
-                                >
-                                    Date : {new Date(income.date || new Date()).toLocaleDateString("fr-FR")}
-                                </p>
-                            </div>
-                        </div>
-                    )}
-
-                    <table style={{ minHeight: "300px" }}>
-                        <thead>
-                            <tr style={{ backgroundColor: "#f3f4f6" }}>
-                                <th style={{ textAlign: "left", border: "1px solid #000" }}>
-                                    DÉSIGNATION
-                                </th>
-                                <th
-                                    style={{
-                                        textAlign: "center",
-                                        width: "60px",
-                                        border: "1px solid #000",
-                                    }}
-                                >
-                                    QTÉ
-                                </th>
-                                <th style={{ textAlign: "left", border: "1px solid #000" }}>
-                                    P.U
-                                </th>
-                                <th style={{ textAlign: "left", border: "1px solid #000" }}>
-                                    TOTAL
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(income.items as any[] || []).map((item, index) => (
-                                <tr key={index}>
-                                    <td
-                                        style={{
-                                            whiteSpace: "pre-wrap",
-                                            border: "1px solid #000",
-                                        }}
-                                    >
-                                        {item.description}
-                                        {item.checkIn && item.checkOut && (
-                                            <div style={{ fontSize: "11px", color: "#6b7280" }}>
-                                                Du {new Date(item.checkIn).toLocaleDateString("fr-FR")} au {new Date(item.checkOut).toLocaleDateString("fr-FR")}
-                                            </div>
-                                        )}
-                                        {item.departureDate && item.returnDate && (
-                                            <div style={{ fontSize: "11px", color: "#6b7280" }}>
-                                                Aller: {new Date(item.departureDate).toLocaleDateString("fr-FR")} | Retour: {new Date(item.returnDate).toLocaleDateString("fr-FR")}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td
-                                        style={{
-                                            textAlign: "center",
-                                            border: "1px solid #000",
-                                        }}
-                                    >
-                                        {item.quantity}
-                                    </td>
-                                    <td
-                                        style={{
-                                            textAlign: "left",
-                                            border: "1px solid #000",
-                                        }}
-                                    >
-                                        {(
-                                            (Number(item.prixUnitaire || item.unitPrice) || 0) +
-                                            (Number(item.fraisServiceUnitaire) || 0)
-                                        ).toLocaleString("de-DE", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </td>
-                                    <td
-                                        style={{
-                                            textAlign: "left",
-                                            fontWeight: "bold",
-                                            border: "1px solid #000",
-                                        }}
-                                    >
-                                        {(Number(item.total) || 0).toLocaleString("de-DE", {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    <div
-                        style={{
-                            marginTop: "20px",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                        }}
-                    >
-                        <div style={{ width: "250px" }}>
-                            <div
-                                className="flex justify-between mt-2 pt-2"
-                                style={{
-                                    borderTop: "2px solid #000",
-                                    fontWeight: "900",
-                                    fontSize: "14px",
-                                }}
-                            >
-                                <span>TOTAL A PAYER :</span>
-                                <span>
-                                    {(Number(income.amount) || 0).toLocaleString("de-DE", {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}{" "}
-                                    {income.currency || "MAD"}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ marginTop: "40px", fontStyle: "italic" }}>
-                        <p style={{ fontSize: "11px" }}>
-                            Arrêté le présent bon de Vente à la somme de :
-                        </p>
-                        <p style={{ fontWeight: "bold", textTransform: "capitalize" }}>
-                            {totalInWords}
-                        </p>
-                    </div>
-                </main>
-            </div>
-
-            <footer
-                style={{
-                    borderTop: "1px solid #eee",
-                    paddingTop: "20px",
-                }}
-            >
-                <div
-                    className="flex gap-2 justify-center flex-wrap"
-                    style={{ fontSize: "12px", color: "#6b7280", textAlign: "center" }}
-                >
-                    {[
-                        `Sté. ${authState.user?.agencyName || "Votre Agence"}`,
-                        settings?.address && `Siège : ${settings?.address}`,
-                        settings?.phone && `Tél : ${settings?.phone}`,
-                        settings?.email && `Email : ${settings?.email}`,
-                        settings?.ice && `ICE : ${settings?.ice}`,
-                        settings?.if && `IF : ${settings?.if}`,
-                        settings?.rc && `RC : ${settings?.rc}`,
-                        settings?.patente && `Patente : ${settings?.patente}`,
-                        settings?.cnss && `CNSS : ${settings?.cnss}`,
-                        settings?.bankName &&
-                        settings?.rib &&
-                        `RIB (${settings?.bankName}) : ${settings?.rib}`,
-                    ]
-                        .filter(Boolean)
-                        .map((item, idx) => (
-                            <p key={idx}>{idx > 0 ? `| ${item}` : item}</p>
-                        ))}
-                </div>
-            </footer>
-        </div>
-    );
+        <View style={styles.footer} fixed>
+          <View style={styles.footerContent}>
+            {footerItems.map((item, idx) => (
+              <Text key={idx}>{idx > 0 ? `| ${item} ` : `${item} `}</Text>
+            ))}
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
 }

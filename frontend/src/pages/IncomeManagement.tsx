@@ -17,7 +17,7 @@ import {
     Download,
 } from "lucide-react";
 import * as api from "../services/api";
-import { Income } from "../context/models";
+import { Income, FacturationSettings } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import IncomePaymentModal from "../components/incomes/IncomePaymentModal";
@@ -26,9 +26,10 @@ import IncomeForm from "../components/incomes/IncomeForm";
 import FactureForm from "../components/facturation/FactureForm";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
+import { useAuthContext } from "../context/AuthContext";
+import { pdf } from "@react-pdf/renderer";
+import { saveAs } from "file-saver";
 import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 
 export default function IncomeManagement() {
     const { t } = useTranslation();
@@ -42,7 +43,6 @@ export default function IncomeManagement() {
     const [incomeToDelete, setIncomeToDelete] = useState<number | null>(null);
     const [incomeToConvert, setIncomeToConvert] = useState<Income | null>(null);
     const [isFactureModalOpen, setIsFactureModalOpen] = useState(false);
-    const [incomeToPreview, setIncomeToPreview] = useState<Income | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBookingType, setSelectedBookingType] = useState("");
     const [selectedClient, setSelectedClient] = useState("");
@@ -54,6 +54,12 @@ export default function IncomeManagement() {
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+
+    const { state: authState } = useAuthContext();
+    const { data: settings } = useQuery<FacturationSettings>({
+        queryKey: ["settings"],
+        queryFn: api.getSettings,
+    });
 
     // Reset pagination when filters change
     const handleSearchChange = (val: string) => {
@@ -174,22 +180,22 @@ export default function IncomeManagement() {
     };
 
     const handleDownloadPDF = async (income: Income) => {
-        setIncomeToPreview(income);
-        await new Promise((resolve) => setTimeout(resolve, 300));
-
-        const input = document.getElementById("pdf-preview");
-        if (input) {
-            html2canvas(input, { scale: 2 }).then((canvas) => {
-                const imgData = canvas.toDataURL("image/png");
-                const pdf = new jsPDF("p", "mm", "a4");
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-                pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-                const clientName = income.client ? income.client.replace(/\s/g, "_") : income.id.toString();
-                const docNumber = income.deliveryNoteNumber || income.id;
-                pdf.save(`Bon_de_Livraison_${docNumber}_${clientName}.pdf`);
-                setIncomeToPreview(null);
-            });
+        try {
+            const doc = <DeliveryNotePDF 
+                income={income} 
+                settings={settings} 
+                agencyName={authState.user?.agencyName} 
+            />;
+            
+            const blob = await pdf(doc).toBlob();
+            const clientName = income.client ? income.client.replace(/\s/g, "_") : income.id.toString();
+            const docNumber = income.deliveryNoteNumber || income.id;
+            saveAs(blob, `Bon_de_Vente_${docNumber}_${clientName}.pdf`);
+            
+            toast.success(t("downloadStarted") || "Download started");
+        } catch (error) {
+            console.error("PDF Generation error:", error);
+            toast.error("Failed to generate PDF");
         }
     };
 
@@ -634,14 +640,6 @@ export default function IncomeManagement() {
                 title={t("deleteIncomeTitle", { defaultValue: "Delete Income" })}
                 message={`${t("bulkDeleteIncomeMessage", { defaultValue: "Are you sure you want to delete the selected incomes?" })} (${selectedIds.size})`}
             />
-
-            {incomeToPreview && (
-                <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
-                    <div id="pdf-preview">
-                        <DeliveryNotePDF income={incomeToPreview} />
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

@@ -11,14 +11,15 @@ import {
   HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
-import { Facture, PaginatedResponse } from "../context/models";
+import { Facture, PaginatedResponse, FacturationSettings } from "../context/models";
 import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import FactureForm from "../components/facturation/FactureForm";
 import FacturePDF from "../components/facturation/FacturePDF";
 import { toast } from "react-hot-toast";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { useAuthContext } from "../context/AuthContext";
+import { pdf } from "@react-pdf/renderer";
+import { saveAs } from "file-saver";
 import { usePagination } from "../hooks/usePagination";
 import PaginationControls from "../components/booking/PaginationControls";
 import VideoHelpModal from "../components/VideoHelpModal";
@@ -29,9 +30,6 @@ export default function Facturation() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFacture, setEditingFacture] = useState<Facture | null>(null);
   const [factureToDelete, setFactureToDelete] = useState<number | null>(null);
-  const [factureToPreview, setFactureToPreview] = useState<Facture | null>(
-    null,
-  );
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const facturesPerPage = 10;
@@ -42,6 +40,12 @@ export default function Facturation() {
     queryKey: ["factures", currentPage],
     queryFn: () => api.getFactures(currentPage, facturesPerPage),
     placeholderData: (prev) => prev,
+  });
+
+  const { state: authState } = useAuthContext();
+  const { data: settings } = useQuery<FacturationSettings>({
+    queryKey: ["settings"],
+    queryFn: api.getSettings,
   });
 
   const factures = facturesResponse?.data ?? [];
@@ -107,24 +111,21 @@ export default function Facturation() {
   };
 
   const handleDownloadPDF = async (facture: Facture) => {
-    setFactureToPreview(facture);
-    // Increased timeout slightly to ensure rendering completes
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const input = document.getElementById("pdf-preview");
-    if (input) {
-      html2canvas(input, { scale: 2 }).then((canvas) => {
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        const docNumber = facture.facture_number || facture.id;
-        pdf.save(
-          `${facture.type}_${docNumber}_${facture.clientName.replace(/\s/g, "_")}.pdf`,
-        );
-        setFactureToPreview(null);
-      });
+    try {
+      const doc = <FacturePDF 
+        facture={facture} 
+        settings={settings} 
+        agencyName={authState.user?.agencyName} 
+      />;
+      
+      const blob = await pdf(doc).toBlob();
+      const docNumber = facture.facture_number || facture.id;
+      saveAs(blob, `${facture.type}_${docNumber}_${facture.clientName.replace(/\s/g, "_")}.pdf`);
+      
+      toast.success(t("downloadStarted") || "Download started");
+    } catch (error) {
+      console.error("PDF Generation error:", error);
+      toast.error("Failed to generate PDF");
     }
   };
 
@@ -298,16 +299,6 @@ export default function Facturation() {
         message={t("deleteDocumentMessage")}
       />
 
-      {/* This div is strictly for PDF generation. 
-        It must remain hidden from view and standard light colors (white paper) for printing.
-      */}
-      {factureToPreview && (
-        <div style={{ position: "fixed", left: "-9999px", top: "-9999px" }}>
-          <div id="pdf-preview">
-            <FacturePDF facture={factureToPreview} />
-          </div>
-        </div>
-      )}
       <VideoHelpModal
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
