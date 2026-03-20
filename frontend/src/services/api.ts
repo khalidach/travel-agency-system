@@ -15,6 +15,7 @@ import type {
   User,
   FacturationSettings,
   Supplier,
+  Client,
 } from "../context/models";
 import type { BookingSaveData } from "../components/booking_form/types";
 
@@ -641,6 +642,22 @@ export const updateSupplier = (id: number, data: Update<Supplier>) =>
 
 export const deleteSupplier = (id: number) =>
   request(`/suppliers/${id}`, { method: "DELETE" });
+
+// --- Clients API (NEW) ---
+export const getClients = (withStats = false, page = 1, limit = 10) =>
+  request(`/clients?withStats=${withStats}&page=${page}&limit=${limit}`);
+
+export const getClient = (id: number, page = 1, limit = 7) =>
+  request(`/clients/${id}?page=${page}&limit=${limit}`);
+
+export const createClient = (data: Create<Client>) =>
+  request("/clients", { method: "POST", body: JSON.stringify(data) });
+
+export const updateClient = (id: number, data: Update<Client>) =>
+  request(`/clients/${id}`, { method: "PUT", body: JSON.stringify(data) });
+
+export const deleteClient = (id: number) =>
+  request(`/clients/${id}`, { method: "DELETE" });
 
 // --- Expenses API (NEW) ---
 export const getExpenses = (params?: {

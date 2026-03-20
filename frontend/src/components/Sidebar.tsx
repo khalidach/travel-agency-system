@@ -188,6 +188,13 @@ const allMenuItems: MenuItem[] = [
         roles: ["admin", "manager"],
         new: true,
       },
+      {
+        key: "clients",
+        path: "/clients",
+        icon: Users,
+        roles: ["admin", "manager"],
+        new: true,
+      },
     ],
   },
   {

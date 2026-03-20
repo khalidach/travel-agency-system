@@ -1,9 +1,11 @@
 // frontend/src/components/incomes/DeliveryNoteForm.tsx
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Income, FactureItem } from "../../context/models";
+import { useQuery } from "@tanstack/react-query";
+import { Income, FactureItem, Client } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
 import NumberInput from "../ui/NumberInput";
+import * as api from "../../services/api";
 
 interface DeliveryNoteFormProps {
   initialData?: Income;
@@ -45,6 +47,12 @@ export default function DeliveryNoteForm({
   const [showMargin, setShowMargin] = useState(initialData?.showMargin ?? true);
   const [notes, setNotes] = useState(initialData?.notes || "");
   const [manualNumber, setManualNumber] = useState("");
+
+  const { data: clientsData } = useQuery({
+      queryKey: ["clients", "all"],
+      queryFn: () => api.getClients(false, 1, 1000),
+  });
+  const clients = clientsData?.clients || [];
 
   const [items, setItems] = useState<FactureItemForm[]>(() => {
     if (initialData?.items && initialData.items.length > 0) {
@@ -253,12 +261,26 @@ export default function DeliveryNoteForm({
           <input
             type="text"
             required
+            list="clients-list"
             disabled={readOnly}
             placeholder={t("clientNamePlaceholder") as string}
             value={client}
-            onChange={(e) => setClient(e.target.value)}
+            onChange={(e) => {
+               const val = e.target.value;
+               setClient(val);
+               const matched = clients.find((c: Client) => c.name === val);
+               if (matched) {
+                   if (matched.address && !clientAddress) setClientAddress(matched.address);
+                   if (matched.ice && !clientICE) setClientICE(matched.ice);
+               }
+            }}
             className={inputClass}
           />
+          <datalist id="clients-list">
+            {clients.map((c: Client) => (
+              <option key={c.id} value={c.name} />
+            ))}
+          </datalist>
         </div>
         <div>
           <label className={labelClass}>{t("clientAddress")}</label>

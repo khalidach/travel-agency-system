@@ -441,6 +441,20 @@ export interface Supplier {
   updatedAt?: string;
 }
 
+export interface Client {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  ice?: string;
+  totalAmount?: number;
+  totalPaid?: number;
+  totalRemaining?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Income {
   id: number;
   userId: number;

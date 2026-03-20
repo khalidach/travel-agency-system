@@ -260,6 +260,20 @@ const applyDatabaseMigrations = async (client) => {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255),
+        phone VARCHAR(50),
+        address TEXT,
+        ice VARCHAR(50),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS payment_sequences (
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         year INTEGER NOT NULL,
@@ -354,6 +368,12 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       "CREATE INDEX IF NOT EXISTS idx_suppliers_name_gin ON suppliers USING GIN (name gin_trgm_ops);",
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_clients_user ON clients("userId");',
+    );
+    await client.query(
+      "CREATE INDEX IF NOT EXISTS idx_clients_name_gin ON clients USING GIN (name gin_trgm_ops);",
     );
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS bookings_passport_trip_unique_partial

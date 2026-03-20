@@ -42,6 +42,7 @@ const DailyServiceReport = lazy(() => import("./pages/DailyServiceReport"));
 const AccountSettings = lazy(() => import("./pages/AccountSettings"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const IncomeManagement = lazy(() => import("./pages/IncomeManagement")); // <--- NEW IMPORT
+const Clients = lazy(() => import("./pages/Clients")); // <--- NEW IMPORT
 const Suppliers = lazy(() => import("./pages/Suppliers")); // <--- NEW IMPORT
 const SupplierAnalysis = lazy(() => import("./pages/SupplierAnalysis")); // <--- NEW IMPORT
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
@@ -190,6 +191,8 @@ function AppRoutes() {
                           />
                           <Route path="/expenses" element={<Expenses />} />
                           <Route path="/incomes" element={<IncomeManagement />} />
+                          {/* --- NEW: Clients Routes --- */}
+                          <Route path="/clients" element={<Clients />} />
                           {/* --- NEW: Suppliers Routes --- */}
                           <Route path="/suppliers" element={<Suppliers />} />
                         </>
