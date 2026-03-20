@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, CreditCard, Edit2 } from "lucide-react";
 import Modal from "../Modal";
-import ExpensePaymentForm from "../expenses/ExpensePaymentForm"; // Reuse the payment form
+import PaymentForm from "../PaymentForm";
 import ConfirmationModal from "../modals/ConfirmationModal";
 import { Income, Payment } from "../../context/models";
 import * as api from "../../services/api";
@@ -92,7 +92,7 @@ export default function IncomePaymentModal({
                 <div className="space-y-4">
                     <div className="flex justify-between items-center mb-4">
                         <div>
-                            <p className="font-medium text-lg">{income.description}</p>
+                            <p className="font-medium text-lg">{t("deliveryNoteNumber")}: {income.deliveryNoteNumber}</p>
                             <p className="text-sm text-gray-500">
                                 {t("remainingBalance")}:{" "}
                                 <span className="text-red-600 font-bold">
@@ -168,10 +168,9 @@ export default function IncomePaymentModal({
                 onClose={handleCloseForm}
                 title={editingPayment ? t("editPayment") : t("addPayment")}
             >
-                <ExpensePaymentForm
+                <PaymentForm
                     payment={editingPayment || undefined}
                     remainingBalance={income.remainingBalance}
-                    currency={currency}
                     onSave={(data) => {
                         if (editingPayment) {
                             updatePaymentMutation.mutate({
