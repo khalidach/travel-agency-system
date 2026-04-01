@@ -6,6 +6,7 @@ interface StatsGridProps {
   allTimeStats: {
     totalBookings: number;
     totalDailyServices?: number;
+    totalIncomes?: number;
     totalRevenue: number;
     totalProfit: number;
     totalCost: number;
@@ -20,7 +21,7 @@ export default function StatsGrid({ allTimeStats }: StatsGridProps) {
   const topStats = [
     {
       title: t("totalSalesCount") || "Total Sales",
-      value: allTimeStats.totalBookings + (allTimeStats.totalDailyServices || 0),
+      value: allTimeStats.totalBookings + (allTimeStats.totalDailyServices || 0) + (allTimeStats.totalIncomes || 0),
       icon: Users,
       color: "bg-blue-500",
       roles: ["admin", "manager", "employee"],

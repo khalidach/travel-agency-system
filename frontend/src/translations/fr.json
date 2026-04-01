@@ -61,6 +61,7 @@
   "totalBookings": "Total Réservations",
   "totalRevenue": "Chiffre d'Affaires Total",
   "totalProfit": "Profit Total",
+  "totalIncomes": "Total des Revenus",
   "totalCosts": "Coûts Totals",
   "activePrograms": "Programmes Actifs",
   "welcomeMessage": "Bienvenue, {{name}}",

@@ -1,6 +1,6 @@
 // frontend/src/components/dashboard/DateMetricsSection.tsx
 import { useTranslation } from "react-i18next";
-import { Users, DollarSign, FileText, ConciergeBell } from "lucide-react";
+import { Users, DollarSign, FileText, ConciergeBell, Banknote } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
 import type { DashboardStats } from "../../context/models";
 
@@ -42,6 +42,11 @@ export default function DateMetricsSection({
       title: t("totalServicesPerformed"),
       value: dateFilteredStats.totalDailyServices,
       icon: ConciergeBell,
+    },
+    {
+      title: t("totalIncomes") || "Total Incomes",
+      value: dateFilteredStats.totalIncomes || 0,
+      icon: Banknote,
     },
     {
       title: t("facturationTitle"),

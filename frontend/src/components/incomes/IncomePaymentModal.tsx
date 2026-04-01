@@ -32,6 +32,8 @@ export default function IncomePaymentModal({
             api.addIncomePayment(income!.id, payment),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("paymentAdded"));
             setIsPaymentFormOpen(false);
             setEditingPayment(null);
@@ -49,6 +51,8 @@ export default function IncomePaymentModal({
         }) => api.updateIncomePayment(income!.id, paymentId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("paymentUpdated"));
             setIsPaymentFormOpen(false);
             setEditingPayment(null);
@@ -61,6 +65,8 @@ export default function IncomePaymentModal({
             api.deleteIncomePayment(income!.id, paymentId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("paymentDeleted"));
             setPaymentToDelete(null);
         },

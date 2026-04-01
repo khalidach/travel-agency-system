@@ -61,6 +61,7 @@
   "totalBookings": "إجمالي الحجوزات",
   "totalRevenue": "إجمالي الإيرادات",
   "totalProfit": "إجمالي الأرباح",
+  "totalIncomes": "إجمالي الإيرادات",
   "totalCosts": "إجمالي التكاليف",
   "activePrograms": "البرامج النشطة",
   "welcomeMessage": "مرحباً، {{name}}",

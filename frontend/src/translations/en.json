@@ -57,6 +57,7 @@
   "totalBookings": "Total Bookings",
   "totalRevenue": "Total Revenue",
   "totalProfit": "Total Profit",
+  "totalIncomes": "Total Incomes",
   "totalCosts": "Total Costs",
   "activePrograms": "Active Programs",
   "welcomeMessage": "Welcome, {{name}}",

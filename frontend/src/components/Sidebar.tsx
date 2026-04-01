@@ -175,28 +175,28 @@ const allMenuItems: MenuItem[] = [
       },
     ],
   },
-  // {
-  //   key: "incomesManagement",
-  //   icon: Coins,
-  //   roles: ["admin", "manager"],
-  //   new: true,
-  //   children: [
-  //     {
-  //       key: "incomes",
-  //       path: "/incomes",
-  //       icon: Coins,
-  //       roles: ["admin", "manager"],
-  //       new: true,
-  //     },
-  //     {
-  //       key: "clients",
-  //       path: "/clients",
-  //       icon: Users,
-  //       roles: ["admin", "manager"],
-  //       new: true,
-  //     },
-  //   ],
-  // },
+  {
+    key: "incomesManagement",
+    icon: Coins,
+    roles: ["admin", "manager"],
+    new: true,
+    children: [
+      {
+        key: "incomes",
+        path: "/incomes",
+        icon: Coins,
+        roles: ["admin", "manager"],
+        new: true,
+      },
+      {
+        key: "clients",
+        path: "/clients",
+        icon: Users,
+        roles: ["admin", "manager"],
+        new: true,
+      },
+    ],
+  },
   {
     key: "facturation",
     path: "/facturation",

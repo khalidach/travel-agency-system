@@ -120,6 +120,8 @@ export default function IncomeManagement() {
         mutationFn: api.createIncome,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("incomeCreated", { defaultValue: "Income Created" }));
             setIsFormOpen(false);
         },
@@ -131,6 +133,8 @@ export default function IncomeManagement() {
             api.updateIncome(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("incomeUpdated", { defaultValue: "Income Updated" }));
             setIsFormOpen(false);
         },
@@ -141,6 +145,8 @@ export default function IncomeManagement() {
         mutationFn: api.deleteIncome,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("incomeDeleted", { defaultValue: "Income Deleted" }));
             setIncomeToDelete(null);
         },
@@ -151,6 +157,8 @@ export default function IncomeManagement() {
         mutationFn: api.bulkDeleteIncomes,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             toast.success(t("incomesDeleted", { defaultValue: "Incomes Deleted" }));
             setSelectedIds(new Set());
             setShowBulkDeleteConfirm(false);
@@ -172,6 +180,8 @@ export default function IncomeManagement() {
             }
 
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
+            queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+            queryClient.invalidateQueries({ queryKey: ["profitReport"] });
             setIsFactureModalOpen(false);
             setIncomeToConvert(null);
         } catch (error: any) {

@@ -327,10 +327,12 @@ export interface DashboardStats {
     totalRevenue: number;
     totalProfit: number;
     totalCost: number;
+    totalIncomes?: number;
   };
   dateFilteredStats: {
     totalBookings: number;
     totalDailyServices: number;
+    totalIncomes?: number;
     totalFactures: number;
     totalRevenue: number;
     totalCost: number;

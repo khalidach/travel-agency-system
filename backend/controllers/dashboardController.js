@@ -81,6 +81,22 @@ const getDashboardStats = async (req, res, next) => {
     `;
     const expensesStatsPromise = req.db.query(expensesStatsQuery, queryParams);
 
+    // NEW: Query for Income Stats (Revenue from incomes)
+    let incomeDateFilterClause = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      incomeDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
+    }
+    const incomeStatsQuery = `
+      SELECT
+        COUNT(*) FILTER (WHERE 1=1 ${incomeDateFilterClause}) AS "filteredIncomesCount",
+        COUNT(*) AS "allTimeIncomesCount",
+        COALESCE(SUM(amount - COALESCE("remainingBalance", 0)) FILTER (WHERE 1=1 ${incomeDateFilterClause}), 0) AS "filteredIncomeRevenue",
+        COALESCE(SUM(amount - COALESCE("remainingBalance", 0)), 0) AS "allTimeIncomeRevenue"
+      FROM incomes
+      WHERE "userId" = $1
+    `;
+    const incomeStatsPromise = req.db.query(incomeStatsQuery, queryParams);
+
     // NEW: Query for Factures Count
     let factureDateFilterClause = "";
     if (isValidDate(startDate) && isValidDate(endDate)) {
@@ -126,6 +142,7 @@ const getDashboardStats = async (req, res, next) => {
       recentBookingsResult,
       dailyServiceProfitResult,
       expensesStatsResult,
+      incomeStatsResult,
     ] = await Promise.all([
       statsPromise,
       dailyServiceStatsPromise,
@@ -134,6 +151,7 @@ const getDashboardStats = async (req, res, next) => {
       recentBookingsPromise,
       dailyServiceProfitPromise,
       expensesStatsPromise,
+      incomeStatsPromise,
     ]);
 
     const stats = statsResult.rows[0];
@@ -143,16 +161,19 @@ const getDashboardStats = async (req, res, next) => {
     const recentBookings = recentBookingsResult.rows;
     const dailyServiceProfits = dailyServiceProfitResult.rows;
     const expensesStats = expensesStatsResult.rows[0];
+    const incomeStats = incomeStatsResult.rows[0];
     const allTimeCost = parseFloat(expensesStats.allTimeExpensesCost);
-    const allTimeRevenue = parseFloat(stats.allTimeRevenue) + parseFloat(dailyServiceStats.allTimeServiceRevenue);
+    const allTimeIncomeRevenue = parseFloat(incomeStats.allTimeIncomeRevenue);
+    const allTimeRevenue = parseFloat(stats.allTimeRevenue) + parseFloat(dailyServiceStats.allTimeServiceRevenue) + allTimeIncomeRevenue;
     const allTimeProfit = allTimeRevenue - allTimeCost;
 
     const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
     const filteredServiceRevenue = parseFloat(
       dailyServiceStats.filteredServiceRevenue
     );
+    const filteredIncomeRevenue = parseFloat(incomeStats.filteredIncomeRevenue);
     const filteredCost = parseFloat(expensesStats.filteredExpensesCost);
-    const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue; // Combined Revenue
+    const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue + filteredIncomeRevenue; // Combined Revenue (bookings + services + incomes)
     const filteredProfit = filteredRevenue - filteredCost;
     const filteredPaid = parseFloat(stats.filteredPaid);
 
@@ -160,6 +181,7 @@ const getDashboardStats = async (req, res, next) => {
       allTimeStats: {
         totalBookings: parseInt(stats.allTimeBookings, 10),
         totalDailyServices: parseInt(dailyServiceStats.allTimeServicesCount, 10),
+        totalIncomes: parseInt(incomeStats.allTimeIncomesCount, 10),
         totalRevenue: allTimeRevenue,
         totalProfit: allTimeProfit,
         totalCost: allTimeCost,
@@ -170,6 +192,7 @@ const getDashboardStats = async (req, res, next) => {
           dailyServiceStats.filteredServicesCount,
           10
         ),
+        totalIncomes: parseInt(incomeStats.filteredIncomesCount, 10),
         totalFactures: parseInt(facturesCount.filteredFacturesCount, 10),
         totalRevenue: filteredRevenue,
         totalCost: filteredCost,
