@@ -276,11 +276,6 @@ export default function FacturePDF({ facture, settings, agencyName }: FacturePDF
         <View style={styles.wordsSection}>
           <Text style={styles.wordsLabel}>Arrêté la présente facture à la somme de :</Text>
           <Text style={styles.wordsValue}>{totalInWords}</Text>
-          {!showMargin && (
-            <Text style={{ fontWeight: 'bold', marginTop: 15, fontSize: 9 }}>
-              Régime particulier – agences de voyages
-            </Text>
-          )}
         </View>
 
         <View style={styles.footer} fixed>

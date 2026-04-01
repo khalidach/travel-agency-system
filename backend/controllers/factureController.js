@@ -157,11 +157,12 @@ const updateFacture = async (req, res, next) => {
       tva,
       total,
       notes,
+      facture_number,
     } = req.body;
 
     const { rows } = await req.db.query(
-      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, "updatedAt" = NOW()
-       WHERE id = $13 AND "userId" = $14 RETURNING *`,
+      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, facture_number = COALESCE($13, facture_number), "updatedAt" = NOW()
+       WHERE id = $14 AND "userId" = $15 RETURNING *`,
       [
         clientName,
         clientAddress,
@@ -175,6 +176,7 @@ const updateFacture = async (req, res, next) => {
         tva,
         total,
         notes,
+        facture_number,
         id,
         adminId,
       ]

@@ -45,6 +45,8 @@ export default function FactureForm({
   const [notes, setNotes] = useState("");
   const [showMargin, setShowMargin] = useState(showMarginOnNew);
   const [manualNumber, setManualNumber] = useState("");
+  const [numberYear, setNumberYear] = useState(new Date().getFullYear().toString());
+  const [editedFactureNumber, setEditedFactureNumber] = useState("");
 
   useEffect(() => {
     if (existingFacture) {
@@ -55,6 +57,8 @@ export default function FactureForm({
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
       setShowMargin(existingFacture.showMargin ?? true);
       setManualNumber("");
+      setEditedFactureNumber(existingFacture.facture_number || "");
+      setNumberYear(new Date(existingFacture.date).getFullYear().toString());
 
       let parsedItems: FactureItemForm[] = [emptyItem];
       if (existingFacture.items) {
@@ -87,6 +91,8 @@ export default function FactureForm({
       setNotes("");
       setShowMargin(showMarginOnNew);
       setManualNumber("");
+      setNumberYear(new Date().getFullYear().toString());
+      setEditedFactureNumber("");
     }
   }, [existingFacture, showMarginOnNew]);
 
@@ -165,7 +171,9 @@ export default function FactureForm({
       tva: calculatedTotals.tva,
       total: calculatedTotals.totalFacture,
       notes,
-      facture_number: manualNumber ? `${new Date().getFullYear()}-${manualNumber}` : undefined,
+      facture_number: existingFacture 
+        ? editedFactureNumber 
+        : (manualNumber ? `${numberYear}-${manualNumber}` : undefined),
     });
   };
 
@@ -219,14 +227,20 @@ export default function FactureForm({
           {existingFacture ? (
               <input
                 type="text"
-                disabled
-                value={existingFacture.facture_number}
-                className={`${inputClass} bg-muted/30 font-semibold`}
+                value={editedFactureNumber}
+                onChange={(e) => setEditedFactureNumber(e.target.value)}
+                className={`${inputClass} font-semibold`}
               />
           ) : (
             <div className="relative flex mt-1">
-              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted/50 text-muted-foreground text-sm font-medium">
-                {new Date().getFullYear()}-
+              <input
+                type="text"
+                value={numberYear}
+                onChange={(e) => setNumberYear(e.target.value)}
+                className="inline-flex w-[70px] text-center items-center px-2 py-2 rounded-none rounded-l-md border border-r-0 border-input bg-muted/50 text-foreground text-sm font-medium focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+              />
+              <span className="inline-flex items-center border border-x-0 border-input bg-muted/50 text-muted-foreground text-sm font-medium">
+                -
               </span>
               <input
                 type="text"
