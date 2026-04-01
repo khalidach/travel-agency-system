@@ -5,7 +5,7 @@ const addPayment = async (db, user, bookingId, paymentData) => {
   const booking = await findBookingForUser(db, user, bookingId, true);
   const { labelPaper, ...restOfPaymentData } = paymentData;
 
-  const paymentId = await getNextPaymentId(db, user.id);
+  const paymentId = await getNextPaymentId(db, user.adminId);
 
   const newPayment = {
     ...restOfPaymentData,
@@ -141,7 +141,7 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
   }));
   const distribution = distributeAmount(paymentData.amount, bookingsData);
 
-  const paymentId = await getNextPaymentId(db, user.id);
+  const paymentId = await getNextPaymentId(db, user.adminId);
 
   const updatedBookings = [];
 
