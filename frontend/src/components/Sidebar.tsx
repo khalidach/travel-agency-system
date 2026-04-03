@@ -87,8 +87,7 @@ const allMenuItems: MenuItem[] = [
         key: "programCosting",
         path: "/program-costing",
         icon: DollarSign,
-        roles: ["admin"],
-        new: true,
+        roles: ["admin", "manager"],
         accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.programCosts === "boolean")
