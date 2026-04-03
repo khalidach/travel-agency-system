@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Occupant } from "../../context/models";
 import { useDebounce } from "../../hooks/useDebounce";
-import { X, ArrowRight, GripVertical } from "lucide-react";
+import { X, ArrowRight, GripVertical, Plus } from "lucide-react";
 import * as api from "../../services/api";
 import { useTranslation } from "react-i18next";
 import { useDrag, useDrop } from "react-dnd";
@@ -34,6 +34,7 @@ interface OccupantSearchBoxProps {
     source: DraggedOccupantItem,
     target: { roomName: string; roomType: string; slotIndex: number; occupant: Occupant | null }
   ) => void;
+  onQuickCreate?: (name: string) => void;
 }
 
 export default function OccupantSearchBox({
@@ -48,13 +49,14 @@ export default function OccupantSearchBox({
   onUnassign,
   onMove,
   onDropOccupant,
+  onQuickCreate,
 }: OccupantSearchBoxProps) {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 700);
 
-  const { data: searchResults = [] } = useQuery<Occupant[]>({
+  const { data: searchResults = [], isFetching } = useQuery<Occupant[]>({
     queryKey: [
       "unassignedOccupantsSearch",
       programId,
@@ -143,6 +145,20 @@ export default function OccupantSearchBox({
         onChange={(e) => setSearchTerm(e.target.value)}
         onFocus={() => setShowDropdown(true)}
         onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && searchTerm.trim() !== "") {
+            const isLoadingSearch = isFetching || searchTerm !== debouncedSearchTerm;
+            if (finalResults.length > 0) {
+              onAssign(finalResults[0]);
+              setSearchTerm("");
+              setShowDropdown(false);
+            } else if (!isLoadingSearch && onQuickCreate) {
+              onQuickCreate(searchTerm.trim());
+              setSearchTerm("");
+              setShowDropdown(false);
+            }
+          }
+        }}
         placeholder={t("searchPlaceholder") as string}
         className={`w-full p-2 border rounded-lg text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-colors ${isOver ? "border-primary border-dashed bg-primary/10" : "border-input"
           }`}
@@ -162,6 +178,23 @@ export default function OccupantSearchBox({
               {occ.clientName}
             </li>
           ))}
+        </ul>
+      )}
+      {showDropdown && finalResults.length === 0 && searchTerm.trim() !== "" && !isFetching && searchTerm === debouncedSearchTerm && (
+        <ul className="absolute z-20 w-full bg-popover border border-border rounded-lg mt-1 shadow-lg">
+          <li
+            onClick={() => {
+              if (onQuickCreate) {
+                onQuickCreate(searchTerm.trim());
+              }
+              setSearchTerm("");
+              setShowDropdown(false);
+            }}
+            className="px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer text-sm text-popover-foreground flex items-center justify-between"
+          >
+            <span>{t("create")} <span className="font-semibold">{searchTerm}</span></span>
+            <Plus size={14} />
+          </li>
         </ul>
       )}
     </div>

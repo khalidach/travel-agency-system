@@ -258,6 +258,65 @@ export default function RoomManage() {
     setMovePersonState(null);
   };
 
+  const handleQuickCreate = async (
+    name: string,
+    roomName: string,
+    roomType: string,
+    slotIndex: number,
+  ) => {
+    if (!program || program.packages.length === 0) {
+      toast.error(t("noPackagesForProgram") || "No packages found for this program.");
+      return;
+    }
+
+    try {
+      toast.loading(t("creatingOccupant") || "Creating person...");
+      const pkg = program.packages[0];
+      const result = await api.createBooking({
+        clients: [
+          {
+            clientNameAr: name,
+            clientNameFr: { firstName: "", lastName: "" },
+            personType: "adult",
+            phoneNumber: "",
+            passportNumber: "",
+            gender: "male",
+            noPassport: true,
+          },
+        ],
+        tripId: String(program.id),
+        packageId: pkg.name,
+        variationName: program.variations?.[0]?.name || "",
+        selectedHotel: { cities: [], hotelNames: [], roomTypes: [] },
+        sellingPrice: 0,
+        basePrice: 0,
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+      });
+
+      const newBooking = result.bookings[0];
+      const newOccupant: Occupant = {
+        id: newBooking.id,
+        clientName: newBooking.clientNameAr || name,
+      };
+
+      handleAssignOccupant(roomName, roomType, slotIndex, newOccupant);
+
+      queryClient.invalidateQueries({
+        queryKey: ["unassignedOccupantsSearch"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["program", programId],
+      });
+
+      toast.dismiss();
+      toast.success(t("occupantCreated") || "Person added successfully.");
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error(error.message || "Failed to add person.");
+    }
+  };
+
   const handleAddNewRoom = () => {
     if (!newRoomDetails.name.trim()) {
       toast.error(t("roomNameRequired"));
@@ -504,6 +563,7 @@ export default function RoomManage() {
                             handleMoveOccupant(occ, room.name, room.type)
                           }
                           onDropOccupant={handleDropOccupant}
+                          onQuickCreate={(name) => handleQuickCreate(name, room.name, room.type, i)}
                         />
                       ))}
                     </div>
