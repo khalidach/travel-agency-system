@@ -72,19 +72,12 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   } // Add pricing columns at the end
 
   allColumns.push(
-    { header: "Prix Cost", key: "basePrice" },
     { header: "Prix Vente", key: "sellingPrice" },
-    { header: "Bénéfice", key: "profit" },
     { header: "Payé", key: "paid" },
     { header: "Reste", key: "remaining" }
-  ); // Filter columns based on the user's role
+  ); 
 
-  worksheet.columns = allColumns.filter((col) => {
-    if (userRole === "admin") {
-      return true; // Admin sees all columns
-    } // Non-admins do not see 'basePrice' or 'profit'
-    return col.key !== "basePrice" && col.key !== "profit";
-  }); // Merge cells for the program name header now that we have columns
+  worksheet.columns = allColumns; // Merge cells for the program name header now that we have columns
 
   if (worksheet.columns.length > 0) {
     worksheet.mergeCells(1, 1, 1, worksheet.columns.length);
@@ -210,11 +203,6 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       rowData.roomType = (booking.selectedHotel.roomTypes || []).join(", ");
     }
 
-    if (userRole === "admin") {
-      rowData.basePrice = Number(booking.basePrice);
-      rowData.profit = Number(booking.profit);
-    }
-
     const row = worksheet.addRow(rowData);
 
     row.font = { size: 20 };
@@ -230,9 +218,6 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
       };
       const columnKey = worksheet.getColumn(cell.col).key;
       const priceColumns = ["sellingPrice", "paid", "remaining"];
-      if (userRole === "admin") {
-        priceColumns.push("basePrice", "profit");
-      }
 
       if (priceColumns.includes(columnKey)) {
         cell.numFmt = '#,##0.00 "MAD"';
@@ -313,9 +298,6 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
   const totalRowNumber = totalsRow.number;
 
   const totalColumnsKeys = ["sellingPrice", "paid", "remaining"];
-  if (userRole === "admin") {
-    totalColumnsKeys.push("basePrice", "profit");
-  }
 
   const firstTotalCol = worksheet.columns.find((c) =>
     totalColumnsKeys.includes(c.key)
