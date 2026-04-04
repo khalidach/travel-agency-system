@@ -75,7 +75,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     { header: "Prix Vente", key: "sellingPrice" },
     { header: "Payé", key: "paid" },
     { header: "Reste", key: "remaining" }
-  ); 
+  );
 
   worksheet.columns = allColumns; // Merge cells for the program name header now that we have columns
 
@@ -246,7 +246,7 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
           if (
             currentIndex >= i + familySize || // Should not happen with j < familySize, but for safety
             finalBookings[currentIndex].phoneNumber !==
-              finalBookings[prevIndex].phoneNumber
+            finalBookings[prevIndex].phoneNumber
           ) {
             // A subgroup has ended. Check if it's worth merging.
             const mergeCount = currentIndex - subGroupStartIndex;
@@ -348,21 +348,127 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     }
   });
 
-  totalsRow.height = 30; // Iterate over all columns to set the width to the length of the longest cell value.
+  totalsRow.height = 30;
+
+  // Auto-fit column widths to match the widest cell content in each column.
+  // This mimics Excel's "double-click column border to auto-fit" behavior.
+  const mergedCellRanges = worksheet.model.merges || [];
+
+  /**
+   * Checks if a cell (by row,col) is part of a merged range but is NOT the
+   * top-left origin of that merge. We skip those cells so a value spanning
+   * many columns doesn't inflate a single column's width.
+   */
+  const isMergedNonOrigin = (row, col) => {
+    for (const range of mergedCellRanges) {
+      // range format: "A1:D1"
+      const decoded = excel.Range ? null : null; // not used directly
+      const parts = range.split(":");
+      if (parts.length !== 2) continue;
+      const tl = worksheet.getCell(parts[0]);
+      const br = worksheet.getCell(parts[1]);
+      const top = tl.row, left = tl.col;
+      const bottom = br.row, right = br.col;
+      if (row >= top && row <= bottom && col >= left && col <= right) {
+        // It's inside a merged range – skip unless it's the origin cell
+        if (row !== top || col !== left) return true;
+        // It IS the origin but spans multiple columns – also skip to
+        // avoid one column getting the full merged-text width.
+        if (right > left) return true;
+      }
+    }
+    return false;
+  };
+
+  /**
+   * Checks if a character code falls in an Arabic Unicode range.
+   */
+  const isArabicChar = (code) =>
+    (code >= 0x0600 && code <= 0x06ff) || // Arabic
+    (code >= 0x0750 && code <= 0x077f) || // Arabic Supplement
+    (code >= 0x08a0 && code <= 0x08ff) || // Arabic Extended-A
+    (code >= 0xfb50 && code <= 0xfdff) || // Arabic Presentation Forms-A
+    (code >= 0xfe70 && code <= 0xfeff);   // Arabic Presentation Forms-B
+
+  /**
+   * Estimates the rendered width of a cell value in ExcelJS column-width
+   * units (≈ width of character "0" in Calibri 11pt).
+   */
+  const estimateCellWidth = (cell) => {
+    if (!cell || cell.value === null || cell.value === undefined) return 0;
+
+    let displayText = "";
+    const val = cell.value;
+
+    if (typeof val === "object" && val !== null) {
+      if (val.formula) {
+        // SUM formulas produce currency values – use a representative string
+        displayText = "000,000,000.00 MAD";
+      } else if (val.richText) {
+        displayText = val.richText.map((rt) => rt.text).join("");
+      } else if (val.text) {
+        displayText = val.text;
+      } else {
+        displayText = String(val);
+      }
+    } else {
+      displayText = String(val);
+    }
+
+    // For currency-formatted numbers, format the number as it will appear
+    if (cell.numFmt && cell.numFmt.includes("MAD") && typeof val === "number") {
+      const formatted = val.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      displayText = formatted + " MAD";
+    }
+
+    // Calculate character-weighted width.
+    // Arabic characters with contextual shaping, ligatures, and diacritics
+    // render significantly wider than Latin characters (~2.2x).
+    let charWidth = 0;
+    for (const ch of displayText) {
+      const code = ch.codePointAt(0);
+      if (isArabicChar(code)) {
+        charWidth += 1; // Reduced from 2.2 as they don't actually take up twice the space
+      } else if (
+        (code >= 0x4e00 && code <= 0x9fff) || // CJK Unified
+        (code >= 0x3000 && code <= 0x303f)    // CJK Symbols
+      ) {
+        charWidth += 1.0;
+      } else {
+        charWidth += 1.0;
+      }
+    }
+
+    // Scale by font size. ExcelJS column.width is calibrated against Calibri 11pt,
+    // so a font of size 20 needs (20/11) ≈ 1.82x the width per character.
+    const fontSize = cell.font && cell.font.size ? Number(cell.font.size) : 11;
+    charWidth *= fontSize / 11;
+
+    // Bold text is ~15% wider
+    if (cell.font && cell.font.bold) {
+      charWidth *= 1.15;
+    }
+
+    return charWidth;
+  };
 
   worksheet.columns.forEach((column) => {
-    let maxLength = 0;
+    let maxWidth = 0;
     column.eachCell({ includeEmpty: true }, (cell) => {
-      const cellValue = cell.value ? String(cell.value) : "";
-      const fontSize =
-        cell.font && cell.font.size ? Number(cell.font.size) : 12;
-      const weightedLength = cellValue.length * (fontSize / 12);
-      if (weightedLength > maxLength) {
-        maxLength = weightedLength;
+      // Skip cells that are part of a multi-column merge
+      if (isMergedNonOrigin(cell.row, cell.col)) return;
+
+      const w = estimateCellWidth(cell);
+      if (w > maxWidth) {
+        maxWidth = w;
       }
     });
-    const MIN_WIDTH = 15;
-    column.width = Math.max(MIN_WIDTH, maxLength + 5);
+    // const MIN_WIDTH = 6;
+    // const PADDING = 1; // breathing room so text doesn't touch cell borders
+    column.width = Math.max(Math.ceil(maxWidth));
   });
 
   return workbook;
