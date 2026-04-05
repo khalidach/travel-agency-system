@@ -109,25 +109,13 @@ const allMenuItems: MenuItem[] = [
         icon: BedDouble,
         roles: ["admin", "manager", "employee"],
       },
-      {
-        key: "profitReport",
-        path: "/profit-report",
-        icon: TrendingUp,
-        roles: ["admin"],
-        accessCheck: (user: User | null) => {
-          if (!user) return false;
-          if (typeof user.limits?.profitReport === "boolean")
-            return user.limits.profitReport;
-          if (typeof user.tierLimits?.profitReport === "boolean")
-            return user.tierLimits.profitReport;
-          return false;
-        },
-      },
     ],
   },
+
   {
     key: "dailyServices",
     icon: ConciergeBell,
+    path: "/daily-services",
     roles: ["admin", "manager", "employee"],
     accessCheck: (user) => {
       if (!user) return false;
@@ -137,20 +125,6 @@ const allMenuItems: MenuItem[] = [
         return user.tierLimits.dailyServices;
       return false;
     },
-    children: [
-      {
-        key: "manageDailyServices",
-        path: "/daily-services",
-        icon: ConciergeBell,
-        roles: ["admin", "manager", "employee"],
-      },
-      {
-        key: "dailyServiceReport",
-        path: "/daily-services-report",
-        icon: TrendingUp,
-        roles: ["admin", "manager"],
-      },
-    ],
   },
   {
     key: "expensesManagement",
@@ -195,6 +169,20 @@ const allMenuItems: MenuItem[] = [
         new: true,
       },
     ],
+  },
+  {
+    key: "profitReport",
+    path: "/profit-report",
+    icon: TrendingUp,
+    roles: ["admin"],
+    accessCheck: (user: User | null) => {
+      if (!user) return false;
+      if (typeof user.limits?.profitReport === "boolean")
+        return user.limits.profitReport;
+      if (typeof user.tierLimits?.profitReport === "boolean")
+        return user.tierLimits.profitReport;
+      return false;
+    },
   },
   {
     key: "facturation",
