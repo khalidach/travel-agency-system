@@ -717,5 +717,8 @@
   "services": "Services",
   "refund": "Refund",
   "totalPriceHT": "Total Price Excl. Fees",
-  "incomeDescriptionPlaceholder": "e.g., Consulting Fees"
+  "incomeDescriptionPlaceholder": "e.g., Consulting Fees",
+  "profitProgramTitle": "Profit by Programs",
+  "profitProgramSubtitle": "Analyze profits for programs.",
+  "detailedServicePerformance": "Detailed Service Performance"
 }

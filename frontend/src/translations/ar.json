@@ -721,5 +721,8 @@
   "services": "خدمات",
   "refund": "استرداد",
   "totalPriceHT": "الإجمالي بدون رسوم",
-  "incomeDescriptionPlaceholder": "مثال: رسوم استشارية"
+  "incomeDescriptionPlaceholder": "مثال: رسوم استشارية",
+  "profitProgramTitle": "الربح حسب البرامج",
+  "profitProgramSubtitle": "تحليل الأرباح للبرامج.",
+  "detailedServicePerformance": "الأداء التفصيلي للخدمات"
 }

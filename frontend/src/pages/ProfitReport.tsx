@@ -12,7 +12,6 @@ import {
   Line,
 } from "recharts";
 import {
-  Filter,
   HelpCircle,
 } from "lucide-react";
 import * as api from "../services/api";
@@ -67,7 +66,7 @@ export default function ProfitReport() {
 
 
 
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
@@ -80,9 +79,21 @@ export default function ProfitReport() {
     queryFn: () => api.getProfitReport(filterType, currentPage, itemsPerPage),
   });
 
+  const {
+    data: dailyReportData,
+    isLoading: isDailyLoading,
+    isError: isDailyError,
+  } = useQuery<any>({
+    queryKey: ["dailyServiceReport", "lifetime"],
+    queryFn: () => api.getDailyServiceReport(),
+  });
+
   const detailedPerformanceData = reportData?.detailedPerformanceData ?? [];
   const monthlyTrend = reportData?.monthlyTrend ?? [];
   const pagination = reportData?.pagination;
+
+  const byType: any[] = dailyReportData?.byType ?? [];
+  const dailyMonthlyTrend = dailyReportData?.monthlyTrend ?? [];
 
   const paginationRange = usePagination({
     currentPage,
@@ -90,11 +101,11 @@ export default function ProfitReport() {
     pageSize: itemsPerPage,
   });
 
-  if (isLoading && !reportData) {
+  if ((isLoading && !reportData) || (isDailyLoading && !dailyReportData)) {
     return <DashboardSkeleton />;
   }
 
-  if (isError) {
+  if (isError || isDailyError) {
     return <div className="text-destructive">{t("errorLoadingDashboard")}</div>;
   }
 
@@ -117,175 +128,274 @@ export default function ProfitReport() {
           <HelpCircle className="w-6 h-6" />
         </button>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
         <StatsGrid allTimeStats={stats.allTimeStats} />
-        {/* <ServiceProfitChart data={stats.dailyServiceProfitData} /> */}
       </div>
 
-      <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-muted-foreground" />
-            <span className="text-sm font-medium text-card-foreground">
-              {t("filters")}
-            </span>
+      <div className="flex flex-col gap-8">
+        <div >
+          <h2 className="text-2xl font-bold text-foreground">{t("profitProgramTitle")}</h2>
+          <p className="text-muted-foreground mt-2">{t("profitProgramSubtitle")}</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+            <h3 className="text-lg font-semibold text-card-foreground mb-6">
+              {t("monthlyBookingsTrend")}
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyTrend}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--border))"
+                />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--popover))",
+                    borderColor: "hsl(var(--border))",
+                    color: "hsl(var(--popover-foreground))",
+                    borderRadius: "var(--radius)",
+                  }}
+                  formatter={(value: number) => [
+                    `${value.toLocaleString()} ${t("bookings")}`,
+                    t("totalBookings"),
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="bookings"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={3}
+                  dot={{
+                    fill: "hsl(var(--primary))",
+                    strokeWidth: 2,
+                    r: 6,
+                  }}
+                  activeDot={{
+                    r: 8,
+                    stroke: "hsl(var(--background))",
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <select
-            value={filterType}
-            onChange={(e) => {
-              setFilterType(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
-          >
-            <option value="all">{t("allProgramTypes")}</option>
-            <option value="Hajj">{t("Hajj")}</option>
-            <option value="Umrah">{t("Umrah")}</option>
-            <option value="Tourism">{t("Tourism")}</option>
-            <option value="Ramadan">{t("Ramadan")}</option>
-          </select>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border">
+            <h3 className="text-lg font-semibold text-card-foreground">
+              {t("detailedProgramPerformance")}
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/50">
+                <tr>
+                  {[
+                    "programName",
+                    "programType",
+                    "bookings",
+                    "totalSales",
+                    "totalCost",
+                    "totalProfit",
+                    "profitMargin",
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left`}
+                    >
+                      {t(header)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-card divide-y divide-border">
+                {detailedPerformanceData.map((item) => (
+                  <tr
+                    key={item.id}
+                    className="hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/booking/program/${item.id}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-foreground">
+                        {item.programName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.type === "Hajj"
+                          ? "bg-chart-1/20 text-chart-1"
+                          : item.type === "Umrah"
+                            ? "bg-chart-2/20 text-chart-2"
+                            : "bg-chart-3/20 text-chart-3"
+                          }`}
+                      >
+                        {t(item.type)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      {item.bookings}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      {item.totalSales.toLocaleString()} {t("mad")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {item.totalCost.toLocaleString()} {t("mad")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-success">
+                      {item.totalProfit.toLocaleString()} {t("mad")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                      <div className="flex items-center">
+                        <span className={`mr-2`}>
+                          {item.profitMargin.toFixed(1)}%
+                        </span>
+                        <div className="w-16 bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-success h-2 rounded-full"
+                            style={{
+                              width: `${Math.min(item.profitMargin, 100)}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pagination && pagination.totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={setCurrentPage}
+              paginationRange={paginationRange}
+            />
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-        <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-          <h3 className="text-lg font-semibold text-card-foreground mb-6">
-            {t("monthlyBookingsTrend")}
-          </h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyTrend}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--popover))",
-                  borderColor: "hsl(var(--border))",
-                  color: "hsl(var(--popover-foreground))",
-                  borderRadius: "var(--radius)",
-                }}
-                formatter={(value: number) => [
-                  `${value.toLocaleString()} ${t("bookings")}`,
-                  t("totalBookings"),
-                ]}
-              />
-              <Line
-                type="monotone"
-                dataKey="bookings"
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                dot={{
-                  fill: "hsl(var(--primary))",
-                  strokeWidth: 2,
-                  r: 6,
-                }}
-                activeDot={{
-                  r: 8,
-                  stroke: "hsl(var(--background))",
-                }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
-      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
-        <div className="px-6 py-4 border-b border-border">
-          <h3 className="text-lg font-semibold text-card-foreground">
-            {t("detailedProgramPerformance")}
-          </h3>
+
+
+      <div className="flex flex-col gap-8">
+        <div >
+          <h2 className="text-2xl font-bold text-foreground">
+            {t("dailyServiceReportTitle")}
+          </h2>
+          <p className="text-muted-foreground mt-2">
+            {t("dailyServiceReportSubtitle")}
+          </p>
         </div>
-        <div className="overflow-x-auto">
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
+          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
+            <h3 className="text-lg font-semibold text-foreground mb-6">
+              {t("monthlyProfitTrend")}
+            </h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={dailyMonthlyTrend}>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="hsl(var(--muted-foreground) / 0.2)"
+                />
+                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                <YAxis stroke="hsl(var(--muted-foreground))" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    borderColor: "hsl(var(--border))",
+                    color: "hsl(var(--card-foreground))",
+                  }}
+                  formatter={(value: number) => [
+                    `${value.toLocaleString()} ${t("mad")}`,
+                    t("totalProfit"),
+                  ]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="profit"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--primary))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+          <div className="p-6 border-b border-border">
+            <h3 className="text-lg font-semibold text-foreground">
+              {t("detailedServicePerformance")}
+            </h3>
+          </div>
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
                 {[
-                  "programName",
-                  "programType",
-                  "bookings",
-                  "totalSales",
-                  "totalCost",
-                  "totalProfit",
+                  "serviceType",
+                  "totalSalesCount",
+                  "originalPrice",
+                  "totalPrice",
+                  "profit",
                   "profitMargin",
-                ].map((header) => (
+                ].map((h) => (
                   <th
-                    key={header}
-                    className={`px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left`}
+                    key={h}
+                    className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
-                    {t(header)}
+                    {t(h)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
-              {detailedPerformanceData.map((item) => (
-                <tr
-                  key={item.id}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/booking/program/${item.id}`)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-foreground">
-                      {item.programName}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${item.type === "Hajj"
-                        ? "bg-chart-1/20 text-chart-1"
-                        : item.type === "Umrah"
-                          ? "bg-chart-2/20 text-chart-2"
-                          : "bg-chart-3/20 text-chart-3"
-                        }`}
-                    >
+              {byType.map((item) => {
+                const itemTotalRevenue = Number(item.totalSalePrice);
+                const itemTotalProfit = Number(item.totalProfit);
+                const itemProfitMargin =
+                  itemTotalRevenue > 0
+                    ? (itemTotalProfit / itemTotalRevenue) * 100
+                    : 0;
+
+                return (
+                  <tr
+                    key={item.type}
+                    className="hover:bg-muted/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                       {t(item.type)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                    {item.bookings}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                    {item.totalSales.toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    {item.totalCost.toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-success">
-                    {item.totalProfit.toLocaleString()} {t("mad")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                    <div className="flex items-center">
-                      <span className={`mr-2`}>
-                        {item.profitMargin.toFixed(1)}%
-                      </span>
-                      <div className="w-16 bg-secondary rounded-full h-2">
-                        <div
-                          className="bg-success h-2 rounded-full"
-                          style={{
-                            width: `${Math.min(item.profitMargin, 100)}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {Number(item.count).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {Number(item.totalOriginalPrice).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-foreground">
+                      {Number(item.totalSalePrice).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-success">
+                      {itemTotalProfit.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-info">
+                      {itemProfitMargin.toFixed(1)}%
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-        {pagination && pagination.totalPages > 1 && (
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={pagination.totalPages}
-            onPageChange={setCurrentPage}
-            paginationRange={paginationRange}
-          />
-        )}
       </div>
+
+
+
 
       <VideoHelpModal
         isOpen={isHelpModalOpen}

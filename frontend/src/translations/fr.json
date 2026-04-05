@@ -721,5 +721,8 @@
   "services": "Services",
   "refund": "Remboursement",
   "totalPriceHT": "Total HT hors frais",
-  "incomeDescriptionPlaceholder": "ex: Frais de conseil"
+  "incomeDescriptionPlaceholder": "ex: Frais de conseil",
+  "profitProgramTitle": "Profit par Programmes",
+  "profitProgramSubtitle": "Analysez les profits pour les programmes.",
+  "detailedServicePerformance": "Performance Détaillée des Services"
 }
