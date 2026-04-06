@@ -142,6 +142,7 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
   const distribution = distributeAmount(paymentData.amount, bookingsData);
 
   const paymentId = await getNextPaymentId(db, user.adminId);
+  const sharedGroupPaymentId = new Date().getTime().toString();
 
   const updatedBookings = [];
 
@@ -149,7 +150,7 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
     const isLeader = booking.id == bookingId;
     const newPayment = {
       ...restOfPaymentData,
-      _id: new Date().getTime().toString(),
+      _id: sharedGroupPaymentId,
       paymentID: paymentId,
       labelPaper: labelPaper || "",
       amount: distribution[booking.id].assigned,
@@ -187,8 +188,11 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
 
   const { labelPaper, ...restOfPaymentData } = paymentData;
 
+  const leaderPayment = (leaderBooking.advancePayments || []).find(p => p._id === paymentId && p.isGroupPayment);
+  const targetPaymentID = leaderPayment ? leaderPayment.paymentID : null;
+
   const bookingsData = groupBookings.map(b => {
-    const oldAdvancePayments = (b.advancePayments || []).filter(p => !(p._id === paymentId && p.isGroupPayment));
+    const oldAdvancePayments = (b.advancePayments || []).filter(p => !( (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment));
     const oldTotalPaid = oldAdvancePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     return {
       id: b.id,
@@ -202,7 +206,7 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
   for (const booking of groupBookings) {
     const isLeader = booking.id == bookingId;
     const advancePayments = (booking.advancePayments || []).map((p) =>
-      p._id === paymentId && p.isGroupPayment
+      (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment
         ? {
           ...p,
           ...restOfPaymentData,
@@ -240,11 +244,14 @@ const deleteGroupPayment = async (db, user, bookingId, paymentId) => {
     throw new Error("You are not authorized to modify payments for this booking.");
   }
 
+  const leaderPayment = (leaderBooking.advancePayments || []).find(p => p._id === paymentId && p.isGroupPayment);
+  const targetPaymentID = leaderPayment ? leaderPayment.paymentID : null;
+
   const updatedBookings = [];
 
   for (const booking of groupBookings) {
     const advancePayments = (booking.advancePayments || []).filter(
-      (p) => !(p._id === paymentId && p.isGroupPayment)
+      (p) => !( (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment)
     );
 
     const totalPaid = advancePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
