@@ -2,8 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import { DailyService, DailyServiceItem, Payment } from "../../context/models";
-import NumberInput from "../ui/NumberInput";
-import { Plus, Trash2 } from "lucide-react";
+import NumberInput from "../ui/NumberInput"; 
 
 interface DailyServiceFormProps {
   service?: DailyService | null;
@@ -107,13 +106,13 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
     setItems(newItems);
   };
 
-  const addItem = () => {
-    setItems([...items, { ...emptyItem }]);
-  };
+  // const addItem = () => {
+  //   setItems([...items, { ...emptyItem }]);
+  // };
 
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
+  // const removeItem = (index: number) => {
+  //   setItems(items.filter((_, i) => i !== index));
+  // };
 
   const originalPrice = useMemo(() => {
     return items.reduce(
@@ -357,7 +356,7 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
             </div>
 
 
-            {/* Delete button */}
+            {/* Delete button
             <div className="col-span-1 flex justify-center pt-2">
               <button
                 type="button"
@@ -367,17 +366,17 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-            </div>
+            </div> */}
           </div>
         ))}
 
-        <button
+        {/* <button
           type="button"
           onClick={addItem}
           className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 mt-2"
         >
           <Plus className="w-4 h-4" /> {t("addItem")}
-        </button>
+        </button> */}
       </div>
 
       <div className="mt-6 p-4 bg-muted/50 rounded-lg space-y-3 border border-border">
