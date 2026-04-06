@@ -70,52 +70,49 @@ module.exports = {
 
 const distributeAmount = (totalAmount, groupBookingsData) => {
   let amountLeft = Number(totalAmount);
-  const N = groupBookingsData.length;
 
   const distribution = {};
   groupBookingsData.forEach(b => {
     distribution[b.id] = { assigned: 0, remaining: b.trueRemainingBalance > 0 ? b.trueRemainingBalance : 0 };
   });
 
-  let activeIds = groupBookingsData.filter(b => b.trueRemainingBalance > 0).map(b => b.id);
-
-  if (activeIds.length === 0) {
-    const share = amountLeft / N;
-    groupBookingsData.forEach(b => distribution[b.id].assigned = share);
-    return distribution;
-  }
-
-  while (amountLeft > 0.001 && activeIds.length > 0) {
-    const share = amountLeft / activeIds.length;
-    let amountAssignedInRound = 0;
-
-    const nextActive = [];
-    for (const id of activeIds) {
-      const d = distribution[id];
-      if (d.remaining <= share + 0.0001) {
-        amountAssignedInRound += d.remaining;
-        d.assigned += d.remaining;
-        d.remaining = 0;
+  const leader = groupBookingsData.find(b => b.isLeader);
+  if (leader && amountLeft > 0) {
+    const leaderRemaining = distribution[leader.id].remaining;
+    if (leaderRemaining > 0) {
+      if (amountLeft >= leaderRemaining) {
+        distribution[leader.id].assigned += leaderRemaining;
+        distribution[leader.id].remaining = 0;
+        amountLeft -= leaderRemaining;
       } else {
-        nextActive.push(id);
+        distribution[leader.id].assigned += amountLeft;
+        distribution[leader.id].remaining -= amountLeft;
+        amountLeft = 0;
       }
     }
+  }
 
-    if (nextActive.length === activeIds.length) {
-      for (const id of activeIds) {
-        distribution[id].assigned += share;
-        distribution[id].remaining -= share;
+  const relatedPeople = groupBookingsData.filter(b => !b.isLeader);
+  for (const person of relatedPeople) {
+    if (amountLeft <= 0.001) break;
+
+    const remaining = distribution[person.id].remaining;
+    if (remaining > 0) {
+      if (amountLeft >= remaining) {
+        distribution[person.id].assigned += remaining;
+        distribution[person.id].remaining = 0;
+        amountLeft -= remaining;
+      } else {
+        distribution[person.id].assigned += amountLeft;
+        distribution[person.id].remaining -= amountLeft;
+        amountLeft = 0;
       }
-      amountLeft = 0;
-    } else {
-      amountLeft -= amountAssignedInRound;
-      activeIds = nextActive;
     }
   }
 
   if (amountLeft > 0.001) {
-    const share = amountLeft / N;
-    groupBookingsData.forEach(b => distribution[b.id].assigned += share);
+    const target = leader ? leader : groupBookingsData[0];
+    distribution[target.id].assigned += amountLeft;
   }
 
   return distribution;
@@ -137,7 +134,8 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
 
   const bookingsData = groupBookings.map(b => ({
     id: b.id,
-    trueRemainingBalance: Number(b.remainingBalance || 0)
+    trueRemainingBalance: Number(b.remainingBalance || 0),
+    isLeader: b.id == bookingId
   }));
   const distribution = distributeAmount(paymentData.amount, bookingsData);
 
@@ -192,11 +190,12 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
   const targetPaymentID = leaderPayment ? leaderPayment.paymentID : null;
 
   const bookingsData = groupBookings.map(b => {
-    const oldAdvancePayments = (b.advancePayments || []).filter(p => !( (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment));
+    const oldAdvancePayments = (b.advancePayments || []).filter(p => !((p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment));
     const oldTotalPaid = oldAdvancePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
     return {
       id: b.id,
-      trueRemainingBalance: Number(b.sellingPrice || 0) - oldTotalPaid
+      trueRemainingBalance: Number(b.sellingPrice || 0) - oldTotalPaid,
+      isLeader: b.id == bookingId
     };
   });
   const distribution = distributeAmount(paymentData.amount, bookingsData);
@@ -251,7 +250,7 @@ const deleteGroupPayment = async (db, user, bookingId, paymentId) => {
 
   for (const booking of groupBookings) {
     const advancePayments = (booking.advancePayments || []).filter(
-      (p) => !( (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment)
+      (p) => !((p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment)
     );
 
     const totalPaid = advancePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
