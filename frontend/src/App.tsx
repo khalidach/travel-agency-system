@@ -45,6 +45,7 @@ const IncomeManagement = lazy(() => import("./pages/IncomeManagement")); // <---
 const Clients = lazy(() => import("./pages/Clients")); // <--- NEW IMPORT
 const Suppliers = lazy(() => import("./pages/Suppliers")); // <--- NEW IMPORT
 const SupplierAnalysis = lazy(() => import("./pages/SupplierAnalysis")); // <--- NEW IMPORT
+const ClientAnalysis = lazy(() => import("./pages/ClientAnalysis")); // <--- NEW IMPORT
 const AgencyReportsList = lazy(() => import("./pages/AgencyReports"));
 const AgencyDetailedReport = lazy(() => import("./pages/AgencyDetailedReport"));
 
@@ -210,6 +211,10 @@ function AppRoutes() {
                           <Route
                             path="/suppliers/:id"
                             element={<SupplierAnalysis />}
+                          />
+                          <Route
+                            path="/clients/:id"
+                            element={<ClientAnalysis />}
                           />
                           <Route
                             path="/profit-report"

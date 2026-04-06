@@ -724,5 +724,17 @@
   "incomeDescriptionPlaceholder": "ex: Frais de conseil",
   "profitProgramTitle": "Profit par Programmes",
   "profitProgramSubtitle": "Analysez les profits pour les programmes.",
-  "detailedServicePerformance": "Performance Détaillée des Services"
+  "detailedServicePerformance": "Performance Détaillée des Services",
+  "salesHistory": "Historique des Ventes",
+  "incomeDetails": "Détails du Revenu",
+  "noTransactions": "Aucune transaction trouvée",
+  "notFound": "Non trouvé",
+  "close": "Fermer",
+  "expenseDetails": "Détails de la Dépense",
+  "clientsManagement": "Gestion des Clients",
+  "searchClients": "Rechercher des clients...",
+  "addClient": "Ajouter un Client",
+  "editClient": "Modifier le Client",
+  "deleteClient": "Supprimer le Client",
+  "deleteClientConfirm": "Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible."
 }

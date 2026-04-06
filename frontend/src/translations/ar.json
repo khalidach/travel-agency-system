@@ -724,5 +724,17 @@
   "incomeDescriptionPlaceholder": "مثال: رسوم استشارية",
   "profitProgramTitle": "الربح حسب البرامج",
   "profitProgramSubtitle": "تحليل الأرباح للبرامج.",
-  "detailedServicePerformance": "الأداء التفصيلي للخدمات"
+  "detailedServicePerformance": "الأداء التفصيلي للخدمات",
+  "salesHistory": "سجل المبيعات",
+  "incomeDetails": "تفاصيل المدخول",
+  "noTransactions": "لا توجد معاملات",
+  "notFound": "غير موجود",
+  "close": "إغلاق",
+  "expenseDetails": "تفاصيل المصروف",
+  "clientsManagement": "إدارة العملاء",
+  "searchClients": "البحث عن العملاء...",
+  "addClient": "إضافة عميل",
+  "editClient": "تعديل العميل",
+  "deleteClient": "حذف العميل",
+  "deleteClientConfirm": "هل أنت متأكد أنك تريد حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء."
 }

@@ -720,5 +720,17 @@
   "incomeDescriptionPlaceholder": "e.g., Consulting Fees",
   "profitProgramTitle": "Profit by Programs",
   "profitProgramSubtitle": "Analyze profits for programs.",
-  "detailedServicePerformance": "Detailed Service Performance"
+  "detailedServicePerformance": "Detailed Service Performance",
+  "salesHistory": "Sales History",
+  "incomeDetails": "Income Details",
+  "noTransactions": "No transactions found",
+  "notFound": "Not found",
+  "close": "Close",
+  "expenseDetails": "Expense Details",
+  "clientsManagement": "Clients Management",
+  "searchClients": "Search clients...",
+  "addClient": "Add Client",
+  "editClient": "Edit Client",
+  "deleteClient": "Delete Client",
+  "deleteClientConfirm": "Are you sure you want to delete this client? This action cannot be undone."
 }

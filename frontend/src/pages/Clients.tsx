@@ -1,7 +1,7 @@
-// frontend/src/pages/Clients.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -10,6 +10,7 @@ import {
   Users,
   Phone,
   Mail,
+  ArrowRight,
 } from "lucide-react";
 import * as api from "../services/api";
 import Modal from "../components/Modal";
@@ -24,6 +25,7 @@ import PaginationControls from "../components/ui/PaginationControls";
 
 export default function Clients() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(
@@ -143,12 +145,13 @@ export default function Clients() {
           <div
             key={client.id}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer group"
+            onClick={() => navigate(`/clients/${client.id}`)}
           >
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2" title={client.name}>
                   {client.name.length > 20 ? client.name.substring(0, 20) + "..." : client.name}
-                  {/* <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary" /> */}
+                  <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                 </h3>
                 <div className="flex flex-col gap-1 mt-1 text-sm text-gray-500">
                   {client.email && (
