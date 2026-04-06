@@ -103,99 +103,129 @@ export default function ServiceReceiptPDF({
               {new Date(payment.date).toLocaleDateString("fr-FR")}
             </span>
           </div>
-          <div className="text-xl font-bold text-gray-800">
-            {service.bookingRef && (
+          {service.bookingRef && (
+            <div className="text-xl font-bold text-gray-800">
+
               <p>
                 رقم الحجز: <span className="text-blue-600 font-normal">{service.bookingRef}</span>
               </p>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Items Table */}
-      {service.items && service.items.length > 0 && (
-        <div className="mb-6">
-          <table className="w-full text-base text-gray-800 table-auto border-collapse border border-cyan-800">
-            <thead>
-              <tr className="bg-cyan-100">
-                <th className="border border-cyan-800 px-3 py-2 text-right w-1/2 font-bold">البيان</th>
-                <th className="border border-cyan-800 px-3 py-2 text-center font-bold">الكمية</th>
-                <th className="border border-cyan-800 px-3 py-2 text-right font-bold">السعر</th>
-                <th className="border border-cyan-800 px-3 py-2 text-right font-bold">المجموع</th>
-              </tr>
-            </thead>
-            <tbody>
-              {service.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="border border-cyan-800 px-3 py-2 text-right font-medium">
-                    {item.description}
-                    {item.bookingRef && (
-                      <span className="text-sm text-gray-500 mr-1">(رقم الحجز: {item.bookingRef})</span>
-                    )}
-                  </td>
-                  <td className="border border-cyan-800 px-3 py-2 text-center font-bold text-lg">{item.quantity}</td>
-                  <td className="border border-cyan-800 px-3 py-2 text-right font-bold text-lg">{formatMAD(item.sellPrice)}</td>
-                  <td className="border border-cyan-800 px-3 py-2 text-right font-bold text-lg text-cyan-800">{formatMAD(item.sellPrice * item.quantity)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* Transaction Summary */}
       <div className="border-2 border-blue-800 rounded-lg p-6 mb-8 flex flex-col space-y-3 bg-blue-50/50">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <p
             className="text-lg font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
-            الخدمة الأساسية:
+            اسم العميل:
           </p>
-          <p className="text-lg font-bold text-right">
-            {payment.forWhat || service.items?.map(item => item.description).join(" - ")}
+          <p className="text-lg font-bold text-center">
+            {service.clientName}
+          </p>
+          <p
+            className="text-lg font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Nom du client:
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <p
             className="text-lg font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
             النوع:
           </p>
-          <p className="text-lg font-bold text-right">{t(service.type)}</p>
+          <p className="text-lg font-bold text-center">{t(service.type)}</p>
+          <p
+            className="text-lg font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Type de service:
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-4 border-t pt-2 border-gray-300">
+        <div className="grid grid-cols-3 gap-4 border-t pt-2 border-gray-300">
           <p
             className="text-xl font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
             السعر الإجمالي:
           </p>
-          <p className="text-xl font-bold text-right">
+          <p className="text-xl font-bold text-center">
             {formatMAD(service.totalPrice)}
           </p>
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Prix ​​total:
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <p
             className="text-xl font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
             المبلغ المدفوع حالياً:
           </p>
-          <p className="text-xl font-bold text-right text-emerald-600">
+          <p className="text-xl font-bold text-center text-emerald-600">
             {formatMAD(payment.amount)}
           </p>
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Montant payé:
+          </p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+
+        <div className="grid grid-cols-3 gap-4 border-t pt-2 border-gray-300">
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "rtl" }}
+          >
+            الباقي بعد هذه الدفعة:
+          </p>
+          <p className="text-xl font-bold text-center text-red-600">
+            {formatMAD(remainingAfterThisPayment)}
+          </p>
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Reste après ce paiement:
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-4 border-t pt-2 border-gray-300">
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "rtl" }}
+          >
+            وذلك عن:
+          </p>
+          <p className="text-xl font-bold text-center text-red-600" style={{ direction: "rtl" }}>
+            {payment.forWhat || service.items?.map(item => item.description).join(" - ")}
+          </p>
+          <p
+            className="text-xl font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
+          >
+            Pour
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
           <p
             className="text-lg font-bold text-cyan-800"
             style={{ direction: "rtl" }}
           >
             طريقة الدفع:
           </p>
-          <div className="text-lg font-bold text-right">
+          <div className="text-lg font-bold text-center">
             {t(payment.method)}
             {payment.method === "cheque" && (
               <div className="text-sm text-blue-800 mt-1" dir="rtl">
@@ -213,17 +243,13 @@ export default function ServiceReceiptPDF({
                 <p>المرجع: {payment.transferReference}</p>
               </div>
             )}
+
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4 border-t pt-2 border-gray-300">
           <p
-            className="text-xl font-bold text-cyan-800"
-            style={{ direction: "rtl" }}
+            className="text-lg font-bold text-cyan-800"
+            style={{ direction: "ltr" }}
           >
-            الباقي بعد هذه الدفعة:
-          </p>
-          <p className="text-xl font-bold text-right text-red-600">
-            {formatMAD(remainingAfterThisPayment)}
+            Payment method:
           </p>
         </div>
       </div>
