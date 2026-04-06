@@ -114,7 +114,7 @@ export default function ExpensePaymentModal({
           <div className="space-y-2">
             {expense.advancePayments?.map((payment) => (
               <div
-                key={payment.id}
+                key={payment._id}
                 className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
               >
                 <div>
@@ -146,7 +146,7 @@ export default function ExpensePaymentModal({
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => setPaymentToDelete(payment.id)}
+                    onClick={() => setPaymentToDelete(payment._id)}
                     className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition-colors"
                     title={t("delete") as string}
                   >
@@ -176,7 +176,7 @@ export default function ExpensePaymentModal({
           onSave={(data) => {
             if (editingPayment) {
               updatePaymentMutation.mutate({
-                paymentId: editingPayment.id,
+                paymentId: editingPayment._id,
                 data,
               });
             } else {

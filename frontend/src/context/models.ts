@@ -425,6 +425,7 @@ export interface Expense {
   advancePayments: Payment[];
   remainingBalance: number;
   isFullyPaid: boolean;
+  currency?: string;
   date: string;
   createdAt: string;
   updatedAt: string;
