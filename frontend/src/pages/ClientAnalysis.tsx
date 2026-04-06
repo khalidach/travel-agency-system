@@ -45,6 +45,16 @@ export default function ClientAnalysis() {
   const totalPaid = client.totalPaid || 0;
   const totalRemaining = client.totalRemaining || 0;
 
+  const topCurrency = client.incomes && client.incomes.length > 0 && client.incomes[0].currency 
+    ? client.incomes[0].currency 
+    : "MAD";
+
+  const getCurrencyDisplay = (curr?: string) => {
+    const code = curr || "MAD";
+    const translation = t(`currency.${code}`);
+    return translation.includes('.') ? code : translation;
+  };
+
   const handleRowClick = (income: Income) => {
     setSelectedIncome(income);
     setIsModalOpen(true);
@@ -94,21 +104,21 @@ export default function ClientAnalysis() {
               <p className="text-sm text-gray-500">{t("totalSales")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {totalAmount.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalPaid")}</p>
               <p className="text-2xl font-bold text-emerald-600">
                 {totalPaid.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalRemaining")}</p>
               <p className="text-2xl font-bold text-red-600">
                 {totalRemaining.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
           </div>
@@ -161,17 +171,17 @@ export default function ClientAnalysis() {
                   {income.description}
                 </td>
                 <td className="p-4 text-sm font-medium">
-                  {Number(income.amount).toLocaleString()} {t("currency.MAD")}
+                  {Number(income.amount).toLocaleString()} {getCurrencyDisplay(income.currency)}
                 </td>
                 <td className="p-4 text-sm text-emerald-600">
                   {(
                     Number(income.amount) - Number(income.remainingBalance)
                   ).toLocaleString()}{" "}
-                  {t("currency.MAD")}
+                  {getCurrencyDisplay(income.currency)}
                 </td>
                 <td className="p-4 text-sm text-red-600">
                   {Number(income.remainingBalance).toLocaleString()}{" "}
-                  {t("currency.MAD")}
+                  {getCurrencyDisplay(income.currency)}
                 </td>
                 <td className="p-4">
                   <span
@@ -234,18 +244,18 @@ export default function ClientAnalysis() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("amount")}</p>
-                <p className="font-medium">{Number(selectedIncome.amount).toLocaleString()} {t("currency.MAD")}</p>
+                <p className="font-medium">{Number(selectedIncome.amount).toLocaleString()} {getCurrencyDisplay(selectedIncome.currency)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("paid")}</p>
                 <p className="font-medium text-emerald-600">
-                  {(Number(selectedIncome.amount) - Number(selectedIncome.remainingBalance)).toLocaleString()} {t("currency.MAD")}
+                  {(Number(selectedIncome.amount) - Number(selectedIncome.remainingBalance)).toLocaleString()} {getCurrencyDisplay(selectedIncome.currency)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("remainingBalance")}</p>
                 <p className="font-medium text-red-600">
-                  {Number(selectedIncome.remainingBalance).toLocaleString()} {t("currency.MAD")}
+                  {Number(selectedIncome.remainingBalance).toLocaleString()} {getCurrencyDisplay(selectedIncome.currency)}
                 </p>
               </div>
             </div>

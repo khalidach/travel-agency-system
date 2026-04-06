@@ -45,6 +45,16 @@ export default function SupplierAnalysis() {
   const totalPaid = supplier.totalPaid || 0;
   const totalRemaining = supplier.totalRemaining || 0;
 
+  const topCurrency = supplier.expenses && supplier.expenses.length > 0 && supplier.expenses[0].currency 
+    ? supplier.expenses[0].currency 
+    : "MAD";
+
+  const getCurrencyDisplay = (curr?: string) => {
+    const code = curr || "MAD";
+    const translation = t(`currency.${code}`);
+    return translation.includes('.') ? code : translation;
+  };
+
   const handleRowClick = (expense: Expense) => {
     setSelectedExpense(expense);
     setIsModalOpen(true);
@@ -89,21 +99,21 @@ export default function SupplierAnalysis() {
               <p className="text-sm text-gray-500">{t("totalPurchases")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {totalAmount.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalPaid")}</p>
               <p className="text-2xl font-bold text-emerald-600">
                 {totalPaid.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalRemaining")}</p>
               <p className="text-2xl font-bold text-red-600">
                 {totalRemaining.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{t("currency.MAD")}</span>
+                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
               </p>
             </div>
           </div>
@@ -156,17 +166,17 @@ export default function SupplierAnalysis() {
                   {expense.description}
                 </td>
                 <td className="p-4 text-sm font-medium">
-                  {Number(expense.amount).toLocaleString()} {t("currency.MAD")}
+                  {Number(expense.amount).toLocaleString()} {getCurrencyDisplay(expense.currency)}
                 </td>
                 <td className="p-4 text-sm text-emerald-600">
                   {(
                     Number(expense.amount) - Number(expense.remainingBalance)
                   ).toLocaleString()}{" "}
-                  {t("currency.MAD")}
+                  {getCurrencyDisplay(expense.currency)}
                 </td>
                 <td className="p-4 text-sm text-red-600">
                   {Number(expense.remainingBalance).toLocaleString()}{" "}
-                  {t("currency.MAD")}
+                  {getCurrencyDisplay(expense.currency)}
                 </td>
                 <td className="p-4">
                   <span
