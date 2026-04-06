@@ -8,8 +8,9 @@ router.use(protect);
 
 router.route('/')
     .get(incomeController.getAllIncomes)
-    .post(incomeController.createIncome)
-    .delete(incomeController.bulkDeleteIncomes);
+    .post(incomeController.createIncome);
+
+router.post('/bulk-delete', incomeController.bulkDeleteIncomes);
 
 router.route('/:id')
     .put(incomeController.updateIncome)
