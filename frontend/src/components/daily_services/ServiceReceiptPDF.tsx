@@ -29,7 +29,8 @@ export default function ServiceReceiptPDF({
 
   const remainingAfterThisPayment = service.totalPrice - totalPaidUpToThisPoint;
 
-
+  const forWhatText = payment.forWhat || service.items?.map(item => item.description).join(" - ") || "";
+  const detectDirection = (text: string) => /[\u0600-\u06FF]/.test(text) ? "rtl" : "ltr";
 
   // Helper to format currency
   const formatMAD = (amount: number) =>
@@ -208,8 +209,8 @@ export default function ServiceReceiptPDF({
           >
             وذلك عن:
           </p>
-          <p className="text-xl font-bold text-center text-red-600" style={{ direction: "rtl" }}>
-            {payment.forWhat || service.items?.map(item => item.description).join(" - ")}
+          <p className="text-xl font-bold text-center text-red-600" style={{ direction: detectDirection(forWhatText) }}>
+            {forWhatText}
           </p>
           <p
             className="text-xl font-bold text-cyan-800"
