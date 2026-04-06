@@ -32,6 +32,12 @@ export default function ExpensePaymentModal({
       api.addExpensePayment(expense!.id, payment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["client"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier"] });
       toast.success(t("paymentAdded"));
       setIsPaymentFormOpen(false);
       setEditingPayment(null);
@@ -49,6 +55,12 @@ export default function ExpensePaymentModal({
     }) => api.updateExpensePayment(expense!.id, paymentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["client"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier"] });
       toast.success(t("paymentUpdated"));
       setIsPaymentFormOpen(false);
       setEditingPayment(null);
@@ -61,6 +73,12 @@ export default function ExpensePaymentModal({
       api.deleteExpensePayment(expense!.id, paymentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["client"] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["supplier"] });
       toast.success(t("paymentDeleted"));
       setPaymentToDelete(null);
     },

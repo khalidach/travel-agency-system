@@ -34,6 +34,10 @@ export default function IncomePaymentModal({
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("paymentAdded"));
             setIsPaymentFormOpen(false);
             setEditingPayment(null);
@@ -53,6 +57,10 @@ export default function IncomePaymentModal({
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("paymentUpdated"));
             setIsPaymentFormOpen(false);
             setEditingPayment(null);
@@ -67,6 +75,10 @@ export default function IncomePaymentModal({
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("paymentDeleted"));
             setPaymentToDelete(null);
         },

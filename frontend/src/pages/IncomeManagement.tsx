@@ -122,6 +122,10 @@ export default function IncomeManagement() {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("incomeCreated", { defaultValue: "Income Created" }));
             setIsFormOpen(false);
         },
@@ -135,6 +139,10 @@ export default function IncomeManagement() {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("incomeUpdated", { defaultValue: "Income Updated" }));
             setIsFormOpen(false);
         },
@@ -147,6 +155,10 @@ export default function IncomeManagement() {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("incomeDeleted", { defaultValue: "Income Deleted" }));
             setIncomeToDelete(null);
         },
@@ -159,6 +171,10 @@ export default function IncomeManagement() {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             toast.success(t("incomesDeleted", { defaultValue: "Incomes Deleted" }));
             setSelectedIds(new Set());
             setShowBulkDeleteConfirm(false);
@@ -182,6 +198,10 @@ export default function IncomeManagement() {
             queryClient.invalidateQueries({ queryKey: ["incomes"] });
             queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
             queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+            queryClient.invalidateQueries({ queryKey: ["clients"] });
+            queryClient.invalidateQueries({ queryKey: ["client"] });
+            queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+            queryClient.invalidateQueries({ queryKey: ["supplier"] });
             setIsFactureModalOpen(false);
             setIncomeToConvert(null);
         } catch (error: any) {

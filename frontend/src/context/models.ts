@@ -426,6 +426,8 @@ export interface Expense {
   remainingBalance: number;
   isFullyPaid: boolean;
   currency?: string;
+  bookingType?: string;
+  reservationNumber?: string;
   date: string;
   createdAt: string;
   updatedAt: string;
