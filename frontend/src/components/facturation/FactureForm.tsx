@@ -33,7 +33,7 @@ export default function FactureForm({
   onSave,
   onCancel,
   existingFacture,
-  showMarginOnNew = true,
+  showMarginOnNew = false,
 }: FactureFormProps) {
   const { t } = useTranslation();
   const [type, setType] = useState<"facture" | "devis">("facture");
@@ -55,7 +55,7 @@ export default function FactureForm({
       setClientAddress(existingFacture.clientAddress || "");
       setClientICE(existingFacture.clientICE || "");
       setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
-      setShowMargin(existingFacture.showMargin ?? true);
+      setShowMargin(existingFacture.showMargin ?? false);
       setManualNumber("");
       setEditedFactureNumber(existingFacture.facture_number || "");
       setNumberYear(new Date(existingFacture.date).getFullYear().toString());

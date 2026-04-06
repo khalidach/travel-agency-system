@@ -287,7 +287,6 @@ export default function Facturation() {
           onSave={handleSave}
           onCancel={() => setIsModalOpen(false)}
           existingFacture={editingFacture}
-          showMarginOnNew={!editingFacture}
         />
       </Modal>
 

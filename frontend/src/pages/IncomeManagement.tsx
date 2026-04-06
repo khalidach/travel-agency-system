@@ -652,7 +652,7 @@ export default function IncomeManagement() {
                                 total: Number(item.total) || 0
                             })),
                             type: "facture",
-                            showMargin: incomeToConvert.showMargin ?? true,
+                            showMargin: incomeToConvert.showMargin ?? false,
                             prixTotalHorsFrais: incomeToConvert.prixTotalHorsFrais || incomeToConvert.amount,
                             totalFraisServiceHT: incomeToConvert.totalFraisServiceHT || 0,
                             tva: incomeToConvert.tva || 0,

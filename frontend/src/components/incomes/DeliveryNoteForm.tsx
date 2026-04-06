@@ -44,13 +44,13 @@ export default function DeliveryNoteForm({
   const [client, setClient] = useState(initialData?.client || "");
   const [clientAddress, setClientAddress] = useState(initialData?.clientAddress || "");
   const [clientICE, setClientICE] = useState(initialData?.clientICE || "");
-  const [showMargin, setShowMargin] = useState(initialData?.showMargin ?? true);
+  const [showMargin, setShowMargin] = useState(initialData?.showMargin ?? false);
   const [notes, setNotes] = useState(initialData?.notes || "");
   const [manualNumber, setManualNumber] = useState("");
 
   const { data: clientsData } = useQuery({
-      queryKey: ["clients", "all"],
-      queryFn: () => api.getClients(false, 1, 1000),
+    queryKey: ["clients", "all"],
+    queryFn: () => api.getClients(false, 1, 1000),
   });
   const clients = clientsData?.clients || [];
 
@@ -266,13 +266,13 @@ export default function DeliveryNoteForm({
             placeholder={t("clientNamePlaceholder") as string}
             value={client}
             onChange={(e) => {
-               const val = e.target.value;
-               setClient(val);
-               const matched = clients.find((c: Client) => c.name === val);
-               if (matched) {
-                   if (matched.address && !clientAddress) setClientAddress(matched.address);
-                   if (matched.ice && !clientICE) setClientICE(matched.ice);
-               }
+              const val = e.target.value;
+              setClient(val);
+              const matched = clients.find((c: Client) => c.name === val);
+              if (matched) {
+                if (matched.address && !clientAddress) setClientAddress(matched.address);
+                if (matched.ice && !clientICE) setClientICE(matched.ice);
+              }
             }}
             className={inputClass}
           />
