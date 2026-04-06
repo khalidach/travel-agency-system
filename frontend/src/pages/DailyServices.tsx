@@ -9,6 +9,7 @@ import {
   Download,
   HelpCircle,
   CreditCard,
+  Search,
 } from "lucide-react";
 import * as api from "../services/api";
 import {
@@ -61,13 +62,23 @@ export default function DailyServices() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const servicesPerPage = 10;
 
   const { data: servicesResponse, isLoading } = useQuery<
     PaginatedResponse<DailyService>
   >({
-    queryKey: ["dailyServices", currentPage],
-    queryFn: () => api.getDailyServices(currentPage, servicesPerPage),
+    queryKey: ["dailyServices", currentPage, searchTerm, typeFilter, statusFilter],
+    queryFn: () => api.getDailyServices({
+      page: currentPage,
+      limit: servicesPerPage,
+      searchTerm,
+      typeFilter,
+      statusFilter,
+    }),
     placeholderData: (prev) => prev,
   });
 
@@ -273,6 +284,48 @@ export default function DailyServices() {
             {t("newService")}
           </button>
         </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 bg-card p-4 rounded-xl shadow-sm border border-border">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <input
+            type="text"
+            placeholder={t("search") as string}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+        <select
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[150px]"
+        >
+          <option value="all">{t("allTypes") || "All Types"}</option>
+          <option value="airline-ticket">{t("airline-ticket")}</option>
+          <option value="hotel-reservation">{t("hotel-reservation")}</option>
+          <option value="reservation-ticket">{t("reservation-ticket")}</option>
+          <option value="visa">{t("visa")}</option>
+        </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[150px]"
+        >
+          <option value="all">{t("all") || "All"}</option>
+          <option value="paid">{t("fullyPaid")}</option>
+          <option value="unpaid">{t("notPaid")}</option>
+        </select>
       </div>
 
       <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">

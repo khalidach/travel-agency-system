@@ -36,15 +36,38 @@ const getDailyServices = async (req, res, next) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
-    const servicesPromise = req.db.query(
-      'SELECT * FROM daily_services WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [adminId, limit, offset],
-    );
+    const { searchTerm, typeFilter, statusFilter } = req.query;
 
-    const totalCountPromise = req.db.query(
-      'SELECT COUNT(*) FROM daily_services WHERE "userId" = $1',
-      [adminId],
-    );
+    let conditions = ['"userId" = $1'];
+    let params = [adminId];
+
+    if (typeFilter && typeFilter !== "all" && typeFilter !== "All") {
+        conditions.push(`type = $${params.length + 1}`);
+        params.push(typeFilter);
+    }
+
+    if (searchTerm) {
+        conditions.push(`("clientName" ILIKE $${params.length + 1} OR "bookingRef" ILIKE $${params.length + 1} OR type ILIKE $${params.length + 1} OR items::text ILIKE $${params.length + 1})`);
+        params.push(`%${searchTerm}%`);
+    }
+
+    if (statusFilter && statusFilter !== "all" && statusFilter !== "All") {
+        if (statusFilter === "paid") {
+            conditions.push(`"isFullyPaid" = true`);
+        } else if (statusFilter === "unpaid") {
+            conditions.push(`"isFullyPaid" = false`);
+        }
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const query = `SELECT * FROM daily_services ${whereClause} ORDER BY "createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const countQuery = `SELECT COUNT(*) FROM daily_services ${whereClause}`;
+
+    const queryParams = [...params, limit, offset];
+
+    const servicesPromise = req.db.query(query, queryParams);
+    const totalCountPromise = req.db.query(countQuery, params);
 
     const [servicesResult, totalCountResult] = await Promise.all([
       servicesPromise,

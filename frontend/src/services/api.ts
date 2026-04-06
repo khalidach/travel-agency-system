@@ -121,12 +121,27 @@ export const deleteFacture = (id: number) =>
   request(`/facturation/${id}`, { method: "DELETE" });
 
 // --- Daily Service API ---
-export const getDailyServices = (page = 1, limit = 10) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
-  return request(`/daily-services?${params.toString()}`);
+export const getDailyServices = (params?: {
+  page?: number;
+  limit?: number;
+  searchTerm?: string;
+  typeFilter?: string;
+  statusFilter?: string;
+}) => {
+  const query = new URLSearchParams();
+
+  if (params) {
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    if (params.searchTerm) query.append("searchTerm", params.searchTerm);
+    if (params.typeFilter) query.append("typeFilter", params.typeFilter);
+    if (params.statusFilter) query.append("statusFilter", params.statusFilter);
+  } else {
+    query.append("page", "1");
+    query.append("limit", "10");
+  }
+
+  return request(`/daily-services?${query.toString()}`);
 };
 export const createDailyService = (service: Create<DailyService>) =>
   request("/daily-services", { method: "POST", body: JSON.stringify(service) });
