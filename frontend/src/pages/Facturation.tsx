@@ -119,13 +119,16 @@ export default function Facturation() {
       />;
       
       const blob = await pdf(doc).toBlob();
-      const docNumber = facture.facture_number || facture.id;
-      saveAs(blob, `${facture.type}_${docNumber}_${facture.clientName.replace(/\s/g, "_")}.pdf`);
+      const docNumber = facture.facture_number || facture.id || "unknown";
+      const safeClientName = (facture.clientName || "Client").replace(/\s/g, "_");
+      const filename = `${facture.type || "document"}_${docNumber}_${safeClientName}.pdf`;
+      
+      saveAs(blob, filename);
       
       toast.success(t("downloadStarted") || "Download started");
     } catch (error) {
       console.error("PDF Generation error:", error);
-      toast.error("Failed to generate PDF");
+      toast.error(t("pdfGenerationError") || "Failed to generate PDF. Please check console for details.");
     }
   };
 

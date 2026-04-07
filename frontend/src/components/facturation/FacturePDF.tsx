@@ -188,8 +188,9 @@ interface FacturePDFProps {
 }
 
 export default function FacturePDF({ facture, settings, agencyName }: FacturePDFProps) {
-  const totalInWords = numberToWordsFr(facture.total);
+  const totalInWords = numberToWordsFr(facture.total || 0);
   const showMargin = facture.showMargin ?? true;
+  const items = Array.isArray(facture.items) ? facture.items : [];
 
   const footerItems = [
     `Sté. ${agencyName || "Votre Agence"}`,
@@ -214,13 +215,13 @@ export default function FacturePDF({ facture, settings, agencyName }: FacturePDF
 
         <View style={styles.clientBox}>
           <View style={styles.clientInfo}>
-            <Text style={styles.clientName}>{facture.clientName}</Text>
-            <Text style={styles.clientText}>{facture.clientAddress}</Text>
-            {facture.clientICE && <Text style={styles.clientText}>ICE : {facture.clientICE}</Text>}
+            <Text style={styles.clientName}>{facture.clientName || "Client inconnu"}</Text>
+            <Text style={styles.clientText}>{facture.clientAddress || ""}</Text>
+            {facture.clientICE && <Text style={styles.clientText}>ICE : {facture.clientICE || ""}</Text>}
           </View>
           <View style={styles.docDetails}>
-            <Text style={styles.docDetailsLabel}>N° : {facture.facture_number}</Text>
-            <Text style={styles.docDetailsValue}>Date : {new Date(facture.date).toLocaleDateString("fr-FR")}</Text>
+            <Text style={styles.docDetailsLabel}>N° : {facture.facture_number || "Draft"}</Text>
+            <Text style={styles.docDetailsValue}>Date : {facture.date ? new Date(facture.date).toLocaleDateString("fr-FR") : "Date non définie"}</Text>
           </View>
         </View>
 
@@ -232,13 +233,13 @@ export default function FacturePDF({ facture, settings, agencyName }: FacturePDF
             <View style={styles.colAmount}><Text>Montant</Text></View>
           </View>
 
-          {facture.items.map((item, index) => (
-            <View key={index} style={index === facture.items.length - 1 ? styles.lastTableRow : styles.tableRow} wrap={false}>
+          {items.map((item, index) => (
+            <View key={index} style={index === items.length - 1 ? styles.lastTableRow : styles.tableRow} wrap={false}>
               <View style={styles.colDesignation}>
-                <Text>{item.description}</Text>
+                <Text>{item.description || ""}</Text>
               </View>
               <View style={styles.colQty}>
-                <Text>{item.quantity}</Text>
+                <Text>{String(item.quantity || 0)}</Text>
               </View>
               <View style={styles.colPrice}>
                 <Text>{(Number(item.prixUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
