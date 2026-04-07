@@ -241,7 +241,7 @@ exports.saveRooms = async (db, userId, programId, hotelName, rooms) => {
     if (assignments.length > 0) {
       const bookingIds = assignments.map((a) => a.bookingId);
       const { rows: bookings } = await db.query(
-        'SELECT id, "selectedHotel" FROM bookings WHERE id = ANY($1::int[]) AND "userId" = $2',
+        'SELECT id, "selectedHotel" FROM bookings WHERE id = ANY($1::bigint[]) AND "userId" = $2',
         [bookingIds, userId],
       );
 
@@ -314,7 +314,7 @@ exports.searchUnassignedOccupants = async (
   let paramIndex = 2;
 
   if (assignedIds.size > 0) {
-    query += ` AND NOT (id = ANY($${paramIndex}::int[]))`;
+    query += ` AND NOT (id = ANY($${paramIndex}::bigint[]))`;
     params.push(Array.from(assignedIds));
     paramIndex++;
   }

@@ -76,7 +76,7 @@ exports.getAllPrograms = async (req, res, next) => {
                 ) as stats
             ) as "hotelRoomCounts",
             (
-                SELECT COUNT(DISTINCT (occupant->>'id')::int)
+                SELECT COUNT(DISTINCT (occupant->>'id')::bigint)
                 FROM room_managements rm_inner,
                      jsonb_array_elements(rm_inner.rooms) AS r,
                      jsonb_array_elements(r->'occupants') AS occupant

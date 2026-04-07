@@ -77,7 +77,7 @@ class RoomRepository {
             WHERE "userId" = $1 AND "programId" = $2
             AND EXISTS (
                 SELECT 1 FROM jsonb_array_elements(rooms) as r, jsonb_array_elements(r->'occupants') as o
-                WHERE (o->>'id')::int = ANY($3::int[])
+                WHERE (o->>'id')::bigint = ANY($3::bigint[])
             )
         ) AS is_assigned`,
       [userId, programId, bookingIds],
