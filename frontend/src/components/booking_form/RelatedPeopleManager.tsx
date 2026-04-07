@@ -50,7 +50,8 @@ const RelatedPeopleManager = ({
   };
 
   const getFullName = (person: Booking) => {
-    return `${person.clientNameFr.firstName} ${person.clientNameFr.lastName}`.trim();
+    const frenchName = `${person.clientNameFr?.firstName || ""} ${person.clientNameFr?.lastName || ""}`.trim();
+    return frenchName || person.clientNameAr || "";
   };
 
   return (

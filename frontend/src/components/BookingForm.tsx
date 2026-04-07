@@ -225,10 +225,13 @@ export default function BookingForm({
 
   const addRelatedPersons = useCallback(
     (persons: Booking[]) => {
-      const newPersons: RelatedPerson[] = persons.map((person) => ({
-        ID: person.id,
-        clientName: `${person.clientNameFr.firstName} ${person.clientNameFr.lastName}`,
-      }));
+      const newPersons: RelatedPerson[] = persons.map((person) => {
+        const frenchName = `${person.clientNameFr?.firstName || ""} ${person.clientNameFr?.lastName || ""}`.trim();
+        return {
+          ID: person.id,
+          clientName: frenchName || person.clientNameAr || "",
+        };
+      });
       setValue("relatedPersons", [
         ...(watchedValues.relatedPersons || []),
         ...newPersons,
