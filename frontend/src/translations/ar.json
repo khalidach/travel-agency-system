@@ -746,5 +746,19 @@
   "noProgramsSelected": "لم يتم اختيار أي برنامج",
   "selectAll": "تحديد الكل",
   "deselectAll": "إلغاء تحديد الكل",
-  "exportSelected": "تصدير المحدد"
+  "exportSelected": "تصدير المحدد",
+  "exportCSV": "تصدير إلى CSV",
+  "revenueBreakdown": "توزيع الإيرادات",
+  "profitBreakdown": "توزيع الأرباح",
+  "bookingsTrend": "حجم الحجوزات",
+  "revenueTrend": "إجمالي الإيرادات",
+  "profitTrend": "صافي الأرباح",
+  "thisQuarter": "هذا الربع",
+  "thisYear": "هذه السنة",
+  "all": "الكل",
+  "lowMarginWarning": "تنبيه هامش ربح منخفض",
+  "highMarginBadge": "أداء ممتاز",
+  "programsRevenueShare": "حصة أرباح البرامج",
+  "dailyServicesRevenueShare": "حصة أرباح الخدمات",
+  "donutChartTitle": "توزيع حصة الأرباح"
 }

@@ -746,5 +746,19 @@
   "noProgramsSelected": "Aucun programme sélectionné",
   "selectAll": "Tout sélectionner",
   "deselectAll": "Tout désélectionner",
-  "exportSelected": "Exporter la sélection"
+  "exportSelected": "Exporter la sélection",
+  "exportCSV": "Exporter en CSV",
+  "revenueBreakdown": "Répartition des Revenus",
+  "profitBreakdown": "Répartition des Profits",
+  "bookingsTrend": "Volume des Réservations",
+  "revenueTrend": "Revenu Brut",
+  "profitTrend": "Bénéfice Net",
+  "thisQuarter": "Ce Trimestre",
+  "thisYear": "Cette Année",
+  "all": "Tous",
+  "lowMarginWarning": "Alerte de Faible Marge",
+  "highMarginBadge": "Haute Performance",
+  "programsRevenueShare": "Part de Profit des Programmes",
+  "dailyServicesRevenueShare": "Part de Profit des Services",
+  "donutChartTitle": "Répartition de la Part de Profit"
 }

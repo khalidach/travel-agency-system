@@ -232,8 +232,11 @@ const getDashboardStats = async (req, res, next) => {
 const getProfitReport = async (req, res, next) => {
   try {
     const { adminId } = req.user;
-    const { programType, page = 1, limit = 7 } = req.query;
+    const { programType, page = 1, limit = 7, startDate, endDate } = req.query;
     const offset = (page - 1) * limit;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
 
     // --- Build WHERE clauses and params ---
     let programWhereClause = `WHERE p."userId" = $1`;
@@ -242,18 +245,24 @@ const getProfitReport = async (req, res, next) => {
       programWhereClause += ` AND p.type = $2`;
       programParams.push(programType);
     }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      programWhereClause += ` AND p."createdAt"::date BETWEEN $${programParams.length + 1} AND $${programParams.length + 2}`;
+      programParams.push(startDate, endDate);
+    }
 
-    const baseFromClause = `
-      FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId"
-      ${programWhereClause}
-    `;
-
-    // --- REMOVED: Query for the bar chart (top 6 programs by profit) ---
-
-    // --- Paginated query for the detailed table (unchanged) ---
+    // --- Paginated query for the detailed table ---
+    let bookingDateClause = "";
     let detailedParams = [...programParams];
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      const startIdx = programParams.indexOf(startDate) + 1;
+      const endIdx = programParams.indexOf(endDate) + 1;
+      bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
+    }
+
+    const limitPlaceholder = `$${detailedParams.length + 1}`;
+    const offsetPlaceholder = `$${detailedParams.length + 2}`;
     detailedParams.push(limit, offset);
+
     const detailedPerformanceQuery = `
       SELECT
           p.id,
@@ -263,23 +272,27 @@ const getProfitReport = async (req, res, next) => {
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
           COALESCE(pc."totalCost", 0) as "totalCost"
       FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId"
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause}
       LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
       ${programWhereClause}
       GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
-      LIMIT $${programParams.length + 1} OFFSET $${programParams.length + 2}
+      LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}
     `;
     const detailedPerformancePromise = req.db.query(
       detailedPerformanceQuery,
       detailedParams
     );
 
-    // --- Query for summary stats (Total Bookings, Revenue, etc.) (unchanged) ---
+    // --- Query for summary stats (Total Bookings, Revenue, etc.) ---
     let summaryWhereClause = `WHERE b."userId" = $1`;
     const summaryParams = [adminId];
     if (programType && programType !== "all") {
-      summaryWhereClause += ` AND p.type = $2`;
+      summaryWhereClause += ` AND p.type = $${summaryParams.length + 1}`;
       summaryParams.push(programType);
+    }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
+      summaryParams.push(startDate, endDate);
     }
     const summaryQuery = `
       SELECT 
@@ -295,8 +308,12 @@ const getProfitReport = async (req, res, next) => {
     let costWhereClause = `WHERE pc."userId" = $1`;
     const costParams = [adminId];
     if (programType && programType !== "all") {
-      costWhereClause += ` AND p.type = $2`;
+      costWhereClause += ` AND p.type = $${costParams.length + 1}`;
       costParams.push(programType);
+    }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      costWhereClause += ` AND p."createdAt"::date BETWEEN $${costParams.length + 1} AND $${costParams.length + 2}`;
+      costParams.push(startDate, endDate);
     }
     const totalCostQuery = `
       SELECT COALESCE(SUM(pc."totalCost"), 0) as "totalCost"
@@ -306,7 +323,7 @@ const getProfitReport = async (req, res, next) => {
     `;
     const totalCostPromise = req.db.query(totalCostQuery, costParams);
 
-    // --- Count query for pagination (counts programs) (unchanged) ---
+    // --- Count query for pagination (counts programs) ---
     const programCountQuery = `
         SELECT COUNT(*)
         FROM programs p
@@ -314,17 +331,26 @@ const getProfitReport = async (req, res, next) => {
     `;
     const programCountPromise = req.db.query(programCountQuery, programParams);
 
-    // --- Monthly trend query (MODIFIED: Count bookings instead of sum profit) ---
+    // --- Monthly trend query (Enhanced to return sales and profit, and filter by type) ---
+    let monthlyTrendWhereClause = `WHERE b."userId" = $1 AND b."createdAt" >= NOW() - INTERVAL '12 months'`;
+    const monthlyTrendParams = [adminId];
+    if (programType && programType !== "all") {
+      monthlyTrendWhereClause += ` AND p.type = $2`;
+      monthlyTrendParams.push(programType);
+    }
     const monthlyTrendQuery = `
         SELECT
             TO_CHAR(b."createdAt", 'YYYY-MM') as month,
-            COUNT(b.id) as "bookingsCount" 
+            COUNT(b.id) as "bookingsCount",
+            COALESCE(SUM(b."sellingPrice"), 0) as "sales",
+            COALESCE(SUM(b.profit), 0) as "profit"
         FROM bookings b
-        WHERE b."userId" = $1 AND b."createdAt" >= NOW() - INTERVAL '12 months'
+        LEFT JOIN programs p ON b."tripId"::int = p.id
+        ${monthlyTrendWhereClause}
         GROUP BY month
         ORDER BY month ASC
     `;
-    const monthlyTrendPromise = req.db.query(monthlyTrendQuery, [adminId]);
+    const monthlyTrendPromise = req.db.query(monthlyTrendQuery, monthlyTrendParams);
 
     const [
       detailedPerformanceResult,
@@ -340,7 +366,6 @@ const getProfitReport = async (req, res, next) => {
       totalCostPromise,
     ]);
 
-    // --- REMOVED: topProgramsData logic ---
     const detailedPerformanceData = detailedPerformanceResult.rows.map(
       (row) => {
         const totalSales = parseFloat(row.totalSales);
@@ -363,11 +388,12 @@ const getProfitReport = async (req, res, next) => {
     const summaryTotalSales = parseFloat(summaryData.totalSales);
 
     res.status(200).json({
-      // REMOVED: topProgramsData
       detailedPerformanceData,
       monthlyTrend: monthlyTrendResult.rows.map((row) => ({
         ...row,
-        bookings: parseInt(row.bookingsCount, 10), // Updated key
+        bookings: parseInt(row.bookingsCount, 10),
+        sales: parseFloat(row.sales || 0),
+        profit: parseFloat(row.profit || 0),
       })),
       pagination: {
         page: parseInt(page, 10),

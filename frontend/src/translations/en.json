@@ -742,5 +742,19 @@
   "noProgramsSelected": "No programs selected",
   "selectAll": "Select All",
   "deselectAll": "Deselect All",
-  "exportSelected": "Export Selected"
+  "exportSelected": "Export Selected",
+  "exportCSV": "Export CSV",
+  "revenueBreakdown": "Revenue Breakdown",
+  "profitBreakdown": "Profit Breakdown",
+  "bookingsTrend": "Bookings Volume",
+  "revenueTrend": "Gross Revenue",
+  "profitTrend": "Net Profit",
+  "thisQuarter": "This Quarter",
+  "thisYear": "This Year",
+  "all": "All",
+  "lowMarginWarning": "Low Margin Alert",
+  "highMarginBadge": "High Performer",
+  "programsRevenueShare": "Programs Profit Share",
+  "dailyServicesRevenueShare": "Services Profit Share",
+  "donutChartTitle": "Profit Share Composition"
 }

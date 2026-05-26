@@ -206,6 +206,8 @@ export const getProfitReport = (
   filterType?: string,
   page: number = 1,
   limit: number = 6,
+  startDate?: string,
+  endDate?: string,
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -213,6 +215,12 @@ export const getProfitReport = (
   });
   if (filterType && filterType !== "all") {
     params.append("programType", filterType);
+  }
+  if (startDate) {
+    params.append("startDate", startDate);
+  }
+  if (endDate) {
+    params.append("endDate", endDate);
   }
   return request(`/dashboard/profit-report?${params.toString()}`);
 };
