@@ -8,7 +8,7 @@ const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
 // Import middleware and new DB initializer
-const { protect } = require("./middleware/authMiddleware");
+const { protect, checkPermission } = require("./middleware/authMiddleware");
 const { apiLimiter } = require("./middleware/rateLimitMiddleware");
 const { applyDatabaseMigrations } = require("./utils/db-init");
 const errorHandler = require("./middleware/errorHandler");
@@ -131,20 +131,20 @@ app.use("/api/account", accountRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/tiers", protect, tierRoutes);
 app.use("/api/dashboard", protect, dashboardRoutes);
-app.use("/api/programs", protect, programRoutes);
-app.use("/api/program-pricing", protect, programPricingRoutes);
-app.use("/api/program-costs", protect, programCostsRoutes); // Add new route
-app.use("/api/bookings", protect, bookingRoutes);
+app.use("/api/programs", protect, checkPermission("programs"), programRoutes);
+app.use("/api/program-pricing", protect, checkPermission("programPricing"), programPricingRoutes);
+app.use("/api/program-costs", protect, checkPermission("programCosting"), programCostsRoutes); // Add new route
+app.use("/api/bookings", protect, checkPermission("bookings"), bookingRoutes);
 app.use("/api/employees", protect, employeeRoutes);
-app.use("/api/room-management", protect, roomManagementRoutes);
-app.use("/api/facturation", protect, factureRoutes);
+app.use("/api/room-management", protect, checkPermission("roomManagement"), roomManagementRoutes);
+app.use("/api/facturation", protect, checkPermission("factures"), factureRoutes);
 app.use("/api/settings", protect, settingsRoutes);
-app.use("/api/daily-services", protect, dailyServiceRoutes);
+app.use("/api/daily-services", protect, checkPermission("dailyServices"), dailyServiceRoutes);
 app.use("/api/notifications", notificationRoutes); // Add this line
-app.use("/api/expenses", protect, expenseRoutes);
-app.use("/api/suppliers", protect, supplierRoutes);
-app.use("/api/clients", protect, clientRoutes);
-app.use("/api/incomes", protect, incomeRoutes);
+app.use("/api/expenses", protect, checkPermission("expenses"), expenseRoutes);
+app.use("/api/suppliers", protect, checkPermission("suppliers"), supplierRoutes);
+app.use("/api/clients", protect, checkPermission("clients"), clientRoutes);
+app.use("/api/incomes", protect, checkPermission("incomes"), incomeRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

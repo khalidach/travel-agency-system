@@ -10,7 +10,7 @@ exports.createEmployee = async (req, res, next) => {
         new AppError("You are not authorized to perform this action.", 403)
       );
     }
-    const { username, password, role } = req.body;
+    const { username, password, role, permissions } = req.body;
     const adminId = req.user.id;
 
     if (!username || !password || !role) {
@@ -21,8 +21,8 @@ exports.createEmployee = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const { rows } = await req.db.query(
-      'INSERT INTO employees (username, password, role, "adminId") VALUES ($1, $2, $3, $4) RETURNING id, username, role, "adminId"',
-      [username, hashedPassword, role, adminId]
+      'INSERT INTO employees (username, password, role, permissions, "adminId") VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role, permissions, "adminId"',
+      [username, hashedPassword, role, JSON.stringify(permissions || []), adminId]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -46,7 +46,7 @@ exports.getEmployees = async (req, res, next) => {
       );
     }
     const employeesQuery = `
-      SELECT e.id, e.username, e.role, e.active, COUNT(b.id) as "bookingCount"
+      SELECT e.id, e.username, e.role, e.permissions, e.active, COUNT(b.id) as "bookingCount"
       FROM employees e
       LEFT JOIN bookings b ON e.id = b."employeeId"
       WHERE e."adminId" = $1
@@ -75,6 +75,7 @@ exports.getEmployees = async (req, res, next) => {
     res.status(200).json({
       employees: employeesResult.rows.map((emp) => ({
         ...emp,
+        permissions: emp.permissions || [],
         bookingCount: parseInt(emp.bookingCount, 10),
       })),
       limit: employeeLimit,
@@ -466,7 +467,7 @@ exports.updateEmployee = async (req, res, next) => {
       );
     }
     const { id } = req.params;
-    const { username, password, role } = req.body;
+    const { username, password, role, permissions } = req.body;
 
     let hashedPassword;
     if (password) {
@@ -478,9 +479,10 @@ exports.updateEmployee = async (req, res, next) => {
       `UPDATE employees SET 
                 username = COALESCE($1, username), 
                 password = COALESCE($2, password), 
-                role = COALESCE($3, role) 
-             WHERE id = $4 AND "adminId" = $5 RETURNING id, username, role`,
-      [username, hashedPassword, role, id, req.user.id]
+                role = COALESCE($3, role),
+                permissions = COALESCE($4, permissions) 
+             WHERE id = $5 AND "adminId" = $6 RETURNING id, username, role, permissions`,
+      [username, hashedPassword, role, permissions ? JSON.stringify(permissions) : null, id, req.user.id]
     );
 
     if (rows.length === 0) {

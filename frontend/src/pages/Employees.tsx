@@ -21,6 +21,31 @@ import { useTranslation } from "react-i18next";
 import VideoHelpModal from "../components/VideoHelpModal";
 import { useAuthContext } from "../context/AuthContext";
 
+const availablePermissions = [
+  { key: "programs", labelKey: "programs" },
+  { key: "programPricing", labelKey: "programPricing" },
+  { key: "programCosting", labelKey: "programCosting" },
+  { key: "bookings", labelKey: "booking" },
+  { key: "roomManagement", labelKey: "roomManagement" },
+  { key: "dailyServices", labelKey: "dailyServices" },
+  { key: "expenses", labelKey: "expenses" },
+  { key: "suppliers", labelKey: "suppliers" },
+  { key: "incomes", labelKey: "incomes" },
+  { key: "clients", labelKey: "clients" },
+  { key: "factures", labelKey: "facturation" },
+];
+
+const getPermissionLabel = (perm: string) => {
+  switch (perm) {
+    case "bookings":
+      return "booking";
+    case "factures":
+      return "facturation";
+    default:
+      return perm;
+  }
+};
+
 const EmployeeForm = ({
   employee,
   onSave,
@@ -35,7 +60,23 @@ const EmployeeForm = ({
     username: employee?.username || "",
     password: "",
     role: employee?.role || "employee",
+    permissions: employee?.permissions || [],
   });
+
+  const handleRoleChange = (role: "manager" | "employee") => {
+    if (role === "manager") {
+      setFormData({
+        ...formData,
+        role,
+        permissions: availablePermissions.map((p) => p.key),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        role,
+      });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,17 +122,35 @@ const EmployeeForm = ({
         </label>
         <select
           value={formData.role}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              role: e.target.value as "manager" | "employee",
-            })
-          }
+          onChange={(e) => handleRoleChange(e.target.value as "manager" | "employee")}
           className="w-full px-3 py-2 border border-input rounded-lg mt-1 bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
         >
           <option value="employee">{t("employee")}</option>
           <option value="manager">{t("manager")}</option>
         </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-foreground mb-1">
+          {t("permissions")}
+        </label>
+        <div className="grid grid-cols-2 gap-3 border border-input rounded-lg p-3 bg-background max-h-56 overflow-y-auto">
+          {availablePermissions.map((perm) => (
+            <label key={perm.key} className="flex items-center space-x-2 text-sm text-foreground cursor-pointer rtl:space-x-reverse">
+              <input
+                type="checkbox"
+                checked={formData.permissions.includes(perm.key)}
+                onChange={(e) => {
+                  const updated = e.target.checked
+                    ? [...formData.permissions, perm.key]
+                    : formData.permissions.filter((p) => p !== perm.key);
+                  setFormData({ ...formData, permissions: updated });
+                }}
+                className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+              />
+              <span>{t(perm.labelKey)}</span>
+            </label>
+          ))}
+        </div>
       </div>
       <div className="flex justify-end space-x-3 pt-4 rtl:space-x-reverse">
         <button
@@ -291,6 +350,9 @@ export default function EmployeesPage() {
                 {t("role")}
               </th>
               <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
+                {t("permissions")}
+              </th>
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("bookingsMade")}
               </th>
               <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
@@ -305,7 +367,7 @@ export default function EmployeesPage() {
             {isLoadingEmployees ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="text-center p-4 text-muted-foreground"
                 >
                   {t("loading") || "Loading..."}
@@ -342,6 +404,22 @@ export default function EmployeesPage() {
                       <Briefcase className="w-3 h-3 mr-1.5" />
                       {t(emp.role)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 max-w-xs">
+                    <div className="flex flex-wrap gap-1">
+                      {emp.permissions && emp.permissions.length > 0 ? (
+                        emp.permissions.map((perm) => (
+                          <span
+                            key={perm}
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-primary/10 text-primary border border-primary/20 dark:bg-primary/20 dark:text-primary-foreground"
+                          >
+                            {t(getPermissionLabel(perm))}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground/50 text-xs">-</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">

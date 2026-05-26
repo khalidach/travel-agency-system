@@ -756,5 +756,6 @@
   "highMarginBadge": "High Performer",
   "programsRevenueShare": "Programs Profit Share",
   "dailyServicesRevenueShare": "Services Profit Share",
-  "donutChartTitle": "Profit Share Composition"
+  "donutChartTitle": "Profit Share Composition",
+  "permissions": "Permissions"
 }

@@ -39,6 +39,7 @@ type MenuItem = {
   accessCheck?: (user: User | null) => boolean;
   isDisabled?: boolean;
   new?: boolean;
+  permission?: string;
 };
 
 const allMenuItems: MenuItem[] = [
@@ -76,18 +77,21 @@ const allMenuItems: MenuItem[] = [
         path: "/programs",
         icon: Package,
         roles: ["admin", "manager", "employee"],
+        permission: "programs",
       },
       {
         key: "programPricing",
         path: "/program-pricing",
         icon: ShipWheel,
         roles: ["admin", "manager"],
+        permission: "programPricing",
       },
       {
         key: "programCosting",
         path: "/program-costing",
         icon: DollarSign,
         roles: ["admin", "manager"],
+        permission: "programCosting",
         accessCheck: (user: User | null) => {
           if (!user) return false;
           if (typeof user.limits?.programCosts === "boolean")
@@ -102,12 +106,14 @@ const allMenuItems: MenuItem[] = [
         path: "/booking",
         icon: Calendar,
         roles: ["admin", "manager", "employee"],
+        permission: "bookings",
       },
       {
         key: "roomManagement",
         path: "/room-management",
         icon: BedDouble,
         roles: ["admin", "manager", "employee"],
+        permission: "roomManagement",
       },
     ],
   },
@@ -117,6 +123,7 @@ const allMenuItems: MenuItem[] = [
     icon: ConciergeBell,
     path: "/daily-services",
     roles: ["admin", "manager", "employee"],
+    permission: "dailyServices",
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.dailyServices === "boolean")
@@ -137,6 +144,7 @@ const allMenuItems: MenuItem[] = [
         path: "/expenses",
         icon: Wallet,
         roles: ["admin", "manager"],
+        permission: "expenses",
         new: true,
       },
       {
@@ -144,6 +152,7 @@ const allMenuItems: MenuItem[] = [
         path: "/suppliers",
         icon: Truck,
         roles: ["admin", "manager"],
+        permission: "suppliers",
         new: true,
       },
     ],
@@ -159,6 +168,7 @@ const allMenuItems: MenuItem[] = [
         path: "/incomes",
         icon: Coins,
         roles: ["admin", "manager"],
+        permission: "incomes",
         new: true,
       },
       {
@@ -166,6 +176,7 @@ const allMenuItems: MenuItem[] = [
         path: "/clients",
         icon: Users,
         roles: ["admin", "manager"],
+        permission: "clients",
         new: true,
       },
     ],
@@ -189,6 +200,7 @@ const allMenuItems: MenuItem[] = [
     path: "/facturation",
     icon: FileText,
     roles: ["admin", "manager", "employee"],
+    permission: "factures",
     accessCheck: (user) => {
       if (!user) return false;
       if (typeof user.limits?.invoicing === "boolean")
@@ -253,9 +265,23 @@ export default function Sidebar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const menuItems = useMemo(() => {
+    const hasPermission = (item: MenuItem): boolean => {
+      if (!userRole) return false;
+      if (userRole === "admin" || userRole === "owner") {
+        return item.roles.includes(userRole);
+      }
+      if (item.children && item.children.length > 0) {
+        return item.children.some((child) => hasPermission(child));
+      }
+      if (!item.permission) {
+        return item.roles.includes(userRole);
+      }
+      return user?.permissions?.includes(item.permission) ?? false;
+    };
+
     const processItems = (items: MenuItem[]): MenuItem[] => {
       return items
-        .filter((item) => userRole && item.roles.includes(userRole))
+        .filter((item) => hasPermission(item))
         .map((item) => {
           const isDisabled = item.accessCheck ? !item.accessCheck(user) : false;
           if (item.children) {

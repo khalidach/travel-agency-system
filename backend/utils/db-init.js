@@ -43,7 +43,8 @@ const applyDatabaseMigrations = async (client) => {
         password VARCHAR(255) NOT NULL,
         role VARCHAR(50) NOT NULL,
         "adminId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        active BOOLEAN DEFAULT TRUE
+        active BOOLEAN DEFAULT TRUE,
+        permissions JSONB DEFAULT '[]'::jsonb
       );
     `);
 
@@ -293,6 +294,14 @@ const applyDatabaseMigrations = async (client) => {
           WHERE table_name='incomes' AND column_name='deliveryNoteNumber'
         ) THEN
           ALTER TABLE incomes ADD COLUMN "deliveryNoteNumber" VARCHAR(255);
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='employees' AND column_name='permissions'
+        ) THEN
+          ALTER TABLE employees ADD COLUMN permissions JSONB DEFAULT '[]'::jsonb;
         END IF;
       END $$;
     `);

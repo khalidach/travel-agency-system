@@ -760,5 +760,6 @@
   "highMarginBadge": "Haute Performance",
   "programsRevenueShare": "Part de Profit des Programmes",
   "dailyServicesRevenueShare": "Part de Profit des Services",
-  "donutChartTitle": "Répartition de la Part de Profit"
+  "donutChartTitle": "Répartition de la Part de Profit",
+  "permissions": "Permissions"
 }

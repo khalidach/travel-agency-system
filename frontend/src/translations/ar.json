@@ -760,5 +760,6 @@
   "highMarginBadge": "أداء ممتاز",
   "programsRevenueShare": "حصة أرباح البرامج",
   "dailyServicesRevenueShare": "حصة أرباح الخدمات",
-  "donutChartTitle": "توزيع حصة الأرباح"
+  "donutChartTitle": "توزيع حصة الأرباح",
+  "permissions": "الصلاحيات"
 }

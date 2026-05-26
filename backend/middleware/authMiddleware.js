@@ -48,11 +48,12 @@ const protect = async (req, res, next) => {
         }
       } else {
         const { rows } = await req.db.query(
-          'SELECT id, username, "adminId" FROM employees WHERE id = $1',
+          'SELECT id, username, role, permissions, "adminId" FROM employees WHERE id = $1',
           [decoded.id]
         );
         if (rows.length > 0) {
           const employeeData = rows[0];
+          employeeData.permissions = safeJsonParse(employeeData.permissions) || [];
           const adminRes = await req.db.query(
             `SELECT u."agencyName", u."facturationSettings", u."tierId", u.limits, t.limits as "tierLimits"
              FROM users u
@@ -98,4 +99,19 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const checkPermission = (permission) => {
+  return (req, res, next) => {
+    if (req.user.role === "admin" || req.user.role === "owner") {
+      return next();
+    }
+    const permissions = req.user.permissions || [];
+    if (permissions.includes(permission)) {
+      return next();
+    }
+    return res.status(403).json({
+      message: `Forbidden: You do not have the '${permission}' permission.`,
+    });
+  };
+};
+
+module.exports = { protect, checkPermission };

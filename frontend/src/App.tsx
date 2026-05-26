@@ -103,6 +103,14 @@ function AppRoutes() {
 
   useIdleTimeout();
 
+  const hasPermission = useMemo(() => {
+    return (permission: string) => {
+      if (!user) return false;
+      if (user.role === "admin" || user.role === "owner") return true;
+      return user.permissions?.includes(permission) ?? false;
+    };
+  }, [user]);
+
   if (state.loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -151,16 +159,25 @@ function AppRoutes() {
                   ) : (
                     <>
                       <Route path="/dashboard" element={<Dashboard />} />
-                      <Route path="/programs" element={<Programs />} />
-                      <Route
-                        path="/room-management"
-                        element={<RoomManagementPage />}
-                      />
-                      <Route
-                        path="/room-management/program/:programId"
-                        element={<RoomManage />}
-                      />
-                      {hasDailyServiceAccess && (
+                      
+                      {hasPermission("programs") && (
+                        <Route path="/programs" element={<Programs />} />
+                      )}
+
+                      {hasPermission("roomManagement") && (
+                        <>
+                          <Route
+                            path="/room-management"
+                            element={<RoomManagementPage />}
+                          />
+                          <Route
+                            path="/room-management/program/:programId"
+                            element={<RoomManage />}
+                          />
+                        </>
+                      )}
+
+                      {hasPermission("dailyServices") && hasDailyServiceAccess && (
                         <>
                           <Route
                             path="/daily-services"
@@ -172,75 +189,78 @@ function AppRoutes() {
                           />
                         </>
                       )}
-                      <Route
-                        path="/facturation"
-                        element={
-                          hasInvoicingAccess ? (
-                            <Facturation />
-                          ) : (
-                            <Navigate to="/dashboard" replace />
-                          )
-                        }
-                      />
 
-                      {/* Managers and Admins Routes */}
-                      {(userRole === "admin" || userRole === "manager") && (
+                      {hasPermission("factures") && hasInvoicingAccess && (
+                        <Route path="/facturation" element={<Facturation />} />
+                      )}
+
+                      {hasPermission("programPricing") && (
+                        <Route
+                          path="/program-pricing"
+                          element={<ProgramPricing />}
+                        />
+                      )}
+
+                      {hasPermission("expenses") && (
+                        <Route path="/expenses" element={<Expenses />} />
+                      )}
+
+                      {hasPermission("incomes") && (
+                        <Route path="/incomes" element={<IncomeManagement />} />
+                      )}
+
+                      {hasPermission("clients") && (
                         <>
-                          <Route
-                            path="/program-pricing"
-                            element={<ProgramPricing />}
-                          />
-                          <Route path="/expenses" element={<Expenses />} />
-                          <Route path="/incomes" element={<IncomeManagement />} />
-                          {/* --- NEW: Clients Routes --- */}
                           <Route path="/clients" element={<Clients />} />
-                          {/* --- NEW: Suppliers Routes --- */}
-                          <Route path="/suppliers" element={<Suppliers />} />
+                          <Route
+                            path="/clients/:id"
+                            element={<ClientAnalysis />}
+                          />
                         </>
                       )}
 
-                      <Route path="/booking" element={<Booking />} />
-                      <Route
-                        path="/booking/program/:programId"
-                        element={<BookingPage />}
-                      />
+                      {hasPermission("suppliers") && (
+                        <>
+                          <Route path="/suppliers" element={<Suppliers />} />
+                          <Route
+                            path="/suppliers/:id"
+                            element={<SupplierAnalysis />}
+                          />
+                        </>
+                      )}
+
+                      {hasPermission("bookings") && (
+                        <>
+                          <Route path="/booking" element={<Booking />} />
+                          <Route
+                            path="/booking/program/:programId"
+                            element={<BookingPage />}
+                          />
+                        </>
+                      )}
+
+                      {/* Admin/Manager with programCosting access */}
+                      {hasPermission("programCosting") && hasProgramCostAccess && (
+                        <>
+                          <Route
+                            path="/program-costing"
+                            element={<ProgramCostingList />}
+                          />
+                          <Route
+                            path="/program-costing/:programId"
+                            element={<ProgramCosting />}
+                          />
+                        </>
+                      )}
 
                       {/* Admin Only Routes */}
                       {userRole === "admin" && (
                         <>
                           <Route
-                            path="/suppliers/:id"
-                            element={<SupplierAnalysis />}
-                          />
-                          <Route
-                            path="/clients/:id"
-                            element={<ClientAnalysis />}
-                          />
-                          <Route
                             path="/profit-report"
                             element={
                               hasProfitReportAccess ? (
                                 <ProfitReport />
-                              ) : (
-                                <Navigate to="/dashboard" replace />
-                              )
-                            }
-                          />
-                          <Route
-                            path="/program-costing"
-                            element={
-                              hasProgramCostAccess ? (
-                                <ProgramCostingList />
-                              ) : (
-                                <Navigate to="/dashboard" replace />
-                              )
-                            }
-                          />
-                          <Route
-                            path="/program-costing/:programId"
-                            element={
-                              hasProgramCostAccess ? (
-                                <ProgramCosting />
                               ) : (
                                 <Navigate to="/dashboard" replace />
                               )

@@ -37,6 +37,7 @@ export interface User {
   ownerName?: string;
   phone?: string;
   email?: string;
+  permissions?: string[];
 }
 
 export interface FacturationSettings {
@@ -88,6 +89,7 @@ export interface Employee {
   role: "manager" | "employee";
   adminId: number;
   active?: boolean;
+  permissions?: string[];
 }
 
 export interface CityData {
