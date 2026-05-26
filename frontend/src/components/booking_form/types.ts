@@ -21,6 +21,8 @@ export type ClientFormData = {
   dob_month?: number | string;
   dob_year?: number | string;
   noPassport?: boolean;
+  isLeader?: boolean;
+  leaderRowIndex?: number;
 };
 
 export type BookingFormData = Omit<
@@ -41,7 +43,6 @@ export type BookingFormData = Omit<
 > & {
   createdAt: string;
   clients: ClientFormData[];
-  leaderIndex?: number;
 };
 
 export type FlatBookingData = Omit<BookingFormData, "clients"> &
@@ -70,4 +71,6 @@ export const emptyClient: ClientFormData = {
   dob_month: "",
   dob_year: "",
   noPassport: false,
+  isLeader: false,
+  leaderRowIndex: 0,
 };

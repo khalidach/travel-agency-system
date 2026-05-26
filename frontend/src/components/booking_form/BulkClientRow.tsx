@@ -35,7 +35,32 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
   });
 
   const clientErrors = errors.clients?.[index];
-  const leaderIndex = watch("leaderIndex") ?? 0;
+  const isLeader = useWatch({
+    control,
+    name: `clients.${index}.isLeader`,
+  }) ?? false;
+  const leaderRowIndex = useWatch({
+    control,
+    name: `clients.${index}.leaderRowIndex`,
+  });
+  const allClients = useWatch({
+    control,
+    name: "clients",
+  }) || [];
+
+  const leadersOptions = allClients
+    .map((client, idx) => {
+      if (!client?.isLeader) return null;
+      const firstName = client.clientNameFr?.firstName || "";
+      const lastName = client.clientNameFr?.lastName || "";
+      const arName = client.clientNameAr || "";
+      const name = `${firstName} ${lastName}`.trim() || arName || `${t("client")} ${idx + 1}`;
+      return {
+        index: idx,
+        name: `${idx + 1}. ${name}`,
+      };
+    })
+    .filter((opt): opt is { index: number; name: string } => opt !== null);
 
   useEffect(() => {
     const existingClientData = watch(`clients.${index}`) as ClientFormData;
@@ -89,25 +114,15 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
 
   return (
     <div className="grid grid-cols-12 gap-3 items-start p-3 border-b dark:border-gray-700">
-      <div className="col-span-12 md:col-span-1 flex flex-col items-center pt-6 gap-2">
+      <div className="col-span-12 md:col-span-1 flex flex-col items-center pt-9 gap-2">
         <span className="text-gray-500 dark:text-gray-400 font-semibold">
           {index + 1}.
         </span>
-        <label className="flex flex-col items-center cursor-pointer group" title={t("groupLeader") || "Group Leader"}>
-          <input
-            type="radio"
-            checked={leaderIndex === index}
-            onChange={() => setValue("leaderIndex", index)}
-            className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
-          />
-          <span className={`text-[10px] mt-1 transition-colors ${
-            leaderIndex === index 
-              ? "text-blue-600 dark:text-blue-400 font-medium" 
-              : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400"
-          }`}>
-            {t("leader") || "Leader"}
+        {isLeader && (
+          <span className="text-yellow-500 text-lg animate-bounce" title={t("leader") || "Leader"}>
+            👑
           </span>
-        </label>
+        )}
       </div>
 
       <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -332,6 +347,53 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
               </select>
             )}
           />
+        </div>
+
+        {/* Family/Group Association Section */}
+        <div className="md:col-span-5 border-t border-gray-100 dark:border-gray-700/50 mt-3 pt-3 flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50/50 dark:bg-gray-800/20 p-2 rounded-lg">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!!isLeader}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setValue(`clients.${index}.isLeader`, checked);
+                if (checked) {
+                  setValue(`clients.${index}.leaderRowIndex`, undefined);
+                } else {
+                  // Default to first leader in the form list
+                  const clientsList = getValues("clients") || [];
+                  const firstLeaderIdx = clientsList.findIndex((c) => c.isLeader) ?? 0;
+                  setValue(`clients.${index}.leaderRowIndex`, firstLeaderIdx >= 0 ? firstLeaderIdx : 0);
+                }
+              }}
+              className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 bg-white dark:bg-gray-700 cursor-pointer"
+            />
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+              {t("isLeader") || "Mark as Family Leader"}
+            </span>
+          </label>
+
+          {!isLeader && (
+            <div className="flex-1 flex items-center gap-2 max-w-xs">
+              <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                {t("belongsToLeader") || "Belongs to:"}
+              </span>
+              <select
+                value={leaderRowIndex ?? 0}
+                onChange={(e) => {
+                  setValue(`clients.${index}.leaderRowIndex`, Number(e.target.value));
+                }}
+                className="w-full px-2.5 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 outline-none cursor-pointer"
+              >
+                {leadersOptions.map((opt) => (
+                  <option key={opt.index} value={opt.index}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 

@@ -198,6 +198,8 @@
   "relatedPeople": "Related People",
   "leader": "Leader",
   "groupLeader": "Group Leader",
+  "isLeader": "Mark as Family Leader",
+  "belongsToLeader": "Belongs to:",
   "searchClientToAdd": "Search for a client to add...",
   "selectProgramFirst": "Select a program first",
   "hotelAndRoomSelection": "Hotel & Room Selection",

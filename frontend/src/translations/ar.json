@@ -202,6 +202,8 @@
   "relatedPeople": "الأشخاص المرتبطون",
   "leader": "المسؤول",
   "groupLeader": "مسؤول المجموعة",
+  "isLeader": "تحديد كمسؤول عائلة",
+  "belongsToLeader": "ينتمي إلى المسؤول:",
   "searchClientToAdd": "ابحث عن عميل لإضافته...",
   "selectProgramFirst": "اختر برنامجًا أولاً",
   "hotelAndRoomSelection": "اختيار الفندق والغرفة",

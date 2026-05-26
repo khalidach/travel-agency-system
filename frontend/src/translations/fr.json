@@ -202,6 +202,8 @@
   "relatedPeople": "Personnes Liées",
   "leader": "Chef",
   "groupLeader": "Chef de groupe",
+  "isLeader": "Marquer comme chef de famille",
+  "belongsToLeader": "Appartient au chef:",
   "searchClientToAdd": "Rechercher un client à ajouter...",
   "selectProgramFirst": "Sélectionnez d'abord un programme",
   "hotelAndRoomSelection": "Sélection de l'Hôtel et de la Chambre",

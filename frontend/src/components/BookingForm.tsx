@@ -67,9 +67,8 @@ export default function BookingForm({
       profit: 0,
       createdAt: new Date().toISOString().split("T")[0],
       relatedPersons: [],
-      clients: [emptyClient],
+      clients: [{ ...emptyClient, isLeader: true, leaderRowIndex: undefined }],
       bookingSource: "",
-      leaderIndex: 0,
     },
   });
 
@@ -257,14 +256,32 @@ export default function BookingForm({
   );
 
   const handleRemoveClient = useCallback(
-    (index: number) => {
-      const currentLeaderIndex = methods.getValues("leaderIndex") || 0;
-      remove(index);
-      if (currentLeaderIndex === index) {
-        setValue("leaderIndex", 0);
-      } else if (currentLeaderIndex > index) {
-        setValue("leaderIndex", currentLeaderIndex - 1);
+    (indexToRemove: number) => {
+      const currentClients = methods.getValues("clients") || [];
+      remove(indexToRemove);
+
+      const updatedClients = currentClients
+        .filter((_, idx) => idx !== indexToRemove)
+        .map((client) => {
+          let newLeaderRowIndex = client.leaderRowIndex;
+          if (newLeaderRowIndex === indexToRemove) {
+            newLeaderRowIndex = 0;
+          } else if (newLeaderRowIndex !== undefined && newLeaderRowIndex > indexToRemove) {
+            newLeaderRowIndex -= 1;
+          }
+          return {
+            ...client,
+            leaderRowIndex: client.isLeader ? undefined : newLeaderRowIndex,
+          };
+        });
+
+      const hasLeader = updatedClients.some((c) => c.isLeader);
+      if (updatedClients.length > 0 && !hasLeader) {
+        updatedClients[0].isLeader = true;
+        updatedClients[0].leaderRowIndex = undefined;
       }
+
+      setValue("clients", updatedClients);
     },
     [remove, methods, setValue],
   );

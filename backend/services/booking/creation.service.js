@@ -26,7 +26,6 @@ const createBookings = async (db, user, bulkData) => {
       variationName,
       relatedPersons,
       bookingSource,
-      leaderIndex,
     } = sharedData;
 
     // 1. Capacity Check
@@ -159,43 +158,98 @@ const createBookings = async (db, user, bulkData) => {
       }
     }
 
-    // 4.5 Link group bookings under designated leader
+    // 4.5 Link group bookings under designated leaders (chefs)
     if (createdBookings.length > 0) {
-      const leaderIdx = (leaderIndex !== undefined && leaderIndex !== null) ? Number(leaderIndex) : 0;
-      const leaderBooking = createdBookings[leaderIdx] || createdBookings[0];
-      const memberBookings = createdBookings.filter((_, idx) => idx !== leaderIdx);
-
-      const memberRelatedPersons = memberBookings.map((member) => {
+      const bookingsDetails = createdBookings.map((b) => {
         let firstName = "";
         let lastName = "";
-        if (member.clientNameFr) {
-          if (typeof member.clientNameFr === "string") {
+        if (b.clientNameFr) {
+          if (typeof b.clientNameFr === "string") {
             try {
-              const parsed = JSON.parse(member.clientNameFr);
+              const parsed = JSON.parse(b.clientNameFr);
               firstName = parsed.firstName || "";
               lastName = parsed.lastName || "";
             } catch (e) {}
           } else {
-            firstName = member.clientNameFr.firstName || "";
-            lastName = member.clientNameFr.lastName || "";
+            firstName = b.clientNameFr.firstName || "";
+            lastName = b.clientNameFr.lastName || "";
           }
         }
         const frenchName = `${firstName} ${lastName}`.trim();
         return {
-          ID: member.id,
-          clientName: frenchName || member.clientNameAr || "",
+          id: b.id,
+          clientName: frenchName || b.clientNameAr || "",
         };
       });
 
-      const existingRelated = Array.isArray(relatedPersons) ? relatedPersons : [];
-      const finalRelatedPersons = [...existingRelated, ...memberRelatedPersons];
+      if (createdBookings.length === 1) {
+        const singleBooking = createdBookings[0];
+        const existingRelated = Array.isArray(relatedPersons) ? relatedPersons : [];
+        if (existingRelated.length > 0) {
+          await client.query(
+            'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
+            [JSON.stringify(existingRelated), singleBooking.id]
+          );
+          singleBooking.relatedPersons = existingRelated;
+        }
+      } else {
+        // Find all leader indices
+        const leaderIndices = [];
+        clients.forEach((c, idx) => {
+          if (c.isLeader) {
+            leaderIndices.push(idx);
+          }
+        });
 
-      if (finalRelatedPersons.length > 0) {
-        await client.query(
-          'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
-          [JSON.stringify(finalRelatedPersons), leaderBooking.id]
-        );
-        leaderBooking.relatedPersons = finalRelatedPersons;
+        // If no leaders are designated, default the first client (index 0) as leader
+        if (leaderIndices.length === 0) {
+          leaderIndices.push(0);
+        }
+
+        // Group members by leader index
+        const leaderToMembersMap = new Map();
+        leaderIndices.forEach((lIdx) => {
+          leaderToMembersMap.set(lIdx, []);
+        });
+
+        clients.forEach((c, idx) => {
+          if (leaderIndices.includes(idx)) {
+            return;
+          }
+
+          let chosenLeaderIdx = c.leaderRowIndex;
+          if (chosenLeaderIdx === undefined || chosenLeaderIdx === null || !leaderIndices.includes(Number(chosenLeaderIdx))) {
+            chosenLeaderIdx = leaderIndices[0];
+          } else {
+            chosenLeaderIdx = Number(chosenLeaderIdx);
+          }
+
+          const memberDetail = {
+            ID: bookingsDetails[idx].id,
+            clientName: bookingsDetails[idx].clientName,
+          };
+
+          leaderToMembersMap.get(chosenLeaderIdx).push(memberDetail);
+        });
+
+        // Update each leader booking in database
+        const existingRelated = Array.isArray(relatedPersons) ? relatedPersons : [];
+
+        for (const [lIdx, membersList] of leaderToMembersMap.entries()) {
+          const leaderBooking = createdBookings[lIdx];
+          const isMainLeader = (lIdx === leaderIndices[0]);
+          const finalRelatedPersons = isMainLeader
+            ? [...existingRelated, ...membersList]
+            : membersList;
+
+          if (finalRelatedPersons.length > 0) {
+            await client.query(
+              'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
+              [JSON.stringify(finalRelatedPersons), leaderBooking.id]
+            );
+            leaderBooking.relatedPersons = finalRelatedPersons;
+          }
+        }
       }
     }
 
