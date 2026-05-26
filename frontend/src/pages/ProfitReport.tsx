@@ -31,8 +31,6 @@ import {
   startOfDay,
   endOfDay,
   format,
-  subYears,
-  startOfMonth,
   startOfQuarter,
   startOfYear,
 } from "date-fns";
@@ -108,9 +106,6 @@ export default function ProfitReport() {
         break;
       case "30days":
         startDate = startOfDay(subDays(now, 30));
-        break;
-      case "thisMonth":
-        startDate = startOfMonth(now);
         break;
       case "thisQuarter":
         startDate = startOfQuarter(now);
@@ -279,94 +274,34 @@ export default function ProfitReport() {
     }
   };
 
-  // CSV Exporter
-  const exportToCSV = (
-    data: any[],
-    headers: string[],
-    keys: string[],
-    filename: string
-  ) => {
-    const csvContent = [
-      headers.join(","),
-      ...data.map((row) =>
-        keys
-          .map((key) => {
-            let val = row[key];
-            if (typeof val === "string") {
-              return `"${val.replace(/"/g, '""')}"`;
-            }
-            return val;
-          })
-          .join(",")
-      ),
-    ].join("\n");
+  // Backend Excel Exporter
+  const [isExporting, setIsExporting] = useState(false);
 
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `${filename}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await api.exportProfitReportToExcel(
+        filterType,
+        dateParams.startDate,
+        dateParams.endDate
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
 
-  const handleExportPrograms = () => {
-    const headers = [
-      t("programName"),
-      t("programType"),
-      t("bookings"),
-      t("totalSales"),
-      t("totalCost"),
-      t("totalProfit"),
-      t("profitMargin"),
-    ];
-    const keys = [
-      "programName",
-      "type",
-      "bookings",
-      "totalSales",
-      "totalCost",
-      "totalProfit",
-      "profitMargin",
-    ];
-    const rawData = sortedDetailedPerformanceData.map((row) => ({
-      ...row,
-      profitMargin: `${row.profitMargin.toFixed(1)}%`,
-    }));
-    exportToCSV(rawData, headers, keys, `programs_profit_report_${dateFilter}`);
-  };
-
-  const handleExportServices = () => {
-    const headers = [
-      t("serviceType"),
-      t("totalSalesCount"),
-      t("originalPrice"),
-      t("totalPrice"),
-      t("profit"),
-      t("profitMargin"),
-    ];
-    const keys = [
-      "typeTrans",
-      "count",
-      "totalOriginalPrice",
-      "totalSalePrice",
-      "totalProfit",
-      "profitMargin",
-    ];
-    const rawData = sortedByType.map((row) => {
-      const totalRev = Number(row.totalSalePrice);
-      const totalProf = Number(row.totalProfit);
-      const margin = totalRev > 0 ? (totalProf / totalRev) * 100 : 0;
-      return {
-        ...row,
-        typeTrans: t(row.type),
-        profitMargin: `${margin.toFixed(1)}%`,
-      };
-    });
-    exportToCSV(rawData, headers, keys, `services_profit_report_${dateFilter}`);
+      let dateString = "lifetime";
+      if (dateParams.startDate && dateParams.endDate) {
+        dateString = `${dateParams.startDate}_to_${dateParams.endDate}`;
+      }
+      link.setAttribute("download", `profit_report_${dateString}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export profit report Excel", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Header Sorting Indicator Builder
@@ -386,9 +321,8 @@ export default function ProfitReport() {
         <div className="flex items-center gap-1.5">
           <span>{label}</span>
           <ArrowUpDown
-            className={`w-3.5 h-3.5 ${
-              isSorted ? "text-primary" : "text-muted-foreground/40"
-            }`}
+            className={`w-3.5 h-3.5 ${isSorted ? "text-primary" : "text-muted-foreground/40"
+              }`}
           />
         </div>
       </th>
@@ -419,13 +353,23 @@ export default function ProfitReport() {
             {t("profitReportSubtitle")}
           </p>
         </div>
-        <button
-          onClick={() => setIsHelpModalOpen(true)}
-          className="self-start sm:self-center p-2.5 text-muted-foreground bg-secondary hover:text-foreground hover:bg-secondary/80 rounded-xl transition-all duration-200 shadow-sm border border-border"
-          aria-label={t("help") as string}
-        >
-          <HelpCircle className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-3 self-start sm:self-center ">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-3 py-2 text-sm rounded-xl transition-all shadow-sm cursor-pointer disabled:opacity-50"
+          >
+            <Download className="w-4.5 h-4.5" />
+            <span>{isExporting ? t("exporting") : t("exportToExcel")}</span>
+          </button>
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2.5 text-muted-foreground bg-secondary hover:text-foreground hover:bg-secondary/80 rounded-xl transition-all duration-200 shadow-sm border border-border cursor-pointer"
+            aria-label={t("help") as string}
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* FILTER PANEL */}
@@ -614,31 +558,28 @@ export default function ProfitReport() {
             <div className="inline-flex rounded-xl bg-secondary p-1 border border-border">
               <button
                 onClick={() => setChartMetric("bookings")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  chartMetric === "bookings"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartMetric === "bookings"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {t("bookingsTrend") || "Bookings"}
               </button>
               <button
                 onClick={() => setChartMetric("sales")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  chartMetric === "sales"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartMetric === "sales"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {t("revenueTrend") || "Revenue"}
               </button>
               <button
                 onClick={() => setChartMetric("profit")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                  chartMetric === "profit"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${chartMetric === "profit"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 {t("profitTrend") || "Profit"}
               </button>
@@ -674,8 +615,8 @@ export default function ProfitReport() {
                   chartMetric === "bookings"
                     ? "hsl(var(--primary))"
                     : chartMetric === "sales"
-                    ? "hsl(var(--chart-3))"
-                    : "hsl(var(--success))"
+                      ? "hsl(var(--chart-3))"
+                      : "hsl(var(--success))"
                 }
                 strokeWidth={3}
                 dot={{
@@ -683,8 +624,8 @@ export default function ProfitReport() {
                     chartMetric === "bookings"
                       ? "hsl(var(--primary))"
                       : chartMetric === "sales"
-                      ? "hsl(var(--chart-3))"
-                      : "hsl(var(--success))",
+                        ? "hsl(var(--chart-3))"
+                        : "hsl(var(--success))",
                   strokeWidth: 2,
                   r: 5,
                 }}
@@ -758,35 +699,23 @@ export default function ProfitReport() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Program Type Tabs */}
-            <div className="inline-flex rounded-xl bg-secondary p-1 border border-border">
-              {["all", "Hajj", "Umrah", "Tourism"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    setFilterType(type);
-                    setCurrentPage(1);
-                  }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
-                    filterType === type
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+          {/* Program Type Tabs */}
+          <div className="inline-flex rounded-xl bg-secondary p-1 border border-border">
+            {["all", "Hajj", "Umrah", "Tourism"].map((type) => (
+              <button
+                key={type}
+                onClick={() => {
+                  setFilterType(type);
+                  setCurrentPage(1);
+                }}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${filterType === type
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
                   }`}
-                >
-                  {type === "all" ? t("allTypes") : t(type)}
-                </button>
-              ))}
-            </div>
-
-            {/* Export CSV Button */}
-            <button
-              onClick={handleExportPrograms}
-              className="inline-flex items-center gap-2 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-sm rounded-xl transition-all shadow-sm cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>{t("exportCSV") || "CSV"}</span>
-            </button>
+              >
+                {type === "all" ? t("allTypes") : t(type)}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -871,13 +800,12 @@ export default function ProfitReport() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                            item.type === "Hajj"
-                              ? "bg-chart-1/10 text-chart-1"
-                              : item.type === "Umrah"
+                          className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${item.type === "Hajj"
+                            ? "bg-chart-1/10 text-chart-1"
+                            : item.type === "Umrah"
                               ? "bg-chart-2/10 text-chart-2"
                               : "bg-chart-3/10 text-chart-3"
-                          }`}
+                            }`}
                         >
                           {t(item.type)}
                         </span>
@@ -892,36 +820,33 @@ export default function ProfitReport() {
                         {item.totalCost.toLocaleString()} {t("mad")}
                       </td>
                       <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${
-                          item.totalProfit >= 0
-                            ? "text-success"
-                            : "text-destructive"
-                        }`}
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${item.totalProfit >= 0
+                          ? "text-success"
+                          : "text-destructive"
+                          }`}
                       >
                         {item.totalProfit.toLocaleString()} {t("mad")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         <div className="flex items-center gap-3">
                           <span
-                            className={`font-bold ${
-                              item.profitMargin < 10
-                                ? "text-amber-500"
-                                : item.profitMargin > 25
+                            className={`font-bold ${item.profitMargin < 10
+                              ? "text-amber-500"
+                              : item.profitMargin > 25
                                 ? "text-primary"
                                 : "text-foreground"
-                            }`}
+                              }`}
                           >
                             {item.profitMargin.toFixed(1)}%
                           </span>
                           <div className="w-16 bg-secondary h-1.5 rounded-full overflow-hidden hidden sm:block">
                             <div
-                              className={`h-full rounded-full ${
-                                item.profitMargin < 10
-                                  ? "bg-amber-500"
-                                  : item.profitMargin > 25
+                              className={`h-full rounded-full ${item.profitMargin < 10
+                                ? "bg-amber-500"
+                                : item.profitMargin > 25
                                   ? "bg-primary"
                                   : "bg-success"
-                              }`}
+                                }`}
                               style={{
                                 width: `${Math.max(
                                   0,
@@ -970,14 +895,6 @@ export default function ProfitReport() {
               {t("dailyServiceReportSubtitle")}
             </p>
           </div>
-
-          <button
-            onClick={handleExportServices}
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold px-4 py-2 text-sm rounded-xl transition-all shadow-sm self-start cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>{t("exportCSV") || "CSV"}</span>
-          </button>
         </div>
 
         {/* Service Performance Table */}

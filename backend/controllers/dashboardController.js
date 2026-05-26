@@ -2,6 +2,7 @@
 
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const ProfitReportExcelService = require("../services/ProfitReportExcelService");
 
 const getDashboardStats = async (req, res, next) => {
   try {
@@ -417,7 +418,204 @@ const getProfitReport = async (req, res, next) => {
   }
 };
 
+const exportProfitReportExcel = async (req, res, next) => {
+  try {
+    const { adminId } = req.user;
+    const { programType, startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
+    // 1. Query Program Performance (detailed & summary)
+    let programWhereClause = `WHERE p."userId" = $1`;
+    const programParams = [adminId];
+    if (programType && programType !== "all") {
+      programWhereClause += ` AND p.type = $2`;
+      programParams.push(programType);
+    }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      programWhereClause += ` AND p."createdAt"::date BETWEEN $${programParams.length + 1} AND $${programParams.length + 2}`;
+      programParams.push(startDate, endDate);
+    }
+
+    let bookingDateClause = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      const startIdx = programParams.indexOf(startDate) + 1;
+      const endIdx = programParams.indexOf(endDate) + 1;
+      bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
+    }
+
+    const detailedPerformanceQuery = `
+      SELECT
+          p.id,
+          p.name as "programName",
+          p.type,
+          COUNT(b.id) as bookings,
+          COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
+          COALESCE(pc."totalCost", 0) as "totalCost"
+      FROM programs p
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause}
+      LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
+      ${programWhereClause}
+      GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
+    `;
+    const detailedPerformanceResult = await req.db.query(detailedPerformanceQuery, programParams);
+
+    const detailedPerformanceData = detailedPerformanceResult.rows.map((row) => {
+      const totalSales = parseFloat(row.totalSales);
+      const totalCost = parseFloat(row.totalCost);
+      const totalProfit = totalSales - totalCost;
+      return {
+        ...row,
+        profitMargin: totalSales > 0 ? (totalProfit / totalSales) * 100 : 0,
+        totalSales,
+        totalProfit,
+        totalCost,
+        bookings: parseInt(row.bookings, 10),
+      };
+    });
+
+    let summaryWhereClause = `WHERE b."userId" = $1`;
+    const summaryParams = [adminId];
+    if (programType && programType !== "all") {
+      summaryWhereClause += ` AND p.type = $${summaryParams.length + 1}`;
+      summaryParams.push(programType);
+    }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
+      summaryParams.push(startDate, endDate);
+    }
+    const summaryQuery = `
+      SELECT 
+        COUNT(b.id) as "totalBookings",
+        COALESCE(SUM(b."sellingPrice"), 0) as "totalSales"
+      FROM bookings b
+      LEFT JOIN programs p ON b."tripId"::int = p.id
+      ${summaryWhereClause}
+    `;
+    const summaryResult = await req.db.query(summaryQuery, summaryParams);
+
+    let costWhereClause = `WHERE pc."userId" = $1`;
+    const costParams = [adminId];
+    if (programType && programType !== "all") {
+      costWhereClause += ` AND p.type = $${costParams.length + 1}`;
+      costParams.push(programType);
+    }
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      costWhereClause += ` AND p."createdAt"::date BETWEEN $${costParams.length + 1} AND $${costParams.length + 2}`;
+      costParams.push(startDate, endDate);
+    }
+    const totalCostQuery = `
+      SELECT COALESCE(SUM(pc."totalCost"), 0) as "totalCost"
+      FROM program_costs pc
+      LEFT JOIN programs p ON pc."programId" = p.id
+      ${costWhereClause}
+    `;
+    const totalCostResult = await req.db.query(totalCostQuery, costParams);
+
+    const summaryData = summaryResult.rows[0];
+    const summaryTotalCost = parseFloat(totalCostResult.rows[0].totalCost);
+    const summaryTotalSales = parseFloat(summaryData.totalSales);
+    const progSummary = {
+      totalBookings: parseInt(summaryData.totalBookings, 10),
+      totalSales: summaryTotalSales,
+      totalProfit: summaryTotalSales - summaryTotalCost,
+      totalCost: summaryTotalCost,
+    };
+
+    // 2. Query Daily Services Performance
+    const { rows: dsRows } = await req.db.query('SELECT * FROM daily_services WHERE "userId" = $1', [adminId]);
+    const mapServiceData = (row) => {
+      const items = typeof row.items === "string" ? JSON.parse(row.items) : (row.items || []);
+      const originalPrice = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
+      const totalPrice = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
+      return {
+        ...row,
+        originalPrice,
+        totalPrice
+      };
+    };
+    const mappedServices = dsRows.map(mapServiceData);
+
+    const startDateObj = isValidDate(startDate) ? new Date(startDate) : null;
+    const endDateObj = isValidDate(endDate) ? new Date(endDate) : null;
+    if (startDateObj) startDateObj.setUTCHours(0, 0, 0, 0);
+    if (endDateObj) endDateObj.setUTCHours(23, 59, 59, 999);
+
+    const filteredMapped = mappedServices.filter(s => {
+      if (!startDateObj && !endDateObj) return true;
+      const d = new Date(s.date);
+      d.setUTCHours(0, 0, 0, 0);
+      let ok = true;
+      if (startDateObj && d < startDateObj) ok = false;
+      if (endDateObj && d > endDateObj) ok = false;
+      return ok;
+    });
+
+    const dateFilteredSummary = {
+      totalSalesCount: filteredMapped.length,
+      totalRevenue: filteredMapped.reduce((sum, s) => sum + s.totalPrice, 0),
+      totalProfit: filteredMapped.reduce((sum, s) => sum + Number(s.profit), 0),
+      totalCost: filteredMapped.reduce((sum, s) => sum + s.originalPrice, 0),
+    };
+
+    const byTypeMap = {};
+    for (const s of filteredMapped) {
+      if (!byTypeMap[s.type]) {
+        byTypeMap[s.type] = { type: s.type, count: 0, totalOriginalPrice: 0, totalSalePrice: 0, totalProfit: 0 };
+      }
+      byTypeMap[s.type].count += 1;
+      byTypeMap[s.type].totalOriginalPrice += s.originalPrice;
+      byTypeMap[s.type].totalSalePrice += s.totalPrice;
+      byTypeMap[s.type].totalProfit += Number(s.profit);
+    }
+    const byType = Object.values(byTypeMap).sort((a, b) => a.type.localeCompare(b.type));
+
+    // 3. Calculate Unified Financial Statistics
+    const totalSalesCount = progSummary.totalBookings + dateFilteredSummary.totalSalesCount;
+    const totalRevenue = progSummary.totalSales + dateFilteredSummary.totalRevenue;
+    const totalCost = progSummary.totalCost + dateFilteredSummary.totalCost;
+    const totalProfit = progSummary.totalProfit + dateFilteredSummary.totalProfit;
+    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+    const stats = {
+      totalSalesCount,
+      totalRevenue,
+      totalCost,
+      totalProfit,
+      profitMargin,
+    };
+
+    // 4. Generate Workbook using Excel Service
+    const workbook = await ProfitReportExcelService.generateProfitReportExcel({
+      filters: { startDate, endDate, programType },
+      stats,
+      programData: detailedPerformanceData,
+      serviceData: byType,
+    });
+
+    const fileName = `profit_report_${startDate || "lifetime"}_to_${endDate || "lifetime"}.xlsx`;
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Failed to export profit report Excel:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    if (!res.headersSent) {
+      next(new AppError("Failed to export profit report Excel.", 500));
+    }
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getProfitReport,
+  exportProfitReportExcel,
 };

@@ -225,6 +225,24 @@ export const getProfitReport = (
   return request(`/dashboard/profit-report?${params.toString()}`);
 };
 
+export const exportProfitReportToExcel = (
+  filterType?: string,
+  startDate?: string,
+  endDate?: string,
+) => {
+  const params = new URLSearchParams();
+  if (filterType && filterType !== "all") {
+    params.append("programType", filterType);
+  }
+  if (startDate) {
+    params.append("startDate", startDate);
+  }
+  if (endDate) {
+    params.append("endDate", endDate);
+  }
+  return request(`/dashboard/profit-report/export?${params.toString()}`, {}, true);
+};
+
 // --- Program API ---
 export const getPrograms = (
   page = 1,
