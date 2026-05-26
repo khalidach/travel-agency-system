@@ -35,6 +35,7 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
   });
 
   const clientErrors = errors.clients?.[index];
+  const leaderIndex = watch("leaderIndex") ?? 0;
 
   useEffect(() => {
     const existingClientData = watch(`clients.${index}`) as ClientFormData;
@@ -88,10 +89,25 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
 
   return (
     <div className="grid grid-cols-12 gap-3 items-start p-3 border-b dark:border-gray-700">
-      <div className="col-span-12 md:col-span-1 flex items-center pt-9">
+      <div className="col-span-12 md:col-span-1 flex flex-col items-center pt-6 gap-2">
         <span className="text-gray-500 dark:text-gray-400 font-semibold">
           {index + 1}.
         </span>
+        <label className="flex flex-col items-center cursor-pointer group" title={t("groupLeader") || "Group Leader"}>
+          <input
+            type="radio"
+            checked={leaderIndex === index}
+            onChange={() => setValue("leaderIndex", index)}
+            className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer"
+          />
+          <span className={`text-[10px] mt-1 transition-colors ${
+            leaderIndex === index 
+              ? "text-blue-600 dark:text-blue-400 font-medium" 
+              : "text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400"
+          }`}>
+            {t("leader") || "Leader"}
+          </span>
+        </label>
       </div>
 
       <div className="col-span-12 md:col-span-10 grid grid-cols-1 md:grid-cols-5 gap-3">

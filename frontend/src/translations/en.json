@@ -196,6 +196,8 @@
   "packageRequired": "Package is required",
   "selectAPackage": "Select a package",
   "relatedPeople": "Related People",
+  "leader": "Leader",
+  "groupLeader": "Group Leader",
   "searchClientToAdd": "Search for a client to add...",
   "selectProgramFirst": "Select a program first",
   "hotelAndRoomSelection": "Hotel & Room Selection",

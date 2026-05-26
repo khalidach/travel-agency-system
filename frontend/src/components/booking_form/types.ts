@@ -41,6 +41,7 @@ export type BookingFormData = Omit<
 > & {
   createdAt: string;
   clients: ClientFormData[];
+  leaderIndex?: number;
 };
 
 export type FlatBookingData = Omit<BookingFormData, "clients"> &

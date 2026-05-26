@@ -69,6 +69,7 @@ export default function BookingForm({
       relatedPersons: [],
       clients: [emptyClient],
       bookingSource: "",
+      leaderIndex: 0,
     },
   });
 
@@ -255,6 +256,19 @@ export default function BookingForm({
     [setValue, watchedValues.relatedPersons],
   );
 
+  const handleRemoveClient = useCallback(
+    (index: number) => {
+      const currentLeaderIndex = methods.getValues("leaderIndex") || 0;
+      remove(index);
+      if (currentLeaderIndex === index) {
+        setValue("leaderIndex", 0);
+      } else if (currentLeaderIndex > index) {
+        setValue("leaderIndex", currentLeaderIndex - 1);
+      }
+    },
+    [remove, methods, setValue],
+  );
+
   const handleSellingPriceChange = useCallback(
     (price: number) => {
       const currentBase = methods.getValues("basePrice");
@@ -283,7 +297,7 @@ export default function BookingForm({
         {isBulkMode && !booking ? (
           <div>
             {fields.map((field, index) => (
-              <BulkClientRow key={field.id} index={index} remove={remove} />
+              <BulkClientRow key={field.id} index={index} remove={handleRemoveClient} />
             ))}
             <button
               type="button"

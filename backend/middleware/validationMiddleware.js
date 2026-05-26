@@ -193,6 +193,10 @@ const bookingValidation = [
     .withMessage("Selling price must be a positive number."),
   body("packageId").optional({ checkFalsy: true }).trim(),
   body("bookingSource").optional().trim().escape(), // NEW: Validation for bookingSource
+  body("leaderIndex")
+    .optional({ checkFalsy: true })
+    .isInt({ gte: 0 })
+    .withMessage("Leader index must be a non-negative integer."),
 ];
 
 const bookingUpdateValidation = [

@@ -26,6 +26,7 @@ const createBookings = async (db, user, bulkData) => {
       variationName,
       relatedPersons,
       bookingSource,
+      leaderIndex,
     } = sharedData;
 
     // 1. Capacity Check
@@ -141,7 +142,7 @@ const createBookings = async (db, user, bulkData) => {
           "[]",
           remainingBalance,
           isFullyPaid,
-          JSON.stringify(relatedPersons || []),
+          JSON.stringify([]),
           bookingSource || null,
           status,
         ],
@@ -155,6 +156,46 @@ const createBookings = async (db, user, bulkData) => {
           user.adminId,
           newBooking,
         );
+      }
+    }
+
+    // 4.5 Link group bookings under designated leader
+    if (createdBookings.length > 0) {
+      const leaderIdx = (leaderIndex !== undefined && leaderIndex !== null) ? Number(leaderIndex) : 0;
+      const leaderBooking = createdBookings[leaderIdx] || createdBookings[0];
+      const memberBookings = createdBookings.filter((_, idx) => idx !== leaderIdx);
+
+      const memberRelatedPersons = memberBookings.map((member) => {
+        let firstName = "";
+        let lastName = "";
+        if (member.clientNameFr) {
+          if (typeof member.clientNameFr === "string") {
+            try {
+              const parsed = JSON.parse(member.clientNameFr);
+              firstName = parsed.firstName || "";
+              lastName = parsed.lastName || "";
+            } catch (e) {}
+          } else {
+            firstName = member.clientNameFr.firstName || "";
+            lastName = member.clientNameFr.lastName || "";
+          }
+        }
+        const frenchName = `${firstName} ${lastName}`.trim();
+        return {
+          ID: member.id,
+          clientName: frenchName || member.clientNameAr || "",
+        };
+      });
+
+      const existingRelated = Array.isArray(relatedPersons) ? relatedPersons : [];
+      const finalRelatedPersons = [...existingRelated, ...memberRelatedPersons];
+
+      if (finalRelatedPersons.length > 0) {
+        await client.query(
+          'UPDATE bookings SET "relatedPersons" = $1 WHERE id = $2',
+          [JSON.stringify(finalRelatedPersons), leaderBooking.id]
+        );
+        leaderBooking.relatedPersons = finalRelatedPersons;
       }
     }
 

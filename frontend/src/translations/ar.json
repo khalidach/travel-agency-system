@@ -200,6 +200,8 @@
   "packageRequired": "الباقة مطلوبة",
   "selectAPackage": "اختر باقة",
   "relatedPeople": "الأشخاص المرتبطون",
+  "leader": "المسؤول",
+  "groupLeader": "مسؤول المجموعة",
   "searchClientToAdd": "ابحث عن عميل لإضافته...",
   "selectProgramFirst": "اختر برنامجًا أولاً",
   "hotelAndRoomSelection": "اختيار الفندق والغرفة",
