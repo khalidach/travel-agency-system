@@ -273,10 +273,38 @@ export default function Sidebar() {
       if (item.children && item.children.length > 0) {
         return item.children.some((child) => hasPermission(child));
       }
+      
+      let userPermissions = user?.permissions || [];
+      if (userPermissions.length === 0) {
+        if (userRole === "manager") {
+          userPermissions = [
+            "programs",
+            "programPricing",
+            "programCosting",
+            "bookings",
+            "roomManagement",
+            "dailyServices",
+            "expenses",
+            "suppliers",
+            "incomes",
+            "clients",
+            "factures"
+          ];
+        } else if (userRole === "employee") {
+          userPermissions = [
+            "programs",
+            "bookings",
+            "roomManagement",
+            "dailyServices",
+            "factures"
+          ];
+        }
+      }
+
       if (!item.permission) {
         return item.roles.includes(userRole);
       }
-      return user?.permissions?.includes(item.permission) ?? false;
+      return userPermissions.includes(item.permission);
     };
 
     const processItems = (items: MenuItem[]): MenuItem[] => {

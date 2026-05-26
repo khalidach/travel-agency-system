@@ -206,12 +206,39 @@ const loginUser = async (req, res, next) => {
           maxAge: 60 * 60 * 1000,
         });
 
+        let parsedPermissions = safeJsonParse(employee.permissions) || [];
+        if (parsedPermissions.length === 0) {
+          if (employee.role === "manager") {
+            parsedPermissions = [
+              "programs",
+              "programPricing",
+              "programCosting",
+              "bookings",
+              "roomManagement",
+              "dailyServices",
+              "expenses",
+              "suppliers",
+              "incomes",
+              "clients",
+              "factures"
+            ];
+          } else if (employee.role === "employee") {
+            parsedPermissions = [
+              "programs",
+              "bookings",
+              "roomManagement",
+              "dailyServices",
+              "factures"
+            ];
+          }
+        }
+
         return res.status(200).json({
           id: employee.id,
           username: employee.username,
           agencyName: adminData.agencyName || "Agency",
           role: employee.role,
-          permissions: safeJsonParse(employee.permissions) || [],
+          permissions: parsedPermissions,
           adminId: employee.adminId,
           activeUser: true,
           tierId: adminData.tierId,

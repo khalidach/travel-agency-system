@@ -53,7 +53,33 @@ const protect = async (req, res, next) => {
         );
         if (rows.length > 0) {
           const employeeData = rows[0];
-          employeeData.permissions = safeJsonParse(employeeData.permissions) || [];
+          let parsedPermissions = safeJsonParse(employeeData.permissions) || [];
+          if (parsedPermissions.length === 0) {
+            if (employeeData.role === "manager") {
+              parsedPermissions = [
+                "programs",
+                "programPricing",
+                "programCosting",
+                "bookings",
+                "roomManagement",
+                "dailyServices",
+                "expenses",
+                "suppliers",
+                "incomes",
+                "clients",
+                "factures"
+              ];
+            } else if (employeeData.role === "employee") {
+              parsedPermissions = [
+                "programs",
+                "bookings",
+                "roomManagement",
+                "dailyServices",
+                "factures"
+              ];
+            }
+          }
+          employeeData.permissions = parsedPermissions;
           const adminRes = await req.db.query(
             `SELECT u."agencyName", u."facturationSettings", u."tierId", u.limits, t.limits as "tierLimits"
              FROM users u

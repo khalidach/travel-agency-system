@@ -12,7 +12,33 @@ export default function QuickActionsCard() {
   const hasPermission = (permission: string) => {
     if (!user) return false;
     if (user.role === "admin" || user.role === "owner") return true;
-    return user.permissions?.includes(permission) ?? false;
+    let userPermissions = user.permissions || [];
+    if (userPermissions.length === 0) {
+      if (user.role === "manager") {
+        userPermissions = [
+          "programs",
+          "programPricing",
+          "programCosting",
+          "bookings",
+          "roomManagement",
+          "dailyServices",
+          "expenses",
+          "suppliers",
+          "incomes",
+          "clients",
+          "factures"
+        ];
+      } else if (user.role === "employee") {
+        userPermissions = [
+          "programs",
+          "bookings",
+          "roomManagement",
+          "dailyServices",
+          "factures"
+        ];
+      }
+    }
+    return userPermissions.includes(permission);
   };
 
   const linkClass = `w-full flex items-center p-3 hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors text-left`;
