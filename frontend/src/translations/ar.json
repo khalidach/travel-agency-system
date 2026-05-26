@@ -740,5 +740,11 @@
   "addClient": "إضافة عميل",
   "editClient": "تعديل العميل",
   "deleteClient": "حذف العميل",
-  "deleteClientConfirm": "هل أنت متأكد أنك تريد حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء."
+  "deleteClientConfirm": "هل أنت متأكد أنك تريد حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.",
+  "selectProgramsToExport": "اختر البرامج للتصدير",
+  "searchPrograms": "البحث عن البرامج...",
+  "noProgramsSelected": "لم يتم اختيار أي برنامج",
+  "selectAll": "تحديد الكل",
+  "deselectAll": "إلغاء تحديد الكل",
+  "exportSelected": "تصدير المحدد"
 }

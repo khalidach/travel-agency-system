@@ -740,5 +740,11 @@
   "addClient": "Ajouter un Client",
   "editClient": "Modifier le Client",
   "deleteClient": "Supprimer le Client",
-  "deleteClientConfirm": "Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible."
+  "deleteClientConfirm": "Êtes-vous sûr de vouloir supprimer ce client ? Cette action est irréversible.",
+  "selectProgramsToExport": "Sélectionner les programmes à exporter",
+  "searchPrograms": "Rechercher des programmes...",
+  "noProgramsSelected": "Aucun programme sélectionné",
+  "selectAll": "Tout sélectionner",
+  "deselectAll": "Tout désélectionner",
+  "exportSelected": "Exporter la sélection"
 }

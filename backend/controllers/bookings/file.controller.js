@@ -412,3 +412,90 @@ exports.exportCombinedExcel = async (req, res, next) => {
     client.release();
   }
 };
+
+exports.exportMultiProgramsExcel = async (req, res, next) => {
+  const excel = require("exceljs");
+  const client = await req.db.connect();
+  try {
+    await client.query("BEGIN");
+    const { programIds } = req.body;
+    const { adminId, role } = req.user;
+
+    if (!programIds || !Array.isArray(programIds) || programIds.length === 0) {
+      throw new AppError("At least one program must be selected for export.", 400);
+    }
+
+    const workbook = new excel.Workbook();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const exportType = "booking";
+    let hasData = false;
+
+    for (const programId of programIds) {
+      // 1. Get program details
+      const { rows: programs } = await client.query(
+        'SELECT * FROM programs WHERE id = $1 AND "userId" = $2',
+        [programId, adminId],
+      );
+
+      if (programs.length === 0) {
+        continue;
+      }
+
+      const program = programs[0];
+
+      // 2. Get bookings
+      const { rows: bookings } = await client.query(
+        'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
+        [programId, adminId],
+      );
+
+      // 3. Update export counts
+      const exportCounts = program.exportCounts || {};
+      const monthlyLog = exportCounts[exportType] || { month: "", count: 0 };
+      const newCount =
+        monthlyLog.month === currentMonth ? monthlyLog.count + 1 : 1;
+      exportCounts[exportType] = { month: currentMonth, count: newCount };
+
+      await client.query(
+        'UPDATE programs SET "exportCounts" = $1 WHERE id = $2',
+        [JSON.stringify(exportCounts), programId],
+      );
+
+      // 4. Generate bookings worksheet inside the workbook
+      await BookingExcelService.addBookingsSheetToWorkbook(
+        workbook,
+        bookings,
+        program,
+        role
+      );
+      hasData = true;
+    }
+
+    if (!hasData) {
+      throw new AppError("No valid programs with bookings were found for export.", 404);
+    }
+
+    await client.query("COMMIT");
+
+    const fileName = `multi_program_export_${Date.now()}.xlsx`;
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    await client.query("ROLLBACK");
+    logger.error("Failed to export multi-programs to Excel:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    if (!res.headersSent) {
+      next(error instanceof AppError ? error : new AppError(error.message || "Failed to export multi-programs to Excel.", 500));
+    }
+  } finally {
+    client.release();
+  }
+};

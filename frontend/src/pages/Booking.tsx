@@ -3,13 +3,14 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, HelpCircle, ArrowDownToLine } from "lucide-react";
 
 // Components
 import ProgramCard from "../components/booking/ProgramCard";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import VideoHelpModal from "../components/VideoHelpModal";
+import ExportProgramsModal from "../components/modals/ExportProgramsModal";
 
 // Types and API
 import type { Program, PaginatedResponse } from "../context/models";
@@ -23,6 +24,7 @@ export default function Booking() {
   const [filterType, setFilterType] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const programsPerPage = 6;
 
   // Reset page to 1 when a new search is submitted
@@ -91,13 +93,23 @@ export default function Booking() {
             {t("chooseProgramToViewBookings")}
           </p>
         </div>
-        <button
-          onClick={() => setIsHelpModalOpen(true)}
-          className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 mt-4 sm:mt-0"
-          aria-label="Help"
-        >
-          <HelpCircle className="w-6 h-6" />
-        </button>
+        <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-xl shadow-sm text-sm font-semibold hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+            title={t("exportToExcel") as string}
+          >
+            <ArrowDownToLine className="w-5 h-5" />
+            <span>{t("exportToExcel") as string}</span>
+          </button>
+          <button
+            onClick={() => setIsHelpModalOpen(true)}
+            className="p-2 text-gray-500 bg-gray-100 rounded-full hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            aria-label="Help"
+          >
+            <HelpCircle className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -211,6 +223,10 @@ export default function Booking() {
         onClose={() => setIsHelpModalOpen(false)}
         videoId="gE4Ql_I-T-k"
         title="Bookings Management"
+      />
+      <ExportProgramsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
       />
     </div>
   );

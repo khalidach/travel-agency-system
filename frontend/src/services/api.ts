@@ -582,6 +582,15 @@ export const exportCombinedToExcel = (programId: string) =>
 export const exportBookingTemplateForProgram = (programId: string) =>
   request(`/bookings/export-template/program/${programId}`, {}, true);
 
+export const getAllPrograms = () =>
+  request(`/programs?noPaginate=true`);
+
+export const exportMultiProgramsToExcel = (programIds: number[]) =>
+  request(`/bookings/export-multi-programs`, {
+    method: "POST",
+    body: JSON.stringify({ programIds }),
+  }, true);
+
 export const importBookings = (file: File, programId: string) => {
   const formData = new FormData();
   formData.append("file", file);

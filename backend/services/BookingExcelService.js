@@ -23,13 +23,43 @@ const sanitizeName = (name) => {
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
 exports.generateBookingsExcel = async (bookings, program, userRole) => {
+  const workbook = new excel.Workbook();
+  await exports.addBookingsSheetToWorkbook(workbook, bookings, program, userRole);
+  return workbook;
+};
+
+/**
+ * Appends a bookings worksheet for a program to an existing Excel workbook.
+ * @param {object} workbook - The exceljs Workbook object.
+ * @param {Array<object>} bookings - The list of bookings.
+ * @param {object} program - The program associated with the bookings.
+ * @param {string} userRole - The role of the user requesting the export ('admin', 'manager', 'employee').
+ */
+exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, userRole) => {
   // Sort bookings by variation name first, handling potential null/undefined values.
   bookings.sort((a, b) =>
     (a.variationName || "").localeCompare(b.variationName || "")
   );
 
-  const workbook = new excel.Workbook();
-  const worksheet = workbook.addWorksheet("Bookings", {
+  // Helper to sanitize sheet name (max 30 chars, no special Excel characters)
+  const sanitizeSheetName = (name) => {
+    if (!name) return "Sheet";
+    let sanitized = name.toString().replace(/[\\\/\?\*\:\[\]]/g, "_");
+    if (sanitized.length > 30) {
+      sanitized = sanitized.substring(0, 30);
+    }
+    return sanitized;
+  };
+
+  let sheetName = sanitizeSheetName(program.name);
+  let count = 1;
+  while (workbook.getWorksheet(sheetName)) {
+    const suffix = `_${count}`;
+    sheetName = sanitizeSheetName(program.name).substring(0, 30 - suffix.length) + suffix;
+    count++;
+  }
+
+  const worksheet = workbook.addWorksheet(sheetName, {
     views: [{ rightToLeft: false }],
   }); // Add an empty row that will become the title row
 
@@ -327,9 +357,13 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
     if (col) {
       const colLetter = col.letter;
       const cell = worksheet.getCell(`${colLetter}${totalRowNumber}`);
-      cell.value = {
-        formula: `SUM(${colLetter}4:${colLetter}${lastDataRowNumber})`, // Start from row 4
-      };
+      if (lastDataRowNumber >= 4) {
+        cell.value = {
+          formula: `SUM(${colLetter}4:${colLetter}${lastDataRowNumber})`, // Start from row 4
+        };
+      } else {
+        cell.value = 0;
+      }
       cell.numFmt = '#,##0.00 "MAD"';
       cell.font = { bold: true, size: 20 };
       cell.alignment = { vertical: "middle", horizontal: "center" };

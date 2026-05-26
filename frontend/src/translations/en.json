@@ -736,5 +736,11 @@
   "addClient": "Add Client",
   "editClient": "Edit Client",
   "deleteClient": "Delete Client",
-  "deleteClientConfirm": "Are you sure you want to delete this client? This action cannot be undone."
+  "deleteClientConfirm": "Are you sure you want to delete this client? This action cannot be undone.",
+  "selectProgramsToExport": "Select Programs to Export",
+  "searchPrograms": "Search programs...",
+  "noProgramsSelected": "No programs selected",
+  "selectAll": "Select All",
+  "deselectAll": "Deselect All",
+  "exportSelected": "Export Selected"
 }
