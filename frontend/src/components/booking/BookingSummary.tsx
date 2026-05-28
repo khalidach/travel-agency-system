@@ -65,8 +65,9 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
   }
 
   // Filter visible cards based on userRole
+  const userPermissions = authState.user?.permissions || [];
   let visibleCards = allCards;
-  if (userRole === "employee") {
+  if (userRole === "employee" && !userPermissions.includes("viewOthersBookingsFinancials")) {
     visibleCards = allCards.filter((card) => card.title === t("totalBookings"));
   }
 
@@ -74,9 +75,9 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
   const gridLayoutClass =
     userRole === "admin"
       ? "lg:grid-cols-6" // 6 أعمدة للمسؤولين
-      : userRole === "employee"
+      : userRole === "employee" && !userPermissions.includes("viewOthersBookingsFinancials")
       ? "lg:grid-cols-1" // 1 عمود للموظفين
-      : "lg:grid-cols-4"; // 4 أعمدة للمديرين
+      : "lg:grid-cols-4"; // 4 أعمدة للمديرين/الموظفين ذوي الصلاحية
 
   return (
     <div

@@ -176,12 +176,14 @@ export default function BookingPage() {
   const programs = program ? [program] : [];
   const programVariations = program?.variations || [];
 
+  const userPermissions = authState.user?.permissions || [];
+
   const { data: employeesData, isLoading: isLoadingEmployees } = useQuery<{
     employees: Employee[];
   }>({
     queryKey: ["employees"],
     queryFn: api.getEmployees,
-    enabled: userRole === "admin" || userRole === "manager",
+    enabled: userRole === "admin" || userRole === "manager" || (userRole === "employee" && userPermissions.includes("viewOthersBookings")),
     staleTime: 15 * 60 * 1000,
   });
   const employees = employeesData?.employees ?? [];

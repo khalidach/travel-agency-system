@@ -787,5 +787,7 @@
   "donutChartTitle": "Profit Share Composition",
   "permissions": "Permissions",
   "restricted": "Restricted",
-  "hidden": "Hidden"
+  "hidden": "Hidden",
+  "viewOthersBookings": "View Other Bookings",
+  "viewOthersBookingsFinancials": "View Prices & Payments of Others' Bookings"
 }

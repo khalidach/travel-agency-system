@@ -26,6 +26,8 @@ const availablePermissions = [
   { key: "programPricing", labelKey: "programPricing" },
   { key: "programCosting", labelKey: "programCosting" },
   { key: "bookings", labelKey: "booking" },
+  { key: "viewOthersBookings", labelKey: "viewOthersBookings" },
+  { key: "viewOthersBookingsFinancials", labelKey: "viewOthersBookingsFinancials" },
   { key: "roomManagement", labelKey: "roomManagement" },
   { key: "dailyServices", labelKey: "dailyServices" },
   { key: "expenses", labelKey: "expenses" },
@@ -41,6 +43,10 @@ const getPermissionLabel = (perm: string) => {
       return "booking";
     case "factures":
       return "facturation";
+    case "viewOthersBookings":
+      return "viewOthersBookings";
+    case "viewOthersBookingsFinancials":
+      return "viewOthersBookingsFinancials";
     default:
       return perm;
   }

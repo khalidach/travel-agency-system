@@ -791,5 +791,7 @@
   "donutChartTitle": "توزيع حصة الأرباح",
   "permissions": "الصلاحيات",
   "restricted": "مقيّد",
-  "hidden": "مخفي"
+  "hidden": "مخفي",
+  "viewOthersBookings": "عرض حجوزات الآخرين",
+  "viewOthersBookingsFinancials": "عرض أسعار ومدفوعات حجوزات الآخرين"
 }

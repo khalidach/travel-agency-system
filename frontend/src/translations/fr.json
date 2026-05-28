@@ -791,5 +791,7 @@
   "donutChartTitle": "Répartition de la Part de Profit",
   "permissions": "Permissions",
   "restricted": "Restreint",
-  "hidden": "Masqué"
+  "hidden": "Masqué",
+  "viewOthersBookings": "Voir les réservations des autres",
+  "viewOthersBookingsFinancials": "Voir les prix et paiements des réservations des autres"
 }
