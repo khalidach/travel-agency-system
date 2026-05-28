@@ -72,36 +72,36 @@ export default function LoginPage() {
 
   const slides = [
     {
-      title: "Hajj & Umrah Management",
-      subtitle: "Custom Tailored Workflows",
-      description: "Manage flight groups, ticket variations, rooming allocations, and bulk passenger rosters seamlessly in a multi-lingual system.",
+      titleKey: "auth.carousel.hajjTitle",
+      subtitleKey: "auth.carousel.hajjSubtitle",
+      descriptionKey: "auth.carousel.hajjDesc",
       icon: <Compass className="w-6 h-6 text-blue-400" />,
       graphic: (
         <div className="p-5 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-2xl space-y-4">
           <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Rooming List</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("auth.carousel.roomingList")}</span>
             <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold rounded-full">Umrah 2026</span>
           </div>
           <div className="space-y-2">
             <div className="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800/50 flex justify-between items-center text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                <span className="font-semibold text-slate-300">Quad Room - A101</span>
+                <span className="font-semibold text-slate-300">{t("auth.carousel.quadRoom")} - A101</span>
               </div>
-              <span className="text-slate-500">4 / 4 Occupants</span>
+              <span className="text-slate-500">4 / 4 {t("auth.carousel.occupants")}</span>
             </div>
             <div className="p-2.5 bg-slate-950/50 rounded-xl border border-slate-800/50 flex justify-between items-center text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                <span className="font-semibold text-slate-300">Triple Room - A102</span>
+                <span className="font-semibold text-slate-300">{t("auth.carousel.tripleRoom")} - A102</span>
               </div>
-              <span className="text-slate-500">2 / 3 Occupants</span>
+              <span className="text-slate-500">2 / 3 {t("auth.carousel.occupants")}</span>
             </div>
           </div>
           <div className="space-y-1.5">
             <div className="flex justify-between text-[11px] text-slate-400">
-              <span>Total Allocated Seats</span>
-              <span className="font-semibold text-slate-200">84% Filled</span>
+              <span>{t("auth.carousel.allocatedSeats")}</span>
+              <span className="font-semibold text-slate-200">84% {t("auth.carousel.filled")}</span>
             </div>
             <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
               <div className="w-[84%] h-full bg-blue-500 rounded-full"></div>
@@ -111,29 +111,29 @@ export default function LoginPage() {
       ),
     },
     {
-      title: "Real-time Profit Intelligence",
-      subtitle: "Maximize Your Margins",
-      description: "Instantly analyze gross revenue vs exact base costs. Visual breakdowns of Hajj, Umrah, Tourism, and Daily Services margins.",
+      titleKey: "auth.carousel.profitTitle",
+      subtitleKey: "auth.carousel.profitSubtitle",
+      descriptionKey: "auth.carousel.profitDesc",
       icon: <TrendingUp className="w-6 h-6 text-indigo-400" />,
       graphic: (
         <div className="p-5 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-2xl space-y-4">
           <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Profit Margin Analysis</span>
-            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded-full">Monthly View</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("auth.carousel.profitAnalysis")}</span>
+            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded-full">{t("auth.carousel.monthlyView")}</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
-              <p className="text-[10px] text-slate-400">Total Bookings Sales</p>
+              <p className="text-[10px] text-slate-400">{t("auth.carousel.totalSales")}</p>
               <p className="text-sm font-bold text-slate-200 mt-0.5">384,500 DH</p>
             </div>
             <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800/50">
-              <p className="text-[10px] text-slate-400">Net Profit Margin</p>
+              <p className="text-[10px] text-slate-400">{t("auth.carousel.netMargin")}</p>
               <p className="text-sm font-bold text-emerald-400 mt-0.5">+18.4%</p>
             </div>
           </div>
           <div className="p-3 bg-slate-950/50 rounded-xl border border-slate-800/50 space-y-2">
             <div className="flex justify-between text-xs">
-              <span className="text-slate-400">Umrah Program Margin</span>
+              <span className="text-slate-400">{t("auth.carousel.programMargin")}</span>
               <span className="font-semibold text-emerald-400">+24,200 DH</span>
             </div>
             <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
@@ -144,9 +144,9 @@ export default function LoginPage() {
       ),
     },
     {
-      title: "Slick Invoicing & Custom Quotes",
-      subtitle: "Instant Financial Documents",
-      description: "Draft invoices or client receipts in seconds. Automatic Moroccan VAT calculations, invoice tracking, and one-click PDF downloading.",
+      titleKey: "auth.carousel.invoiceTitle",
+      subtitleKey: "auth.carousel.invoiceSubtitle",
+      descriptionKey: "auth.carousel.invoiceDesc",
       icon: <FileText className="w-6 h-6 text-violet-400" />,
       graphic: (
         <div className="p-5 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-2xl space-y-3.5">
@@ -155,19 +155,19 @@ export default function LoginPage() {
               <FileText className="w-4 h-4 text-slate-400" />
               <span className="text-xs font-bold text-slate-300">INV-2026-0042</span>
             </div>
-            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded-full">Draft</span>
+            <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold rounded-full">{t("auth.carousel.draft")}</span>
           </div>
           <div className="space-y-1.5 text-[11px] text-slate-400">
             <div className="flex justify-between border-b border-slate-800/30 pb-1.5">
-              <span>Umrah Standard Package (x2)</span>
+              <span>{t("auth.carousel.standardPackage")} (x2)</span>
               <span className="font-semibold text-slate-200">24,000 DH</span>
             </div>
             <div className="flex justify-between border-b border-slate-800/30 pb-1.5">
-              <span>Flight Tickets (x2)</span>
+              <span>{t("auth.carousel.flightTickets")} (x2)</span>
               <span className="font-semibold text-slate-200">11,000 DH</span>
             </div>
             <div className="flex justify-between pt-1 font-bold text-slate-200">
-              <span className="text-slate-300">Total Invoice (TTC)</span>
+              <span className="text-slate-300">{t("auth.carousel.totalInvoice")}</span>
               <span className="text-blue-400">35,000 DH</span>
             </div>
           </div>
@@ -311,7 +311,7 @@ export default function LoginPage() {
           </form>
 
           {/* Redirect to SignUp */}
-          {/* <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8">
+          <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-8">
             {t("auth.dontHaveAccount")}{" "}
             <Link
               to="/signup"
@@ -319,7 +319,7 @@ export default function LoginPage() {
             >
               {t("signUp")}
             </Link>
-          </p> */}
+          </p>
         </div>
 
         {/* Footer info */}
@@ -353,7 +353,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2 text-blue-400">
             <Sparkles className="w-5 h-5 animate-pulse" />
             <span className="text-xs font-bold tracking-widest uppercase bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              SAAS Travel Platform
+              {t("auth.carousel.saasTitle")}
             </span>
           </div>
         </div>
@@ -378,17 +378,17 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block">
-                        {slide.subtitle}
+                        {t(slide.subtitleKey)}
                       </span>
                       <h2 className="text-2xl font-extrabold text-white tracking-tight mt-0.5">
-                        {slide.title}
+                        {t(slide.titleKey)}
                       </h2>
                     </div>
                   </div>
 
                   {/* Slide Description */}
                   <p className="text-slate-400 text-sm leading-relaxed">
-                    {slide.description}
+                    {t(slide.descriptionKey)}
                   </p>
 
                   {/* Mini-mockup graphic */}
@@ -417,4 +417,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
