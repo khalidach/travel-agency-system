@@ -34,6 +34,11 @@ const findBookingForUser = async (
   if (rows.length === 0) throw new Error("Booking not found or not authorized");
 
   const booking = rows[0];
+  const permissions = user.permissions || [];
+  if (user.role === "employee" && !permissions.includes("viewOthersBookings") && booking.employeeId !== user.id) {
+    throw new Error("Booking not found or not authorized");
+  }
+
   if (checkOwnership) {
     if (user.role === "manager") {
       throw new Error("Managers are not authorized to modify payments.");

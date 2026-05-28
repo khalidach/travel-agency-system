@@ -490,3 +490,32 @@ export interface Income {
   updatedAt: string;
 }
 
+export interface DetailedPerformanceDay {
+  date: string;
+  bookingsCount: number;
+  bookingsRevenue: number;
+  bookingsProfit: number;
+  servicesCount: number;
+  servicesRevenue: number;
+  servicesProfit: number;
+}
+
+export interface EmployeeRankingInfo {
+  rank: number;
+  totalEmployees: number;
+  totalRevenue: number;
+}
+
+export interface BookingSourceBreakdown {
+  source: string;
+  count: number;
+  revenue: number;
+}
+
+export interface EmployeeDetailedAnalyticsData {
+  employee: Employee;
+  performanceOverTime: DetailedPerformanceDay[];
+  ranking: EmployeeRankingInfo;
+  sourceBreakdown: BookingSourceBreakdown[];
+}
+

@@ -40,7 +40,8 @@ exports.createEmployee = async (req, res, next) => {
 
 exports.getEmployees = async (req, res, next) => {
   try {
-    if (req.user.role !== "admin" && req.user.role !== "manager") {
+    const hasViewOthersBookings = req.user.role === "employee" && (req.user.permissions || []).includes("viewOthersBookings");
+    if (req.user.role !== "admin" && req.user.role !== "manager" && !hasViewOthersBookings) {
       return next(
         new AppError("You are not authorized to view employees.", 403)
       );
@@ -456,6 +457,212 @@ exports.getEmployeeServicePerformance = async (req, res, next) => {
       username: req.params.username,
     });
     next(new AppError("Failed to retrieve employee service performance.", 500));
+  }
+};
+
+exports.getEmployeeDetailedAnalytics = async (req, res, next) => {
+  try {
+    const { username } = req.params;
+    const { adminId } = req.user;
+    const { startDate, endDate } = req.query;
+
+    const isValidDate = (dateString) =>
+      dateString && !isNaN(new Date(dateString));
+
+    const employeeRes = await req.db.query(
+      'SELECT id, username FROM employees WHERE username = $1 AND "adminId" = $2',
+      [username, adminId]
+    );
+    if (employeeRes.rows.length === 0) {
+      return next(new AppError("Employee not found.", 404));
+    }
+    const employee = employeeRes.rows[0];
+
+    // Date range filtering conditions
+    let bookingDateCond = "";
+    let serviceDateCond = "";
+    const queryParamsBookings = [employee.id];
+    const queryParamsServices = [employee.id];
+
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      bookingDateCond = `AND b."createdAt"::date BETWEEN $2 AND $3`;
+      serviceDateCond = `AND date::date BETWEEN $2 AND $3`;
+      queryParamsBookings.push(startDate, endDate);
+      queryParamsServices.push(startDate, endDate);
+    }
+
+    // 1. Get bookings revenue, profit, count grouped by date
+    const bookingQuery = `
+      SELECT 
+        b."createdAt"::date as "date",
+        COUNT(b.id)::int as "bookingsCount",
+        COALESCE(SUM(b."sellingPrice"), 0)::float as "bookingsRevenue",
+        COALESCE(SUM(b."profit"), 0)::float as "bookingsProfit"
+      FROM bookings b
+      WHERE b."employeeId" = $1 ${bookingDateCond}
+      GROUP BY b."createdAt"::date
+      ORDER BY "date" ASC;
+    `;
+
+    // 2. Get services revenue, profit, count grouped by date
+    const serviceQuery = `
+      WITH ds_calc AS (
+        SELECT 
+          date,
+          profit,
+          (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'sellPrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item) as "totalPrice"
+        FROM daily_services
+        WHERE "employeeId" = $1 ${serviceDateCond}
+      )
+      SELECT 
+        date,
+        COUNT(*)::int as "servicesCount",
+        COALESCE(SUM("totalPrice"), 0)::float as "servicesRevenue",
+        COALESCE(SUM("profit"), 0)::float as "servicesProfit"
+      FROM ds_calc
+      GROUP BY date
+      ORDER BY date ASC;
+    `;
+
+    // 3. Rankings calculations
+    let rankDateCondBookings = "";
+    let rankDateCondServices = "";
+    const rankQueryParams = [adminId, employee.id];
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      rankDateCondBookings = `AND b."createdAt"::date BETWEEN $3 AND $4`;
+      rankDateCondServices = `AND ds."date" BETWEEN $3 AND $4`;
+      rankQueryParams.push(startDate, endDate);
+    }
+
+    const rankQuery = `
+      WITH employee_booking_revenue AS (
+        SELECT "employeeId", COALESCE(SUM("sellingPrice"), 0) as revenue
+        FROM bookings b
+        WHERE b."userId" = $1 ${rankDateCondBookings}
+        GROUP BY "employeeId"
+      ),
+      employee_service_revenue AS (
+        SELECT ds."employeeId", COALESCE(SUM(
+          (SELECT COALESCE(SUM((item->>'quantity')::numeric * (item->>'sellPrice')::numeric), 0) FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item)
+        ), 0) as revenue
+        FROM daily_services ds
+        WHERE ds."userId" = $1 ${rankDateCondServices}
+        GROUP BY ds."employeeId"
+      ),
+      employee_totals AS (
+        SELECT 
+          e.id,
+          e.username,
+          COALESCE(br.revenue, 0) + COALESCE(sr.revenue, 0) as total_revenue
+        FROM employees e
+        LEFT JOIN employee_booking_revenue br ON e.id = br."employeeId"
+        LEFT JOIN employee_service_revenue sr ON e.id = sr."employeeId"
+        WHERE e."adminId" = $1
+      ),
+      ranked_employees AS (
+        SELECT 
+          id,
+          username,
+          total_revenue,
+          RANK() OVER (ORDER BY total_revenue DESC)::int as rank,
+          COUNT(*) OVER ()::int as total_count
+        FROM employee_totals
+      )
+      SELECT rank, total_count, total_revenue
+      FROM ranked_employees
+      WHERE id = $2;
+    `;
+
+    // 4. Booking source breakdown
+    const sourceQuery = `
+      SELECT 
+        COALESCE(b."bookingSource", 'Direct') as "source",
+        COUNT(b.id)::int as "count",
+        COALESCE(SUM(b."sellingPrice"), 0)::float as "revenue"
+      FROM bookings b
+      WHERE b."employeeId" = $1 ${bookingDateCond}
+      GROUP BY b."bookingSource"
+      ORDER BY "revenue" DESC;
+    `;
+
+    const [bookingRes, serviceRes, rankRes, sourceRes] = await Promise.all([
+      req.db.query(bookingQuery, queryParamsBookings),
+      req.db.query(serviceQuery, queryParamsServices),
+      req.db.query(rankQuery, rankQueryParams),
+      req.db.query(sourceQuery, queryParamsBookings),
+    ]);
+
+    // Format over-time performance data
+    const bookingsData = bookingRes.rows;
+    const servicesData = serviceRes.rows;
+
+    const dateMap = {};
+
+    const formatDateStr = (d) => {
+      if (!d) return "";
+      const dateObj = new Date(d);
+      return dateObj.toISOString().split("T")[0];
+    };
+
+    bookingsData.forEach((row) => {
+      const dStr = formatDateStr(row.date);
+      if (!dateMap[dStr]) {
+        dateMap[dStr] = {
+          date: dStr,
+          bookingsCount: 0,
+          bookingsRevenue: 0,
+          bookingsProfit: 0,
+          servicesCount: 0,
+          servicesRevenue: 0,
+          servicesProfit: 0,
+        };
+      }
+      dateMap[dStr].bookingsCount = row.bookingsCount;
+      dateMap[dStr].bookingsRevenue = row.bookingsRevenue;
+      dateMap[dStr].bookingsProfit = row.bookingsProfit;
+    });
+
+    servicesData.forEach((row) => {
+      const dStr = formatDateStr(row.date);
+      if (!dateMap[dStr]) {
+        dateMap[dStr] = {
+          date: dStr,
+          bookingsCount: 0,
+          bookingsRevenue: 0,
+          bookingsProfit: 0,
+          servicesCount: 0,
+          servicesRevenue: 0,
+          servicesProfit: 0,
+        };
+      }
+      dateMap[dStr].servicesCount = row.servicesCount;
+      dateMap[dStr].servicesRevenue = row.servicesRevenue;
+      dateMap[dStr].servicesProfit = row.servicesProfit;
+    });
+
+    const performanceOverTime = Object.values(dateMap).sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    const rankInfo = rankRes.rows[0] || { rank: 1, total_count: 1, total_revenue: 0 };
+
+    res.status(200).json({
+      employee,
+      performanceOverTime,
+      ranking: {
+        rank: rankInfo.rank,
+        totalEmployees: rankInfo.total_count,
+        totalRevenue: parseFloat(rankInfo.total_revenue || 0),
+      },
+      sourceBreakdown: sourceRes.rows,
+    });
+  } catch (error) {
+    logger.error("Employee Detailed Analytics Error:", {
+      message: error.message,
+      stack: error.stack,
+      username: req.params.username,
+    });
+    next(new AppError("Failed to retrieve employee detailed analytics.", 500));
   }
 };
 // --- Original functions below, left in place for completeness of other updates ---

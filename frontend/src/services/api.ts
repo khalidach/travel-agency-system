@@ -482,6 +482,22 @@ export const getEmployeeAnalysis = (username: string) => {
   return request(`/employees/${username}/analysis`);
 };
 
+export const getEmployeeDetailedAnalytics = (
+  username: string,
+  startDate?: string,
+  endDate?: string,
+) => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  const queryString = params.toString();
+  let endpoint = `/employees/${username}/detailed-analytics`;
+  if (queryString) {
+    endpoint += `?${queryString}`;
+  }
+  return request(endpoint);
+};
+
 export const getEmployeeProgramPerformance = (
   username: string,
   startDate?: string,

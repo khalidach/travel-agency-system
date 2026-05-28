@@ -29,6 +29,19 @@ router.get(
   employeeController.getEmployeeAnalysis
 );
 
+// Route for detailed employee performance analytics
+router.get(
+  "/:username/detailed-analytics",
+  usernameValidation,
+  [
+    query("startDate").optional().isISO8601().toDate(),
+    query("endDate").optional().isISO8601().toDate(),
+  ],
+  handleValidationErrors,
+  checkEmployeeAnalysisAccess,
+  employeeController.getEmployeeDetailedAnalytics
+);
+
 // Route for program performance (summary table)
 router.get(
   "/:username/program-performance",

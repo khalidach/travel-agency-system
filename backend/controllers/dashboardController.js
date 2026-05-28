@@ -21,6 +21,13 @@ const getDashboardStats = async (req, res, next) => {
     const servicesFilteredDateParams = [...queryParams];
     const facturesFilteredDateParams = [...queryParams];
 
+    let employeeFilterClause = "";
+    const permissions = req.user.permissions || [];
+    if (req.user.role === "employee" && !permissions.includes("viewOthersBookings")) {
+      queryParams.push(req.user.id);
+      employeeFilterClause = `AND b."employeeId" = $${queryParams.length}`;
+    }
+
     const statsQuery = `
       SELECT
         (SELECT COUNT(*) FROM programs WHERE "userId" = $1) as "activePrograms",
@@ -35,7 +42,7 @@ const getDashboardStats = async (req, res, next) => {
         COALESCE(SUM(CASE WHEN "isFullyPaid" = true THEN 1 ELSE 0 END), 0) as "fullyPaid",
         COALESCE(SUM(CASE WHEN "isFullyPaid" = false THEN 1 ELSE 0 END), 0) as "pending"
       FROM bookings b
-      WHERE b."userId" = $1
+      WHERE b."userId" = $1 ${employeeFilterClause}
     `;
 
     const statsPromise = req.db.query(statsQuery, queryParams);
@@ -118,13 +125,18 @@ const getDashboardStats = async (req, res, next) => {
       `SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type`,
       [adminId]
     );
-    const recentBookingsPromise = req.db.query(
-      `SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid", "employeeId"
-       FROM bookings WHERE "userId" = $1
-       ORDER BY "createdAt" DESC
-       LIMIT 3`,
-      [adminId]
-    );
+    let recentBookingsQuery = `
+      SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid", "employeeId"
+      FROM bookings WHERE "userId" = $1
+    `;
+    const recentBookingsParams = [adminId];
+    if (req.user.role === "employee" && !permissions.includes("viewOthersBookings")) {
+      recentBookingsQuery += ` AND "employeeId" = $2`;
+      recentBookingsParams.push(req.user.id);
+    }
+    recentBookingsQuery += ` ORDER BY "createdAt" DESC LIMIT 3`;
+
+    const recentBookingsPromise = req.db.query(recentBookingsQuery, recentBookingsParams);
     const dailyServiceProfitPromise = req.db.query(
       `SELECT type, COALESCE(SUM(profit), 0) as "totalProfit" 
        FROM daily_services 
@@ -160,7 +172,8 @@ const getDashboardStats = async (req, res, next) => {
     const facturesCount = facturesCountResult.rows[0];
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows.map((b) => {
-      if (req.user.role === "employee" && b.employeeId !== req.user.id) {
+      const permissions = req.user.permissions || [];
+      if (req.user.role === "employee" && b.employeeId !== req.user.id && !permissions.includes("viewOthersBookingsFinancials")) {
         return {
           ...b,
           sellingPrice: null,

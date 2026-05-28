@@ -197,7 +197,8 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, user) =
     const clientNameFr =
       `${booking.clientNameFr.lastName} / ${booking.clientNameFr.firstName} `.trim();
 
-    const isRedacted = userRole === "employee" && booking.employeeId !== currentUserId;
+    const permissions = user ? user.permissions || [] : [];
+    const isRedacted = userRole === "employee" && booking.employeeId !== currentUserId && !permissions.includes("viewOthersBookingsFinancials");
 
     const rowData = {
       id: index + 1,

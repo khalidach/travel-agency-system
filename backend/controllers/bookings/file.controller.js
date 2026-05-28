@@ -25,10 +25,15 @@ exports.exportBookingsToExcel = async (req, res, next) => {
       throw new AppError("Program not found.", 404);
     }
 
-    const { rows: bookings } = await client.query(
-      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-      [programId, adminId],
-    );
+    let bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2';
+    const bookingsParams = [programId, adminId];
+    const permissions = req.user.permissions || [];
+    if (role === "employee" && !permissions.includes("viewOthersBookings")) {
+      bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 AND "employeeId" = $3';
+      bookingsParams.push(req.user.id);
+    }
+
+    const { rows: bookings } = await client.query(bookingsQuery, bookingsParams);
 
     if (bookings.length === 0) {
       return res
@@ -90,7 +95,7 @@ exports.exportFlightListToExcel = async (req, res, next) => {
   try {
     await client.query("BEGIN");
     const { programId } = req.params;
-    const { adminId, agencyName } = req.user;
+    const { adminId, agencyName, role } = req.user;
 
     if (!programId || programId === "undefined") {
       throw new AppError("A program must be selected for export.", 400);
@@ -107,10 +112,15 @@ exports.exportFlightListToExcel = async (req, res, next) => {
 
     const programData = { ...programs[0], agencyName };
 
-    const { rows: bookings } = await client.query(
-      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-      [programId, adminId],
-    );
+    let bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2';
+    const bookingsParams = [programId, adminId];
+    const permissions = req.user.permissions || [];
+    if (role === "employee" && !permissions.includes("viewOthersBookings")) {
+      bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 AND "employeeId" = $3';
+      bookingsParams.push(req.user.id);
+    }
+
+    const { rows: bookings } = await client.query(bookingsQuery, bookingsParams);
 
     if (bookings.length === 0) {
       return res
@@ -280,10 +290,15 @@ exports.exportCombinedExcel = async (req, res, next) => {
     const program = programs[0];
     const programData = { ...program, agencyName };
 
-    const { rows: bookings } = await client.query(
-      'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-      [programId, adminId],
-    );
+    let bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2';
+    const bookingsParams = [programId, adminId];
+    const permissions = req.user.permissions || [];
+    if (role === "employee" && !permissions.includes("viewOthersBookings")) {
+      bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 AND "employeeId" = $3';
+      bookingsParams.push(req.user.id);
+    }
+
+    const { rows: bookings } = await client.query(bookingsQuery, bookingsParams);
 
     if (bookings.length === 0) {
       return res
@@ -444,10 +459,15 @@ exports.exportMultiProgramsExcel = async (req, res, next) => {
       const program = programs[0];
 
       // 2. Get bookings
-      const { rows: bookings } = await client.query(
-        'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2',
-        [programId, adminId],
-      );
+      let bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2';
+      const bookingsParams = [programId, adminId];
+      const permissions = req.user.permissions || [];
+      if (role === "employee" && !permissions.includes("viewOthersBookings")) {
+        bookingsQuery = 'SELECT * FROM bookings WHERE "tripId" = $1 AND "userId" = $2 AND "employeeId" = $3';
+        bookingsParams.push(req.user.id);
+      }
+
+      const { rows: bookings } = await client.query(bookingsQuery, bookingsParams);
 
       // 3. Update export counts
       const exportCounts = program.exportCounts || {};
