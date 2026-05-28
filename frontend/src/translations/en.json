@@ -534,7 +534,8 @@
     "alreadyHaveAccount": "Already have an account?",
     "loginLink": "Log In",
     "accountCreatedSuccess": "Account created successfully!",
-    "registrationFailed": "Registration failed."
+    "registrationFailed": "Registration failed.",
+    "dontHaveAccount": "Don't have an account?"
   },
   "notificationDeleted": "Notification deleted",
   "notificationsCleared": "Notifications cleared",

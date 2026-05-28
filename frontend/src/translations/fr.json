@@ -538,7 +538,8 @@
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "loginLink": "Se Connecter",
     "accountCreatedSuccess": "Compte créé avec succès !",
-    "registrationFailed": "Échec de l'inscription."
+    "registrationFailed": "Échec de l'inscription.",
+    "dontHaveAccount": "Vous n'avez pas de compte ?"
   },
   "notificationDeleted": "Notification supprimée",
   "notificationsCleared": "Notifications effacées",

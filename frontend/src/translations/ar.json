@@ -538,7 +538,8 @@
     "alreadyHaveAccount": "هل لديك حساب بالفعل؟",
     "loginLink": "تسجيل الدخول",
     "accountCreatedSuccess": "تم إنشاء الحساب بنجاح!",
-    "registrationFailed": "فشل التسجيل."
+    "registrationFailed": "فشل التسجيل.",
+    "dontHaveAccount": "ليس لديك حساب؟"
   },
   "notificationDeleted": "تم حذف الإشعار",
   "notificationsCleared": "تم مسح الإشعارات",
