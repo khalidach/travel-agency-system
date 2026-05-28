@@ -789,5 +789,7 @@
   "programsRevenueShare": "حصة أرباح البرامج",
   "dailyServicesRevenueShare": "حصة أرباح الخدمات",
   "donutChartTitle": "توزيع حصة الأرباح",
-  "permissions": "الصلاحيات"
+  "permissions": "الصلاحيات",
+  "restricted": "مقيّد",
+  "hidden": "مخفي"
 }

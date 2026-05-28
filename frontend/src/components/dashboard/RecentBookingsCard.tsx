@@ -28,18 +28,26 @@ export default function RecentBookingsCard({
               </p>
             </div>
             <div className={`text-left`}>
-              <p className="text-sm font-semibold">
-                {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
-              </p>
-              <span
-                className={`text-xs px-2 py-1 rounded-full ${
-                  booking.isFullyPaid
-                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                    : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                }`}
-              >
-                {booking.isFullyPaid ? t("paid") : t("pending")}
-              </span>
+              {booking.sellingPrice === null ? (
+                <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 flex items-center gap-1 py-1 px-2 bg-background border border-border rounded-lg">
+                  🔒 {t("restricted")}
+                </span>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold">
+                    {Number(booking.sellingPrice).toLocaleString()} {t("mad")}
+                  </p>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      booking.isFullyPaid
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
+                    }`}
+                  >
+                    {booking.isFullyPaid ? t("paid") : t("pending")}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         ))}

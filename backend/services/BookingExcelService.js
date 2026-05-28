@@ -22,9 +22,9 @@ const sanitizeName = (name) => {
  * @param {string} userRole - The role of the user requesting the export ('admin', 'manager', 'employee').
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
-exports.generateBookingsExcel = async (bookings, program, userRole) => {
+exports.generateBookingsExcel = async (bookings, program, user) => {
   const workbook = new excel.Workbook();
-  await exports.addBookingsSheetToWorkbook(workbook, bookings, program, userRole);
+  await exports.addBookingsSheetToWorkbook(workbook, bookings, program, user);
   return workbook;
 };
 
@@ -33,9 +33,11 @@ exports.generateBookingsExcel = async (bookings, program, userRole) => {
  * @param {object} workbook - The exceljs Workbook object.
  * @param {Array<object>} bookings - The list of bookings.
  * @param {object} program - The program associated with the bookings.
- * @param {string} userRole - The role of the user requesting the export ('admin', 'manager', 'employee').
+ * @param {object} user - The user object requesting the export.
  */
-exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, userRole) => {
+exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, user) => {
+  const userRole = user ? user.role : null;
+  const currentUserId = user ? user.id : null;
   // Sort bookings by variation name first, handling potential null/undefined values.
   bookings.sort((a, b) =>
     (a.variationName || "").localeCompare(b.variationName || "")
@@ -195,6 +197,8 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, userRol
     const clientNameFr =
       `${booking.clientNameFr.lastName} / ${booking.clientNameFr.firstName} `.trim();
 
+    const isRedacted = userRole === "employee" && booking.employeeId !== currentUserId;
+
     const rowData = {
       id: index + 1,
       clientNameFr,
@@ -203,9 +207,9 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, userRol
       phoneNumber: booking.phoneNumber,
       variationName: booking.variationName,
       packageId: booking.packageId,
-      sellingPrice: Number(booking.sellingPrice),
-      paid: totalPaid,
-      remaining: Number(booking.remainingBalance),
+      sellingPrice: isRedacted ? "🔒 Restricted" : Number(booking.sellingPrice),
+      paid: isRedacted ? "🔒 Restricted" : totalPaid,
+      remaining: isRedacted ? "🔒 Restricted" : Number(booking.remainingBalance),
     }; // Populate dynamic hotel/room columns
 
     if (hasCities) {
@@ -357,7 +361,12 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, userRol
     if (col) {
       const colLetter = col.letter;
       const cell = worksheet.getCell(`${colLetter}${totalRowNumber}`);
-      if (lastDataRowNumber >= 4) {
+      
+      const hasAnyRedacted = userRole === "employee" && bookings.some(b => b.employeeId !== currentUserId);
+
+      if (hasAnyRedacted) {
+        cell.value = "🔒 Restricted";
+      } else if (lastDataRowNumber >= 4) {
         cell.value = {
           formula: `SUM(${colLetter}4:${colLetter}${lastDataRowNumber})`, // Start from row 4
         };

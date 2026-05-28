@@ -119,7 +119,7 @@ const getDashboardStats = async (req, res, next) => {
       [adminId]
     );
     const recentBookingsPromise = req.db.query(
-      `SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid"
+      `SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid", "employeeId"
        FROM bookings WHERE "userId" = $1
        ORDER BY "createdAt" DESC
        LIMIT 3`,
@@ -159,7 +159,16 @@ const getDashboardStats = async (req, res, next) => {
     const dailyServiceStats = dailyServiceStatsResult.rows[0];
     const facturesCount = facturesCountResult.rows[0];
     const programTypes = programTypeResult.rows;
-    const recentBookings = recentBookingsResult.rows;
+    const recentBookings = recentBookingsResult.rows.map((b) => {
+      if (req.user.role === "employee" && b.employeeId !== req.user.id) {
+        return {
+          ...b,
+          sellingPrice: null,
+          isFullyPaid: null,
+        };
+      }
+      return b;
+    });
     const dailyServiceProfits = dailyServiceProfitResult.rows;
     const expensesStats = expensesStatsResult.rows[0];
     const incomeStats = incomeStatsResult.rows[0];

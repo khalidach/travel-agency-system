@@ -789,5 +789,7 @@
   "programsRevenueShare": "Part de Profit des Programmes",
   "dailyServicesRevenueShare": "Part de Profit des Services",
   "donutChartTitle": "Répartition de la Part de Profit",
-  "permissions": "Permissions"
+  "permissions": "Permissions",
+  "restricted": "Restreint",
+  "hidden": "Masqué"
 }

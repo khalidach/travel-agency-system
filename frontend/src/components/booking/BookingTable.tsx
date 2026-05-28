@@ -258,21 +258,27 @@ export default function BookingTable({
                       </div>
                     </td>
                     <td className="px-2 py-4 align-top">
-                      <div className="space-y-2">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">
-                          {t("selling")}:{" "}
-                          {Number(booking.sellingPrice).toLocaleString()}{" "}
-                          {t("mad")}
+                      {booking.sellingPrice === null ? (
+                        <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 flex items-center gap-1.5 py-1 px-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-lg w-max">
+                          <span role="img" aria-label="locked">🔒</span> {t("restricted")}
+                        </span>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="text-sm text-gray-900 dark:text-gray-100">
+                            {t("selling")}:{" "}
+                            {Number(booking.sellingPrice).toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {t("remainingBalance")}:{" "}
+                            {Number(booking.remainingBalance).toLocaleString()}{" "}
+                            {t("mad")}
+                          </div>
                         </div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {t("paid")}: {totalPaid.toLocaleString()} {t("mad")}
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {t("remainingBalance")}:{" "}
-                          {Number(booking.remainingBalance).toLocaleString()}{" "}
-                          {t("mad")}
-                        </div>
-                      </div>
+                      )}
                     </td>
                     <td className="px-3 py-4 align-center">
                       <div className="space-y-2 flex flex-col items-center">
@@ -281,14 +287,20 @@ export default function BookingTable({
                             {t("pendingApproval") || "Pending Approval"}
                           </div>
                         )}
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                            booking.isFullyPaid,
-                            totalPaid
-                          )}`}
-                        >
-                          {getStatusText(booking.isFullyPaid, totalPaid)}
-                        </span>
+                        {booking.sellingPrice === null ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700/50">
+                            {t("hidden")}
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                              booking.isFullyPaid,
+                              totalPaid
+                            )}`}
+                          >
+                            {getStatusText(booking.isFullyPaid, totalPaid)}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-4 align-center">
@@ -359,23 +371,29 @@ export default function BookingTable({
                         {t("familyTotal")}
                       </td>
                       <td className="px-2 py-2 text-sm align-top">
-                        <div className="space-y-1">
-                          <div className="dark:text-gray-100">
-                            {t("selling")}:{" "}
-                            {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
-                            {t("mad")}
+                        {familyLeader.familySummary.totalPrice === null ? (
+                          <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 flex items-center gap-1.5 py-1 px-2.5 bg-gray-100 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg w-max">
+                            <span role="img" aria-label="locked">🔒</span> {t("restricted")}
+                          </span>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="dark:text-gray-100">
+                              {t("selling")}:{" "}
+                              {familyLeader.familySummary.totalPrice.toLocaleString()}{" "}
+                              {t("mad")}
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {t("paid")}:{" "}
+                              {familyLeader.familySummary.totalPaid.toLocaleString()}{" "}
+                              {t("mad")}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {t("remainingBalance")}:{" "}
+                              {familyLeader.familySummary.totalRemaining.toLocaleString()}{" "}
+                              {t("mad")}
+                            </div>
                           </div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {t("paid")}:{" "}
-                            {familyLeader.familySummary.totalPaid.toLocaleString()}{" "}
-                            {t("mad")}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {t("remainingBalance")}:{" "}
-                            {familyLeader.familySummary.totalRemaining.toLocaleString()}{" "}
-                            {t("mad")}
-                          </div>
-                        </div>
+                        )}
                       </td>
                       <td className="px-3 py-2 align-top">
                       </td>

@@ -54,7 +54,7 @@ exports.exportBookingsToExcel = async (req, res, next) => {
     const workbook = await BookingExcelService.generateBookingsExcel(
       bookings,
       program,
-      role,
+      req.user,
     );
 
     await client.query("COMMIT");
@@ -310,7 +310,7 @@ exports.exportCombinedExcel = async (req, res, next) => {
     const masterWorkbook = await BookingExcelService.generateBookingsExcel(
       bookings,
       program,
-      role,
+      req.user,
     );
 
     // Generate the Flight List workbook and copy its worksheet into the master
@@ -466,7 +466,7 @@ exports.exportMultiProgramsExcel = async (req, res, next) => {
         workbook,
         bookings,
         program,
-        role
+        req.user
       );
       hasData = true;
     }

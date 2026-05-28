@@ -2,14 +2,29 @@ const BookingService = require("../../services/BookingService");
 const AppError = require("../../utils/appError");
 const logger = require("../../utils/logger");
 
+const redactBookingFinancials = (booking, currentUserId, userRole) => {
+  if (userRole === "employee" && booking.employeeId !== currentUserId) {
+    return {
+      ...booking,
+      sellingPrice: null,
+      basePrice: null,
+      profit: null,
+      advancePayments: null,
+      remainingBalance: null,
+      isFullyPaid: null,
+    };
+  }
+  return booking;
+};
+
 exports.getAllBookings = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page || "1", 10);
     const limit = parseInt(req.query.limit || "10", 10);
     const { role, id, adminId } = req.user;
 
-    const queryUserId = role === "employee" ? id : adminId;
-    const idColumn = role === "employee" ? "employeeId" : "userId";
+    const queryUserId = adminId;
+    const idColumn = "userId";
 
     const { bookings, totalCount } = await BookingService.getAllBookings(
       req.db,
@@ -20,7 +35,7 @@ exports.getAllBookings = async (req, res, next) => {
     );
 
     res.status(200).json({
-      data: bookings,
+      data: bookings.map(b => redactBookingFinancials(b, id, role)),
       pagination: {
         page,
         limit,
@@ -82,16 +97,12 @@ exports.getBookingsByProgram = async (req, res, next) => {
       paramIndex++;
     }
 
-    if (role === "admin" || role === "manager") {
+    if (role === "admin" || role === "manager" || role === "employee") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
         whereConditions.push(`b."employeeId" = $${paramIndex}`);
         queryParams.push(employeeFilter);
         paramIndex++;
       }
-    } else if (role === "employee") {
-      whereConditions.push(`b."employeeId" = $${paramIndex}`);
-      queryParams.push(userId);
-      paramIndex++;
     }
 
     const whereClause =
@@ -144,17 +155,23 @@ exports.getBookingsByProgram = async (req, res, next) => {
             });
           }
 
-          const familySummary = familyMembers.reduce(
-            (summary, member) => {
-              const sellingPrice = Number(member.sellingPrice) || 0;
-              const remainingBalance = Number(member.remainingBalance) || 0;
-              summary.totalPrice += sellingPrice;
-              summary.totalPaid += sellingPrice - remainingBalance;
-              summary.totalRemaining += remainingBalance;
-              return summary;
-            },
-            { totalPrice: 0, totalPaid: 0, totalRemaining: 0 },
+          const hasRedactedMember = role === "employee" && familyMembers.some(
+            (member) => member.employeeId !== userId
           );
+
+          const familySummary = hasRedactedMember
+            ? { totalPrice: null, totalPaid: null, totalRemaining: null }
+            : familyMembers.reduce(
+                (summary, member) => {
+                  const sellingPrice = Number(member.sellingPrice) || 0;
+                  const remainingBalance = Number(member.remainingBalance) || 0;
+                  summary.totalPrice += sellingPrice;
+                  summary.totalPaid += sellingPrice - remainingBalance;
+                  summary.totalRemaining += remainingBalance;
+                  return summary;
+                },
+                { totalPrice: 0, totalPaid: 0, totalRemaining: 0 },
+              );
 
           const leaderWithSummary = {
             ...leader,
@@ -203,14 +220,21 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const programTotalCost = costResult.rows.length > 0 ? parseFloat(costResult.rows[0].totalCost) : 0;
 
       res.status(200).json({
-        data: paginatedBookings,
+        data: paginatedBookings.map(b => redactBookingFinancials(b, userId, role)),
         pagination: {
           page: parseInt(page, 10),
           limit: parseInt(limit, 10),
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
         },
-        summary: {
+        summary: role === "employee" ? {
+          totalBookings: totalCount,
+          totalRevenue: null,
+          totalCost: null,
+          totalProfit: null,
+          totalPaid: null,
+          totalRemaining: null,
+        } : {
           totalBookings: totalCount,
           totalRevenue: totalRevenue,
           totalCost: programTotalCost,
@@ -270,14 +294,21 @@ exports.getBookingsByProgram = async (req, res, next) => {
       const programTotalCost = costResult.rows.length > 0 ? parseFloat(costResult.rows[0].totalCost) : 0;
 
       res.status(200).json({
-        data: bookings,
+        data: bookings.map(b => redactBookingFinancials(b, userId, role)),
         pagination: {
           page: parseInt(page, 10),
           limit: parseInt(limit, 10),
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
         },
-        summary: {
+        summary: role === "employee" ? {
+          totalBookings: totalCount,
+          totalRevenue: null,
+          totalCost: null,
+          totalProfit: null,
+          totalPaid: null,
+          totalRemaining: null,
+        } : {
           totalBookings: totalCount,
           totalRevenue: totalRevenue,
           totalCost: programTotalCost,
@@ -337,16 +368,12 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
       paramIndex++;
     }
 
-    if (role === "admin") {
+    if (role === "admin" || role === "manager" || role === "employee") {
       if (employeeFilter !== "all" && /^\d+$/.test(employeeFilter)) {
         whereConditions.push(`"employeeId" = $${paramIndex}`);
         queryParams.push(employeeFilter);
         paramIndex++;
       }
-    } else if (role === "employee" || role === "manager") {
-      whereConditions.push(`"employeeId" = $${paramIndex}`);
-      queryParams.push(userId);
-      paramIndex++;
     }
 
     const whereClause =
@@ -372,7 +399,8 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
 exports.getGroupBookings = async (req, res, next) => {
   try {
     const bookings = await BookingService.getGroupBookings(req.db, req.user, req.params.bookingId);
-    res.status(200).json(bookings);
+    const redactedBookings = bookings.map(b => redactBookingFinancials(b, req.user.id, req.user.role));
+    res.status(200).json(redactedBookings);
   } catch (error) {
     logger.error("Get Group Bookings Error:", {
       message: error.message,

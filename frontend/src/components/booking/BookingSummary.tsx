@@ -64,17 +64,25 @@ export default function BookingSummary({ stats }: BookingSummaryProps) {
     );
   }
 
+  // Filter visible cards based on userRole
+  let visibleCards = allCards;
+  if (userRole === "employee") {
+    visibleCards = allCards.filter((card) => card.title === t("totalBookings"));
+  }
+
   // تحديد فئة تخطيط الشبكة بناءً على دور المستخدم
   const gridLayoutClass =
     userRole === "admin"
       ? "lg:grid-cols-6" // 6 أعمدة للمسؤولين
-      : "lg:grid-cols-4"; // 4 أعمدة للموظفين والمديرين
+      : userRole === "employee"
+      ? "lg:grid-cols-1" // 1 عمود للموظفين
+      : "lg:grid-cols-4"; // 4 أعمدة للمديرين
 
   return (
     <div
       className={`grid grid-cols-2 md:grid-cols-3 ${gridLayoutClass} gap-4 text-center`}
     >
-      {allCards.map((card, index) => (
+      {visibleCards.map((card, index) => (
         <div
           key={index}
           className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border dark:border-gray-700"
