@@ -565,10 +565,11 @@ exports.getEmployeeDetailedAnalytics = async (req, res, next) => {
           username,
           total_revenue,
           RANK() OVER (ORDER BY total_revenue DESC)::int as rank,
-          COUNT(*) OVER ()::int as total_count
+          COUNT(*) OVER ()::int as total_count,
+          COALESCE(SUM(total_revenue) OVER (), 0)::float as team_total_revenue
         FROM employee_totals
       )
-      SELECT rank, total_count, total_revenue
+      SELECT rank, total_count, total_revenue, team_total_revenue
       FROM ranked_employees
       WHERE id = $2;
     `;
@@ -644,7 +645,7 @@ exports.getEmployeeDetailedAnalytics = async (req, res, next) => {
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     );
 
-    const rankInfo = rankRes.rows[0] || { rank: 1, total_count: 1, total_revenue: 0 };
+    const rankInfo = rankRes.rows[0] || { rank: 1, total_count: 1, total_revenue: 0, team_total_revenue: 0 };
 
     res.status(200).json({
       employee,
@@ -653,6 +654,7 @@ exports.getEmployeeDetailedAnalytics = async (req, res, next) => {
         rank: rankInfo.rank,
         totalEmployees: rankInfo.total_count,
         totalRevenue: parseFloat(rankInfo.total_revenue || 0),
+        teamTotalRevenue: parseFloat(rankInfo.team_total_revenue || 0),
       },
       sourceBreakdown: sourceRes.rows,
     });

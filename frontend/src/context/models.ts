@@ -504,6 +504,7 @@ export interface EmployeeRankingInfo {
   rank: number;
   totalEmployees: number;
   totalRevenue: number;
+  teamTotalRevenue: number;
 }
 
 export interface BookingSourceBreakdown {

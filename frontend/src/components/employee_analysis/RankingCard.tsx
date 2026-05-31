@@ -8,7 +8,6 @@ interface RankingCardProps {
   bookingsCount: number;
   servicesCount: number;
   totalRevenue: number;
-  totalProfit: number;
   isLoading: boolean;
 }
 
@@ -17,7 +16,6 @@ const RankingCard: React.FC<RankingCardProps> = ({
   bookingsCount,
   servicesCount,
   totalRevenue,
-  totalProfit,
   isLoading,
 }) => {
   const { t } = useTranslation();
@@ -39,9 +37,10 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
   const rank = ranking?.rank || 1;
   const totalEmployees = ranking?.totalEmployees || 1;
+  const teamTotalRevenue = ranking?.teamTotalRevenue || 0;
 
-  // Margin calculation
-  const marginPercent = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+  // Contribution calculation
+  const contributionPercent = teamTotalRevenue > 0 ? (totalRevenue / teamTotalRevenue) * 100 : 0;
 
   // Average transaction value
   const totalOperations = bookingsCount + servicesCount;
@@ -118,14 +117,14 @@ const RankingCard: React.FC<RankingCardProps> = ({
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 pt-2">
-          {/* Profit Margin */}
+          {/* Revenue Contribution */}
           <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 flex flex-col justify-between">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
               <Percent className="w-4 h-4 text-emerald-500" />
-              <span className="text-xs font-medium uppercase tracking-wider">{t("profitMargin")}</span>
+              <span className="text-xs font-medium uppercase tracking-wider">{t("revenueContribution")}</span>
             </div>
             <span className="text-2xl font-bold text-foreground">
-              {marginPercent.toFixed(1)}%
+              {contributionPercent.toFixed(1)}%
             </span>
           </div>
 

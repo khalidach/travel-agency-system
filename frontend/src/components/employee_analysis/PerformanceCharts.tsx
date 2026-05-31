@@ -49,7 +49,6 @@ const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
   // Format performance data for chart
   const trendData = (performanceData || []).map((day) => {
     const totalRevenue = day.bookingsRevenue + day.servicesRevenue;
-    const totalProfit = day.bookingsProfit + day.servicesProfit;
     
     // Format date beautifully (e.g. "May 28")
     let formattedDate = day.date;
@@ -67,7 +66,6 @@ const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
       date: formattedDate,
       rawDate: day.date,
       [t("revenue")]: totalRevenue,
-      [t("profit")]: totalProfit,
     };
   });
 
@@ -91,11 +89,11 @@ const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Revenue & Profit Area Chart */}
+      {/* Revenue Area Chart */}
       <div className="lg:col-span-2 bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border transition-all hover:shadow-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
           <div>
-            <h3 className="text-lg font-semibold">{t("revenueProfitTrends")}</h3>
+            <h3 className="text-lg font-semibold">{t("revenueTrend")}</h3>
             <p className="text-sm text-muted-foreground">{t("trendsSubText")}</p>
           </div>
         </div>
@@ -115,10 +113,6 @@ const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={colors.revenue} stopOpacity={0.2} />
                     <stop offset="95%" stopColor={colors.revenue} stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={colors.profit} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={colors.profit} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -153,14 +147,6 @@ const PerformanceCharts: React.FC<PerformanceChartsProps> = ({
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorRevenue)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey={t("profit")}
-                  stroke={colors.profit}
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorProfit)"
                 />
               </AreaChart>
             </ResponsiveContainer>

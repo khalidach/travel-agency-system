@@ -808,8 +808,9 @@
   "revenue": "الإيرادات",
   "profit": "الأرباح",
   "exportReport": "تصدير تقرير التحليلات",
-  "overallProfitMargin": "هامش الربح الإجمالي",
   "totalCombinedRevenue": "إجمالي الإيرادات المشترك",
-  "totalCombinedProfit": "إجمالي الأرباح المشترك",
-  "averageSalesPerBooking": "متوسط قيمة الحجز"
+  "bookingsRevenue": "إيرادات الحجوزات",
+  "servicesRevenue": "إيرادات الخدمات",
+  "servicesProfit": "أرباح الخدمات",
+  "revenueContribution": "المساهمة في الإيرادات"
 }

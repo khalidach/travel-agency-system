@@ -808,8 +808,9 @@
   "revenue": "Revenu",
   "profit": "Bénéfice",
   "exportReport": "Exporter le Rapport d'Analyse",
-  "overallProfitMargin": "Marge Bénéficiaire Globale",
   "totalCombinedRevenue": "Revenu Combiné",
-  "totalCombinedProfit": "Bénéfice Combiné",
-  "averageSalesPerBooking": "Vente Moyenne par Réservation"
+  "bookingsRevenue": "Revenu des Réservations",
+  "servicesRevenue": "Revenu des Services",
+  "servicesProfit": "Bénéfice des Services",
+  "revenueContribution": "Contribution au Revenu"
 }

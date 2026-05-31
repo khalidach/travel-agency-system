@@ -806,6 +806,8 @@
   "exportReport": "Export Analytics Report",
   "overallProfitMargin": "Overall Profit Margin",
   "totalCombinedRevenue": "Combined Revenue",
-  "totalCombinedProfit": "Combined Profit",
-  "averageSalesPerBooking": "Avg. Booking Sale"
+  "bookingsRevenue": "Bookings Revenue",
+  "servicesRevenue": "Services Revenue",
+  "servicesProfit": "Services Profit",
+  "revenueContribution": "Revenue Contribution"
 }

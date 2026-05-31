@@ -4,7 +4,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
-  Download,
   Package,
   Calendar,
   ConciergeBell,
@@ -12,12 +11,8 @@ import {
   Percent,
   DollarSign,
   TrendingUp,
-  Award,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import { toast } from "react-hot-toast";
 
 // Services & Models
 import * as api from "../services/api";
@@ -143,63 +138,12 @@ export default function EmployeeAnalysisPage() {
   const bookingRevenue = programData?.programSummary.totalRevenue || 0;
   const serviceRevenue = serviceData?.serviceSummary.totalRevenue || 0;
   const totalRevenue = bookingRevenue + serviceRevenue;
-
-  const bookingProfit = programData?.programSummary.totalProfit || 0;
   const serviceProfit = serviceData?.serviceSummary.totalProfit || 0;
-  const totalProfit = bookingProfit + serviceProfit;
-
-  const marginPercent = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
   // --- Event Handlers ---
   const handleProgramClick = (programId: number, programName: string) => {
     setModalProgram({ id: programId, name: programName });
     setIsBookingsModalOpen(true);
-  };
-
-  const handleExportPDF = async () => {
-    setIsExporting(true);
-    const loadingToastId = toast.loading(t("downloadStarted") || "Preparing PDF Report...");
-    
-    // Target the dashboard contents container
-    const element = document.getElementById("employee-report-content");
-    if (element) {
-      try {
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: theme === "dark" ? "#0f172a" : "#ffffff",
-        });
-        
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF("p", "mm", "a4");
-        const imgWidth = 210; // A4 page width in mm
-        const pageHeight = 295; // A4 page height in mm
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-
-        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-
-        while (heightLeft >= 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-
-        const dateStr = new Date().toISOString().split("T")[0];
-        pdf.save(`Rapport_Performance_${employee.username}_${dateStr}.pdf`);
-        toast.success(t("exportSuccess") || "Report downloaded successfully!", { id: loadingToastId });
-      } catch (err) {
-        console.error("PDF Export error:", err);
-        toast.error("Failed to generate PDF report", { id: loadingToastId });
-      }
-    } else {
-      toast.error("Report content not found", { id: loadingToastId });
-    }
-    setIsExporting(false);
   };
 
   const filterButtons: { label: string; value: DateFilter }[] = [
@@ -258,15 +202,6 @@ export default function EmployeeAnalysisPage() {
               </button>
             ))}
           </div>
-
-          <button
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50 w-full sm:w-auto whitespace-nowrap"
-          >
-            <Download className="w-4 h-4 mr-2 ml-2" />
-            {t("exportReport")}
-          </button>
         </div>
       </div>
 
@@ -293,10 +228,10 @@ export default function EmployeeAnalysisPage() {
         </div>
       )}
 
-      {/* The Printable Dashboard Container */}
-      <div id="employee-report-content" className="space-y-8 p-1">
+      {/* Dashboard Container */}
+      <div className="space-y-8 p-1">
         {/* Advanced Financial KPI Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Total Revenue Card */}
           <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between transition-all hover:shadow-md">
             <div>
@@ -312,33 +247,48 @@ export default function EmployeeAnalysisPage() {
             </div>
           </div>
 
-          {/* Total Profit Card */}
+          {/* Bookings Revenue Card */}
           <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between transition-all hover:shadow-md">
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t("totalCombinedProfit")}
+                {t("bookingsRevenue")}
+              </p>
+              <p className="text-3xl font-extrabold text-foreground mt-2">
+                {bookingRevenue.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{t("mad")}</span>
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-500">
+              <Calendar className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Services Revenue Card */}
+          <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between transition-all hover:shadow-md">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("servicesRevenue")}
+              </p>
+              <p className="text-3xl font-extrabold text-foreground mt-2">
+                {serviceRevenue.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{t("mad")}</span>
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-sky-500/10 dark:bg-sky-500/20 flex items-center justify-center text-sky-500">
+              <ConciergeBell className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Services Profit Card */}
+          <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between transition-all hover:shadow-md">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {t("servicesProfit")}
               </p>
               <p className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">
-                {totalProfit.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{t("mad")}</span>
+                {serviceProfit.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{t("mad")}</span>
               </p>
             </div>
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-500">
               <TrendingUp className="w-6 h-6" />
-            </div>
-          </div>
-
-          {/* Overall Margin Card */}
-          <div className="bg-card text-card-foreground rounded-2xl p-6 shadow-sm border border-border flex items-center justify-between transition-all hover:shadow-md">
-            <div>
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t("overallProfitMargin")}
-              </p>
-              <p className="text-3xl font-extrabold text-foreground mt-2">
-                {marginPercent.toFixed(1)}%
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center text-indigo-500">
-              <Percent className="w-6 h-6" />
             </div>
           </div>
         </div>
@@ -372,7 +322,6 @@ export default function EmployeeAnalysisPage() {
               bookingsCount={programData?.programSummary.totalBookings || 0}
               servicesCount={serviceData?.serviceSummary.totalServices || 0}
               totalRevenue={totalRevenue}
-              totalProfit={totalProfit}
               isLoading={isLoadingDetailed}
             />
           </div>
