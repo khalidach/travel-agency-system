@@ -4,8 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { subDays, startOfDay, endOfDay, format, subYears } from "date-fns";
 import * as api from "../services/api";
 import { DashboardStats } from "../context/models";
+import { useBranchContext } from "../context/BranchContext";
 
 export function useDashboardData() {
+  const { selectedBranchId } = useBranchContext();
   const [dateFilter, setDateFilter] = useState("month");
   const [customDateRange, setCustomDateRange] = useState({
     start: "",
@@ -54,9 +56,9 @@ export function useDashboardData() {
     isLoading,
     isError,
   } = useQuery<DashboardStats>({
-    queryKey: ["dashboardStats", dateRangeParams],
+    queryKey: ["dashboardStats", dateRangeParams, selectedBranchId],
     queryFn: () =>
-      api.getDashboardStats(dateRangeParams.startDate, dateRangeParams.endDate),
+      api.getDashboardStats(dateRangeParams.startDate, dateRangeParams.endDate, selectedBranchId),
   });
 
   const stats = useMemo(

@@ -35,6 +35,13 @@ exports.getAllIncomes = async (req, res, next) => {
         let countQuery = `SELECT COUNT(*) FROM incomes WHERE "userId" = $1`;
         const params = [req.user.id];
 
+        const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+        if (branchIdFilter && branchIdFilter !== 'all') {
+            query += ` AND "branchId" = $${params.length + 1}`;
+            countQuery += ` AND "branchId" = $${params.length + 1}`;
+            params.push(branchIdFilter);
+        }
+
         if (type) {
             query += ` AND type = $${params.length + 1}`;
             countQuery += ` AND type = $${params.length + 1}`;
@@ -96,7 +103,10 @@ exports.createIncome = async (req, res, next) => {
             date,
             deliveryNoteNumber,
             paymentMethod,
+            branchId,
         } = req.body;
+
+        const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (req.user.branchId || null) : (branchId || null);
 
         let advancePayments = [];
         let remainingBalance = amount;
@@ -158,8 +168,8 @@ exports.createIncome = async (req, res, next) => {
         const { rows } = await req.db.query(
             `INSERT INTO incomes 
       ("userId", "employeeId", type, category, description, client, amount, 
-       "advancePayments", "remainingBalance", "isFullyPaid", date, items, "deliveryNoteNumber")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       "advancePayments", "remainingBalance", "isFullyPaid", date, items, "deliveryNoteNumber", "branchId")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *`,
             [
                 req.user.id,
@@ -175,6 +185,7 @@ exports.createIncome = async (req, res, next) => {
                 date,
                 JSON.stringify(items || []),
                 req.body.deliveryNoteNumber || deliveryNoteNumber,
+                branchIdToSave,
             ]
         );
 
@@ -198,6 +209,7 @@ exports.updateIncome = async (req, res, next) => {
             deliveryNoteNumber,
             paymentMethod,
             factureId,
+            branchId,
         } = req.body;
 
         const existing = await req.db.query(
@@ -246,13 +258,15 @@ exports.updateIncome = async (req, res, next) => {
             isFullyPaid = status.isFullyPaid;
         }
 
+        const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (income.branchId) : (branchId !== undefined ? branchId : income.branchId);
+
         const { rows } = await req.db.query(
             `UPDATE incomes 
       SET category = $1, description = $2, client = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
-          items = $9, "deliveryNoteNumber" = $10, "factureId" = $11,
+          items = $9, "deliveryNoteNumber" = $10, "factureId" = $11, "branchId" = $12,
           "updatedAt" = NOW()
-      WHERE id = $12 AND "userId" = $13
+      WHERE id = $13 AND "userId" = $14
       RETURNING *`,
             [
                 finalCategory,
@@ -266,6 +280,7 @@ exports.updateIncome = async (req, res, next) => {
                 JSON.stringify(finalItems || []),
                 finalDeliveryNoteNumber,
                 finalFactureId,
+                branchIdToSave,
                 id,
                 req.user.id,
             ]
@@ -548,8 +563,8 @@ exports.convertToFacture = async (req, res, next) => {
         // Create Facture
         const factureInsertRes = await dbClient.query(
             `INSERT INTO factures 
-       ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+       ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number, "branchId")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
        RETURNING *`,
             [
                 adminId,
@@ -567,6 +582,7 @@ exports.convertToFacture = async (req, res, next) => {
                 total,
                 `Converted from Delivery Note #${income.deliveryNoteNumber || id}`,
                 formattedFactureNumber,
+                income.branchId,
             ]
         );
 

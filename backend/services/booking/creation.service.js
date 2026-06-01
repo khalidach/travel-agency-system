@@ -26,6 +26,7 @@ const createBookings = async (db, user, bulkData) => {
       variationName,
       relatedPersons,
       bookingSource,
+      branchId,
     } = sharedData;
 
     // 1. Capacity Check
@@ -117,9 +118,10 @@ const createBookings = async (db, user, bulkData) => {
       const remainingBalance = sellingPrice;
       const isFullyPaid = remainingBalance <= 0;
       const employeeId = role === "admin" ? null : id;
+      const branchIdToSave = role === "employee" || role === "manager" ? (user.branchId || null) : (branchId || null);
 
       const { rows } = await client.query(
-        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "bookingSource", status, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW()) RETURNING *',
+        'INSERT INTO bookings ("userId", "employeeId", "clientNameAr", "clientNameFr", "personType", "phoneNumber", "passportNumber", "dateOfBirth", "passportExpirationDate", "gender", "tripId", "variationName", "packageId", "selectedHotel", "sellingPrice", "basePrice", profit, "advancePayments", "remainingBalance", "isFullyPaid", "relatedPersons", "bookingSource", status, "createdAt", "branchId") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, NOW(), $24) RETURNING *',
         [
           adminId,
           employeeId,
@@ -144,6 +146,7 @@ const createBookings = async (db, user, bulkData) => {
           JSON.stringify([]),
           bookingSource || null,
           status,
+          branchIdToSave,
         ],
       );
       const newBooking = rows[0];

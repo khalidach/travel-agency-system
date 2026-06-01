@@ -12,6 +12,7 @@ import { Suspense, lazy, useMemo, useEffect } from "react";
 
 import { AuthProvider, useAuthContext } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { BranchProvider } from "./context/BranchContext";
 import Layout from "./components/Layout";
 import useIdleTimeout from "./services/useIdleTimeout";
 import BookingSkeleton from "./components/skeletons/BookingSkeleton";
@@ -28,6 +29,7 @@ const ProgramPricing = lazy(() => import("./pages/ProgramPricing"));
 const ProgramCostingList = lazy(() => import("./pages/ProgramCostingList"));
 const ProgramCosting = lazy(() => import("./pages/ProgramCosting"));
 const EmployeesPage = lazy(() => import("./pages/Employees"));
+const BranchesPage = lazy(() => import("./pages/Branches"));
 const EmployeeAnalysisPage = lazy(() => import("./pages/EmployeeAnalysis"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const SignUpPage = lazy(() => import("./pages/SignUpPage"));
@@ -283,6 +285,10 @@ function AppRoutes() {
                       {userRole === "admin" && (
                         <>
                           <Route
+                            path="/branches"
+                            element={<BranchesPage />}
+                          />
+                          <Route
                             path="/profit-report"
                             element={
                               hasProfitReportAccess ? (
@@ -360,14 +366,16 @@ function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <AuthProvider>
-        <ThemeProvider>
-          <ErrorBoundary>
-            <Router>
-              <AppRoutes />
-            </Router>
-          </ErrorBoundary>
-          <Toaster position="bottom-right" />
-        </ThemeProvider>
+        <BranchProvider>
+          <ThemeProvider>
+            <ErrorBoundary>
+              <Router>
+                <AppRoutes />
+              </Router>
+            </ErrorBoundary>
+            <Toaster position="bottom-right" />
+          </ThemeProvider>
+        </BranchProvider>
       </AuthProvider>
     </I18nextProvider>
   );

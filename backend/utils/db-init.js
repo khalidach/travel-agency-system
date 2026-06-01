@@ -283,6 +283,19 @@ const applyDatabaseMigrations = async (client) => {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS branches (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        address TEXT,
+        phone VARCHAR(50),
+        email VARCHAR(255),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
     // --- Schema Updates for Existing Tables ---
     console.log("Checking for missing columns in existing tables...");
     await client.query(`
@@ -302,6 +315,54 @@ const applyDatabaseMigrations = async (client) => {
           WHERE table_name='employees' AND column_name='permissions'
         ) THEN
           ALTER TABLE employees ADD COLUMN permissions JSONB DEFAULT '[]'::jsonb;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='employees' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE employees ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='bookings' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE bookings ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='expenses' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE expenses ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='incomes' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE incomes ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='daily_services' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE daily_services ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='factures' AND column_name='branchId'
+        ) THEN
+          ALTER TABLE factures ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
         END IF;
       END $$;
     `);
@@ -392,6 +453,14 @@ const applyDatabaseMigrations = async (client) => {
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications("recipientId", "isRead");',
     );
+
+    // Branch indexes
+    await client.query('CREATE INDEX IF NOT EXISTS idx_employees_branch ON employees("branchId");');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_bookings_branch ON bookings("branchId");');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_expenses_branch ON expenses("branchId");');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_incomes_branch ON incomes("branchId");');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_daily_services_branch ON daily_services("branchId");');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_factures_branch ON factures("branchId");');
 
     console.log("Database indexes applied successfully.");
     console.log("Database initialization complete.");

@@ -81,6 +81,8 @@ export interface Facture {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface Employee {
@@ -90,6 +92,8 @@ export interface Employee {
   adminId: number;
   active?: boolean;
   permissions?: string[];
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface CityData {
@@ -198,6 +202,8 @@ export interface Booking {
   employeeName?: string;
   bookingSource?: string;
   status?: "confirmed" | "pending_approval" | "cancelled";
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface ExpenseItem {
@@ -321,6 +327,8 @@ export interface DailyService {
   remainingBalance: number;
   isFullyPaid: boolean;
   totalPaid?: number;
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface DashboardStats {
@@ -433,6 +441,8 @@ export interface Expense {
   date: string;
   createdAt: string;
   updatedAt: string;
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface Supplier {
@@ -488,6 +498,8 @@ export interface Income {
   factureId?: number;
   createdAt: string;
   updatedAt: string;
+  branchId?: number | null;
+  branchName?: string | null;
 }
 
 export interface DetailedPerformanceDay {
@@ -518,5 +530,16 @@ export interface EmployeeDetailedAnalyticsData {
   performanceOverTime: DetailedPerformanceDay[];
   ranking: EmployeeRankingInfo;
   sourceBreakdown: BookingSourceBreakdown[];
+}
+
+export interface Branch {
+  id: number;
+  userId: number;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 

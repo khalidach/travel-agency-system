@@ -27,6 +27,7 @@ import FactureForm from "../components/facturation/FactureForm";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
 import { useAuthContext } from "../context/AuthContext";
+import { useBranchContext } from "../context/BranchContext";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
@@ -34,6 +35,7 @@ import DeliveryNotePDF from "../components/incomes/DeliveryNotePDF";
 export default function IncomeManagement() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
+    const { selectedBranchId } = useBranchContext();
     const [activeTab, setActiveTab] = useState<"delivery_note" | "regular">(
         "delivery_note"
     );
@@ -98,6 +100,7 @@ export default function IncomeManagement() {
             searchTerm,
             selectedBookingType,
             selectedClient,
+            selectedBranchId,
         ],
         queryFn: () =>
             api.getIncomes({
@@ -107,6 +110,7 @@ export default function IncomeManagement() {
                 searchTerm,
                 bookingType: selectedBookingType,
                 client: selectedClient,
+                branchId: selectedBranchId,
             }),
     });
 

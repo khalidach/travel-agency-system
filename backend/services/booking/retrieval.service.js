@@ -1,18 +1,23 @@
-const getAllBookings = async (db, id, page, limit, idColumn) => {
+const getAllBookings = async (db, id, page, limit, idColumn, branchId) => {
   const offset = (page - 1) * limit;
-  const bookingsPromise = db.query(
-    `SELECT b.*, e.username as "employeeName"
+  let query = `SELECT b.*, e.username as "employeeName"
       FROM bookings b
       LEFT JOIN employees e ON b."employeeId" = e.id
-      WHERE b."${idColumn}" = $1
-      ORDER BY b."createdAt" DESC
-      LIMIT $2 OFFSET $3`,
-    [id, limit, offset],
-  );
-  const totalCountPromise = db.query(
-    `SELECT COUNT(*) FROM bookings WHERE "${idColumn}" = $1`,
-    [id],
-  );
+      WHERE b."${idColumn}" = $1`;
+  let countQuery = `SELECT COUNT(*) FROM bookings WHERE "${idColumn}" = $1`;
+  const params = [id];
+  
+  if (branchId && branchId !== 'all') {
+    query += ` AND b."branchId" = $${params.length + 1}`;
+    countQuery += ` AND "branchId" = $${params.length + 1}`;
+    params.push(branchId);
+  }
+  
+  query += ` ORDER BY b."createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  
+  const bookingsPromise = db.query(query, [...params, limit, offset]);
+  const totalCountPromise = db.query(countQuery, params);
+
   const [bookingsResult, totalCountResult] = await Promise.all([
     bookingsPromise,
     totalCountPromise,

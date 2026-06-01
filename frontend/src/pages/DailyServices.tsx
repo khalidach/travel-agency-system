@@ -28,6 +28,7 @@ import html2canvas from "html2canvas";
 import ServiceReceiptPDF from "../components/daily_services/ServiceReceiptPDF";
 import { useAuthContext } from "../context/AuthContext";
 import VideoHelpModal from "../components/VideoHelpModal";
+import { useBranchContext } from "../context/BranchContext";
 
 import DailyServiceForm from "../components/daily_services/DailyServiceForm";
 import ServicePaymentManagementModal from "../components/daily_services/ServicePaymentManagementModal";
@@ -68,16 +69,19 @@ export default function DailyServices() {
 
   const servicesPerPage = 10;
 
+  const { selectedBranchId } = useBranchContext();
+
   const { data: servicesResponse, isLoading } = useQuery<
     PaginatedResponse<DailyService>
   >({
-    queryKey: ["dailyServices", currentPage, searchTerm, typeFilter, statusFilter],
+    queryKey: ["dailyServices", currentPage, searchTerm, typeFilter, statusFilter, selectedBranchId],
     queryFn: () => api.getDailyServices({
       page: currentPage,
       limit: servicesPerPage,
       searchTerm,
       typeFilter,
       statusFilter,
+      branchId: selectedBranchId,
     }),
     placeholderData: (prev) => prev,
   });

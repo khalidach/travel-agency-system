@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthContext } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useBranchContext } from "../context/BranchContext";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import {
   User,
@@ -14,6 +15,7 @@ import {
   Check,
   X,
   Trash2,
+  GitBranch,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import * as api from "../services/api";
@@ -28,6 +30,7 @@ export default function Header() {
   const { t, i18n } = useTranslation();
   const { state, dispatch } = useAuthContext();
   const { theme, toggleTheme } = useTheme();
+  const { selectedBranchId, setSelectedBranchId } = useBranchContext();
   const queryClient = useQueryClient();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -62,6 +65,14 @@ export default function Header() {
     },
     refetchInterval: 30000,
     enabled: state.isAuthenticated,
+  });
+ 
+  const { data: branches = [] } = useQuery<any[]>({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      return await api.getBranches();
+    },
+    enabled: state.isAuthenticated && (state.user?.role === "admin" || state.user?.role === "owner"),
   });
 
   const markReadMutation = useMutation({
@@ -192,6 +203,25 @@ export default function Header() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Branch Switcher */}
+            {state.isAuthenticated && (state.user?.role === "admin" || state.user?.role === "owner") && (
+              <div className="relative flex items-center gap-x-2 bg-muted rounded-lg p-1.5 border border-border">
+                <GitBranch className="w-4 h-4 text-muted-foreground mx-1" />
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-foreground outline-none border-none pr-8 cursor-pointer focus:ring-0"
+                >
+                  <option value="all" className="bg-popover text-foreground">{t("allBranches") || "All Branches"}</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={String(b.id)} className="bg-popover text-foreground">
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Language Switcher */}
             <div className="relative">
               <div className="flex items-center gap-x-3 bg-muted rounded-lg p-1">

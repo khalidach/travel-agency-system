@@ -10,7 +10,7 @@ exports.createEmployee = async (req, res, next) => {
         new AppError("You are not authorized to perform this action.", 403)
       );
     }
-    const { username, password, role, permissions } = req.body;
+    const { username, password, role, permissions, branchId } = req.body;
     const adminId = req.user.id;
 
     if (!username || !password || !role) {
@@ -21,8 +21,8 @@ exports.createEmployee = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const { rows } = await req.db.query(
-      'INSERT INTO employees (username, password, role, permissions, "adminId") VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role, permissions, "adminId"',
-      [username, hashedPassword, role, JSON.stringify(permissions || []), adminId]
+      'INSERT INTO employees (username, password, role, permissions, "adminId", "branchId") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, permissions, "adminId", "branchId"',
+      [username, hashedPassword, role, JSON.stringify(permissions || []), adminId, branchId || null]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -47,11 +47,12 @@ exports.getEmployees = async (req, res, next) => {
       );
     }
     const employeesQuery = `
-      SELECT e.id, e.username, e.role, e.permissions, e.active, COUNT(b.id) as "bookingCount"
+      SELECT e.id, e.username, e.role, e.permissions, e.active, e."branchId", br.name as "branchName", COUNT(b.id) as "bookingCount"
       FROM employees e
+      LEFT JOIN branches br ON e."branchId" = br.id
       LEFT JOIN bookings b ON e.id = b."employeeId"
       WHERE e."adminId" = $1
-      GROUP BY e.id
+      GROUP BY e.id, br.name
       ORDER BY e.username;
     `;
     const employeesResult = await req.db.query(employeesQuery, [
@@ -676,7 +677,7 @@ exports.updateEmployee = async (req, res, next) => {
       );
     }
     const { id } = req.params;
-    const { username, password, role, permissions } = req.body;
+    const { username, password, role, permissions, branchId } = req.body;
 
     let hashedPassword;
     if (password) {
@@ -684,14 +685,24 @@ exports.updateEmployee = async (req, res, next) => {
       hashedPassword = await bcrypt.hash(password, salt);
     }
 
+    const existingEmp = await req.db.query(
+      'SELECT "branchId" FROM employees WHERE id = $1 AND "adminId" = $2',
+      [id, req.user.id]
+    );
+    if (existingEmp.rows.length === 0) {
+      return next(new AppError("Employee not found.", 404));
+    }
+    const finalBranchId = branchId !== undefined ? branchId : existingEmp.rows[0].branchId;
+
     const { rows } = await req.db.query(
       `UPDATE employees SET 
                 username = COALESCE($1, username), 
                 password = COALESCE($2, password), 
                 role = COALESCE($3, role),
-                permissions = COALESCE($4, permissions) 
-             WHERE id = $5 AND "adminId" = $6 RETURNING id, username, role, permissions`,
-      [username, hashedPassword, role, permissions ? JSON.stringify(permissions) : null, id, req.user.id]
+                permissions = COALESCE($4, permissions),
+                "branchId" = $5 
+             WHERE id = $6 AND "adminId" = $7 RETURNING id, username, role, permissions, "branchId"`,
+      [username, hashedPassword, role, permissions ? JSON.stringify(permissions) : null, finalBranchId, id, req.user.id]
     );
 
     if (rows.length === 0) {

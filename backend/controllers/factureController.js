@@ -9,15 +9,21 @@ const getFactures = async (req, res, next) => {
     const limit = parseInt(req.query.limit || "10", 10);
     const offset = (page - 1) * limit;
 
-    const facturesPromise = req.db.query(
-      'SELECT * FROM factures WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT $2 OFFSET $3',
-      [adminId, limit, offset]
-    );
+    let queryStr = 'SELECT * FROM factures WHERE "userId" = $1';
+    let countQueryStr = 'SELECT COUNT(*) FROM factures WHERE "userId" = $1';
+    const params = [adminId];
 
-    const totalCountPromise = req.db.query(
-      'SELECT COUNT(*) FROM factures WHERE "userId" = $1',
-      [adminId]
-    );
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      queryStr += ` AND "branchId" = $${params.length + 1}`;
+      countQueryStr += ` AND "branchId" = $${params.length + 1}`;
+      params.push(branchIdFilter);
+    }
+
+    queryStr += ` ORDER BY "createdAt" DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+    const facturesPromise = req.db.query(queryStr, [...params, limit, offset]);
+    const totalCountPromise = req.db.query(countQueryStr, params);
 
     const [facturesResult, totalCountResult] = await Promise.all([
       facturesPromise,
@@ -64,7 +70,10 @@ const createFacture = async (req, res, next) => {
       total,
       notes,
       facture_number,
+      branchId,
     } = req.body;
+
+    const branchIdToSave = role === "employee" || role === "manager" ? (req.user.branchId || null) : (branchId || null);
 
     let formattedFactureNumber = facture_number;
 
@@ -97,8 +106,8 @@ const createFacture = async (req, res, next) => {
     }
 
     const { rows } = await client.query(
-      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
+      `INSERT INTO factures ("userId", "employeeId", "clientName", "clientAddress", "clientICE", date, items, type, "showMargin", "prixTotalHorsFrais", "totalFraisServiceHT", tva, total, notes, facture_number, "branchId")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -115,6 +124,7 @@ const createFacture = async (req, res, next) => {
         total,
         notes,
         formattedFactureNumber,
+        branchIdToSave,
       ]
     );
     await client.query("COMMIT");
@@ -158,11 +168,21 @@ const updateFacture = async (req, res, next) => {
       total,
       notes,
       facture_number,
+      branchId,
     } = req.body;
 
+    const existing = await req.db.query(
+      'SELECT "branchId" FROM factures WHERE id = $1 AND "userId" = $2',
+      [id, adminId]
+    );
+    if (existing.rows.length === 0) {
+      return next(new AppError("Facture not found or not authorized.", 404));
+    }
+    const branchIdToSave = role === "employee" || role === "manager" ? (existing.rows[0].branchId) : (branchId !== undefined ? branchId : existing.rows[0].branchId);
+
     const { rows } = await req.db.query(
-      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, facture_number = COALESCE($13, facture_number), "updatedAt" = NOW()
-       WHERE id = $14 AND "userId" = $15 RETURNING *`,
+      `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, facture_number = COALESCE($13, facture_number), "branchId" = $14, "updatedAt" = NOW()
+       WHERE id = $15 AND "userId" = $16 RETURNING *`,
       [
         clientName,
         clientAddress,
@@ -177,6 +197,7 @@ const updateFacture = async (req, res, next) => {
         total,
         notes,
         facture_number,
+        branchIdToSave,
         id,
         adminId,
       ]

@@ -41,6 +41,12 @@ const getDailyServices = async (req, res, next) => {
     let conditions = ['"userId" = $1'];
     let params = [adminId];
 
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+        conditions.push(`"branchId" = $${params.length + 1}`);
+        params.push(branchIdFilter);
+    }
+
     if (typeFilter && typeFilter !== "all" && typeFilter !== "All") {
         conditions.push(`type = $${params.length + 1}`);
         params.push(typeFilter);
@@ -104,7 +110,10 @@ const createDailyService = async (req, res, next) => {
       items,
       date,
       advancePayments,
+      branchId,
     } = req.body;
+
+    const branchIdToSave = role === "employee" || role === "manager" ? (req.user.branchId || null) : (branchId || null);
 
     const originalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
     const totalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
@@ -119,8 +128,8 @@ const createDailyService = async (req, res, next) => {
     const isFullyPaid = remainingBalance <= 0;
 
     const { rows } = await req.db.query(
-      `INSERT INTO daily_services ("userId", "employeeId", type, "clientName", "bookingRef", "items", profit, date, "advancePayments", "remainingBalance", "isFullyPaid")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO daily_services ("userId", "employeeId", type, "clientName", "bookingRef", "items", profit, date, "advancePayments", "remainingBalance", "isFullyPaid", "branchId")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         adminId,
         role === "admin" ? null : employeeId,
@@ -133,6 +142,7 @@ const createDailyService = async (req, res, next) => {
         JSON.stringify(advancePayments || []),
         remainingBalance,
         isFullyPaid,
+        branchIdToSave,
       ],
     );
     res.status(201).json(mapServiceData(rows[0]));
@@ -157,7 +167,17 @@ const updateDailyService = async (req, res, next) => {
       items,
       date,
       advancePayments,
+      branchId,
     } = req.body;
+
+    const existing = await req.db.query(
+      'SELECT "branchId" FROM daily_services WHERE id = $1 AND "userId" = $2',
+      [id, adminId]
+    );
+    if (existing.rows.length === 0) {
+      return next(new AppError("Service not found or not authorized.", 404));
+    }
+    const branchIdToSave = role === "employee" || role === "manager" ? (existing.rows[0].branchId) : (branchId !== undefined ? branchId : existing.rows[0].branchId);
 
     const originalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
     const totalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
@@ -172,8 +192,8 @@ const updateDailyService = async (req, res, next) => {
 
     const { rows } = await req.db.query(
       `UPDATE daily_services 
-       SET type = $1, "clientName" = $2, "bookingRef" = $3, "items" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "updatedAt" = NOW()
-       WHERE id = $10 AND "userId" = $11 RETURNING *`,
+       SET type = $1, "clientName" = $2, "bookingRef" = $3, "items" = $4, profit = $5, date = $6, "advancePayments" = $7, "remainingBalance" = $8, "isFullyPaid" = $9, "branchId" = $10, "updatedAt" = NOW()
+       WHERE id = $11 AND "userId" = $12 RETURNING *`,
       [
         type,
         clientName || null,
@@ -184,6 +204,7 @@ const updateDailyService = async (req, res, next) => {
         JSON.stringify(advancePayments || []),
         remainingBalance,
         isFullyPaid,
+        branchIdToSave,
         id,
         adminId,
       ],
@@ -235,7 +256,14 @@ const getDailyServiceReport = async (req, res, next) => {
     const isValidDate = (dateString) => dateString && !isNaN(new Date(dateString));
 
     // Fetch all for user and calculate stats in JS
-    const { rows } = await req.db.query('SELECT * FROM daily_services WHERE "userId" = $1', [adminId]);
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    let queryStr = 'SELECT * FROM daily_services WHERE "userId" = $1';
+    const reportParams = [adminId];
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      queryStr += ' AND "branchId" = $2';
+      reportParams.push(branchIdFilter);
+    }
+    const { rows } = await req.db.query(queryStr, reportParams);
     const mappedServices = rows.map(mapServiceData);
 
     // Lifetime summary

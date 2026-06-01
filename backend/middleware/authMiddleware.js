@@ -48,7 +48,7 @@ const protect = async (req, res, next) => {
         }
       } else {
         const { rows } = await req.db.query(
-          'SELECT id, username, role, permissions, "adminId" FROM employees WHERE id = $1',
+          'SELECT id, username, role, permissions, "adminId", "branchId" FROM employees WHERE id = $1',
           [decoded.id]
         );
         if (rows.length > 0) {

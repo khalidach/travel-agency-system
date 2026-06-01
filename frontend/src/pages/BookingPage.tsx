@@ -24,6 +24,7 @@ import { useAuthContext } from "../context/AuthContext";
 import { useDebounce } from "../hooks/useDebounce";
 import { useBookingStore } from "../store/bookingStore";
 import { useBookingOperations } from "../hooks/useBookingOperations";
+import { useBranchContext } from "../context/BranchContext";
 
 // Types and API
 import type {
@@ -58,6 +59,7 @@ export default function BookingPage() {
   const queryClient = useQueryClient();
   const { programId } = useParams<{ programId: string }>();
   const { state: authState } = useAuthContext();
+  const { selectedBranchId } = useBranchContext();
   const userRole = authState.user?.role;
   const userId = authState.user?.id;
 
@@ -131,6 +133,7 @@ export default function BookingPage() {
         statusFilter,
         employeeFilter,
         variationFilter,
+        selectedBranchId,
       ],
       queryFn: () =>
         api.getBookingsByProgram(programId!, {
@@ -141,6 +144,7 @@ export default function BookingPage() {
           statusFilter,
           employeeFilter,
           variationFilter,
+          branchId: selectedBranchId,
         }),
       enabled: !!programId,
       placeholderData: (prev) => prev,
@@ -148,11 +152,12 @@ export default function BookingPage() {
 
   // Separate query for total (unfiltered) summary stats — not affected by search/filters
   const { data: totalSummaryResponse } = useQuery<BookingResponse>({
-    queryKey: ["bookingsByProgramTotalSummary", programId],
+    queryKey: ["bookingsByProgramTotalSummary", programId, selectedBranchId],
     queryFn: () =>
       api.getBookingsByProgram(programId!, {
         page: 1,
         limit: 1,
+        branchId: selectedBranchId,
       }),
     enabled: !!programId,
     staleTime: 30 * 1000, // Cache for 30 seconds to avoid extra requests
@@ -300,6 +305,7 @@ export default function BookingPage() {
           statusFilter,
           employeeFilter,
           variationFilter,
+          selectedBranchId,
         ],
         queryFn: () =>
           api.getBookingIdsByProgram(programId!, {
@@ -307,6 +313,7 @@ export default function BookingPage() {
             statusFilter,
             employeeFilter,
             variationFilter,
+            branchId: selectedBranchId,
           }),
         staleTime: 1000 * 60 * 5,
       });

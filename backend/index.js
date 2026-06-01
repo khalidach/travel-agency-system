@@ -34,6 +34,7 @@ const expenseRoutes = require("./routes/expenseRoutes");
 const supplierRoutes = require("./routes/supplierRoutes");
 const clientRoutes = require("./routes/clientRoutes");
 const incomeRoutes = require("./routes/incomeRoutes");
+const branchRoutes = require("./routes/branchRoutes");
 
 const app = express();
 
@@ -145,6 +146,7 @@ app.use("/api/expenses", protect, checkPermission("expenses"), expenseRoutes);
 app.use("/api/suppliers", protect, checkPermission("suppliers"), supplierRoutes);
 app.use("/api/clients", protect, checkPermission("clients"), clientRoutes);
 app.use("/api/incomes", protect, checkPermission("incomes"), incomeRoutes);
+app.use("/api/branches", protect, branchRoutes);
 
 // Serve static files from the frontend build directory
 app.use(express.static(path.join(__dirname, "../frontend/dist")));

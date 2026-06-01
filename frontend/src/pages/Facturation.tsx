@@ -18,6 +18,7 @@ import FactureForm from "../components/facturation/FactureForm";
 import FacturePDF from "../components/facturation/FacturePDF";
 import { toast } from "react-hot-toast";
 import { useAuthContext } from "../context/AuthContext";
+import { useBranchContext } from "../context/BranchContext";
 import { pdf } from "@react-pdf/renderer";
 import { saveAs } from "file-saver";
 import { usePagination } from "../hooks/usePagination";
@@ -27,6 +28,7 @@ import VideoHelpModal from "../components/VideoHelpModal";
 export default function Facturation() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { selectedBranchId } = useBranchContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingFacture, setEditingFacture] = useState<Facture | null>(null);
   const [factureToDelete, setFactureToDelete] = useState<number | null>(null);
@@ -37,8 +39,8 @@ export default function Facturation() {
   const { data: facturesResponse, isLoading } = useQuery<
     PaginatedResponse<Facture>
   >({
-    queryKey: ["factures", currentPage],
-    queryFn: () => api.getFactures(currentPage, facturesPerPage),
+    queryKey: ["factures", currentPage, selectedBranchId],
+    queryFn: () => api.getFactures(currentPage, facturesPerPage, selectedBranchId),
     placeholderData: (prev) => prev,
   });
 

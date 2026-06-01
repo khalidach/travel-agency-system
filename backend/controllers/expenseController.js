@@ -36,6 +36,13 @@ exports.getAllExpenses = async (req, res, next) => {
     let countQuery = `SELECT COUNT(*) FROM expenses WHERE "userId" = $1`;
     const params = [req.user.id];
 
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      query += ` AND "branchId" = $${params.length + 1}`;
+      countQuery += ` AND "branchId" = $${params.length + 1}`;
+      params.push(branchIdFilter);
+    }
+
     if (type) {
       query += ` AND type = $${params.length + 1}`;
       countQuery += ` AND type = $${params.length + 1}`;
@@ -103,7 +110,10 @@ exports.createExpense = async (req, res, next) => {
       paymentMethod,
       bookingType,
       reservationNumber,
+      branchId,
     } = req.body;
+
+    const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (req.user.branchId || null) : (branchId || null);
 
     let advancePayments = [];
     let remainingBalance = amount;
@@ -130,8 +140,8 @@ exports.createExpense = async (req, res, next) => {
       `INSERT INTO expenses 
       ("userId", "employeeId", type, category, description, beneficiary, amount, 
        "advancePayments", "remainingBalance", "isFullyPaid", date, items, currency, 
-       "bookingType", "reservationNumber")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       "bookingType", "reservationNumber", "branchId")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *`,
       [
         req.user.id,
@@ -149,6 +159,7 @@ exports.createExpense = async (req, res, next) => {
         currency || "MAD",
         bookingType || null,
         reservationNumber || null,
+        branchIdToSave,
       ],
     );
 
@@ -173,6 +184,7 @@ exports.updateExpense = async (req, res, next) => {
       paymentMethod,
       bookingType,
       reservationNumber,
+      branchId,
     } = req.body;
 
     const existing = await req.db.query(
@@ -209,14 +221,16 @@ exports.updateExpense = async (req, res, next) => {
       isFullyPaid = status.isFullyPaid;
     }
 
+    const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (expense.branchId) : (branchId !== undefined ? branchId : expense.branchId);
+
     const { rows } = await req.db.query(
       `UPDATE expenses 
       SET category = $1, description = $2, beneficiary = $3, amount = $4, date = $5, 
           "advancePayments" = $6, "remainingBalance" = $7, "isFullyPaid" = $8, 
           items = $9, currency = $10, 
-          "bookingType" = $11, "reservationNumber" = $12, 
+          "bookingType" = $11, "reservationNumber" = $12, "branchId" = $13,
           "updatedAt" = NOW()
-      WHERE id = $13 AND "userId" = $14
+      WHERE id = $14 AND "userId" = $15
       RETURNING *`,
       [
         category,
@@ -231,6 +245,7 @@ exports.updateExpense = async (req, res, next) => {
         currency || "MAD",
         bookingType || null,
         reservationNumber || null,
+        branchIdToSave,
         id,
         req.user.id,
       ],

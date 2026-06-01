@@ -16,6 +16,7 @@ import type {
   FacturationSettings,
   Supplier,
   Client,
+  Branch,
 } from "../context/models";
 import type { BookingSaveData } from "../components/booking_form/types";
 
@@ -103,11 +104,12 @@ export const updateSettings = (settings: Partial<FacturationSettings>) =>
   request("/settings", { method: "PUT", body: JSON.stringify(settings) });
 
 // --- Facturation API ---
-export const getFactures = (page = 1, limit = 10) => {
+export const getFactures = (page = 1, limit = 10, branchId?: string) => {
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
+  if (branchId && branchId !== "all") params.append("branchId", branchId);
   return request(`/facturation?${params.toString()}`);
 };
 export const createFacture = (facture: Create<Facture>) =>
@@ -127,6 +129,7 @@ export const getDailyServices = (params?: {
   searchTerm?: string;
   typeFilter?: string;
   statusFilter?: string;
+  branchId?: string;
 }) => {
   const query = new URLSearchParams();
 
@@ -136,6 +139,7 @@ export const getDailyServices = (params?: {
     if (params.searchTerm) query.append("searchTerm", params.searchTerm);
     if (params.typeFilter) query.append("typeFilter", params.typeFilter);
     if (params.statusFilter) query.append("statusFilter", params.statusFilter);
+    if (params.branchId && params.branchId !== "all") query.append("branchId", params.branchId);
   } else {
     query.append("page", "1");
     query.append("limit", "10");
@@ -152,11 +156,12 @@ export const updateDailyService = (id: number, service: Update<DailyService>) =>
   });
 export const deleteDailyService = (id: number) =>
   request(`/daily-services/${id}`, { method: "DELETE" });
-export const getDailyServiceReport = (startDate?: string, endDate?: string) => {
+export const getDailyServiceReport = (startDate?: string, endDate?: string, branchId?: string) => {
   let endpoint = "/daily-services/report";
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
+  if (branchId && branchId !== "all") params.append("branchId", branchId);
   const queryString = params.toString();
   if (queryString) {
     endpoint += `?${queryString}`;
@@ -193,11 +198,15 @@ export const deleteDailyServicePayment = (
   });
 
 // --- Dashboard API ---
-export const getDashboardStats = (startDate?: string, endDate?: string) => {
+export const getDashboardStats = (startDate?: string, endDate?: string, branchId?: string) => {
   let endpoint = "/dashboard/stats";
-  if (startDate && endDate) {
-    const params = new URLSearchParams({ startDate, endDate });
-    endpoint += `?${params.toString()}`;
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  if (branchId && branchId !== "all") params.append("branchId", branchId);
+  const queryString = params.toString();
+  if (queryString) {
+    endpoint += `?${queryString}`;
   }
   return request(endpoint);
 };
@@ -208,6 +217,7 @@ export const getProfitReport = (
   limit: number = 6,
   startDate?: string,
   endDate?: string,
+  branchId?: string,
 ) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -222,6 +232,9 @@ export const getProfitReport = (
   if (endDate) {
     params.append("endDate", endDate);
   }
+  if (branchId && branchId !== "all") {
+    params.append("branchId", branchId);
+  }
   return request(`/dashboard/profit-report?${params.toString()}`);
 };
 
@@ -229,6 +242,7 @@ export const exportProfitReportToExcel = (
   filterType?: string,
   startDate?: string,
   endDate?: string,
+  branchId?: string,
 ) => {
   const params = new URLSearchParams();
   if (filterType && filterType !== "all") {
@@ -239,6 +253,9 @@ export const exportProfitReportToExcel = (
   }
   if (endDate) {
     params.append("endDate", endDate);
+  }
+  if (branchId && branchId !== "all") {
+    params.append("branchId", branchId);
   }
   return request(`/dashboard/profit-report/export?${params.toString()}`, {}, true);
 };
@@ -333,6 +350,7 @@ export const getBookingsByProgram = (
     statusFilter?: string;
     employeeFilter?: string;
     variationFilter?: string;
+    branchId?: string;
   },
 ) => {
   const queryParams = new URLSearchParams({
@@ -343,8 +361,11 @@ export const getBookingsByProgram = (
     statusFilter: params.statusFilter || "all",
     employeeFilter: params.employeeFilter || "all",
     variationFilter: params.variationFilter || "all",
-  }).toString();
-  return request(`/bookings/program/${programId}?${queryParams}`);
+  });
+  if (params.branchId && params.branchId !== "all") {
+    queryParams.append("branchId", params.branchId);
+  }
+  return request(`/bookings/program/${programId}?${queryParams.toString()}`);
 };
 
 export const getBookingIdsByProgram = (
@@ -354,6 +375,7 @@ export const getBookingIdsByProgram = (
     statusFilter: string;
     employeeFilter: string;
     variationFilter?: string;
+    branchId?: string;
   },
 ) => {
   const queryParams = new URLSearchParams({
@@ -361,8 +383,11 @@ export const getBookingIdsByProgram = (
     statusFilter: params.statusFilter,
     employeeFilter: params.employeeFilter,
     variationFilter: params.variationFilter || "all",
-  }).toString();
-  return request(`/bookings/program/${programId}/ids?${queryParams}`);
+  });
+  if (params.branchId && params.branchId !== "all") {
+    queryParams.append("branchId", params.branchId);
+  }
+  return request(`/bookings/program/${programId}/ids?${queryParams.toString()}`);
 };
 
 export const searchBookingsInProgram = async (
@@ -735,6 +760,7 @@ export const getExpenses = (params?: {
   searchTerm?: string;
   bookingType?: string;
   beneficiary?: string;
+  branchId?: string;
 }) => {
   const query = new URLSearchParams();
 
@@ -747,6 +773,7 @@ export const getExpenses = (params?: {
     if (params.searchTerm) query.append("searchTerm", params.searchTerm);
     if (params.bookingType) query.append("bookingType", params.bookingType);
     if (params.beneficiary) query.append("beneficiary", params.beneficiary);
+    if (params.branchId && params.branchId !== "all") query.append("branchId", params.branchId);
   }
 
   return request(`/expenses?${query.toString()}`);
@@ -799,6 +826,7 @@ export const getIncomes = (params?: {
   searchTerm?: string;
   bookingType?: string;
   client?: string;
+  branchId?: string;
 }) => {
   const query = new URLSearchParams();
 
@@ -811,6 +839,7 @@ export const getIncomes = (params?: {
     if (params.searchTerm) query.append("searchTerm", params.searchTerm);
     if (params.bookingType) query.append("bookingType", params.bookingType);
     if (params.client) query.append("client", params.client);
+    if (params.branchId && params.branchId !== "all") query.append("branchId", params.branchId);
   }
 
   return request(`/incomes?${query.toString()}`);
@@ -855,4 +884,13 @@ export const deleteIncomePayment = (id: number, paymentId: string) =>
 
 export const convertIncomeToFacture = (id: number) =>
   request(`/incomes/${id}/convert-to-facture`, { method: "POST" });
+
+// --- Branch API ---
+export const getBranches = (): Promise<Branch[]> => request("/branches");
+export const createBranch = (data: Create<Branch>): Promise<Branch> =>
+  request("/branches", { method: "POST", body: JSON.stringify(data) });
+export const updateBranch = (id: number, data: Update<Branch>): Promise<Branch> =>
+  request(`/branches/${id}`, { method: "PUT", body: JSON.stringify(data) });
+export const deleteBranch = (id: number): Promise<{ message: string }> =>
+  request(`/branches/${id}`, { method: "DELETE" });
 

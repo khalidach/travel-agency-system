@@ -34,12 +34,15 @@ exports.getAllBookings = async (req, res, next) => {
       idColumn = "employeeId";
     }
 
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+
     const { bookings, totalCount } = await BookingService.getAllBookings(
       req.db,
       queryUserId,
       page,
       limit,
       idColumn,
+      branchIdFilter,
     );
 
     res.status(200).json({
@@ -78,6 +81,13 @@ exports.getBookingsByProgram = async (req, res, next) => {
     let whereConditions = ['b."userId" = $1', 'b."tripId" = $2'];
     const queryParams = [adminId, programId];
     let paramIndex = 3;
+
+    const branchIdFilter = role === 'admin' || role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      whereConditions.push(`b."branchId" = $${paramIndex}`);
+      queryParams.push(branchIdFilter);
+      paramIndex++;
+    }
 
     if (searchTerm) {
       whereConditions.push(
@@ -356,6 +366,13 @@ exports.getBookingIdsByProgram = async (req, res, next) => {
     let whereConditions = ['"userId" = $1', '"tripId" = $2'];
     const queryParams = [adminId, programId];
     let paramIndex = 3;
+
+    const branchIdFilter = role === 'admin' || role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      whereConditions.push(`"branchId" = $${paramIndex}`);
+      queryParams.push(branchIdFilter);
+      paramIndex++;
+    }
 
     if (searchTerm) {
       whereConditions.push(

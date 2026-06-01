@@ -16,7 +16,7 @@ import Modal from "../components/Modal";
 import ConfirmationModal from "../components/modals/ConfirmationModal";
 import * as api from "../services/api";
 import { toast } from "react-hot-toast";
-import type { Employee } from "../context/models";
+import type { Employee, Branch } from "../context/models";
 import { useTranslation } from "react-i18next";
 import VideoHelpModal from "../components/VideoHelpModal";
 import { useAuthContext } from "../context/AuthContext";
@@ -67,6 +67,12 @@ const EmployeeForm = ({
     password: "",
     role: employee?.role || "employee",
     permissions: employee?.permissions || [],
+    branchId: employee?.branchId !== null && employee?.branchId !== undefined ? String(employee.branchId) : "",
+  });
+
+  const { data: branches = [] } = useQuery<Branch[]>({
+    queryKey: ["branches"],
+    queryFn: api.getBranches,
   });
 
   const handleRoleChange = (role: "manager" | "employee") => {
@@ -90,7 +96,10 @@ const EmployeeForm = ({
       toast.error(t("usernameAndPasswordRequired"));
       return;
     }
-    onSave(formData);
+    onSave({
+      ...formData,
+      branchId: formData.branchId ? Number(formData.branchId) : null,
+    });
   };
 
   return (
@@ -133,6 +142,23 @@ const EmployeeForm = ({
         >
           <option value="employee">{t("employee")}</option>
           <option value="manager">{t("manager")}</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-foreground">
+          {t("branch", "Branch")}
+        </label>
+        <select
+          value={formData.branchId}
+          onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+          className="w-full px-3 py-2 border border-input rounded-lg mt-1 bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+        >
+          <option value="">{t("noBranch", "No Branch")}</option>
+          {branches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
         </select>
       </div>
       <div>
@@ -356,6 +382,9 @@ export default function EmployeesPage() {
                 {t("role")}
               </th>
               <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
+                {t("branch", "Branch")}
+              </th>
+              <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
                 {t("permissions")}
               </th>
               <th className="px-6 py-4 text-xs font-medium text-muted-foreground uppercase tracking-wider text-left">
@@ -403,13 +432,16 @@ export default function EmployeesPage() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         emp.role === "manager"
-                          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200"
-                          : "bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200"
+                           ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/20 dark:text-indigo-200"
+                           : "bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-200"
                       }`}
                     >
                       <Briefcase className="w-3 h-3 mr-1.5" />
                       {t(emp.role)}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                    {emp.branchName || t("noBranch", "No Branch")}
                   </td>
                   <td className="px-6 py-4 max-w-xs">
                     <div className="flex flex-wrap gap-1">

@@ -114,6 +114,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
       relatedPersons,
       noPassport,
       bookingSource,
+      branchId,
     } = bookingData;
 
     // Capacity Check for TripId change
@@ -174,8 +175,10 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
     const remainingBalance = sellingPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
+    const branchIdToSave = user.role === "employee" || user.role === "manager" ? (oldBooking.branchId) : (branchId !== undefined ? branchId : oldBooking.branchId);
+
     const { rows } = await client.query(
-      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19, "bookingSource" = $20 WHERE id = $21 RETURNING *',
+      'UPDATE bookings SET "clientNameAr" = $1, "clientNameFr" = $2, "personType" = $3, "phoneNumber" = $4, "passportNumber" = $5, "dateOfBirth" = $6, "passportExpirationDate" = $7, "gender" = $8, "tripId" = $9, "variationName" = $10, "packageId" = $11, "selectedHotel" = $12, "sellingPrice" = $13, "basePrice" = $14, profit = $15, "advancePayments" = $16, "remainingBalance" = $17, "isFullyPaid" = $18, "relatedPersons" = $19, "bookingSource" = $20, "branchId" = $21 WHERE id = $22 RETURNING *',
       [
         clientNameAr,
         JSON.stringify(processedClientNameFr),
@@ -197,6 +200,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         isFullyPaid,
         JSON.stringify(relatedPersons || []),
         bookingSource || null,
+        branchIdToSave,
         bookingId,
       ],
     );

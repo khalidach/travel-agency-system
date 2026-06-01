@@ -812,5 +812,20 @@
   "bookingsRevenue": "Revenu des Réservations",
   "servicesRevenue": "Revenu des Services",
   "servicesProfit": "Bénéfice des Services",
-  "revenueContribution": "Contribution au Revenu"
+  "revenueContribution": "Contribution au Revenu",
+  "branches": "Succursales",
+  "branch": "Succursale",
+  "noBranch": "Aucune succursale",
+  "allBranches": "Toutes les succursales",
+  "branchNameRequired": "Le nom de la succursale est requis",
+  "branchName": "Nom de la succursale",
+  "branchesManagement": "Gestion des succursales",
+  "branchesDescription": "Créez et gérez les succursales physiques et les bureaux de votre agence.",
+  "addBranch": "Ajouter une succursale",
+  "editBranch": "Modifier la succursale",
+  "deleteBranch": "Supprimer la succursale",
+  "deleteBranchConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette succursale ? Les employés qui y sont affectés seront mis à jour avec 'Aucune succursale' mais ne seront pas supprimés.",
+  "noBranchesFound": "Aucune succursale trouvée",
+  "noBranchesDescription": "Il semble que vous n'ayez pas encore créé de succursale. Créez votre première succursale physique pour commencer à organiser l'accès des employés et à filtrer les transactions.",
+  "created": "Créé"
 }

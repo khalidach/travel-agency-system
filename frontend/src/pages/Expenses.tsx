@@ -23,6 +23,7 @@ import OrderNoteForm from "../components/expenses/OrderNoteForm";
 import RegularExpenseForm from "../components/expenses/RegularExpenseForm";
 import { toast } from "react-hot-toast";
 import PaginationControls from "../components/ui/PaginationControls";
+import { useBranchContext } from "../context/BranchContext";
 
 export default function Expenses() {
   const { t } = useTranslation();
@@ -80,6 +81,8 @@ export default function Expenses() {
     queryFn: () => api.getSuppliers(false, 1, 1000),
   });
 
+  const { selectedBranchId } = useBranchContext();
+
   const { data: expensesData, isLoading } = useQuery<{
     expenses: Expense[];
     total: number;
@@ -94,6 +97,7 @@ export default function Expenses() {
       searchTerm,
       selectedBookingType,
       selectedSupplier,
+      selectedBranchId,
     ],
     queryFn: () =>
       api.getExpenses({
@@ -103,6 +107,7 @@ export default function Expenses() {
         searchTerm,
         bookingType: selectedBookingType,
         beneficiary: selectedSupplier,
+        branchId: selectedBranchId,
       }),
   });
 

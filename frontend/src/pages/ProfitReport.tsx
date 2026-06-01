@@ -40,6 +40,7 @@ import { usePagination } from "../hooks/usePagination";
 import PaginationControls from "../components/booking/PaginationControls";
 import { ProgramType, Pagination } from "../context/models";
 import VideoHelpModal from "../components/VideoHelpModal";
+import { useBranchContext } from "../context/BranchContext";
 
 // Interfaces
 interface DetailedPerformanceItem {
@@ -133,19 +134,22 @@ export default function ProfitReport() {
   }, [dateFilter, customDateRange]);
 
   // API Queries
+  const { selectedBranchId } = useBranchContext();
+
   const {
     data: reportData,
     isLoading,
     isError,
   } = useQuery<ProfitReportData>({
-    queryKey: ["profitReport", filterType, currentPage, dateParams],
+    queryKey: ["profitReport", filterType, currentPage, dateParams, selectedBranchId],
     queryFn: () =>
       api.getProfitReport(
         filterType,
         currentPage,
         itemsPerPage,
         dateParams.startDate,
-        dateParams.endDate
+        dateParams.endDate,
+        selectedBranchId
       ),
   });
 
@@ -154,9 +158,9 @@ export default function ProfitReport() {
     isLoading: isDailyLoading,
     isError: isDailyError,
   } = useQuery<any>({
-    queryKey: ["dailyServiceReport", dateParams],
+    queryKey: ["dailyServiceReport", dateParams, selectedBranchId],
     queryFn: () =>
-      api.getDailyServiceReport(dateParams.startDate, dateParams.endDate),
+      api.getDailyServiceReport(dateParams.startDate, dateParams.endDate, selectedBranchId),
   });
 
   // Extract raw details
@@ -283,7 +287,8 @@ export default function ProfitReport() {
       const blob = await api.exportProfitReportToExcel(
         filterType,
         dateParams.startDate,
-        dateParams.endDate
+        dateParams.endDate,
+        selectedBranchId
       );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");

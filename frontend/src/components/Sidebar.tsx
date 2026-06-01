@@ -26,6 +26,7 @@ import {
   Truck,
   Dock,
   Coins,
+  GitBranch,
 } from "lucide-react";
 
 import NewBadge from "./ui/NewBadge";
@@ -210,6 +211,12 @@ const allMenuItems: MenuItem[] = [
       if (user.tierId) return user.tierId !== 1;
       return false;
     },
+  },
+  {
+    key: "branches",
+    path: "/branches",
+    icon: GitBranch,
+    roles: ["admin"],
   },
   {
     key: "employees",

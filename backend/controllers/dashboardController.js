@@ -6,26 +6,31 @@ const ProfitReportExcelService = require("../services/ProfitReportExcelService")
 
 const getDashboardStats = async (req, res, next) => {
   try {
-    const { adminId } = req.user;
+    const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
     const { startDate, endDate } = req.query;
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
 
     const isValidDate = (dateString) =>
       dateString && !isNaN(new Date(dateString));
 
-    let dateFilterClause = "";
-    const queryParams = [adminId];
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      queryParams.push(startDate, endDate);
-      dateFilterClause = `AND b."createdAt"::date BETWEEN $2 AND $3`;
-    }
-    const servicesFilteredDateParams = [...queryParams];
-    const facturesFilteredDateParams = [...queryParams];
-
-    let employeeFilterClause = "";
     const permissions = req.user.permissions || [];
+
+    // 1. Bookings Stats Query
+    const bookingsParams = [adminId];
+    let bookingsDateFilter = "";
+    if (isValidDate(startDate) && isValidDate(endDate)) {
+      bookingsParams.push(startDate, endDate);
+      bookingsDateFilter = `AND b."createdAt"::date BETWEEN $2 AND $3`;
+    }
+    let bookingsEmployeeFilter = "";
     if (req.user.role === "employee" && !permissions.includes("viewOthersBookings")) {
-      queryParams.push(req.user.id);
-      employeeFilterClause = `AND b."employeeId" = $${queryParams.length}`;
+      bookingsParams.push(req.user.id);
+      bookingsEmployeeFilter = `AND b."employeeId" = $${bookingsParams.length}`;
+    }
+    let bookingsBranchFilter = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      bookingsParams.push(branchIdFilter);
+      bookingsBranchFilter = `AND b."branchId" = $${bookingsParams.length}`;
     }
 
     const statsQuery = `
@@ -35,23 +40,30 @@ const getDashboardStats = async (req, res, next) => {
         COUNT(*) as "allTimeBookings",
         COALESCE(SUM(b."sellingPrice" - b."remainingBalance"), 0) as "allTimeRevenue",
         
-        COUNT(*) FILTER (WHERE 1=1 ${dateFilterClause}) as "filteredBookingsCount",
-        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredBookingRevenue",
-        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${dateFilterClause}), 0) as "filteredPaid",
+        COUNT(*) FILTER (WHERE 1=1 ${bookingsDateFilter}) as "filteredBookingsCount",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${bookingsDateFilter}), 0) as "filteredBookingRevenue",
+        COALESCE(SUM(b."sellingPrice" - b."remainingBalance") FILTER (WHERE 1=1 ${bookingsDateFilter}), 0) as "filteredPaid",
 
         COALESCE(SUM(CASE WHEN "isFullyPaid" = true THEN 1 ELSE 0 END), 0) as "fullyPaid",
         COALESCE(SUM(CASE WHEN "isFullyPaid" = false THEN 1 ELSE 0 END), 0) as "pending"
       FROM bookings b
-      WHERE b."userId" = $1 ${employeeFilterClause}
+      WHERE b."userId" = $1 ${bookingsEmployeeFilter} ${bookingsBranchFilter}
     `;
+    const statsPromise = req.db.query(statsQuery, bookingsParams);
 
-    const statsPromise = req.db.query(statsQuery, queryParams);
-
-    // NEW: Query for Daily Services Stats (Count and Revenue)
+    // 2. Daily Services Stats Query
+    const dailyServiceStatsParams = [adminId];
     let dailyServiceDateFilterClause = "";
     if (isValidDate(startDate) && isValidDate(endDate)) {
+      dailyServiceStatsParams.push(startDate, endDate);
       dailyServiceDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
+    let dailyServiceBranchFilterClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      dailyServiceStatsParams.push(branchIdFilter);
+      dailyServiceBranchFilterClause = `AND "branchId" = $${dailyServiceStatsParams.length}`;
+    }
+
     const dailyServiceStatsQuery = `
       WITH ds_calc AS (
         SELECT 
@@ -62,7 +74,7 @@ const getDashboardStats = async (req, res, next) => {
             FROM jsonb_array_elements((CASE WHEN jsonb_typeof(items) = 'array' THEN items ELSE '[]'::jsonb END)) as item
           ) as total_price
         FROM daily_services
-        WHERE "userId" = $1
+        WHERE "userId" = $1 ${dailyServiceBranchFilterClause}
       )
       SELECT 
         COUNT(*) FILTER (WHERE 1=1 ${dailyServiceDateFilterClause}) AS "filteredServicesCount",
@@ -71,29 +83,43 @@ const getDashboardStats = async (req, res, next) => {
         COALESCE(SUM(total_price - COALESCE("remainingBalance", total_price)), 0) AS "allTimeServiceRevenue"
       FROM ds_calc
     `;
-    const dailyServiceStatsPromise = req.db.query(
-      dailyServiceStatsQuery,
-      queryParams
-    );
+    const dailyServiceStatsPromise = req.db.query(dailyServiceStatsQuery, dailyServiceStatsParams);
 
+    // 3. Expenses Stats Query
+    const expensesStatsParams = [adminId];
     let expenseDateFilterClause = "";
     if (isValidDate(startDate) && isValidDate(endDate)) {
+      expensesStatsParams.push(startDate, endDate);
       expenseDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
+    let expenseBranchFilterClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      expensesStatsParams.push(branchIdFilter);
+      expenseBranchFilterClause = `AND "branchId" = $${expensesStatsParams.length}`;
+    }
+
     const expensesStatsQuery = `
       SELECT
         COALESCE(SUM(amount - "remainingBalance") FILTER (WHERE 1=1 ${expenseDateFilterClause}), 0) AS "filteredExpensesCost",
         COALESCE(SUM(amount - "remainingBalance"), 0) AS "allTimeExpensesCost"
       FROM expenses
-      WHERE "userId" = $1 AND type IN ('order_note', 'regular')
+      WHERE "userId" = $1 AND type IN ('order_note', 'regular') ${expenseBranchFilterClause}
     `;
-    const expensesStatsPromise = req.db.query(expensesStatsQuery, queryParams);
+    const expensesStatsPromise = req.db.query(expensesStatsQuery, expensesStatsParams);
 
-    // NEW: Query for Income Stats (Revenue from incomes)
+    // 4. Incomes Stats Query
+    const incomeStatsParams = [adminId];
     let incomeDateFilterClause = "";
     if (isValidDate(startDate) && isValidDate(endDate)) {
+      incomeStatsParams.push(startDate, endDate);
       incomeDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
+    let incomeBranchFilterClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      incomeStatsParams.push(branchIdFilter);
+      incomeBranchFilterClause = `AND "branchId" = $${incomeStatsParams.length}`;
+    }
+
     const incomeStatsQuery = `
       SELECT
         COUNT(*) FILTER (WHERE 1=1 ${incomeDateFilterClause}) AS "filteredIncomesCount",
@@ -101,51 +127,67 @@ const getDashboardStats = async (req, res, next) => {
         COALESCE(SUM(amount - COALESCE("remainingBalance", 0)) FILTER (WHERE 1=1 ${incomeDateFilterClause}), 0) AS "filteredIncomeRevenue",
         COALESCE(SUM(amount - COALESCE("remainingBalance", 0)), 0) AS "allTimeIncomeRevenue"
       FROM incomes
-      WHERE "userId" = $1
+      WHERE "userId" = $1 ${incomeBranchFilterClause}
     `;
-    const incomeStatsPromise = req.db.query(incomeStatsQuery, queryParams);
+    const incomeStatsPromise = req.db.query(incomeStatsQuery, incomeStatsParams);
 
-    // NEW: Query for Factures Count
+    // 5. Factures Count Query
+    const facturesCountParams = [adminId];
     let factureDateFilterClause = "";
     if (isValidDate(startDate) && isValidDate(endDate)) {
+      facturesCountParams.push(startDate, endDate);
       factureDateFilterClause = `AND date::date BETWEEN $2 AND $3`;
     }
+    let factureBranchFilterClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      facturesCountParams.push(branchIdFilter);
+      factureBranchFilterClause = `AND "branchId" = $${facturesCountParams.length}`;
+    }
+
     const facturesCountQuery = `
       SELECT 
         COUNT(*) AS "filteredFacturesCount"
       FROM factures
-      WHERE "userId" = $1 ${factureDateFilterClause}
+      WHERE "userId" = $1 ${factureDateFilterClause} ${factureBranchFilterClause}
     `;
-    const facturesCountPromise = req.db.query(
-      facturesCountQuery,
-      facturesFilteredDateParams
-    );
+    const facturesCountPromise = req.db.query(facturesCountQuery, facturesCountParams);
 
+    // 6. Programs by Type Promise (programs are user-wide)
     const programTypePromise = req.db.query(
       `SELECT type, COUNT(*) as count FROM programs WHERE "userId" = $1 GROUP BY type`,
       [adminId]
     );
+
+    // 7. Recent Bookings Promise
     let recentBookingsQuery = `
       SELECT id, "clientNameFr", "passportNumber", "sellingPrice", "isFullyPaid", "employeeId"
       FROM bookings WHERE "userId" = $1
     `;
     const recentBookingsParams = [adminId];
     if (req.user.role === "employee" && !permissions.includes("viewOthersBookings")) {
-      recentBookingsQuery += ` AND "employeeId" = $2`;
+      recentBookingsQuery += ` AND "employeeId" = $${recentBookingsParams.length + 1}`;
       recentBookingsParams.push(req.user.id);
     }
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      recentBookingsQuery += ` AND "branchId" = $${recentBookingsParams.length + 1}`;
+      recentBookingsParams.push(branchIdFilter);
+    }
     recentBookingsQuery += ` ORDER BY "createdAt" DESC LIMIT 3`;
-
     const recentBookingsPromise = req.db.query(recentBookingsQuery, recentBookingsParams);
-    const dailyServiceProfitPromise = req.db.query(
-      `SELECT type, COALESCE(SUM(profit), 0) as "totalProfit" 
-       FROM daily_services 
-       WHERE "userId" = $1 
-       GROUP BY type`,
-      [adminId]
-    );
 
-
+    // 8. Daily Service Profit Promise
+    let dailyServiceProfitQuery = `
+      SELECT type, COALESCE(SUM(profit), 0) as "totalProfit" 
+      FROM daily_services 
+      WHERE "userId" = $1
+    `;
+    const dailyServiceProfitParams = [adminId];
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      dailyServiceProfitQuery += ` AND "branchId" = $2`;
+      dailyServiceProfitParams.push(branchIdFilter);
+    }
+    dailyServiceProfitQuery += ` GROUP BY type`;
+    const dailyServiceProfitPromise = req.db.query(dailyServiceProfitQuery, dailyServiceProfitParams);
 
     const [
       statsResult,
@@ -172,7 +214,6 @@ const getDashboardStats = async (req, res, next) => {
     const facturesCount = facturesCountResult.rows[0];
     const programTypes = programTypeResult.rows;
     const recentBookings = recentBookingsResult.rows.map((b) => {
-      const permissions = req.user.permissions || [];
       if (req.user.role === "employee" && b.employeeId !== req.user.id && !permissions.includes("viewOthersBookingsFinancials")) {
         return {
           ...b,
@@ -185,20 +226,18 @@ const getDashboardStats = async (req, res, next) => {
     const dailyServiceProfits = dailyServiceProfitResult.rows;
     const expensesStats = expensesStatsResult.rows[0];
     const incomeStats = incomeStatsResult.rows[0];
+    
     const allTimeCost = parseFloat(expensesStats.allTimeExpensesCost);
     const allTimeIncomeRevenue = parseFloat(incomeStats.allTimeIncomeRevenue);
     const allTimeRevenue = parseFloat(stats.allTimeRevenue) + parseFloat(dailyServiceStats.allTimeServiceRevenue) + allTimeIncomeRevenue;
     const allTimeProfit = allTimeRevenue - allTimeCost;
 
     const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
-    const filteredServiceRevenue = parseFloat(
-      dailyServiceStats.filteredServiceRevenue
-    );
+    const filteredServiceRevenue = parseFloat(dailyServiceStats.filteredServiceRevenue);
     const filteredIncomeRevenue = parseFloat(incomeStats.filteredIncomeRevenue);
     const filteredCost = parseFloat(expensesStats.filteredExpensesCost);
-    const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue + filteredIncomeRevenue; // Combined Revenue (bookings + services + incomes)
+    const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue + filteredIncomeRevenue;
     const filteredProfit = filteredRevenue - filteredCost;
-    const filteredPaid = parseFloat(stats.filteredPaid);
 
     const formattedResponse = {
       allTimeStats: {
@@ -211,10 +250,7 @@ const getDashboardStats = async (req, res, next) => {
       },
       dateFilteredStats: {
         totalBookings: parseInt(stats.filteredBookingsCount, 10),
-        totalDailyServices: parseInt(
-          dailyServiceStats.filteredServicesCount,
-          10
-        ),
+        totalDailyServices: parseInt(dailyServiceStats.filteredServicesCount, 10),
         totalIncomes: parseInt(incomeStats.filteredIncomesCount, 10),
         totalFactures: parseInt(facturesCount.filteredFacturesCount, 10),
         totalRevenue: filteredRevenue,
@@ -222,14 +258,9 @@ const getDashboardStats = async (req, res, next) => {
         totalProfit: filteredProfit,
       },
       programTypeData: {
-        Hajj:
-          parseInt(programTypes.find((p) => p.type === "Hajj")?.count, 10) || 0,
-        Umrah:
-          parseInt(programTypes.find((p) => p.type === "Umrah")?.count, 10) ||
-          0,
-        Tourism:
-          parseInt(programTypes.find((p) => p.type === "Tourism")?.count, 10) ||
-          0,
+        Hajj: parseInt(programTypes.find((p) => p.type === "Hajj")?.count, 10) || 0,
+        Umrah: parseInt(programTypes.find((p) => p.type === "Umrah")?.count, 10) || 0,
+        Tourism: parseInt(programTypes.find((p) => p.type === "Tourism")?.count, 10) || 0,
       },
       dailyServiceProfitData: dailyServiceProfits.map((item) => ({
         type: item.type,
@@ -254,8 +285,9 @@ const getDashboardStats = async (req, res, next) => {
 
 const getProfitReport = async (req, res, next) => {
   try {
-    const { adminId } = req.user;
+    const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
     const { programType, page = 1, limit = 7, startDate, endDate } = req.query;
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
     const offset = (page - 1) * limit;
 
     const isValidDate = (dateString) =>
@@ -282,6 +314,12 @@ const getProfitReport = async (req, res, next) => {
       bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
     }
 
+    let bookingBranchClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      detailedParams.push(branchIdFilter);
+      bookingBranchClause = `AND b."branchId" = $${detailedParams.length}`;
+    }
+
     const limitPlaceholder = `$${detailedParams.length + 1}`;
     const offsetPlaceholder = `$${detailedParams.length + 2}`;
     detailedParams.push(limit, offset);
@@ -295,7 +333,7 @@ const getProfitReport = async (req, res, next) => {
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
           COALESCE(pc."totalCost", 0) as "totalCost"
       FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause}
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause} ${bookingBranchClause}
       LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
       ${programWhereClause}
       GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
@@ -316,6 +354,10 @@ const getProfitReport = async (req, res, next) => {
     if (isValidDate(startDate) && isValidDate(endDate)) {
       summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
       summaryParams.push(startDate, endDate);
+    }
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      summaryWhereClause += ` AND b."branchId" = $${summaryParams.length + 1}`;
+      summaryParams.push(branchIdFilter);
     }
     const summaryQuery = `
       SELECT 
@@ -354,12 +396,16 @@ const getProfitReport = async (req, res, next) => {
     `;
     const programCountPromise = req.db.query(programCountQuery, programParams);
 
-    // --- Monthly trend query (Enhanced to return sales and profit, and filter by type) ---
+    // --- Monthly trend query ---
     let monthlyTrendWhereClause = `WHERE b."userId" = $1 AND b."createdAt" >= NOW() - INTERVAL '12 months'`;
     const monthlyTrendParams = [adminId];
     if (programType && programType !== "all") {
       monthlyTrendWhereClause += ` AND p.type = $2`;
       monthlyTrendParams.push(programType);
+    }
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      monthlyTrendWhereClause += ` AND b."branchId" = $${monthlyTrendParams.length + 1}`;
+      monthlyTrendParams.push(branchIdFilter);
     }
     const monthlyTrendQuery = `
         SELECT
@@ -442,8 +488,9 @@ const getProfitReport = async (req, res, next) => {
 
 const exportProfitReportExcel = async (req, res, next) => {
   try {
-    const { adminId } = req.user;
+    const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
     const { programType, startDate, endDate } = req.query;
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
 
     const isValidDate = (dateString) =>
       dateString && !isNaN(new Date(dateString));
@@ -467,6 +514,12 @@ const exportProfitReportExcel = async (req, res, next) => {
       bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
     }
 
+    let bookingBranchClause = "";
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      programParams.push(branchIdFilter);
+      bookingBranchClause = `AND b."branchId" = $${programParams.length}`;
+    }
+
     const detailedPerformanceQuery = `
       SELECT
           p.id,
@@ -476,7 +529,7 @@ const exportProfitReportExcel = async (req, res, next) => {
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
           COALESCE(pc."totalCost", 0) as "totalCost"
       FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause}
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause} ${bookingBranchClause}
       LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
       ${programWhereClause}
       GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
@@ -506,6 +559,10 @@ const exportProfitReportExcel = async (req, res, next) => {
     if (isValidDate(startDate) && isValidDate(endDate)) {
       summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
       summaryParams.push(startDate, endDate);
+    }
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      summaryWhereClause += ` AND b."branchId" = $${summaryParams.length + 1}`;
+      summaryParams.push(branchIdFilter);
     }
     const summaryQuery = `
       SELECT 
@@ -546,7 +603,14 @@ const exportProfitReportExcel = async (req, res, next) => {
     };
 
     // 2. Query Daily Services Performance
-    const { rows: dsRows } = await req.db.query('SELECT * FROM daily_services WHERE "userId" = $1', [adminId]);
+    let dsQuery = 'SELECT * FROM daily_services WHERE "userId" = $1';
+    const dsParams = [adminId];
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      dsQuery += ' AND "branchId" = $2';
+      dsParams.push(branchIdFilter);
+    }
+    const { rows: dsRows } = await req.db.query(dsQuery, dsParams);
+    
     const mapServiceData = (row) => {
       const items = typeof row.items === "string" ? JSON.parse(row.items) : (row.items || []);
       const originalPrice = items.reduce((sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0), 0);
