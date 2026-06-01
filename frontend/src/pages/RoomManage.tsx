@@ -539,7 +539,7 @@ export default function RoomManage() {
                     });
                     setIsNewRoomModalOpen(true);
                   }}
-                  className="w-full mt-2 p-2 bg-muted text-white rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
+                  className="w-full mt-2 p-2 bg-muted text-muted-foreground rounded hover:bg-accent hover:text-accent-foreground flex items-center justify-center transition-colors"
                 >
                   <Plus size={16} className={`mr-1`} /> {t("addRoom")}
                 </button>
