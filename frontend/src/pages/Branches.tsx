@@ -242,13 +242,15 @@ export default function BranchesPage() {
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button
-                      onClick={() => handleDeleteClick(b.id)}
-                      className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                      title={t("delete", "Delete")}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {!b.isHeadquarters && (
+                      <button
+                        onClick={() => handleDeleteClick(b.id)}
+                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                        title={t("delete", "Delete")}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

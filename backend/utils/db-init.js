@@ -292,6 +292,7 @@ const applyDatabaseMigrations = async (client) => {
         address TEXT,
         phone VARCHAR(50),
         email VARCHAR(255),
+        "isHeadquarters" BOOLEAN DEFAULT FALSE,
         "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -372,6 +373,14 @@ const applyDatabaseMigrations = async (client) => {
           WHERE table_name='programs' AND column_name='allowedBranchIds'
         ) THEN
           ALTER TABLE programs ADD COLUMN "allowedBranchIds" INTEGER[];
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='branches' AND column_name='isHeadquarters'
+        ) THEN
+          ALTER TABLE branches ADD COLUMN "isHeadquarters" BOOLEAN DEFAULT FALSE;
         END IF;
       END $$;
     `);

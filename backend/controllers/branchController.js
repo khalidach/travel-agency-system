@@ -5,10 +5,20 @@ const logger = require("../utils/logger");
 exports.getAllBranches = async (req, res, next) => {
   try {
     const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
-    const { rows } = await req.db.query(
+    let { rows } = await req.db.query(
       'SELECT * FROM branches WHERE "userId" = $1 ORDER BY name ASC',
       [adminId]
     );
+
+    // If no branches exist, auto-create a "Headquarters" for this user
+    if (rows.length === 0) {
+      const insertResult = await req.db.query(
+        'INSERT INTO branches (name, address, phone, email, "userId", "isHeadquarters") VALUES ($1, $2, $3, $4, $5, TRUE) RETURNING *',
+        ["Headquarters", "", "", "", adminId]
+      );
+      rows = insertResult.rows;
+    }
+
     res.status(200).json(rows);
   } catch (error) {
     logger.error("Get Branches Error:", error);
@@ -67,6 +77,16 @@ exports.deleteBranch = async (req, res, next) => {
       return next(new AppError("Unauthorized: Only admins can manage branches.", 403));
     }
     const { id } = req.params;
+    // Check if it is the Headquarters branch
+    const checkResult = await req.db.query(
+      'SELECT "isHeadquarters" FROM branches WHERE id = $1 AND "userId" = $2',
+      [id, req.user.id]
+    );
+
+    if (checkResult.rows.length > 0 && checkResult.rows[0].isHeadquarters) {
+      return next(new AppError("The Headquarters branch cannot be deleted.", 400));
+    }
+
     const result = await req.db.query(
       'DELETE FROM branches WHERE id = $1 AND "userId" = $2 RETURNING id',
       [id, req.user.id]
