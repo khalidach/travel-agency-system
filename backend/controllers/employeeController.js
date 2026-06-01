@@ -3,6 +3,28 @@ const bcrypt = require("bcryptjs");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 
+const getOrCreateHeadquartersBranchId = async (db, adminId) => {
+  let result = await db.query(
+    'SELECT id FROM branches WHERE "userId" = $1 AND "isHeadquarters" = TRUE LIMIT 1',
+    [adminId]
+  );
+  if (result.rows.length > 0) {
+    return result.rows[0].id;
+  }
+  result = await db.query(
+    'SELECT id FROM branches WHERE "userId" = $1 LIMIT 1',
+    [adminId]
+  );
+  if (result.rows.length > 0) {
+    return result.rows[0].id;
+  }
+  const insertResult = await db.query(
+    'INSERT INTO branches (name, address, phone, email, "userId", "isHeadquarters") VALUES ($1, $2, $3, $4, $5, TRUE) RETURNING id',
+    ["Headquarters", "", "", "", adminId]
+  );
+  return insertResult.rows[0].id;
+};
+
 exports.createEmployee = async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {
@@ -20,9 +42,14 @@ exports.createEmployee = async (req, res, next) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    let finalBranchId = branchId;
+    if (!finalBranchId) {
+      finalBranchId = await getOrCreateHeadquartersBranchId(req.db, adminId);
+    }
+
     const { rows } = await req.db.query(
       'INSERT INTO employees (username, password, role, permissions, "adminId", "branchId") VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, permissions, "adminId", "branchId"',
-      [username, hashedPassword, role, JSON.stringify(permissions || []), adminId, branchId || null]
+      [username, hashedPassword, role, JSON.stringify(permissions || []), adminId, finalBranchId]
     );
     res.status(201).json(rows[0]);
   } catch (error) {
@@ -692,7 +719,10 @@ exports.updateEmployee = async (req, res, next) => {
     if (existingEmp.rows.length === 0) {
       return next(new AppError("Employee not found.", 404));
     }
-    const finalBranchId = branchId !== undefined ? branchId : existingEmp.rows[0].branchId;
+    let finalBranchId = branchId !== undefined ? branchId : existingEmp.rows[0].branchId;
+    if (!finalBranchId) {
+      finalBranchId = await getOrCreateHeadquartersBranchId(req.db, req.user.id);
+    }
 
     const { rows } = await req.db.query(
       `UPDATE employees SET 
