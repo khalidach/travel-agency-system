@@ -1,11 +1,12 @@
 // frontend/src/pages/RoomManage.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "../services/api";
 import { Program, Room, Occupant } from "../context/models";
 import {
   ChevronLeft,
+  ChevronRight,
   Hotel,
   Plus,
   Save,
@@ -46,6 +47,34 @@ export default function RoomManage() {
     type: string;
   } | null>(null);
   const [tempRoomName, setTempRoomName] = useState("");
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkScrollButtons = () => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      const overflow = scrollWidth > clientWidth;
+      setHasOverflow(overflow);
+      setShowLeftArrow(scrollLeft > 1);
+      setShowRightArrow(scrollLeft + clientWidth < scrollWidth - 1);
+    }
+  };
+
+  const handleScroll = (direction: "left" | "right") => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const clientWidth = container.clientWidth;
+      const scrollAmount = clientWidth * 0.75;
+      container.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const currentHotelName = hotels[currentHotelIndex];
 
@@ -159,6 +188,54 @@ export default function RoomManage() {
       setInitialRoomsData([]);
     }
   }, [initialRooms]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      // Check immediately
+      checkScrollButtons();
+      
+      const handleWheel = (e: WheelEvent) => {
+        const { scrollWidth, clientWidth } = container;
+        if (scrollWidth <= clientWidth) return;
+        
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          container.scrollLeft += e.deltaY;
+        }
+      };
+      
+      // Add event listeners
+      container.addEventListener("scroll", checkScrollButtons);
+      window.addEventListener("resize", checkScrollButtons);
+      container.addEventListener("wheel", handleWheel, { passive: false });
+      
+      return () => {
+        container.removeEventListener("scroll", checkScrollButtons);
+        window.removeEventListener("resize", checkScrollButtons);
+        container.removeEventListener("wheel", handleWheel);
+      };
+    }
+  }, [hotels]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || currentHotelIndex < 0 || currentHotelIndex >= hotels.length) return;
+    
+    const selectedTab = container.children[currentHotelIndex] as HTMLElement;
+    if (selectedTab) {
+      const containerWidth = container.clientWidth;
+      const tabOffsetLeft = selectedTab.offsetLeft;
+      const tabWidth = selectedTab.clientWidth;
+      
+      const scrollPosition = tabOffsetLeft - (containerWidth / 2) + (tabWidth / 2);
+      container.scrollTo({
+        left: scrollPosition,
+        behavior: "smooth",
+      });
+      setTimeout(checkScrollButtons, 300);
+    }
+  }, [currentHotelIndex, hotels]);
 
   const handleAssignOccupant = (
     roomName: string,
@@ -430,20 +507,57 @@ export default function RoomManage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-          {hotels.map((hotel, index) => (
+        <div className="flex items-center gap-1.5 bg-muted rounded-lg p-1 w-full overflow-hidden">
+          {hasOverflow && (
             <button
-              key={hotel}
-              onClick={() => setCurrentHotelIndex(index)}
-              className={`flex-grow px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${currentHotelIndex === index
-                ? "bg-card text-primary shadow-sm"
-                : "text-muted-foreground hover:bg-background/50"
-                }`}
+              type="button"
+              onClick={() => handleScroll("left")}
+              disabled={!showLeftArrow}
+              className={`flex-shrink-0 p-1.5 bg-background text-foreground hover:bg-accent rounded-lg shadow-sm border border-border transition-all flex items-center justify-center ${
+                showLeftArrow ? "opacity-100 cursor-pointer" : "opacity-30 cursor-not-allowed"
+              }`}
+              aria-label="Scroll left"
             >
-              <Hotel size={16} />
-              {hotel}
+              <ChevronLeft size={16} />
             </button>
-          ))}
+          )}
+
+          <div
+            ref={scrollContainerRef}
+            className="flex-grow flex items-center gap-2 overflow-x-auto scrollbar-thin scroll-smooth pt-0.5 pb-2"
+          >
+            {hotels.map((hotel, index) => (
+              <button
+                key={hotel}
+                onClick={() => setCurrentHotelIndex(index)}
+                title={hotel}
+                className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 overflow-hidden ${
+                  hotels.length > 4 ? "w-[calc((100%-1.5rem)/4)]" : "flex-grow flex-1"
+                } ${
+                  currentHotelIndex === index
+                    ? "bg-card text-primary shadow-sm"
+                    : "text-muted-foreground hover:bg-background/50"
+                }`}
+              >
+                <Hotel size={16} className="flex-shrink-0" />
+                <span className="truncate">{hotel}</span>
+              </button>
+            ))}
+          </div>
+
+          {hasOverflow && (
+            <button
+              type="button"
+              onClick={() => handleScroll("right")}
+              disabled={!showRightArrow}
+              className={`flex-shrink-0 p-1.5 bg-background text-foreground hover:bg-accent rounded-lg shadow-sm border border-border transition-all flex items-center justify-center ${
+                showRightArrow ? "opacity-100 cursor-pointer" : "opacity-30 cursor-not-allowed"
+              }`}
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
