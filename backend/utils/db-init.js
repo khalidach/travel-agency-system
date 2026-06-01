@@ -61,6 +61,7 @@ const applyDatabaseMigrations = async (client) => {
           "isCommissionBased" BOOLEAN DEFAULT FALSE, -- New field for commission-based programs
           "maxBookings" INTEGER DEFAULT NULL, -- NEW: Max number of bookings (NULL for unlimited)
           "exportCounts" JSONB DEFAULT '{}'::jsonb,
+          "allowedBranchIds" INTEGER[], -- Visibility scoping by branch
           "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -363,6 +364,14 @@ const applyDatabaseMigrations = async (client) => {
           WHERE table_name='factures' AND column_name='branchId'
         ) THEN
           ALTER TABLE factures ADD COLUMN "branchId" INTEGER REFERENCES branches(id) ON DELETE SET NULL;
+        END IF;
+
+        IF NOT EXISTS (
+          SELECT 1 
+          FROM information_schema.columns 
+          WHERE table_name='programs' AND column_name='allowedBranchIds'
+        ) THEN
+          ALTER TABLE programs ADD COLUMN "allowedBranchIds" INTEGER[];
         END IF;
       END $$;
     `);

@@ -827,5 +827,7 @@
   "deleteBranchConfirmMessage": "Êtes-vous sûr de vouloir supprimer cette succursale ? Les employés qui y sont affectés seront mis à jour avec 'Aucune succursale' mais ne seront pas supprimés.",
   "noBranchesFound": "Aucune succursale trouvée",
   "noBranchesDescription": "Il semble que vous n'ayez pas encore créé de succursale. Créez votre première succursale physique pour commencer à organiser l'accès des employés et à filtrer les transactions.",
-  "created": "Créé"
+  "created": "Créé",
+  "branchVisibility": "Visibilité des succursales",
+  "visibleToAllBranches": "Visible pour toutes les succursales"
 }

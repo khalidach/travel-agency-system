@@ -2,12 +2,15 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import type {
   Program,
   ProgramVariation,
   CityData,
   Package,
+  Branch,
 } from "../context/models";
+import * as api from "../services/api";
 
 import PackageManager from "./program/PackageManager";
 import LoadingSpinner from "./ui/LoadingSpinner";
@@ -29,6 +32,11 @@ export default function ProgramForm({
 }: ProgramFormProps) {
   const { t } = useTranslation();
 
+  const { data: branches = [] } = useQuery<Branch[]>({
+    queryKey: ["branches"],
+    queryFn: api.getBranches,
+  });
+
   const methods = useForm<Program>({
     defaultValues: program
       ? program
@@ -37,6 +45,7 @@ export default function ProgramForm({
         type: "Umrah",
         isCommissionBased: false,
         maxBookings: null,
+        allowedBranchIds: null,
         variations: [
           {
             name: t("defaultVariation") as string,
@@ -270,6 +279,61 @@ export default function ProgramForm({
         <VariationManager />
 
         <PackageManager isCommissionBased={isCommissionBased ?? false} />
+
+        {/* Branch Visibility Card */}
+        <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-foreground mb-4">
+            {t("branchVisibility", "Branch Visibility")}
+          </h3>
+          <div className="space-y-4">
+            <label className="flex items-center space-x-3 cursor-pointer rtl:space-x-reverse">
+              <input
+                type="checkbox"
+                checked={!watch("allowedBranchIds")}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setValue("allowedBranchIds", null);
+                  } else {
+                    setValue("allowedBranchIds", []);
+                  }
+                }}
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary focus:ring-opacity-20 bg-background"
+              />
+              <span className="text-sm font-medium text-foreground">
+                {t("visibleToAllBranches", "Visible to all branches")}
+              </span>
+            </label>
+
+            {watch("allowedBranchIds") !== null && (
+              <div className="pl-7 rtl:pr-7 pt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 animate-fade-in">
+                {branches.map((branch) => {
+                  const allowedIds = watch("allowedBranchIds") || [];
+                  const isChecked = allowedIds.includes(branch.id);
+                  return (
+                    <label key={branch.id} className="flex items-center space-x-3 cursor-pointer rtl:space-x-reverse bg-muted/30 p-2.5 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setValue("allowedBranchIds", [...allowedIds, branch.id]);
+                          } else {
+                            setValue(
+                              "allowedBranchIds",
+                              allowedIds.filter((id) => id !== branch.id)
+                            );
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary focus:ring-opacity-20 bg-background"
+                      />
+                      <span className="text-sm text-foreground font-medium">{branch.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Footer Actions */}
         <div className="flex justify-end space-x-3 pt-6 border-t border-border mt-8">

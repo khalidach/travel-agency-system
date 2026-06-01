@@ -35,6 +35,12 @@ exports.getAllPrograms = async (req, res, next) => {
       whereConditions.push(`p."isCommissionBased" = FALSE`);
     }
 
+    // Scoping programs visibility by branch (non-admin, non-owner, branchId is set)
+    if (req.user.role !== "admin" && req.user.role !== "owner" && req.user.branchId) {
+      whereConditions.push(`(p."allowedBranchIds" IS NULL OR coalesce(cardinality(p."allowedBranchIds"), 0) = 0 OR $${paramIndex++} = ANY(p."allowedBranchIds"))`);
+      queryParams.push(req.user.branchId);
+    }
+
     const whereClause = `WHERE ${whereConditions.join(" AND ")}`;
 
     let dataQueryFields = `
@@ -159,7 +165,7 @@ exports.getProgramById = async (req, res, next) => {
 
 exports.createProgram = async (req, res, next) => {
   try {
-    const { name, type, variations, packages, isCommissionBased, maxBookings } =
+    const { name, type, variations, packages, isCommissionBased, maxBookings, allowedBranchIds } =
       req.body;
     const userId = req.user.adminId;
     const employeeId = req.user.role !== "admin" ? req.user.id : null;
@@ -177,7 +183,7 @@ exports.createProgram = async (req, res, next) => {
         : parseInt(maxBookings, 10);
 
     const { rows } = await req.db.query(
-      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities, "isCommissionBased", "maxBookings") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      'INSERT INTO programs ("userId", "employeeId", name, type, variations, packages, duration, cities, "isCommissionBased", "maxBookings", "allowedBranchIds") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
       [
         userId,
         employeeId,
@@ -189,6 +195,7 @@ exports.createProgram = async (req, res, next) => {
         JSON.stringify(cities),
         isCommissionBased || false,
         finalMaxBookings, // NEW: Insert maxBookings
+        allowedBranchIds || null,
       ]
     );
     res.status(201).json(rows[0]);
@@ -204,7 +211,7 @@ exports.createProgram = async (req, res, next) => {
 
 exports.updateProgram = async (req, res, next) => {
   const { id } = req.params;
-  const { name, type, variations, packages, isCommissionBased, maxBookings } =
+  const { name, type, variations, packages, isCommissionBased, maxBookings, allowedBranchIds } =
     req.body;
   const client = await req.db.connect();
 
@@ -241,7 +248,7 @@ exports.updateProgram = async (req, res, next) => {
         : parseInt(maxBookings, 10);
 
     const { rows: updatedProgramRows } = await client.query(
-      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "isCommissionBased" = $7, "maxBookings" = $8, "updatedAt" = NOW() WHERE id = $9 RETURNING *',
+      'UPDATE programs SET name = $1, type = $2, variations = $3, packages = $4, duration = $5, cities = $6, "isCommissionBased" = $7, "maxBookings" = $8, "allowedBranchIds" = $9, "updatedAt" = NOW() WHERE id = $10 RETURNING *',
       [
         name,
         type,
@@ -251,6 +258,7 @@ exports.updateProgram = async (req, res, next) => {
         JSON.stringify(cities),
         isCommissionBased || false,
         finalMaxBookings, // NEW: Update maxBookings
+        allowedBranchIds || null,
         id,
       ]
     );

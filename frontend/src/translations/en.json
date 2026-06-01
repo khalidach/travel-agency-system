@@ -824,5 +824,7 @@
   "deleteBranchConfirmMessage": "Are you sure you want to delete this branch? Employees assigned to it will be updated to 'No Branch' but will not be deleted.",
   "noBranchesFound": "No branches found",
   "noBranchesDescription": "It looks like you haven't created any branches yet. Create your first physical branch location to start organizing employee access and scoping transactions.",
-  "created": "Created"
+  "created": "Created",
+  "branchVisibility": "Branch Visibility",
+  "visibleToAllBranches": "Visible to all branches"
 }

@@ -136,6 +136,7 @@ export interface Program {
   totalOccupants?: number;
   isCommissionBased?: boolean;
   maxBookings?: number | null;
+  allowedBranchIds?: number[] | null;
 }
 
 export interface Package {
