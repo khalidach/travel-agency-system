@@ -1,5 +1,5 @@
 // frontend/src/pages/ProgramCosting.tsx
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,7 +9,7 @@ import {
   FormProvider,
 } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import { ChevronLeft, Save, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Save, Plus, Trash2, Download } from "lucide-react";
 import * as api from "../services/api";
 import { Program, ProgramCost } from "../context/models";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
@@ -23,6 +23,7 @@ export default function ProgramCosting() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: program, isLoading: isLoadingProgram } = useQuery<Program>({
     queryKey: ["program", programId],
@@ -51,6 +52,31 @@ export default function ProgramCosting() {
   });
 
   const watchedCosts = watch("costs");
+
+  const handleExportExcel = async () => {
+    if (!programId) return;
+    setIsExporting(true);
+    toast.loading(t("exporting") || "Exporting...");
+    try {
+      const blob = await api.exportSingleProgramCostsToExcel(programId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Program_Cost_${program?.name || programId}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success(t("exportSuccessful") || "Export successful!");
+    } catch (error) {
+      toast.dismiss();
+      console.error("Failed to export program cost breakdown:", error);
+      toast.error((error as Error).message || "Failed to export program cost breakdown.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Fetch bookings summary for this program to get total revenue
   const { data: bookingsData } = useQuery<{
@@ -192,6 +218,15 @@ export default function ProgramCosting() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={isExporting}
+              className="inline-flex items-center px-4 py-2 border border-input bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground rounded-xl disabled:opacity-50 transition-colors"
+            >
+              <Download className="w-5 h-5 mr-2" />
+              {isExporting ? t("exporting") : t("exportToExcel")}
+            </button>
             <button
               type="submit"
               disabled={isSaving}

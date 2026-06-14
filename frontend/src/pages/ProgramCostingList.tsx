@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ChevronRight } from "lucide-react";
+import { DollarSign, ChevronRight, Download } from "lucide-react";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
 import { usePagination } from "../hooks/usePagination";
 import type { Program, PaginatedResponse } from "../context/models";
 import * as api from "../services/api";
 import PaginationControls from "../components/booking/PaginationControls";
+import { toast } from "react-hot-toast";
 
 export default function ProgramCostingList() {
   const { t } = useTranslation();
@@ -19,12 +20,37 @@ export default function ProgramCostingList() {
   const filterType = searchParams.get("filter") || "all";
 
   const [searchTerm, setSearchTerm] = useState(submittedSearchTerm);
+  const [isExporting, setIsExporting] = useState(false);
   const programsPerPage = 6;
 
   // Sync searchTerm when URL search param changes
   useEffect(() => {
     setSearchTerm(submittedSearchTerm);
   }, [submittedSearchTerm]);
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    toast.loading(t("exporting") || "Exporting...");
+    try {
+      const blob = await api.exportProgramCostsListToExcel(submittedSearchTerm, filterType);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "Program_Costs_List.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.dismiss();
+      toast.success(t("exportSuccessful") || "Export successful!");
+    } catch (error) {
+      toast.dismiss();
+      console.error("Failed to export program costs list:", error);
+      toast.error((error as Error).message || "Failed to export program costs list.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const updateParams = (page: number, search: string, filter: string) => {
     setSearchParams(
@@ -123,6 +149,16 @@ export default function ProgramCostingList() {
           <p className="text-muted-foreground mt-2">
             {t("programCostingListSubtitle")}
           </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex items-center gap-3">
+          <button
+            onClick={handleExportExcel}
+            disabled={isExporting}
+            className="inline-flex items-center px-4 py-2 border border-input bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {isExporting ? t("exporting") : t("exportToExcel")}
+          </button>
         </div>
       </div>
 

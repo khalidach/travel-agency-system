@@ -13,6 +13,18 @@ const programIdValidation = [
 ];
 
 router.get(
+  "/export",
+  programCostsController.exportProgramCostsList
+);
+
+router.get(
+  "/:programId/export",
+  programIdValidation,
+  handleValidationErrors,
+  programCostsController.exportSingleProgramCosts
+);
+
+router.get(
   "/:programId",
   programIdValidation,
   handleValidationErrors,
