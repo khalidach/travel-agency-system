@@ -22,6 +22,7 @@ import { toast } from "react-hot-toast";
 import { Client } from "../context/models";
 
 import PaginationControls from "../components/ui/PaginationControls";
+import { useUrlPagination } from "../hooks/useUrlPagination";
 
 export default function Clients() {
   const { t } = useTranslation();
@@ -35,7 +36,7 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPagination();
   const itemsPerPage = 6;
 
   const { data: clientsData, isLoading } = useQuery<{

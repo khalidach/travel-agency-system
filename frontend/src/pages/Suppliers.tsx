@@ -1,4 +1,3 @@
-// frontend/src/pages/Suppliers.tsx
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -23,6 +22,7 @@ import { toast } from "react-hot-toast";
 import { Supplier } from "../context/models";
 
 import PaginationControls from "../components/ui/PaginationControls";
+import { useUrlPagination } from "../hooks/useUrlPagination";
 
 export default function Suppliers() {
   const { t } = useTranslation();
@@ -36,7 +36,7 @@ export default function Suppliers() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPagination();
   const itemsPerPage = 6;
 
   const { data: suppliersData, isLoading } = useQuery<{

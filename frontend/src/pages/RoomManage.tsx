@@ -469,7 +469,7 @@ export default function RoomManage() {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => navigate("/room-management")}
+              onClick={() => navigate(-1)}
               className="p-2 bg-muted rounded-full hover:bg-accent hover:text-accent-foreground text-muted-foreground transition-colors"
             >
               <ChevronLeft />

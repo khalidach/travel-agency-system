@@ -177,7 +177,7 @@ export default function ProgramCosting() {
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={() => navigate("/program-costing")}
+              onClick={() => navigate(-1)}
               className="p-2 bg-secondary text-secondary-foreground rounded-full hover:bg-secondary/80 transition-colors"
             >
               <ChevronLeft />

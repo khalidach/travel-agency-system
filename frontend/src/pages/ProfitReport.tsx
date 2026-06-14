@@ -41,6 +41,7 @@ import PaginationControls from "../components/booking/PaginationControls";
 import { ProgramType, Pagination } from "../context/models";
 import VideoHelpModal from "../components/VideoHelpModal";
 import { useBranchContext } from "../context/BranchContext";
+import { useUrlPagination } from "../hooks/useUrlPagination";
 
 // Interfaces
 interface DetailedPerformanceItem {
@@ -82,7 +83,7 @@ export default function ProfitReport() {
   const [filterType, setFilterType] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("allTime");
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useUrlPagination();
   const itemsPerPage = 6;
 
   // Chart & Table configurations

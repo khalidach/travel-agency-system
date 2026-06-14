@@ -1,7 +1,6 @@
-// frontend/src/pages/ProgramCostingList.tsx
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, ChevronRight } from "lucide-react";
 import BookingSkeleton from "../components/skeletons/BookingSkeleton";
@@ -13,15 +12,45 @@ import PaginationControls from "../components/booking/PaginationControls";
 export default function ProgramCostingList() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentPage = Number(searchParams.get("page") || "1");
+  const submittedSearchTerm = searchParams.get("search") || "";
+  const filterType = searchParams.get("filter") || "all";
+
+  const [searchTerm, setSearchTerm] = useState(submittedSearchTerm);
   const programsPerPage = 6;
 
+  // Sync searchTerm when URL search param changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [submittedSearchTerm, filterType]);
+    setSearchTerm(submittedSearchTerm);
+  }, [submittedSearchTerm]);
+
+  const updateParams = (page: number, search: string, filter: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(page));
+        if (search) {
+          next.set("search", search);
+        } else {
+          next.delete("search");
+        }
+        if (filter && filter !== "all") {
+          next.set("filter", filter);
+        } else {
+          next.delete("filter");
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const setCurrentPage = (pageVal: number | ((prev: number) => number)) => {
+    const nextPage = typeof pageVal === "function" ? pageVal(currentPage) : pageVal;
+    updateParams(nextPage, submittedSearchTerm, filterType);
+  };
 
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
     PaginatedResponse<Program>
@@ -58,13 +87,12 @@ export default function ProgramCostingList() {
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      setSubmittedSearchTerm(searchTerm);
+      updateParams(1, searchTerm, filterType);
     }
   };
 
   const handleFilterChange = (newFilterType: string) => {
-    setFilterType(newFilterType);
-    setSubmittedSearchTerm(searchTerm);
+    updateParams(1, searchTerm, newFilterType);
   };
 
   // Uses semantic colors defined in index.css (Info, Success, Warning)

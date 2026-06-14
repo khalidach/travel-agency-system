@@ -1,7 +1,7 @@
 // frontend/src/pages/Booking.tsx
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar, ChevronLeft, ChevronRight, HelpCircle, ArrowDownToLine } from "lucide-react";
 
@@ -19,18 +19,47 @@ import * as api from "../services/api";
 export default function Booking() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [submittedSearchTerm, setSubmittedSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const currentPage = Number(searchParams.get("page") || "1");
+  const submittedSearchTerm = searchParams.get("search") || "";
+  const filterType = searchParams.get("filter") || "all";
+
+  const [searchTerm, setSearchTerm] = useState(submittedSearchTerm);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const programsPerPage = 6;
 
-  // Reset page to 1 when a new search is submitted
+  // Sync searchTerm when URL search param changes
   useEffect(() => {
-    setCurrentPage(1);
-  }, [submittedSearchTerm, filterType]);
+    setSearchTerm(submittedSearchTerm);
+  }, [submittedSearchTerm]);
+
+  const updateParams = (page: number, search: string, filter: string) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("page", String(page));
+        if (search) {
+          next.set("search", search);
+        } else {
+          next.delete("search");
+        }
+        if (filter && filter !== "all") {
+          next.set("filter", filter);
+        } else {
+          next.delete("filter");
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
+  const setCurrentPage = (pageVal: number | ((prev: number) => number)) => {
+    const nextPage = typeof pageVal === "function" ? pageVal(currentPage) : pageVal;
+    updateParams(nextPage, submittedSearchTerm, filterType);
+  };
 
   // Data Fetching - Now paginated
   const { data: programResponse, isLoading: isLoadingPrograms } = useQuery<
@@ -68,14 +97,12 @@ export default function Booking() {
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      setSubmittedSearchTerm(searchTerm);
+      updateParams(1, searchTerm, filterType);
     }
   };
 
   const handleFilterChange = (newFilterType: string) => {
-    setFilterType(newFilterType);
-    // Trigger search when filter changes as well
-    setSubmittedSearchTerm(searchTerm);
+    updateParams(1, searchTerm, newFilterType);
   };
 
   if (isLoadingPrograms) {
