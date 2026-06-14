@@ -151,17 +151,10 @@ const createBookings = async (db, user, bulkData) => {
       );
       const newBooking = rows[0];
       createdBookings.push(newBooking);
-
-      if (status === "confirmed") {
-        await RoomManagementService.autoAssignToRoom(
-          client,
-          user.adminId,
-          newBooking,
-        );
-      }
     }
 
     // 4.5 Link group bookings under designated leaders (chefs)
+    const leadersToAssign = [];
     if (createdBookings.length > 0) {
       const bookingsDetails = createdBookings.map((b) => {
         let firstName = "";
@@ -187,6 +180,7 @@ const createBookings = async (db, user, bulkData) => {
 
       if (createdBookings.length === 1) {
         const singleBooking = createdBookings[0];
+        leadersToAssign.push(singleBooking);
         const existingRelated = Array.isArray(relatedPersons) ? relatedPersons : [];
         if (existingRelated.length > 0) {
           await client.query(
@@ -240,6 +234,7 @@ const createBookings = async (db, user, bulkData) => {
 
         for (const [lIdx, membersList] of leaderToMembersMap.entries()) {
           const leaderBooking = createdBookings[lIdx];
+          leadersToAssign.push(leaderBooking);
           const isMainLeader = (lIdx === leaderIndices[0]);
           const finalRelatedPersons = isMainLeader
             ? [...existingRelated, ...membersList]
@@ -253,6 +248,17 @@ const createBookings = async (db, user, bulkData) => {
             leaderBooking.relatedPersons = finalRelatedPersons;
           }
         }
+      }
+    }
+
+    // 4.6 Auto-assign rooms after related persons links are set up
+    if (status === "confirmed" && leadersToAssign.length > 0) {
+      for (const leaderBooking of leadersToAssign) {
+        await RoomManagementService.autoAssignToRoom(
+          client,
+          user.adminId,
+          leaderBooking,
+        );
       }
     }
 

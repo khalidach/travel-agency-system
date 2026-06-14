@@ -65,78 +65,80 @@ class AutoAssigner {
   static processRoomTypeGroup(rooms, roomType, groupOfMembers, capacity) {
     const remainingMembers = [...groupOfMembers];
 
-    // Rule 1: Perfect Family Match (Entire family fits exactly in one room)
-    if (remainingMembers.length > 1 && remainingMembers.length === capacity) {
+    // Rule 1: Grouped Family Placement (Fill rooms completely with family members, regardless of gender)
+    while (remainingMembers.length >= capacity) {
       const targetRoom = this.findOrCreateRoom(rooms, roomType, capacity);
 
       // Clear current occupants just in case (though it should be empty based on logic)
       targetRoom.occupants.fill(null);
 
-      remainingMembers.forEach((member, index) => {
+      const membersForRoom = remainingMembers.splice(0, capacity);
+      membersForRoom.forEach((member, index) => {
         targetRoom.occupants[index] = {
           id: member.id,
           clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
           gender: member.gender,
         };
       });
-      return; // Done for this group
     }
 
-    // Rule 2: Grouped Placement by Gender
-    const membersByGender = remainingMembers.reduce((acc, member) => {
-      const gender = member.gender || "unknown";
-      if (!acc[gender]) acc[gender] = [];
-      acc[gender].push(member);
-      return acc;
-    }, {});
+    // Rule 2: Leftover Placement by Gender
+    if (remainingMembers.length > 0) {
+      const membersByGender = remainingMembers.reduce((acc, member) => {
+        const gender = member.gender || "unknown";
+        if (!acc[gender]) acc[gender] = [];
+        acc[gender].push(member);
+        return acc;
+      }, {});
 
-    for (const gender in membersByGender) {
-      if (gender === "unknown") continue;
+      for (const gender in membersByGender) {
+        if (gender === "unknown") continue;
 
-      const genderGroup = membersByGender[gender];
-      const groupSize = genderGroup.length;
-      let placed = false;
+        const genderGroup = membersByGender[gender];
+        const groupSize = genderGroup.length;
+        let placed = false;
 
-      // A. Attempt to place into ONE existing room with space
-      for (const room of rooms) {
-        const occupants = room.occupants.filter((o) => o);
-        const roomGender = occupants.length > 0 ? occupants[0].gender : null;
-        const emptySlots = room.capacity - occupants.length;
+        // A. Attempt to place into ONE existing room with space
+        for (const room of rooms) {
+          const occupants = room.occupants.filter((o) => o);
+          const roomGender = occupants.length > 0 ? occupants[0].gender : null;
+          const emptySlots = room.capacity - occupants.length;
 
-        if (
-          room.type === roomType &&
-          (!roomGender || roomGender === gender) &&
-          emptySlots >= groupSize
-        ) {
-          genderGroup.forEach((member) => {
-            const emptySlotIndex = room.occupants.findIndex((o) => !o);
-            if (emptySlotIndex !== -1) {
-              room.occupants[emptySlotIndex] = {
+          if (
+            room.type === roomType &&
+            (!roomGender || roomGender === gender) &&
+            emptySlots >= groupSize
+          ) {
+            genderGroup.forEach((member) => {
+              const emptySlotIndex = room.occupants.findIndex((o) => !o);
+              if (emptySlotIndex !== -1) {
+                room.occupants[emptySlotIndex] = {
+                  id: member.id,
+                  clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
+                  gender: member.gender,
+                };
+              }
+            });
+            placed = true;
+            break;
+          }
+        }
+
+        // B. If not placed, create new room(s)
+        if (!placed) {
+          const membersToPlace = [...genderGroup];
+          while (membersToPlace.length > 0) {
+            const newRoom = this.findOrCreateRoom(rooms, roomType, capacity);
+            const membersForNewRoom = membersToPlace.splice(0, capacity);
+
+            membersForNewRoom.forEach((member, index) => {
+              newRoom.occupants[index] = {
                 id: member.id,
                 clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
                 gender: member.gender,
               };
-            }
-          });
-          placed = true;
-          break;
-        }
-      }
-
-      // B. If not placed, create new room(s)
-      if (!placed) {
-        const membersToPlace = [...genderGroup];
-        while (membersToPlace.length > 0) {
-          const newRoom = this.findOrCreateRoom(rooms, roomType, capacity);
-          const membersForNewRoom = membersToPlace.splice(0, capacity);
-
-          membersForNewRoom.forEach((member, index) => {
-            newRoom.occupants[index] = {
-              id: member.id,
-              clientName: member.clientNameAr || (member.clientNameFr ? `${member.clientNameFr.firstName || ''} ${member.clientNameFr.lastName || ''}`.trim() : ''),
-              gender: member.gender,
-            };
-          });
+            });
+          }
         }
       }
     }
