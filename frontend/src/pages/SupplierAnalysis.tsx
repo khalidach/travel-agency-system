@@ -26,17 +26,39 @@ const ITEMS_PER_PAGE = 7;
 export default function SupplierAnalysis() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: supplier, isLoading } = useQuery<SupplierDetail>({
     queryKey: ["supplier", id, currentPage],
     queryFn: () => api.getSupplier(Number(id), currentPage, ITEMS_PER_PAGE),
     enabled: !!id,
   });
+
+  const handleExportExcel = async () => {
+    if (!id || !supplier) return;
+    setIsExporting(true);
+    try {
+      const blob = await api.exportSupplierAnalysisToExcel(Number(id), "ar");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const sanitizedName = supplier.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      link.setAttribute("download", `supplier_analysis_${sanitizedName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Failed to export supplier analysis Excel", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   if (isLoading) return <div className="p-8 text-center">{t("loading")}</div>;
   if (!supplier) return <div className="p-8 text-center">{t("notFound")}</div>;
@@ -77,9 +99,20 @@ export default function SupplierAnalysis() {
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col md:flex-row justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {supplier.name}
-            </h1>
+            <div className="flex flex-wrap items-center gap-4 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                {supplier.name}
+              </h1>
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all disabled:opacity-50 text-sm font-medium shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              >
+                <FileText className="w-4 h-4" />
+                {isExporting ? t("exporting") : t("exportToExcel")}
+              </button>
+            </div>
+
             <div className="flex gap-4 text-gray-500">
               {supplier.email && (
                 <span className="flex items-center gap-2">

@@ -743,6 +743,14 @@ export const getSuppliers = (withStats = false, page = 1, limit = 10) =>
 export const getSupplier = (id: number, page = 1, limit = 7) =>
   request(`/suppliers/${id}?page=${page}&limit=${limit}`);
 
+export const exportSupplierAnalysisToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/suppliers/${id}/export?${params.toString()}`, {}, true);
+};
+
 export const createSupplier = (data: Create<Supplier>) =>
   request("/suppliers", { method: "POST", body: JSON.stringify(data) });
 

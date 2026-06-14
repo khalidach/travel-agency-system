@@ -232,3 +232,54 @@ exports.deleteSupplier = async (req, res, next) => {
     next(new AppError("Failed to delete supplier", 500));
   }
 };
+
+exports.exportSupplierAnalysis = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { lang } = req.query;
+
+    const result = await req.db.query(
+      `SELECT * FROM suppliers WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (result.rowCount === 0) {
+      return next(new AppError("Supplier not found", 404));
+    }
+
+    const supplier = result.rows[0];
+
+    // Fetch all expenses for this supplier without pagination limits
+    const expensesResult = await req.db.query(
+      `SELECT * FROM expenses 
+       WHERE "userId" = $1 AND beneficiary = $2 
+       ORDER BY date ASC`,
+      [req.user.id, supplier.name],
+    );
+
+    const SupplierExcelService = require("../services/SupplierExcelService");
+    const workbook = await SupplierExcelService.generateSupplierExcel(
+      supplier,
+      expensesResult.rows,
+      lang || "ar"
+    );
+
+    const sanitizedName = supplier.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=supplier_analysis_${sanitizedName}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Supplier Analysis Error:", error);
+    next(new AppError("Failed to export supplier analysis details.", 500));
+  }
+};
+
