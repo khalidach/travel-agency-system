@@ -11,7 +11,7 @@ const estimateCellWidth = (cell) => {
   const val = cell.value;
   if (typeof val === "object" && val !== null) {
     if (val.formula) {
-      displayText = "000,000,000.00 DH";
+      displayText = "000,000,000.00 د.م";
     } else if (val.richText) {
       displayText = val.richText.map((rt) => rt.text).join("");
     } else {
@@ -21,11 +21,11 @@ const estimateCellWidth = (cell) => {
     displayText = String(val);
   }
 
-  if (cell.numFmt && cell.numFmt.includes("DH") && typeof val === "number") {
+  if (cell.numFmt && cell.numFmt.includes("د.م") && typeof val === "number") {
     displayText = val.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }) + " DH";
+    }) + " د.م";
   }
 
   let charWidth = 0;
@@ -82,13 +82,13 @@ const subHeaderFill = {
 
 exports.generateProgramCostsListExcel = async (programs) => {
   const workbook = new excel.Workbook();
-  const sheet = workbook.addWorksheet("Program Costing List");
-  sheet.views = [{ showGridLines: true }];
+  const sheet = workbook.addWorksheet("لائحة تكاليف البرامج");
+  sheet.views = [{ showGridLines: true, rightToLeft: true }];
 
   sheet.addRow([]); // Blank line
 
   // Title Block
-  const titleRow = sheet.addRow(["PROGRAM COSTING LIST"]);
+  const titleRow = sheet.addRow(["لائحة تكاليف البرامج"]);
   titleRow.height = 30;
   const titleCell = sheet.getCell("A2");
   titleCell.font = { bold: true, size: 16, color: { argb: "FF1E3A8A" } };
@@ -98,13 +98,13 @@ exports.generateProgramCostsListExcel = async (programs) => {
 
   // Table Headers
   const headerRow = sheet.addRow([
-    "Program ID",
-    "Program Name",
-    "Program Type",
-    "Flight Tickets Cost",
-    "Visa Cost",
-    "Transport Cost",
-    "Total Program Cost",
+    "معرف البرنامج",
+    "اسم البرنامج",
+    "نوع البرنامج",
+    "تكلفة تذاكر الطيران",
+    "تكلفة التأشيرة",
+    "تكلفة النقل",
+    "إجمالي تكلفة البرنامج",
   ]);
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -140,7 +140,7 @@ exports.generateProgramCostsListExcel = async (programs) => {
     // Format currency columns
     for (let col = 4; col <= 7; col++) {
       const cell = row.getCell(col);
-      cell.numFmt = '#,##0.00" DH"';
+      cell.numFmt = '#,##0.00" د.م."';
       cell.alignment = { horizontal: "right" };
     }
 
@@ -164,20 +164,20 @@ exports.generateProgramCostsListExcel = async (programs) => {
 
 exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRevenue) => {
   const workbook = new excel.Workbook();
-  const sheet = workbook.addWorksheet("Program Cost Breakdown");
-  sheet.views = [{ showGridLines: true }];
+  const sheet = workbook.addWorksheet("تفاصيل تكاليف البرنامج");
+  sheet.views = [{ showGridLines: true, rightToLeft: true }];
 
   sheet.addRow([]); // Blank line
 
   // Title Block
-  const titleRow = sheet.addRow([`COST & PROFIT BREAKDOWN: ${program.name.toUpperCase()}`]);
+  const titleRow = sheet.addRow([`تفاصيل التكاليف والأرباح للبرنامج: ${program.name}`]);
   titleRow.height = 30;
   const titleCell = sheet.getCell("A2");
   titleCell.font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
   sheet.mergeCells("A2:E2");
 
   // Subtitle
-  const dateRow = sheet.addRow([`Program Type: ${program.type}`]);
+  const dateRow = sheet.addRow([`نوع البرنامج: ${program.type}`]);
   dateRow.height = 20;
   sheet.getCell("A3").font = { italic: true, size: 10, color: { argb: "FF64748B" } };
   sheet.mergeCells("A3:E3");
@@ -185,7 +185,7 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
   sheet.addRow([]); // Blank line
 
   // Financial KPI Overview Table
-  const kpiHeaderRow = sheet.addRow(["Financial Metric", "Amount"]);
+  const kpiHeaderRow = sheet.addRow(["المؤشر المالي", "المبلغ"]);
   kpiHeaderRow.height = 25;
   kpiHeaderRow.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -198,9 +198,9 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
   const netProfit = totalRevenue - totalCost;
 
   const kpis = [
-    { label: "Total Bookings Revenue", value: totalRevenue },
-    { label: "Total Program Cost", value: totalCost },
-    { label: "Net Profit / Loss", value: netProfit, isProfit: true },
+    { label: "إجمالي مداخيل الحجوزات", value: totalRevenue },
+    { label: "إجمالي تكلفة البرنامج", value: totalCost },
+    { label: "صافي الأرباح / الخسائر", value: netProfit, isProfit: true },
   ];
 
   kpis.forEach((kpi) => {
@@ -212,7 +212,7 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
     cellB.border = borderStyle;
     cellA.font = { size: 11 };
     cellB.font = { size: 11, bold: true };
-    cellB.numFmt = '#,##0.00" DH"';
+    cellB.numFmt = '#,##0.00" د.م."';
     cellB.alignment = { horizontal: "right" };
 
     if (kpi.isProfit) {
@@ -224,7 +224,7 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
   sheet.addRow([]); // Blank line
 
   // Cost Category Breakdown Header
-  const costHeaderRow = sheet.addRow(["Cost Category", "Sub-Item / Hotel", "Amount"]);
+  const costHeaderRow = sheet.addRow(["فئة التكلفة", "البند الفرعي / الفندق", "المبلغ"]);
   costHeaderRow.height = 25;
   costHeaderRow.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
@@ -237,9 +237,9 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
 
   // Standard Costs
   const standards = [
-    { cat: "Flight Tickets", name: "Total Flight Tickets Cost", amount: Number(detailCosts.flightTickets) || 0 },
-    { cat: "Visa Fees", name: "Total Visa Cost", amount: Number(detailCosts.visa) || 0 },
-    { cat: "Transport Fees", name: "Total Transport Cost", amount: Number(detailCosts.transport) || 0 },
+    { cat: "تذاكر الطيران", name: "إجمالي تكلفة تذاكر الطيران", amount: Number(detailCosts.flightTickets) || 0 },
+    { cat: "رسوم التأشيرة", name: "إجمالي تكلفة التأشيرة", amount: Number(detailCosts.visa) || 0 },
+    { cat: "رسوم النقل", name: "إجمالي تكلفة النقل", amount: Number(detailCosts.transport) || 0 },
   ];
 
   standards.forEach((item) => {
@@ -249,45 +249,45 @@ exports.generateSingleProgramCostsExcel = async (program, existingCosts, totalRe
       cell.border = borderStyle;
       cell.font = { size: 11 };
     });
-    row.getCell(3).numFmt = '#,##0.00" DH"';
+    row.getCell(3).numFmt = '#,##0.00" د.م."';
     row.getCell(3).alignment = { horizontal: "right" };
   });
 
   // Hotel Costs
   const hotels = detailCosts.hotels || [];
   hotels.forEach((hotel) => {
-    const row = sheet.addRow(["Hotel Accommodation", hotel.name, Number(hotel.amount) || 0]);
+    const row = sheet.addRow(["الإقامة الفندقية", hotel.name, Number(hotel.amount) || 0]);
     row.height = 22;
     row.eachCell((cell) => {
       cell.border = borderStyle;
       cell.font = { size: 11 };
     });
-    row.getCell(3).numFmt = '#,##0.00" DH"';
+    row.getCell(3).numFmt = '#,##0.00" د.م."';
     row.getCell(3).alignment = { horizontal: "right" };
   });
 
   // Custom Costs
   const customs = detailCosts.custom || [];
   customs.forEach((c) => {
-    const row = sheet.addRow(["Other Costs", c.name || "Unnamed Cost", Number(c.amount) || 0]);
+    const row = sheet.addRow(["تكاليف أخرى", c.name || "تكلفة غير مسماة", Number(c.amount) || 0]);
     row.height = 22;
     row.eachCell((cell) => {
       cell.border = borderStyle;
       cell.font = { size: 11 };
     });
-    row.getCell(3).numFmt = '#,##0.00" DH"';
+    row.getCell(3).numFmt = '#,##0.00" د.م."';
     row.getCell(3).alignment = { horizontal: "right" };
   });
 
   // Total Cost Row in Breakdown
-  const totalRow = sheet.addRow(["Total Costs Summary", "Sum of all cost categories", totalCost]);
+  const totalRow = sheet.addRow(["ملخص إجمالي التكاليف", "مجموع كل فئات التكاليف", totalCost]);
   totalRow.height = 24;
   totalRow.eachCell((cell) => {
     cell.border = borderStyle;
     cell.font = { size: 11, bold: true };
     cell.fill = subHeaderFill;
   });
-  totalRow.getCell(3).numFmt = '#,##0.00" DH"';
+  totalRow.getCell(3).numFmt = '#,##0.00" د.م."';
   totalRow.getCell(3).alignment = { horizontal: "right" };
 
   // Adjust columns width

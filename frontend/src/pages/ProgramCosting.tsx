@@ -62,7 +62,7 @@ export default function ProgramCosting() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Program_Cost_${program?.name || programId}.xlsx`;
+      a.download = `تكاليف_برنامج_${program?.name || programId}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
