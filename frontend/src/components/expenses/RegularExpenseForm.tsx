@@ -46,10 +46,11 @@ export default function RegularExpenseForm({
     "marketing",
     "office_supplies",
     "taxes",
+    "iata_easypay_topup",
     "other",
   ];
 
-  // Values MUST match the Payment['method'] type: "cash" | "cheque" | "transfer" | "card"
+  // Values MUST match the Payment['method'] type: "cash" | "cheque" | "transfer" | "card" | "iata_easypay"
   const paymentMethods: { value: PaymentMethod; label: string }[] = [
     { value: "cash", label: t("cash") || "Cash" },
     {
@@ -58,6 +59,7 @@ export default function RegularExpenseForm({
     },
     { value: "cheque", label: t("check") || "Check" },
     { value: "card", label: t("card") || "Credit Card" },
+    { value: "iata_easypay", label: t("iata_easypay") || "IATA EasyPay" },
   ];
 
   const handleSubmit = (e: React.FormEvent) => {

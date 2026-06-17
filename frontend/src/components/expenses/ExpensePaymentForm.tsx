@@ -129,6 +129,7 @@ export default function ExpensePaymentForm({
     { value: "cheque", label: t("cheque") },
     { value: "transfer", label: t("transfer") },
     { value: "card", label: t("card") },
+    { value: "iata_easypay", label: t("iata_easypay") || "IATA EasyPay" },
   ];
 
   const isForeignCurrency =

@@ -840,5 +840,15 @@
   "noBranchesDescription": "يبدو أنك لم تقم بإنشاء أي فروع بعد. قم بإنشاء أول فرع فعلي لبدء تنظيم صلاحيات الموظفين وتصفية المعاملات.",
   "created": "تم إنشاؤه",
   "branchVisibility": "رؤية الفروع",
-  "visibleToAllBranches": "مرئي لجميع الفروع"
+  "visibleToAllBranches": "مرئي لجميع الفروع",
+  "iata_easypay": "إياتا إيزي باي",
+  "iata_easypay_topup": "شحن إياتا إيزي باي",
+  "iataWallet": "محفظة إياتا إيزي باي",
+  "iataBalance": "رصيد المحفظة",
+  "totalTopUps": "إجمالي الشحن",
+  "totalDeductions": "إجمالي الخصومات",
+  "topUpWallet": "شحن المحفظة",
+  "logFlightTicket": "تسجيل تذكرة طيران",
+  "iataTransactions": "معاملات إياتا إيزي باي",
+  "showIataOnly": "عرض معاملات إياتا فقط"
 }

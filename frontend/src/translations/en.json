@@ -837,5 +837,15 @@
   "noBranchesDescription": "It looks like you haven't created any branches yet. Create your first physical branch location to start organizing employee access and scoping transactions.",
   "created": "Created",
   "branchVisibility": "Branch Visibility",
-  "visibleToAllBranches": "Visible to all branches"
+  "visibleToAllBranches": "Visible to all branches",
+  "iata_easypay": "IATA EasyPay",
+  "iata_easypay_topup": "IATA EasyPay Top-up",
+  "iataWallet": "IATA EasyPay Wallet",
+  "iataBalance": "Wallet Balance",
+  "totalTopUps": "Total Top-ups",
+  "totalDeductions": "Total Deductions",
+  "topUpWallet": "Top-up Wallet",
+  "logFlightTicket": "Log Flight Ticket",
+  "iataTransactions": "IATA EasyPay Transactions",
+  "showIataOnly": "Show IATA EasyPay only"
 }

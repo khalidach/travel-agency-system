@@ -840,5 +840,15 @@
   "noBranchesDescription": "Il semble que vous n'ayez pas encore créé de succursale. Créez votre première succursale physique pour commencer à organiser l'accès des employés et à filtrer les transactions.",
   "created": "Créé",
   "branchVisibility": "Visibilité des succursales",
-  "visibleToAllBranches": "Visible pour toutes les succursales"
+  "visibleToAllBranches": "Visible pour toutes les succursales",
+  "iata_easypay": "IATA EasyPay",
+  "iata_easypay_topup": "Alimentation IATA EasyPay",
+  "iataWallet": "Portefeuille IATA EasyPay",
+  "iataBalance": "Solde du Portefeuille",
+  "totalTopUps": "Total des Dépôts",
+  "totalDeductions": "Total des Déductions",
+  "topUpWallet": "Recharger le Portefeuille",
+  "logFlightTicket": "Enregistrer un Billet d'avion",
+  "iataTransactions": "Transactions IATA EasyPay",
+  "showIataOnly": "Afficher uniquement IATA EasyPay"
 }

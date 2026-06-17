@@ -229,7 +229,7 @@ export interface Payment {
   amount: number;
   amountMAD?: number;
   currency?: string;
-  method: "cash" | "cheque" | "transfer" | "card";
+  method: "cash" | "cheque" | "transfer" | "card" | "iata_easypay";
   date: string;
   labelPaper?: string;
   chequeNumber?: string;
