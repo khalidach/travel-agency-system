@@ -651,7 +651,15 @@ exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
     if (exp.bookingType === "Hotel") {
       hotelExpenses.push(exp);
     } else if (exp.bookingType === "Flight") {
-      flightExpenses.push(exp);
+      const hasFlightFields = exp.items && Array.isArray(exp.items) && exp.items.some(item => 
+        (item.passengerName && item.passengerName.trim() !== "") || 
+        (item.bookingRef && item.bookingRef.trim() !== "") || 
+        (item.ticketCategory && item.ticketCategory.trim() !== "") || 
+        (item.issuingFees !== undefined && item.issuingFees !== null && Number(item.issuingFees) !== 0)
+      );
+      if (hasFlightFields) {
+        flightExpenses.push(exp);
+      }
     } else if (exp.bookingType === "Visa" || exp.bookingType === "Transfer") {
       visaTransportExpenses.push(exp);
     } else {
