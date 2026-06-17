@@ -85,6 +85,11 @@ const translations = {
     totalPaid: "إجمالي المدفوعات",
     totalRemaining: "إجمالي المتبقي",
     noTransactions: "لا توجد معاملات مسجلة",
+    reservationNumber: "رقم الحجز",
+    checkIn: "تاريخ الدخول",
+    checkOut: "تاريخ الخروج",
+    departureDate: "تاريخ الذهاب",
+    returnDate: "تاريخ العودة",
   },
   en: {
     hotels: "Hotels",
@@ -109,6 +114,11 @@ const translations = {
     totalPaid: "Total Paid",
     totalRemaining: "Total Remaining",
     noTransactions: "No transactions recorded",
+    reservationNumber: "Reservation No.",
+    checkIn: "Check-in Date",
+    checkOut: "Check-out Date",
+    departureDate: "Departure Date",
+    returnDate: "Return Date",
   },
   fr: {
     hotels: "Hôtels",
@@ -133,6 +143,11 @@ const translations = {
     totalPaid: "Total Payé",
     totalRemaining: "Total Restant",
     noTransactions: "Aucune transaction enregistrée",
+    reservationNumber: "N° Réservation",
+    checkIn: "Date d'entrée",
+    checkOut: "Date de sortie",
+    departureDate: "Date de départ",
+    returnDate: "Date de retour",
   }
 };
 
@@ -193,6 +208,11 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           total: item.total !== undefined && item.total !== null ? Number(item.total) : 0,
           payment: null,
           currency,
+          reservationNumber: exp.reservationNumber || null,
+          checkIn: item.checkIn || null,
+          checkOut: item.checkOut || null,
+          departureDate: item.departureDate || null,
+          returnDate: item.returnDate || null,
         });
       }
     } else {
@@ -205,6 +225,11 @@ const buildLedgerRows = (categoryExpenses, lang) => {
         total: Number(exp.amount) || 0,
         payment: null,
         currency,
+        reservationNumber: exp.reservationNumber || null,
+        checkIn: null,
+        checkOut: null,
+        departureDate: null,
+        returnDate: null,
       });
     }
 
@@ -232,6 +257,11 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           total: null,
           payment: Number(p.amount) || 0,
           currency: p.currency || currency,
+          reservationNumber: null,
+          checkIn: null,
+          checkOut: null,
+          departureDate: null,
+          returnDate: null,
         });
       }
     }
@@ -252,7 +282,7 @@ const buildLedgerRows = (categoryExpenses, lang) => {
   return rows;
 };
 
-const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) => {
+const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, bookingType) => {
   const t = translations[lang] || translations.ar;
   const isRtl = lang === "ar";
   
@@ -280,13 +310,24 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
 
   sheet.addRow([]); // Blank row 1
 
+  // Dynamic columns count
+  let lastColLetter = "H";
+  let colCount = 8;
+  if (bookingType === "Hotel") {
+    lastColLetter = "K";
+    colCount = 11;
+  } else if (bookingType === "Flight") {
+    lastColLetter = "J";
+    colCount = 10;
+  }
+
   // Title Block
   const titleRow = sheet.addRow([`${t.supplierLedger}: ${supplier.name} - ${sheetName}`]);
   titleRow.height = 30;
   const titleCell = sheet.getCell("A2");
   titleCell.font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
   titleCell.alignment = { vertical: "middle", horizontal: isRtl ? "right" : "left" };
-  sheet.mergeCells("A2:H2");
+  sheet.mergeCells(`A2:${lastColLetter}2`);
 
   // Subtitle
   const contactText = `Email: ${supplier.email || "-"} | Phone: ${supplier.phone || supplier.landline || "-"}`;
@@ -295,7 +336,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
   const subtitleCell = sheet.getCell("A3");
   subtitleCell.font = { italic: true, size: 10, color: { argb: "FF64748B" } };
   subtitleCell.alignment = { vertical: "middle", horizontal: isRtl ? "right" : "left" };
-  sheet.mergeCells("A3:H3");
+  sheet.mergeCells(`A3:${lastColLetter}3`);
 
   sheet.addRow([]); // Blank row 4
 
@@ -341,16 +382,24 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
 
   // Main Data Headers
   const headerRow = sheet.getRow(9);
-  headerRow.values = [
+  const headerValues = [
     t.id,
     t.date,
     t.description,
+  ];
+  if (bookingType === "Hotel") {
+    headerValues.push(t.reservationNumber, t.checkIn, t.checkOut);
+  } else if (bookingType === "Flight") {
+    headerValues.push(t.departureDate, t.returnDate);
+  }
+  headerValues.push(
     t.quantity,
     t.unitPrice,
     t.total,
     t.payment,
     t.remaining,
-  ];
+  );
+  headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
     cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
@@ -363,7 +412,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
   if (ledgerRows.length === 0) {
     const noRow = sheet.addRow([t.noTransactions]);
     noRow.height = 25;
-    sheet.mergeCells(`A10:H10`);
+    sheet.mergeCells(`A10:${lastColLetter}10`);
     const noCell = sheet.getCell("A10");
     noCell.font = { italic: true, color: { argb: "FF64748B" } };
     noCell.alignment = { vertical: "middle", horizontal: "center" };
@@ -373,14 +422,31 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
       const dataRow = sheet.addRow([]);
       dataRow.height = 22;
       
-      const cellId = dataRow.getCell(1);
-      const cellDate = dataRow.getCell(2);
-      const cellDesc = dataRow.getCell(3);
-      const cellQty = dataRow.getCell(4);
-      const cellUnitPrice = dataRow.getCell(5);
-      const cellTotal = dataRow.getCell(6);
-      const cellPay = dataRow.getCell(7);
-      const cellRem = dataRow.getCell(8);
+      let cellIndex = 1;
+      const cellId = dataRow.getCell(cellIndex++);
+      const cellDate = dataRow.getCell(cellIndex++);
+      const cellDesc = dataRow.getCell(cellIndex++);
+      
+      let cellReservation = null;
+      let cellCheckIn = null;
+      let cellCheckOut = null;
+      let cellDeparture = null;
+      let cellReturn = null;
+      
+      if (bookingType === "Hotel") {
+        cellReservation = dataRow.getCell(cellIndex++);
+        cellCheckIn = dataRow.getCell(cellIndex++);
+        cellCheckOut = dataRow.getCell(cellIndex++);
+      } else if (bookingType === "Flight") {
+        cellDeparture = dataRow.getCell(cellIndex++);
+        cellReturn = dataRow.getCell(cellIndex++);
+      }
+      
+      const cellQty = dataRow.getCell(cellIndex++);
+      const cellUnitPrice = dataRow.getCell(cellIndex++);
+      const cellTotal = dataRow.getCell(cellIndex++);
+      const cellPay = dataRow.getCell(cellIndex++);
+      const cellRem = dataRow.getCell(cellIndex++);
       
       cellId.value = idx + 1;
       
@@ -395,6 +461,50 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
       }
       cellDate.value = dateString;
       cellDesc.value = row.description || "-";
+      
+      if (bookingType === "Hotel") {
+        cellReservation.value = row.reservationNumber || "-";
+        
+        let checkInStr = "-";
+        if (row.checkIn) {
+          const d = new Date(row.checkIn);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          checkInStr = `${day}/${month}/${year}`;
+        }
+        cellCheckIn.value = checkInStr;
+        
+        let checkOutStr = "-";
+        if (row.checkOut) {
+          const d = new Date(row.checkOut);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          checkOutStr = `${day}/${month}/${year}`;
+        }
+        cellCheckOut.value = checkOutStr;
+      } else if (bookingType === "Flight") {
+        let departureStr = "-";
+        if (row.departureDate) {
+          const d = new Date(row.departureDate);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          departureStr = `${day}/${month}/${year}`;
+        }
+        cellDeparture.value = departureStr;
+        
+        let returnStr = "-";
+        if (row.returnDate) {
+          const d = new Date(row.returnDate);
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          returnStr = `${day}/${month}/${year}`;
+        }
+        cellReturn.value = returnStr;
+      }
       
       const rowCurrencyName = getCurrencyName(row.currency, lang);
       
@@ -421,8 +531,15 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang) =
       cellRem.numFmt = `#,##0.00" ${rowCurrencyName}"`;
       
       // Alignments
-      [cellId, cellDate, cellQty].forEach((c) => {
-        c.alignment = { horizontal: "center", vertical: "middle" };
+      const centeredCells = [cellId, cellDate, cellQty];
+      if (bookingType === "Hotel") {
+        centeredCells.push(cellReservation, cellCheckIn, cellCheckOut);
+      } else if (bookingType === "Flight") {
+        centeredCells.push(cellDeparture, cellReturn);
+      }
+      
+      centeredCells.forEach((c) => {
+        if (c) c.alignment = { horizontal: "center", vertical: "middle" };
       });
       
       cellDesc.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
@@ -478,16 +595,16 @@ exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
   }
 
   // Add Hotel Sheet
-  addLedgerSheet(workbook, t.hotels, hotelExpenses, supplier, lang);
+  addLedgerSheet(workbook, t.hotels, hotelExpenses, supplier, lang, "Hotel");
 
   // Add Flight Sheet
-  addLedgerSheet(workbook, t.flights, flightExpenses, supplier, lang);
+  addLedgerSheet(workbook, t.flights, flightExpenses, supplier, lang, "Flight");
 
   // Add Visa & Transport Sheet (Combined)
-  addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplier, lang);
+  addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplier, lang, "Visa/Transfer");
 
   // Add Other Sheet
-  addLedgerSheet(workbook, t.other, otherExpenses, supplier, lang);
+  addLedgerSheet(workbook, t.other, otherExpenses, supplier, lang, "Other");
 
   return workbook;
 };
