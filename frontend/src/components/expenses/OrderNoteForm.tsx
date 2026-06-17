@@ -25,6 +25,10 @@ const emptyItem: ExpenseItem = {
   checkOut: "",
   departureDate: "",
   returnDate: "",
+  ticketCategory: "",
+  bookingRef: "",
+  passengerName: "",
+  issuingFees: undefined,
 };
 
 type BookingType = "Hotel" | "Flight" | "Visa" | "Transfer" | "Other";
@@ -175,8 +179,9 @@ export default function OrderNoteForm({
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
     const nights = bookingType === "Hotel" ? Number(item.nights) || 1 : 1;
+    const issuingFees = bookingType === "Flight" ? Number(item.issuingFees) || 0 : 0;
 
-    item.total = qty * price * nights;
+    item.total = qty * (price * nights + issuingFees);
     newItems[index] = item;
     setItems(newItems);
   };
@@ -188,7 +193,8 @@ export default function OrderNoteForm({
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unitPrice) || 0;
       const nights = newType === "Hotel" ? Number(item.nights) || 1 : 1;
-      return { ...item, total: qty * price * nights };
+      const issuingFees = newType === "Flight" ? Number(item.issuingFees) || 0 : 0;
+      return { ...item, total: qty * (price * nights + issuingFees) };
     });
     setItems(updatedItems);
   };
@@ -600,6 +606,77 @@ export default function OrderNoteForm({
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
+                </div>
+              )}
+
+              {/* Flight Details Secondary Row */}
+              {isFlight && (
+                <div className="col-span-12 grid grid-cols-12 gap-2 mt-1 pb-3 pl-4 border-l-2 border-primary/30 dark:border-primary/50">
+                  <div className="col-span-3">
+                    <label className="block text-[10px] uppercase font-semibold text-gray-500 mb-1">
+                      {t("passengerName")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("passengerNamePlaceholder") as string}
+                      disabled={readOnly}
+                      value={item.passengerName || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "passengerName", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="block text-[10px] uppercase font-semibold text-gray-500 mb-1">
+                      {t("bookingRef")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("bookingRefPlaceholder") as string}
+                      disabled={readOnly}
+                      value={item.bookingRef || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "bookingRef", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="col-span-3">
+                    <label className="block text-[10px] uppercase font-semibold text-gray-500 mb-1">
+                      {t("ticketCategory")}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={t("ticketCategoryPlaceholder") as string}
+                      disabled={readOnly}
+                      value={item.ticketCategory || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "ticketCategory", e.target.value)
+                      }
+                      className={inputClass}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] uppercase font-semibold text-gray-500 mb-1">
+                      {t("issuingFees")}
+                    </label>
+                    <NumberInput
+                      min="0"
+                      step="0.01"
+                      disabled={readOnly}
+                      value={item.issuingFees !== undefined && item.issuingFees !== null ? item.issuingFees : ""}
+                      onChange={(e) =>
+                        handleItemChange(
+                          index,
+                          "issuingFees",
+                          e.target.value === "" ? "" : Number(e.target.value)
+                        )
+                      }
+                      className={`${inputClass} text-right`}
+                    />
+                  </div>
+                  <div className="col-span-1"></div>
                 </div>
               )}
             </div>

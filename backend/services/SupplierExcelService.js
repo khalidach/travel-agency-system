@@ -90,6 +90,10 @@ const translations = {
     checkOut: "تاريخ الخروج",
     departureDate: "تاريخ الذهاب",
     returnDate: "تاريخ العودة",
+    passengerName: "اسم المسافر",
+    bookingRef: "مرجع الحجز (PNR)",
+    ticketCategory: "فئة التذكرة",
+    issuingFees: "رسوم الإصدار",
   },
   en: {
     hotels: "Hotels",
@@ -119,6 +123,10 @@ const translations = {
     checkOut: "Check-out Date",
     departureDate: "Departure Date",
     returnDate: "Return Date",
+    passengerName: "Passenger Name",
+    bookingRef: "Booking Reference (PNR)",
+    ticketCategory: "Ticket Category",
+    issuingFees: "Issuing Fees",
   },
   fr: {
     hotels: "Hôtels",
@@ -148,6 +156,10 @@ const translations = {
     checkOut: "Date de sortie",
     departureDate: "Date de départ",
     returnDate: "Date de retour",
+    passengerName: "Nom du passager",
+    bookingRef: "Référence de réservation (PNR)",
+    ticketCategory: "Catégorie du billet",
+    issuingFees: "Frais d'émission",
   }
 };
 
@@ -213,6 +225,10 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           checkOut: item.checkOut || null,
           departureDate: item.departureDate || null,
           returnDate: item.returnDate || null,
+          passengerName: item.passengerName || null,
+          bookingRef: item.bookingRef || null,
+          ticketCategory: item.ticketCategory || null,
+          issuingFees: item.issuingFees !== undefined && item.issuingFees !== null ? Number(item.issuingFees) : null,
         });
       }
     } else {
@@ -230,6 +246,10 @@ const buildLedgerRows = (categoryExpenses, lang) => {
         checkOut: null,
         departureDate: null,
         returnDate: null,
+        passengerName: null,
+        bookingRef: null,
+        ticketCategory: null,
+        issuingFees: null,
       });
     }
 
@@ -262,6 +282,10 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           checkOut: null,
           departureDate: null,
           returnDate: null,
+          passengerName: null,
+          bookingRef: null,
+          ticketCategory: null,
+          issuingFees: null,
         });
       }
     }
@@ -317,8 +341,8 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
     lastColLetter = "K";
     colCount = 11;
   } else if (bookingType === "Flight") {
-    lastColLetter = "J";
-    colCount = 10;
+    lastColLetter = "N";
+    colCount = 14;
   }
 
   // Title Block
@@ -390,11 +414,21 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
   if (bookingType === "Hotel") {
     headerValues.push(t.reservationNumber, t.checkIn, t.checkOut);
   } else if (bookingType === "Flight") {
-    headerValues.push(t.departureDate, t.returnDate);
+    headerValues.push(
+      t.passengerName || "Passenger Name",
+      t.bookingRef || "Booking Reference (PNR)",
+      t.ticketCategory || "Ticket Category",
+      t.departureDate,
+      t.returnDate
+    );
+  }
+  headerValues.push(t.quantity);
+  if (bookingType === "Flight") {
+    headerValues.push(t.unitPrice, t.issuingFees || "Issuing Fees");
+  } else {
+    headerValues.push(t.unitPrice);
   }
   headerValues.push(
-    t.quantity,
-    t.unitPrice,
     t.total,
     t.payment,
     t.remaining,
@@ -430,6 +464,9 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       let cellReservation = null;
       let cellCheckIn = null;
       let cellCheckOut = null;
+      let cellPassengerName = null;
+      let cellBookingRef = null;
+      let cellTicketCategory = null;
       let cellDeparture = null;
       let cellReturn = null;
       
@@ -438,12 +475,19 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         cellCheckIn = dataRow.getCell(cellIndex++);
         cellCheckOut = dataRow.getCell(cellIndex++);
       } else if (bookingType === "Flight") {
+        cellPassengerName = dataRow.getCell(cellIndex++);
+        cellBookingRef = dataRow.getCell(cellIndex++);
+        cellTicketCategory = dataRow.getCell(cellIndex++);
         cellDeparture = dataRow.getCell(cellIndex++);
         cellReturn = dataRow.getCell(cellIndex++);
       }
       
       const cellQty = dataRow.getCell(cellIndex++);
       const cellUnitPrice = dataRow.getCell(cellIndex++);
+      let cellIssuingFees = null;
+      if (bookingType === "Flight") {
+        cellIssuingFees = dataRow.getCell(cellIndex++);
+      }
       const cellTotal = dataRow.getCell(cellIndex++);
       const cellPay = dataRow.getCell(cellIndex++);
       const cellRem = dataRow.getCell(cellIndex++);
@@ -485,6 +529,10 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         }
         cellCheckOut.value = checkOutStr;
       } else if (bookingType === "Flight") {
+        cellPassengerName.value = row.passengerName || "-";
+        cellBookingRef.value = row.bookingRef || "-";
+        cellTicketCategory.value = row.ticketCategory || "-";
+        
         let departureStr = "-";
         if (row.departureDate) {
           const d = new Date(row.departureDate);
@@ -511,16 +559,25 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       if (row.type === "purchase") {
         cellQty.value = row.quantity !== null && row.quantity !== undefined ? Number(row.quantity) : "-";
         cellUnitPrice.value = row.unitPrice !== null && row.unitPrice !== undefined ? Number(row.unitPrice) : "-";
+        if (bookingType === "Flight") {
+          cellIssuingFees.value = row.issuingFees !== null && row.issuingFees !== undefined ? Number(row.issuingFees) : "-";
+        }
         cellTotal.value = Number(row.total);
         cellPay.value = "-";
         
         if (row.unitPrice !== null && row.unitPrice !== undefined) {
           cellUnitPrice.numFmt = `#,##0.00" ${rowCurrencyName}"`;
         }
+        if (bookingType === "Flight" && row.issuingFees !== null && row.issuingFees !== undefined) {
+          cellIssuingFees.numFmt = `#,##0.00" ${rowCurrencyName}"`;
+        }
         cellTotal.numFmt = `#,##0.00" ${rowCurrencyName}"`;
       } else {
         cellQty.value = "-";
         cellUnitPrice.value = "-";
+        if (bookingType === "Flight") {
+          cellIssuingFees.value = "-";
+        }
         cellTotal.value = "-";
         cellPay.value = Number(row.payment);
         
@@ -535,7 +592,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       if (bookingType === "Hotel") {
         centeredCells.push(cellReservation, cellCheckIn, cellCheckOut);
       } else if (bookingType === "Flight") {
-        centeredCells.push(cellDeparture, cellReturn);
+        centeredCells.push(cellDeparture, cellReturn, cellBookingRef, cellTicketCategory);
       }
       
       centeredCells.forEach((c) => {
@@ -543,8 +600,16 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       });
       
       cellDesc.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
+      if (cellPassengerName) {
+        cellPassengerName.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
+      }
       
-      [cellUnitPrice, cellTotal, cellPay, cellRem].forEach((c) => {
+      const rightOrCenteredCells = [cellUnitPrice, cellTotal, cellPay, cellRem];
+      if (cellIssuingFees) {
+        rightOrCenteredCells.push(cellIssuingFees);
+      }
+      
+      rightOrCenteredCells.forEach((c) => {
         if (c.value !== "-") {
           c.alignment = { horizontal: "right", vertical: "middle" };
         } else {

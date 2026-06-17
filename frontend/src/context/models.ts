@@ -216,6 +216,10 @@ export interface ExpenseItem {
   checkOut?: string;
   departureDate?: string; // NEW: For Flights
   returnDate?: string; // NEW: For Flights
+  ticketCategory?: string;
+  bookingRef?: string;
+  passengerName?: string;
+  issuingFees?: number;
   total: number;
 }
 
