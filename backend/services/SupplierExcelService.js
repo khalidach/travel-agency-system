@@ -49,10 +49,10 @@ const estimateCellWidth = (cell) => {
 };
 
 const borderStyle = {
-  top: { style: "thin", color: { argb: "FFCBD5E1" } },
-  left: { style: "thin", color: { argb: "FFCBD5E1" } },
-  bottom: { style: "thin", color: { argb: "FFCBD5E1" } },
-  right: { style: "thin", color: { argb: "FFCBD5E1" } },
+  top: { style: "thin", color: { argb: "FF000000" } },
+  left: { style: "thin", color: { argb: "FF000000" } },
+  bottom: { style: "thin", color: { argb: "FF000000" } },
+  right: { style: "thin", color: { argb: "FF000000" } },
 };
 
 const headerFill = {
@@ -554,7 +554,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       
       dataRow.eachCell((c) => {
         c.border = borderStyle;
-        c.font = { size: 10 };
+        c.font = { size: 10, bold: true };
       });
     });
   }

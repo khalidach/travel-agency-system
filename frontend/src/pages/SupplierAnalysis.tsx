@@ -48,7 +48,7 @@ export default function SupplierAnalysis() {
       const link = document.createElement("a");
       link.setAttribute("href", url);
       
-      const sanitizedName = supplier.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+      const sanitizedName = supplier.name.replace(/[\/\\:\*\?"<>\|]/g, "");
       link.setAttribute("download", `supplier_analysis_${sanitizedName}.xlsx`);
       document.body.appendChild(link);
       link.click();

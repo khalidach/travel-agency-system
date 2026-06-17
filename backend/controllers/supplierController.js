@@ -264,7 +264,7 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
       lang || "ar"
     );
 
-    const sanitizedName = supplier.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const sanitizedName = supplier.name.replace(/[\/\\:\*\?"<>\|]/g, "");
     
     res.setHeader(
       "Content-Type",
@@ -272,7 +272,7 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=supplier_analysis_${sanitizedName}.xlsx`
+      `attachment; filename="${encodeURIComponent(sanitizedName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(sanitizedName)}.xlsx`
     );
 
     await workbook.xlsx.write(res);
