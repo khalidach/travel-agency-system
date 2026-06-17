@@ -814,6 +814,14 @@ export const updateExpense = (id: number, data: Partial<Expense>) =>
 export const deleteExpense = (id: number) =>
   request(`/expenses/${id}`, { method: "DELETE" });
 
+export const exportExpenseToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/expenses/${id}/export?${params.toString()}`, {}, true);
+};
+
 export const bulkDeleteExpenses = (ids: number[]) =>
   request("/expenses/bulk-delete", {
     method: "POST",

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Trash2, CreditCard, Edit2 } from "lucide-react"; // Added Edit2
+import { Trash2, CreditCard, Edit2, FileText } from "lucide-react"; // Added Edit2, FileText
 import Modal from "../Modal";
 import ExpensePaymentForm from "./ExpensePaymentForm";
 import ConfirmationModal from "../modals/ConfirmationModal";
@@ -21,11 +21,35 @@ export default function ExpensePaymentModal({
   isOpen,
   onClose,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [isPaymentFormOpen, setIsPaymentFormOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null); // New state
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportExcel = async () => {
+    if (!expense) return;
+    setIsExporting(true);
+    try {
+      const blob = await api.exportExpenseToExcel(expense.id, i18n.language || "ar");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const sanitizedName = (expense.description || "expense").replace(/[\/\\:\*\?"<>\|]/g, "");
+      link.setAttribute("download", `${sanitizedName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess"));
+    } catch (error) {
+      console.error("Failed to export expense Excel", error);
+      toast.error(t("exportFailed"));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const addPaymentMutation = useMutation({
     mutationFn: (payment: Omit<Payment, "_id" | "id">) =>
@@ -119,14 +143,24 @@ export default function ExpensePaymentModal({
                 </span>
               </p>
             </div>
-            <button
-              onClick={() => setIsPaymentFormOpen(true)}
-              className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
-              disabled={expense.isFullyPaid}
-            >
-              <CreditCard className={`w-4 h-4 mr-2`} />
-              {t("addPayment")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className="inline-flex items-center px-3 py-1 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                {isExporting ? t("exporting") : t("exportToExcel")}
+              </button>
+              <button
+                onClick={() => setIsPaymentFormOpen(true)}
+                className="inline-flex items-center px-3 py-1 text-sm bg-success text-white rounded-lg hover:bg-success/90 transition-colors"
+                disabled={expense.isFullyPaid}
+              >
+                <CreditCard className={`w-4 h-4 mr-2`} />
+                {t("addPayment")}
+              </button>
+            </div>
           </div>
 
           <div className="space-y-2">

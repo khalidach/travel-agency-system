@@ -4,6 +4,7 @@ const router = express.Router();
 const expenseController = require("../controllers/expenseController");
 
 router.get("/", expenseController.getAllExpenses);
+router.get("/:id/export", expenseController.exportSingleExpense);
 router.post("/", expenseController.createExpense);
 router.post("/bulk-delete", expenseController.bulkDeleteExpenses);
 router.put("/:id", expenseController.updateExpense);

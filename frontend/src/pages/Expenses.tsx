@@ -26,7 +26,7 @@ import PaginationControls from "../components/ui/PaginationControls";
 import { useBranchContext } from "../context/BranchContext";
 
 export default function Expenses() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"order_note" | "regular">(
     "order_note",
@@ -202,6 +202,30 @@ export default function Expenses() {
       }
       return next;
     });
+  };
+
+  const [exportingId, setExportingId] = useState<number | null>(null);
+
+  const handleExportExcel = async (expense: Expense) => {
+    setExportingId(expense.id);
+    try {
+      const blob = await api.exportExpenseToExcel(expense.id, i18n.language || "ar");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const sanitizedName = (expense.description || "expense").replace(/[\/\\:\*\?"<>\|]/g, "");
+      link.setAttribute("download", `${sanitizedName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess"));
+    } catch (error) {
+      console.error("Failed to export expense Excel", error);
+      toast.error(t("exportFailed"));
+    } finally {
+      setExportingId(null);
+    }
   };
 
   const handleEdit = (expense: Expense) => {
@@ -496,6 +520,14 @@ export default function Expenses() {
                             <CreditCard className="w-4 h-4" />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleExportExcel(expense)}
+                          disabled={exportingId === expense.id}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors disabled:opacity-50"
+                          title={t("exportToExcel") as string}
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => handleEdit(expense)}
                           className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"

@@ -470,3 +470,45 @@ exports.deletePayment = async (req, res, next) => {
     next(new AppError("Failed to delete payment", 500));
   }
 };
+
+exports.exportSingleExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { lang } = req.query;
+
+    const result = await req.db.query(
+      `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (result.rowCount === 0) {
+      return next(new AppError("Expense not found", 404));
+    }
+
+    const expense = result.rows[0];
+
+    const ExpenseExcelService = require("../services/ExpenseExcelService");
+    const workbook = await ExpenseExcelService.generateExpenseExcel(
+      expense,
+      lang || "ar"
+    );
+
+    const sanitizedName = (expense.description || "expense").replace(/[\/\\:\*\?"<>\|]/g, "");
+    
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(sanitizedName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(sanitizedName)}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Single Expense Error:", error);
+    next(new AppError("Failed to export expense details.", 500));
+  }
+};
+

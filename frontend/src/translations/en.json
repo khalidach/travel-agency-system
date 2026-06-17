@@ -160,6 +160,8 @@
   "allEmployees": "All Employees",
   "exportToExcel": "Export to Excel",
   "exporting": "Exporting...",
+  "exportSuccess": "Exported successfully!",
+  "exportFailed": "Failed to export Excel file.",
   "client": "Client",
   "programAndHotels": "Program & Hotels",
   "priceDetails": "Price Details",

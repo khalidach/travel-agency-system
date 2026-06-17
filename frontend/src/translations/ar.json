@@ -164,6 +164,8 @@
   "allEmployees": "كل الموظفين",
   "exportToExcel": "تصدير إلى Excel",
   "exporting": "جارٍ التصدير...",
+  "exportSuccess": "تم التصدير بنجاح!",
+  "exportFailed": "فشل تصدير ملف Excel.",
   "client": "العميل",
   "programAndHotels": "البرنامج والفنادق",
   "priceDetails": "تفاصيل السعر",
