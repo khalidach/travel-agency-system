@@ -329,21 +329,46 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
   }
   const totalRemaining = totalPurchases - totalPaid;
 
+  // Determine dynamic optional columns based on actual data presence
+  const hasPassengerName = bookingType === "Flight" && ledgerRows.some(row => row.passengerName && row.passengerName.trim() !== "");
+  const hasBookingRef = bookingType === "Flight" && ledgerRows.some(row => row.bookingRef && row.bookingRef.trim() !== "");
+  const hasTicketCategory = bookingType === "Flight" && ledgerRows.some(row => row.ticketCategory && row.ticketCategory.trim() !== "");
+  const hasIssuingFees = bookingType === "Flight" && ledgerRows.some(row => row.issuingFees !== undefined && row.issuingFees !== null && Number(row.issuingFees) !== 0);
+
+  // Build header values dynamically
+  const headerValues = [
+    t.id,
+    t.date,
+    t.description,
+  ];
+  if (bookingType === "Hotel") {
+    headerValues.push(t.reservationNumber, t.checkIn, t.checkOut);
+  } else if (bookingType === "Flight") {
+    if (hasPassengerName) headerValues.push(t.passengerName || "Passenger Name");
+    if (hasBookingRef) headerValues.push(t.bookingRef || "Booking Reference (PNR)");
+    if (hasTicketCategory) headerValues.push(t.ticketCategory || "Ticket Category");
+    headerValues.push(t.departureDate, t.returnDate);
+  }
+  headerValues.push(t.quantity);
+  if (bookingType === "Flight" && hasIssuingFees) {
+    headerValues.push(t.unitPrice, t.issuingFees || "Issuing Fees");
+  } else {
+    headerValues.push(t.unitPrice);
+  }
+  headerValues.push(
+    t.total,
+    t.payment,
+    t.remaining,
+  );
+
+  const colCount = headerValues.length;
+  const letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"];
+  const lastColLetter = letters[colCount - 1] || "J";
+
   const sheet = workbook.addWorksheet(sheetName);
   sheet.views = [{ showGridLines: true, rightToLeft: isRtl }];
 
   sheet.addRow([]); // Blank row 1
-
-  // Dynamic columns count
-  let lastColLetter = "H";
-  let colCount = 8;
-  if (bookingType === "Hotel") {
-    lastColLetter = "K";
-    colCount = 11;
-  } else if (bookingType === "Flight") {
-    lastColLetter = "N";
-    colCount = 14;
-  }
 
   // Title Block
   const titleRow = sheet.addRow([`${t.supplierLedger}: ${supplier.name} - ${sheetName}`]);
@@ -406,33 +431,6 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
 
   // Main Data Headers
   const headerRow = sheet.getRow(9);
-  const headerValues = [
-    t.id,
-    t.date,
-    t.description,
-  ];
-  if (bookingType === "Hotel") {
-    headerValues.push(t.reservationNumber, t.checkIn, t.checkOut);
-  } else if (bookingType === "Flight") {
-    headerValues.push(
-      t.passengerName || "Passenger Name",
-      t.bookingRef || "Booking Reference (PNR)",
-      t.ticketCategory || "Ticket Category",
-      t.departureDate,
-      t.returnDate
-    );
-  }
-  headerValues.push(t.quantity);
-  if (bookingType === "Flight") {
-    headerValues.push(t.unitPrice, t.issuingFees || "Issuing Fees");
-  } else {
-    headerValues.push(t.unitPrice);
-  }
-  headerValues.push(
-    t.total,
-    t.payment,
-    t.remaining,
-  );
   headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -475,9 +473,9 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         cellCheckIn = dataRow.getCell(cellIndex++);
         cellCheckOut = dataRow.getCell(cellIndex++);
       } else if (bookingType === "Flight") {
-        cellPassengerName = dataRow.getCell(cellIndex++);
-        cellBookingRef = dataRow.getCell(cellIndex++);
-        cellTicketCategory = dataRow.getCell(cellIndex++);
+        if (hasPassengerName) cellPassengerName = dataRow.getCell(cellIndex++);
+        if (hasBookingRef) cellBookingRef = dataRow.getCell(cellIndex++);
+        if (hasTicketCategory) cellTicketCategory = dataRow.getCell(cellIndex++);
         cellDeparture = dataRow.getCell(cellIndex++);
         cellReturn = dataRow.getCell(cellIndex++);
       }
@@ -485,7 +483,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       const cellQty = dataRow.getCell(cellIndex++);
       const cellUnitPrice = dataRow.getCell(cellIndex++);
       let cellIssuingFees = null;
-      if (bookingType === "Flight") {
+      if (bookingType === "Flight" && hasIssuingFees) {
         cellIssuingFees = dataRow.getCell(cellIndex++);
       }
       const cellTotal = dataRow.getCell(cellIndex++);
@@ -529,9 +527,9 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         }
         cellCheckOut.value = checkOutStr;
       } else if (bookingType === "Flight") {
-        cellPassengerName.value = row.passengerName || "-";
-        cellBookingRef.value = row.bookingRef || "-";
-        cellTicketCategory.value = row.ticketCategory || "-";
+        if (hasPassengerName) cellPassengerName.value = row.passengerName || "-";
+        if (hasBookingRef) cellBookingRef.value = row.bookingRef || "-";
+        if (hasTicketCategory) cellTicketCategory.value = row.ticketCategory || "-";
         
         let departureStr = "-";
         if (row.departureDate) {
@@ -559,7 +557,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       if (row.type === "purchase") {
         cellQty.value = row.quantity !== null && row.quantity !== undefined ? Number(row.quantity) : "-";
         cellUnitPrice.value = row.unitPrice !== null && row.unitPrice !== undefined ? Number(row.unitPrice) : "-";
-        if (bookingType === "Flight") {
+        if (bookingType === "Flight" && hasIssuingFees) {
           cellIssuingFees.value = row.issuingFees !== null && row.issuingFees !== undefined ? Number(row.issuingFees) : "-";
         }
         cellTotal.value = Number(row.total);
@@ -568,14 +566,14 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         if (row.unitPrice !== null && row.unitPrice !== undefined) {
           cellUnitPrice.numFmt = `#,##0.00" ${rowCurrencyName}"`;
         }
-        if (bookingType === "Flight" && row.issuingFees !== null && row.issuingFees !== undefined) {
+        if (bookingType === "Flight" && hasIssuingFees && row.issuingFees !== null && row.issuingFees !== undefined) {
           cellIssuingFees.numFmt = `#,##0.00" ${rowCurrencyName}"`;
         }
         cellTotal.numFmt = `#,##0.00" ${rowCurrencyName}"`;
       } else {
         cellQty.value = "-";
         cellUnitPrice.value = "-";
-        if (bookingType === "Flight") {
+        if (bookingType === "Flight" && hasIssuingFees) {
           cellIssuingFees.value = "-";
         }
         cellTotal.value = "-";
@@ -592,7 +590,9 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       if (bookingType === "Hotel") {
         centeredCells.push(cellReservation, cellCheckIn, cellCheckOut);
       } else if (bookingType === "Flight") {
-        centeredCells.push(cellDeparture, cellReturn, cellBookingRef, cellTicketCategory);
+        centeredCells.push(cellDeparture, cellReturn);
+        if (hasBookingRef) centeredCells.push(cellBookingRef);
+        if (hasTicketCategory) centeredCells.push(cellTicketCategory);
       }
       
       centeredCells.forEach((c) => {
@@ -600,12 +600,12 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       });
       
       cellDesc.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
-      if (cellPassengerName) {
+      if (hasPassengerName && cellPassengerName) {
         cellPassengerName.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
       }
       
       const rightOrCenteredCells = [cellUnitPrice, cellTotal, cellPay, cellRem];
-      if (cellIssuingFees) {
+      if (hasIssuingFees && cellIssuingFees) {
         rightOrCenteredCells.push(cellIssuingFees);
       }
       
@@ -651,15 +651,7 @@ exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
     if (exp.bookingType === "Hotel") {
       hotelExpenses.push(exp);
     } else if (exp.bookingType === "Flight") {
-      const hasFlightFields = exp.items && Array.isArray(exp.items) && exp.items.some(item => 
-        (item.passengerName && item.passengerName.trim() !== "") || 
-        (item.bookingRef && item.bookingRef.trim() !== "") || 
-        (item.ticketCategory && item.ticketCategory.trim() !== "") || 
-        (item.issuingFees !== undefined && item.issuingFees !== null && Number(item.issuingFees) !== 0)
-      );
-      if (hasFlightFields) {
-        flightExpenses.push(exp);
-      }
+      flightExpenses.push(exp);
     } else if (exp.bookingType === "Visa" || exp.bookingType === "Transfer") {
       visaTransportExpenses.push(exp);
     } else {
@@ -667,17 +659,36 @@ exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
     }
   }
 
+  let addedAnySheet = false;
+
   // Add Hotel Sheet
-  addLedgerSheet(workbook, t.hotels, hotelExpenses, supplier, lang, "Hotel");
+  if (hotelExpenses.length > 0) {
+    addLedgerSheet(workbook, t.hotels, hotelExpenses, supplier, lang, "Hotel");
+    addedAnySheet = true;
+  }
 
   // Add Flight Sheet
-  addLedgerSheet(workbook, t.flights, flightExpenses, supplier, lang, "Flight");
+  if (flightExpenses.length > 0) {
+    addLedgerSheet(workbook, t.flights, flightExpenses, supplier, lang, "Flight");
+    addedAnySheet = true;
+  }
 
   // Add Visa & Transport Sheet (Combined)
-  addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplier, lang, "Visa/Transfer");
+  if (visaTransportExpenses.length > 0) {
+    addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplier, lang, "Visa/Transfer");
+    addedAnySheet = true;
+  }
 
   // Add Other Sheet
-  addLedgerSheet(workbook, t.other, otherExpenses, supplier, lang, "Other");
+  if (otherExpenses.length > 0) {
+    addLedgerSheet(workbook, t.other, otherExpenses, supplier, lang, "Other");
+    addedAnySheet = true;
+  }
+
+  // Fallback if no sheets were added to keep workbook valid
+  if (!addedAnySheet) {
+    addLedgerSheet(workbook, t.other, [], supplier, lang, "Other");
+  }
 
   return workbook;
 };
