@@ -359,6 +359,28 @@ export default function Expenses() {
     }
   };
 
+  const [isExportingIata, setIsExportingIata] = useState(false);
+
+  const handleExportIataExcel = async () => {
+    setIsExportingIata(true);
+    try {
+      const blob = await api.exportIataWalletToExcel("ar", selectedBranchId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `كشف_حساب_محفظة_إياتا.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess"));
+    } catch (error) {
+      console.error("Failed to export IATA wallet Excel", error);
+      toast.error(t("exportFailed"));
+    } finally {
+      setIsExportingIata(false);
+    }
+  };
+
   const handleEdit = (expense: Expense) => {
     setSelectedExpense(expense);
     setIsFormOpen(true);
@@ -564,8 +586,16 @@ export default function Expenses() {
       {/* Main List */}
       {activeTab === "iata_easypay" ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/30 flex justify-between items-center">
             <h3 className="font-semibold text-gray-900 dark:text-white">{t("iataTransactions")}</h3>
+            <button
+              onClick={handleExportIataExcel}
+              disabled={isExportingIata}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all disabled:opacity-50 text-xs font-medium shadow-sm hover:shadow"
+            >
+              <FileText className="w-3.5 h-3.5" />
+              {isExportingIata ? t("exporting") : t("exportToExcel")}
+            </button>
           </div>
           {!paginatedWalletTransactions.length ? (
             <div className="p-12 text-center">

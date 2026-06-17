@@ -512,3 +512,45 @@ exports.exportSingleExpense = async (req, res, next) => {
   }
 };
 
+exports.exportIataWallet = async (req, res, next) => {
+  try {
+    const { lang } = req.query;
+
+    let query = `SELECT * FROM expenses WHERE "userId" = $1`;
+    const params = [req.user.id];
+
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      query += ` AND "branchId" = $${params.length + 1}`;
+      params.push(branchIdFilter);
+    }
+
+    query += ` ORDER BY date ASC, "createdAt" ASC`;
+
+    const { rows } = await req.db.query(query, params);
+
+    const IataWalletExcelService = require("../services/IataWalletExcelService");
+    const workbook = await IataWalletExcelService.generateIataWalletExcel(
+      rows,
+      lang || "ar"
+    );
+
+    const fileName = lang === "ar" || !lang ? "كشف_حساب_محفظة_إياتا" : "iata_easypay_ledger";
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export IATA Wallet Error:", error);
+    next(new AppError("Failed to export IATA wallet statement.", 500));
+  }
+};
+

@@ -822,6 +822,17 @@ export const exportExpenseToExcel = (id: number, lang?: string) => {
   return request(`/expenses/${id}/export?${params.toString()}`, {}, true);
 };
 
+export const exportIataWalletToExcel = (lang?: string, branchId?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  if (branchId && branchId !== "all") {
+    params.append("branchId", branchId);
+  }
+  return request(`/expenses/export-iata?${params.toString()}`, {}, true);
+};
+
 export const bulkDeleteExpenses = (ids: number[]) =>
   request("/expenses/bulk-delete", {
     method: "POST",
