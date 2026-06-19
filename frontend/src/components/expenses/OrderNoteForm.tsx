@@ -99,7 +99,7 @@ export default function OrderNoteForm({
     if (readOnly) return; // Skip fetching if read-only
     const fetchSuppliers = async () => {
       try {
-        const data = await getSuppliers(false);
+        const data = await getSuppliers(false, 1, 1000);
         if (data && Array.isArray(data.suppliers)) {
           setSuppliers(data.suppliers);
         } else if (Array.isArray(data)) {
@@ -144,10 +144,11 @@ export default function OrderNoteForm({
   }, []);
 
   const filteredSuppliers = useMemo(() => {
-    if (!beneficiary) return suppliers;
-    return suppliers.filter((s) =>
-      s.name.toLowerCase().includes(beneficiary.toLowerCase()),
-    );
+    const query = beneficiary.toLowerCase();
+    const filtered = query
+      ? suppliers.filter((s) => s.name.toLowerCase().includes(query))
+      : suppliers;
+    return filtered.slice(0, 15);
   }, [suppliers, beneficiary]);
 
   const calculateNights = (checkIn: string, checkOut: string): number => {

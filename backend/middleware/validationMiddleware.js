@@ -169,7 +169,7 @@ const bookingValidation = [
   body("clients.*.gender")
     .isIn(["male", "female"])
     .withMessage("Invalid gender."),
-  body("clients.*.phoneNumber").optional({ checkFalsy: true }).trim().escape(),
+  body("clients.*.phoneNumber").optional({ checkFalsy: true }).trim(),
   body("clients.*.dateOfBirth")
     .optional({ checkFalsy: true })
     .custom((value) => {
