@@ -215,21 +215,23 @@ export default function OrderNoteForm({
     e.preventDefault();
     if (readOnly) return;
 
+    const cleanItems = items.filter((item) => item.description.trim() !== "");
+    const itemsToSubmit = cleanItems.length > 0 ? cleanItems : items;
+
     const description =
-      items.length === 1
-        ? items[0].description
-        : `${items.length} items (${items
-          .map((i) => i.description)
-          .join(", ")
-          .slice(0, 50)}...)`;
+      itemsToSubmit.length === 1
+        ? itemsToSubmit[0].description
+        : `${itemsToSubmit[0].description}, ...`;
+
+    const finalAmount = itemsToSubmit.reduce((sum, item) => sum + (item.total || 0), 0);
 
     onSubmit({
       date,
       beneficiary,
       currency,
-      items,
+      items: itemsToSubmit,
       description,
-      amount: totalAmount,
+      amount: finalAmount,
       type: "order_note",
       bookingType,
       reservationNumber:

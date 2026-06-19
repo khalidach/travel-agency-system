@@ -139,32 +139,42 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
       return;
     }
 
+    const cleanItems = items.filter((item) => item.description.trim() !== "");
+    const itemsToSubmit = cleanItems.length > 0 ? cleanItems : items;
+
     // Validate items
-    for (let i = 0; i < items.length; i++) {
-      if (!items[i].description.trim()) {
+    for (let i = 0; i < itemsToSubmit.length; i++) {
+      if (!itemsToSubmit[i].description.trim()) {
         toast.error(t("itemDescriptionRequired"));
         return;
       }
     }
 
+    const cleanOriginalPrice = itemsToSubmit.reduce(
+      (sum, item) => sum + (Number(item.quantity) * Number(item.purchasePrice) || 0),
+      0,
+    );
+    const cleanTotalPrice = itemsToSubmit.reduce(
+      (sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0),
+      0,
+    );
+    const cleanProfit = cleanTotalPrice - cleanOriginalPrice;
+
     const serviceName =
-      items.length === 1
-        ? items[0].description
-        : `${items.length} items (${items
-          .map((i) => i.description)
-          .join(", ")
-          .slice(0, 50)}...)`;
+      itemsToSubmit.length === 1
+        ? itemsToSubmit[0].description
+        : `${itemsToSubmit[0].description}, ...`;
 
     onSave({
       type,
       serviceName,
       clientName,
       bookingRef,
-      items,
-      originalPrice,
-      totalPrice,
+      items: itemsToSubmit,
+      originalPrice: cleanOriginalPrice,
+      totalPrice: cleanTotalPrice,
       date,
-      profit,
+      profit: cleanProfit,
       advancePayments: service?.advancePayments || [],
     });
   };

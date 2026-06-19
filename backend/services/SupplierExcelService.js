@@ -94,6 +94,8 @@ const translations = {
     bookingRef: "مرجع الحجز (PNR)",
     ticketCategory: "فئة التذكرة",
     issuingFees: "رسوم الإصدار",
+    paymentMethod: "طريقة الدفع",
+    iata_easypay: "إياتا إيزي باي",
   },
   en: {
     hotels: "Hotels",
@@ -127,6 +129,8 @@ const translations = {
     bookingRef: "Booking Reference (PNR)",
     ticketCategory: "Ticket Category",
     issuingFees: "Issuing Fees",
+    paymentMethod: "Payment Method",
+    iata_easypay: "IATA EasyPay",
   },
   fr: {
     hotels: "Hôtels",
@@ -160,6 +164,8 @@ const translations = {
     bookingRef: "Référence de réservation (PNR)",
     ticketCategory: "Catégorie du billet",
     issuingFees: "Frais d'émission",
+    paymentMethod: "Mode de Paiement",
+    iata_easypay: "IATA EasyPay",
   }
 };
 
@@ -219,6 +225,7 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           unitPrice: item.unitPrice !== undefined && item.unitPrice !== null ? Number(item.unitPrice) : 0,
           total: item.total !== undefined && item.total !== null ? Number(item.total) : 0,
           payment: null,
+          paymentMethod: null,
           currency,
           reservationNumber: exp.reservationNumber || null,
           checkIn: item.checkIn || null,
@@ -240,6 +247,7 @@ const buildLedgerRows = (categoryExpenses, lang) => {
         unitPrice: null,
         total: Number(exp.amount) || 0,
         payment: null,
+        paymentMethod: null,
         currency,
         reservationNumber: exp.reservationNumber || null,
         checkIn: null,
@@ -285,6 +293,7 @@ const buildLedgerRows = (categoryExpenses, lang) => {
           unitPrice: null,
           total: null,
           payment: Number(p.amount) || 0,
+          paymentMethod: p.method || null,
           currency: p.currency || currency,
           reservationNumber: null,
           checkIn: null,
@@ -367,6 +376,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
   headerValues.push(
     t.total,
     t.payment,
+    t.paymentMethod || "Payment Method",
     t.remaining,
   );
 
@@ -497,6 +507,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       }
       const cellTotal = dataRow.getCell(cellIndex++);
       const cellPay = dataRow.getCell(cellIndex++);
+      const cellPayMethod = dataRow.getCell(cellIndex++);
       const cellRem = dataRow.getCell(cellIndex++);
       
       cellId.value = idx + 1;
@@ -571,6 +582,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         }
         cellTotal.value = Number(row.total);
         cellPay.value = "-";
+        cellPayMethod.value = "-";
         
         if (row.unitPrice !== null && row.unitPrice !== undefined) {
           cellUnitPrice.numFmt = `#,##0.00" ${rowCurrencyName}"`;
@@ -587,6 +599,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
         }
         cellTotal.value = "-";
         cellPay.value = Number(row.payment);
+        cellPayMethod.value = row.paymentMethod ? translateMethod(row.paymentMethod, lang) : "-";
         
         cellPay.numFmt = `#,##0.00" ${rowCurrencyName}"`;
       }
@@ -595,7 +608,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
       cellRem.numFmt = `#,##0.00" ${rowCurrencyName}"`;
       
       // Alignments
-      const centeredCells = [cellId, cellDate, cellQty];
+      const centeredCells = [cellId, cellDate, cellQty, cellPayMethod];
       if (bookingType === "Hotel") {
         centeredCells.push(cellReservation, cellCheckIn, cellCheckOut);
       } else if (bookingType === "Flight") {
