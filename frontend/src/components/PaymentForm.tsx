@@ -215,7 +215,7 @@ export default function PaymentForm({
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("chequeNumber")}
+              {t("chequeNumber")} <span className="text-gray-500 font-normal">({t("optional")})</span>
             </label>
             <input
               type="text"
@@ -227,12 +227,11 @@ export default function PaymentForm({
                 }))
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("bankName")}
+              {t("bankName")} <span className="text-gray-500 font-normal">({t("optional")})</span>
             </label>
             <input
               type="text"
@@ -241,12 +240,11 @@ export default function PaymentForm({
                 setFormData((prev) => ({ ...prev, bankName: e.target.value }))
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("checkCashingDate")}
+              {t("checkCashingDate")} <span className="text-gray-500 font-normal">({t("optional")})</span>
             </label>
             <input
               type="date"
@@ -258,7 +256,6 @@ export default function PaymentForm({
                 }))
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
             />
           </div>
         </>
@@ -267,7 +264,7 @@ export default function PaymentForm({
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("transferPayerName")}
+              {t("transferPayerName")} <span className="text-gray-500 font-normal">({t("optional")})</span>
             </label>
             <input
               type="text"
@@ -279,12 +276,11 @@ export default function PaymentForm({
                 }))
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("transferReference")}
+              {t("transferReference")} <span className="text-gray-500 font-normal">({t("optional")})</span>
             </label>
             <input
               type="text"
@@ -296,7 +292,6 @@ export default function PaymentForm({
                 }))
               }
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              required
             />
           </div>
         </>

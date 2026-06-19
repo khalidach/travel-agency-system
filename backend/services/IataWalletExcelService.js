@@ -256,8 +256,8 @@ exports.generateIataWalletExcel = async (expenses, lang = "ar") => {
     noCell.alignment = { vertical: "middle", horizontal: "center" };
     noCell.border = borderStyle;
   } else {
-    // Reverse chronologically for ledger statement presentation (newest first)
-    const displayTransactions = [...iataTransactions].reverse();
+    // Chronologically for ledger statement presentation (oldest first)
+    const displayTransactions = [...iataTransactions];
 
     displayTransactions.forEach((tx) => {
       const dataRow = sheet.addRow([
