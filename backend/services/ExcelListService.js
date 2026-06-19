@@ -51,8 +51,7 @@ exports.generateFlightListExcel = async (bookings, program) => {
     "DOB",
     "DocumentNumber",
     "DocumentExpiration",
-    "DocumentIssueCountryCode",
-    "DocumentBirthCountryCode",
+    " Docs",
   ];
   const headerRow = worksheet.getRow(7);
   headerRow.values = headers;
@@ -183,10 +182,11 @@ exports.generateFlightListExcel = async (bookings, program) => {
           .toLocaleString("en-GB", { month: "short", timeZone: "UTC" })
           .toUpperCase();
         const formattedYear = utcDate.getUTCFullYear().toString().slice(-2);
-        expirationDate = `${formattedDay}-${formattedMonth}-${formattedYear}`;
+        expirationDate = `${formattedDay}${formattedMonth}${formattedYear}`;
       }
     }
 
+    const r = index + 8;
     const rowData = [
       index + 1,
       title,
@@ -199,8 +199,7 @@ exports.generateFlightListExcel = async (bookings, program) => {
       formattedDob,
       booking.passportNumber,
       expirationDate,
-      "MA", // Fixed value
-      "MA", // Fixed value
+      { formula: `="SRDOCSYYHK1"&"-"&G${r}&"-"&E${r}&"-"&J${r}&"-"&E${r}&"-"&I${r}&"-"&H${r}&"-"&K${r}&"-"&D${r}&"-"&C${r}&"/P"&A${r}` }
     ];
     const row = worksheet.addRow(rowData); // Add borders and conditional coloring to the data row
 
@@ -210,9 +209,9 @@ exports.generateFlightListExcel = async (bookings, program) => {
         left: { style: "thin" },
         bottom: { style: "thin" },
         right: { style: "thin" },
-      }; // Column numbers are 1-based. E=5, G=7, L=12, M=13
+      }; // Column numbers are 1-based. E=5, G=7
 
-      const redColorColumns = [5, 7, 12, 13];
+      const redColorColumns = [5, 7];
       if (redColorColumns.includes(colNumber)) {
         cell.font = { color: { argb: "FFFF0000" } }; // Red color
       }
