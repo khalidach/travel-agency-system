@@ -232,6 +232,21 @@ export default function ExpensePaymentForm({
         />
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {t("paymentDescription")} ({t("optional")})
+        </label>
+        <input
+          type="text"
+          value={formData.labelPaper || ""}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, labelPaper: e.target.value }))
+          }
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          placeholder={t("paymentDescriptionPlaceholder") as string}
+        />
+      </div>
+
       {formData.method === "cheque" && (
         <>
           <div>

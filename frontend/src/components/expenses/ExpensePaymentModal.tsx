@@ -182,9 +182,13 @@ export default function ExpensePaymentModal({
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
                     <span className="capitalize">{t(payment.method)}</span>
-                    {payment.labelPaper && (
-                      <span className="mx-2">• {payment.labelPaper}</span>
-                    )}
+                    <span className="mx-2">
+                      • {payment.labelPaper || (
+                        expense.reservationNumber
+                          ? `${t("bookingPayment")} ${expense.reservationNumber}`
+                          : `${t("paymentLabel") || "Paiement"} ${expense.description || ""}`
+                      )}
+                    </span>
                     <span className="mx-2">•</span>
                     <span>{new Date(payment.date).toLocaleDateString()}</span>
                   </div>

@@ -291,13 +291,22 @@ const buildLedgerRows = (expense, lang) => {
     for (const p of expense.advancePayments) {
       let desc = p.labelPaper || p.forWhat;
       if (!desc) {
-        const methodStr = translateMethod(p.method, lang);
-        if (lang === "ar") {
-          desc = `دفع (${methodStr})`;
-        } else if (lang === "fr") {
-          desc = `Paiement (${methodStr})`;
+        if (expense.reservationNumber) {
+          if (lang === "ar") {
+            desc = `دفعة حجز ${expense.reservationNumber}`;
+          } else if (lang === "fr") {
+            desc = `Paiement réservation ${expense.reservationNumber}`;
+          } else {
+            desc = `Booking payment ${expense.reservationNumber}`;
+          }
         } else {
-          desc = `Payment (${methodStr})`;
+          if (lang === "ar") {
+            desc = `دفعة ${expense.description || ""}`;
+          } else if (lang === "fr") {
+            desc = `Paiement ${expense.description || ""}`;
+          } else {
+            desc = `Payment ${expense.description || ""}`;
+          }
         }
       }
       
