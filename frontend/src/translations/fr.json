@@ -675,6 +675,7 @@
   "searchExpenses": "Rechercher des dépenses...",
   "orderItems": "Articles du bon de commande",
   "equivalentIn": "Équivalent en",
+  "exchangeRate": "Taux de change",
   "amount": "Montant",
   "category": "Catégorie",
   "totalAmount": "Montant total",

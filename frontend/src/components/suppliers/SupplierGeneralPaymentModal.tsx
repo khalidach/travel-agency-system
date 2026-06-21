@@ -32,6 +32,7 @@ export default function SupplierGeneralPaymentModal({
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>(defaultCurrency);
   const [amountMAD, setAmountMAD] = useState<number>(0);
+  const [exchangeRate, setExchangeRate] = useState<number | string>("");
   const [bookingType, setBookingType] = useState<string>("all");
   const [method, setMethod] = useState<string>("cash");
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -49,6 +50,10 @@ export default function SupplierGeneralPaymentModal({
         setAmount(Number(payment.amount));
         setCurrency(payment.currency);
         setAmountMAD(Number(payment.amountMAD));
+        const initialExchangeRate = payment.amount && payment.amountMAD
+          ? Number((Number(payment.amountMAD) / Number(payment.amount)).toFixed(4))
+          : "";
+        setExchangeRate(initialExchangeRate);
         setBookingType(payment.bookingType || "all");
         setMethod(payment.method);
         setDate(payment.date ? new Date(payment.date).toISOString().split("T")[0] : "");
@@ -62,6 +67,7 @@ export default function SupplierGeneralPaymentModal({
         setAmount(0);
         setCurrency(defaultCurrency);
         setAmountMAD(0);
+        setExchangeRate("");
         setBookingType("all");
         setMethod("cash");
         setDate(new Date().toISOString().split("T")[0]);
@@ -178,8 +184,36 @@ export default function SupplierGeneralPaymentModal({
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value) || 0;
     setAmount(val);
-    if (!isForeignCurrency) {
+    if (currency === "MAD") {
       setAmountMAD(val);
+    } else {
+      const rateVal = typeof exchangeRate === "string" ? parseFloat(exchangeRate) : exchangeRate;
+      if (rateVal && rateVal > 0) {
+        setAmountMAD(Number((val * rateVal).toFixed(2)));
+      } else if (amountMAD > 0 && val > 0) {
+        setExchangeRate(Number((amountMAD / val).toFixed(4)));
+      }
+    }
+    setError(null);
+  };
+
+  const handleExchangeRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    setExchangeRate(rawVal);
+    const rateVal = parseFloat(rawVal);
+    if (!isNaN(rateVal) && rateVal > 0) {
+      if (amount > 0) {
+        setAmountMAD(Number((amount * rateVal).toFixed(2)));
+      }
+    }
+    setError(null);
+  };
+
+  const handleAmountMADChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const madVal = parseFloat(e.target.value) || 0;
+    setAmountMAD(madVal);
+    if (amount > 0) {
+      setExchangeRate(Number((madVal / amount).toFixed(4)));
     }
     setError(null);
   };
@@ -234,7 +268,17 @@ export default function SupplierGeneralPaymentModal({
             <select
               value={currency}
               onChange={(e) => {
-                setCurrency(e.target.value);
+                const nextCurrency = e.target.value;
+                setCurrency(nextCurrency);
+                if (nextCurrency === "MAD") {
+                  setAmountMAD(amount);
+                  setExchangeRate("");
+                } else {
+                  const rateVal = typeof exchangeRate === "string" ? parseFloat(exchangeRate) : exchangeRate;
+                  if (rateVal && rateVal > 0) {
+                    setAmountMAD(Number((amount * rateVal).toFixed(2)));
+                  }
+                }
                 setError(null);
               }}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -250,18 +294,34 @@ export default function SupplierGeneralPaymentModal({
         </div>
 
         {isForeignCurrency && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("equivalentIn") || "Equivalent in"} (MAD)
-            </label>
-            <NumberInput
-              value={amountMAD || ""}
-              onChange={(e) => setAmountMAD(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
-              min="0"
-              step="0.01"
-              required
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t("exchangeRate") || "Exchange Rate"}
+              </label>
+              <NumberInput
+                value={exchangeRate}
+                onChange={handleExchangeRateChange}
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+                min="0"
+                step="0.0001"
+                required
+                placeholder="e.g. 2.5"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t("equivalentIn") || "Equivalent in"} (MAD)
+              </label>
+              <NumberInput
+                value={amountMAD || ""}
+                onChange={handleAmountMADChange}
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
           </div>
         )}
 

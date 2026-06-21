@@ -55,6 +55,7 @@ export default function ExpensePaymentForm({
   }, [payment]);
 
   const [formData, setFormData] = useState(getInitialFormData());
+  const [exchangeRate, setExchangeRate] = useState<number | string>("");
   const [error, setError] = useState<string | null>(null);
 
   // Determine the maximum allowed amount safely
@@ -65,8 +66,12 @@ export default function ExpensePaymentForm({
 
   useEffect(() => {
     setFormData(getInitialFormData());
+    const initialRate = payment && payment.amount && payment.amountMAD
+      ? Number((Number(payment.amountMAD) / Number(payment.amount)).toFixed(4))
+      : "";
+    setExchangeRate(initialRate);
     setError(null);
-  }, [getInitialFormData]);
+  }, [getInitialFormData, payment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,17 +114,43 @@ export default function ExpensePaymentForm({
     // If it's not a number (e.g. empty string), default to 0 for state, but keep UI responsive
     const validAmount = isNaN(amount) ? 0 : amount;
 
-    // REMOVED: The strict `if (amount > maxAmount)` block that was blocking your edits.
+    setFormData((prev) => {
+      const nextData = { ...prev, amount: validAmount };
+      if (currency === t("currency.MAD") || currency === "MAD") {
+        nextData.amountMAD = validAmount;
+      } else {
+        const rateVal = typeof exchangeRate === "string" ? parseFloat(exchangeRate) : exchangeRate;
+        if (rateVal && rateVal > 0) {
+          nextData.amountMAD = Number((validAmount * rateVal).toFixed(2));
+        } else if (prev.amountMAD > 0 && validAmount > 0) {
+          setExchangeRate(Number((prev.amountMAD / validAmount).toFixed(4)));
+        }
+      }
+      return nextData;
+    });
+    setError(null);
+  };
 
-    setFormData((prev) => ({ ...prev, amount: validAmount }));
+  const handleExchangeRateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawVal = e.target.value;
+    setExchangeRate(rawVal);
+    const rateVal = parseFloat(rawVal);
+    if (!isNaN(rateVal) && rateVal > 0) {
+      if (formData.amount > 0) {
+        setFormData((prev) => ({
+          ...prev,
+          amountMAD: Number((prev.amount * rateVal).toFixed(2)),
+        }));
+      }
+    }
+    setError(null);
+  };
 
-    // If currency is MAD, sync amountMAD
-    if (currency === t("currency.MAD") || currency === "MAD") {
-      setFormData((prev) => ({
-        ...prev,
-        amount: validAmount,
-        amountMAD: validAmount,
-      }));
+  const handleAmountMADChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const madVal = parseFloat(e.target.value) || 0;
+    setFormData((prev) => ({ ...prev, amountMAD: madVal }));
+    if (formData.amount > 0) {
+      setExchangeRate(Number((madVal / formData.amount).toFixed(4)));
     }
     setError(null);
   };
@@ -163,27 +194,35 @@ export default function ExpensePaymentForm({
         </div>
 
         {isForeignCurrency && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              {t("equivalentIn")} ({t("currency.MAD")})
-            </label>
-            <NumberInput
-              value={formData.amountMAD || ""}
-              onChange={(e) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  amountMAD: parseFloat(e.target.value) || 0,
-                }))
-              }
-              className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
-              min="0"
-              step="0.01"
-              required
-              placeholder={t("amountInMADPlaceholder") as string}
-            />
-            <p className="mt-1 text-xs text-blue-600 dark:text-blue-400">
-              {t("enterCurrentValueInMAD")}
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t("exchangeRate") || "Exchange Rate"}
+              </label>
+              <NumberInput
+                value={exchangeRate}
+                onChange={handleExchangeRateChange}
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+                min="0"
+                step="0.0001"
+                required
+                placeholder="e.g. 2.5"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {t("equivalentIn")} ({t("currency.MAD")})
+              </label>
+              <NumberInput
+                value={formData.amountMAD || ""}
+                onChange={handleAmountMADChange}
+                className="w-full px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-gray-900 dark:text-gray-100"
+                min="0"
+                step="0.01"
+                required
+                placeholder={t("amountInMADPlaceholder") as string}
+              />
+            </div>
           </div>
         )}
       </div>
