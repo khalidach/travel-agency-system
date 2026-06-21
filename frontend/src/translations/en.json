@@ -849,6 +849,14 @@
   "totalDeductions": "Total Deductions",
   "topUpWallet": "Top-up Wallet",
   "logFlightTicket": "Log Flight Ticket",
-  "iataTransactions": "IATA EasyPay Transactions",
-  "showIataOnly": "Show IATA EasyPay only"
+  "iataTransactions": "Wallet Transactions",
+  "noTransactionsLead": "No transactions logged yet.",
+  "generalPayment": "General Payment",
+  "generalPayments": "General Payments",
+  "allServices": "All Services",
+  "generalPaymentHistory": "General Payments History",
+  "editGeneralPayment": "Edit General Payment",
+  "deleteGeneralPayment": "Delete General Payment",
+  "deleteGeneralPaymentConfirm": "Are you sure you want to delete this general payment? This will revert the applied amounts on the supplier's order notes.",
+  "targetedType": "Targeted Type"
 }

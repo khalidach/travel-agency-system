@@ -853,5 +853,13 @@
   "topUpWallet": "شحن المحفظة",
   "logFlightTicket": "تسجيل تذكرة طيران",
   "iataTransactions": "معاملات إياتا إيزي باي",
-  "showIataOnly": "عرض معاملات إياتا فقط"
+  "showIataOnly": "عرض معاملات إياتا فقط",
+  "generalPayment": "دفعة عامة",
+  "generalPayments": "المدفوعات العامة",
+  "allServices": "كل الخدمات",
+  "generalPaymentHistory": "سجل المدفوعات العامة",
+  "editGeneralPayment": "تعديل الدفعة العامة",
+  "deleteGeneralPayment": "حذف الدفعة العامة",
+  "deleteGeneralPaymentConfirm": "هل أنت متأكد من أنك تريد حذف هذه الدفعة العامة؟ سيؤدي ذلك إلى استرجاع المبالغ المطبقة على مذكرات الطلب الخاصة بالمورد.",
+  "targetedType": "النوع المستهدف"
 }

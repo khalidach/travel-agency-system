@@ -208,7 +208,7 @@ const translateMethod = (method, lang) => {
   return t[method] || method;
 };
 
-const buildLedgerRows = (categoryExpenses, lang) => {
+const buildLedgerRows = (categoryExpenses, supplierPayments = [], lang, bookingType) => {
   const rows = [];
   
   for (const exp of categoryExpenses) {
@@ -264,6 +264,11 @@ const buildLedgerRows = (categoryExpenses, lang) => {
     // 2. Add Payment rows
     if (exp.advancePayments && Array.isArray(exp.advancePayments)) {
       for (const p of exp.advancePayments) {
+        // Skip payments that are part of general payments
+        if (p.supplierPaymentId !== undefined && p.supplierPaymentId !== null) {
+          continue;
+        }
+
         let desc = p.labelPaper || p.forWhat;
         if (!desc) {
           if (exp.reservationNumber) {
@@ -309,6 +314,44 @@ const buildLedgerRows = (categoryExpenses, lang) => {
     }
   }
 
+  // 3. Add General Payments (unsplit)
+  const filteredPayments = supplierPayments.filter(p => {
+    const pType = p.bookingType || "all";
+    if (bookingType === "Hotel") {
+      return pType === "Hotel";
+    }
+    if (bookingType === "Flight") {
+      return pType === "Flight";
+    }
+    if (bookingType === "Visa/Transfer") {
+      return pType === "Visa" || pType === "Transfer";
+    }
+    return pType === "Other" || pType === "all";
+  });
+
+  for (const gp of filteredPayments) {
+    rows.push({
+      type: "payment",
+      date: gp.date,
+      description: gp.labelPaper || (lang === "ar" ? "دفعة عامة" : lang === "fr" ? "Paiement Général" : "General Payment"),
+      quantity: null,
+      unitPrice: null,
+      total: null,
+      payment: Number(gp.amount) || 0,
+      paymentMethod: gp.method || null,
+      currency: gp.currency || "MAD",
+      reservationNumber: null,
+      checkIn: null,
+      checkOut: null,
+      departureDate: null,
+      returnDate: null,
+      passengerName: null,
+      bookingRef: null,
+      ticketCategory: null,
+      issuingFees: null,
+    });
+  }
+
   // Sort chronologically by date
   rows.sort((a, b) => {
     const dateA = new Date(a.date);
@@ -324,11 +367,11 @@ const buildLedgerRows = (categoryExpenses, lang) => {
   return rows;
 };
 
-const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, bookingType) => {
+const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplierPayments, supplier, lang, bookingType) => {
   const t = translations[lang] || translations.ar;
   const isRtl = lang === "ar";
   
-  const ledgerRows = buildLedgerRows(categoryExpenses, lang);
+  const ledgerRows = buildLedgerRows(categoryExpenses, supplierPayments, lang, bookingType);
   
   // Calculate running balance and KPI sums
   let totalPurchases = 0;
@@ -659,7 +702,7 @@ const addLedgerSheet = (workbook, sheetName, categoryExpenses, supplier, lang, b
   });
 };
 
-exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
+exports.generateSupplierExcel = async (supplier, expenses, supplierPayments = [], lang = "ar") => {
   const workbook = new excel.Workbook();
   const t = translations[lang] || translations.ar;
 
@@ -685,31 +728,31 @@ exports.generateSupplierExcel = async (supplier, expenses, lang = "ar") => {
 
   // Add Hotel Sheet
   if (hotelExpenses.length > 0) {
-    addLedgerSheet(workbook, t.hotels, hotelExpenses, supplier, lang, "Hotel");
+    addLedgerSheet(workbook, t.hotels, hotelExpenses, supplierPayments, supplier, lang, "Hotel");
     addedAnySheet = true;
   }
 
   // Add Flight Sheet
   if (flightExpenses.length > 0) {
-    addLedgerSheet(workbook, t.flights, flightExpenses, supplier, lang, "Flight");
+    addLedgerSheet(workbook, t.flights, flightExpenses, supplierPayments, supplier, lang, "Flight");
     addedAnySheet = true;
   }
 
   // Add Visa & Transport Sheet (Combined)
   if (visaTransportExpenses.length > 0) {
-    addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplier, lang, "Visa/Transfer");
+    addLedgerSheet(workbook, t.visaTransport, visaTransportExpenses, supplierPayments, supplier, lang, "Visa/Transfer");
     addedAnySheet = true;
   }
 
   // Add Other Sheet
   if (otherExpenses.length > 0) {
-    addLedgerSheet(workbook, t.other, otherExpenses, supplier, lang, "Other");
+    addLedgerSheet(workbook, t.other, otherExpenses, supplierPayments, supplier, lang, "Other");
     addedAnySheet = true;
   }
 
   // Fallback if no sheets were added to keep workbook valid
   if (!addedAnySheet) {
-    addLedgerSheet(workbook, t.other, [], supplier, lang, "Other");
+    addLedgerSheet(workbook, t.other, [], supplierPayments, supplier, lang, "Other");
   }
 
   return workbook;

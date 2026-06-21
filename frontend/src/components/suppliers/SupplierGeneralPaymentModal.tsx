@@ -14,6 +14,7 @@ interface SupplierGeneralPaymentModalProps {
   onClose: () => void;
   defaultCurrency?: string;
   totalRemaining?: number;
+  payment?: any;
 }
 
 export default function SupplierGeneralPaymentModal({
@@ -23,6 +24,7 @@ export default function SupplierGeneralPaymentModal({
   onClose,
   defaultCurrency = "MAD",
   totalRemaining = 0,
+  payment,
 }: SupplierGeneralPaymentModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -43,21 +45,36 @@ export default function SupplierGeneralPaymentModal({
 
   useEffect(() => {
     if (isOpen) {
-      setAmount(0);
-      setCurrency(defaultCurrency);
-      setAmountMAD(0);
-      setBookingType("all");
-      setMethod("cash");
-      setDate(new Date().toISOString().split("T")[0]);
-      setLabelPaper("");
-      setChequeNumber("");
-      setBankName("");
-      setChequeCashingDate("");
-      setTransferReference("");
-      setTransferPayerName("");
+      if (payment) {
+        setAmount(Number(payment.amount));
+        setCurrency(payment.currency);
+        setAmountMAD(Number(payment.amountMAD));
+        setBookingType(payment.bookingType || "all");
+        setMethod(payment.method);
+        setDate(payment.date ? new Date(payment.date).toISOString().split("T")[0] : "");
+        setLabelPaper(payment.labelPaper || "");
+        setChequeNumber(payment.chequeNumber || "");
+        setBankName(payment.bankName || "");
+        setChequeCashingDate(payment.chequeCashingDate ? new Date(payment.chequeCashingDate).toISOString().split("T")[0] : "");
+        setTransferReference(payment.transferReference || "");
+        setTransferPayerName(payment.transferPayerName || "");
+      } else {
+        setAmount(0);
+        setCurrency(defaultCurrency);
+        setAmountMAD(0);
+        setBookingType("all");
+        setMethod("cash");
+        setDate(new Date().toISOString().split("T")[0]);
+        setLabelPaper("");
+        setChequeNumber("");
+        setBankName("");
+        setChequeCashingDate("");
+        setTransferReference("");
+        setTransferPayerName("");
+      }
       setError(null);
     }
-  }, [isOpen, defaultCurrency]);
+  }, [isOpen, defaultCurrency, payment]);
 
   const currencies = ["MAD", "SAR", "USD", "EUR", "GBP", "TRY", "CNY"];
   
@@ -76,6 +93,7 @@ export default function SupplierGeneralPaymentModal({
       api.addSupplierGeneralPayment(supplierId, paymentData),
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["supplier", String(supplierId)] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-general-payments", String(supplierId)] });
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
@@ -89,6 +107,30 @@ export default function SupplierGeneralPaymentModal({
     },
     onError: (err: any) => {
       const message = err.response?.data?.message || err.message || t("failedToAddPayment");
+      toast.error(message);
+      setError(message);
+    },
+  });
+
+  const updateGeneralPaymentMutation = useMutation({
+    mutationFn: (paymentData: any) =>
+      api.updateSupplierGeneralPayment(supplierId, payment.id, paymentData),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["supplier", String(supplierId)] });
+      queryClient.invalidateQueries({ queryKey: ["supplier-general-payments", String(supplierId)] });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      
+      toast.success(
+        t("paymentUpdated") || 
+        "Payment updated successfully!"
+      );
+      onClose();
+    },
+    onError: (err: any) => {
+      const message = err.response?.data?.message || err.message || t("failedToUpdatePayment");
       toast.error(message);
       setError(message);
     },
@@ -126,7 +168,11 @@ export default function SupplierGeneralPaymentModal({
       payload.transferPayerName = transferPayerName;
     }
 
-    addGeneralPaymentMutation.mutate(payload);
+    if (payment) {
+      updateGeneralPaymentMutation.mutate(payload);
+    } else {
+      addGeneralPaymentMutation.mutate(payload);
+    }
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,8 +184,15 @@ export default function SupplierGeneralPaymentModal({
     setError(null);
   };
 
+  const isPending = addGeneralPaymentMutation.isPending || updateGeneralPaymentMutation.isPending;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("generalPayment") || "General Payment on Supplier"} size="lg">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={payment ? (t("editGeneralPayment") || "Edit General Payment") : (t("generalPayment") || "General Payment on Supplier")}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg flex items-center gap-3">
           <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -223,7 +276,7 @@ export default function SupplierGeneralPaymentModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               required
             >
-              <option value="all">{t("allBookingTypes") || "All Services"}</option>
+              <option value="all">{t("allServices") || "All Services"}</option>
               <option value="Flight">{t("bookingTypes.Flight") || "Flight"}</option>
               <option value="Hotel">{t("bookingTypes.Hotel") || "Hotel"}</option>
               <option value="Visa">{t("bookingTypes.Visa") || "Visa"}</option>
@@ -350,11 +403,11 @@ export default function SupplierGeneralPaymentModal({
           </button>
           <button
             type="submit"
-            disabled={addGeneralPaymentMutation.isPending}
+            disabled={isPending}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-sm hover:shadow"
           >
             <CreditCard className="w-4 h-4" />
-            {addGeneralPaymentMutation.isPending ? t("saving") : t("savePayment") || "Apply Payment"}
+            {isPending ? t("saving") : payment ? t("update") : (t("savePayment") || "Apply Payment")}
           </button>
         </div>
       </form>

@@ -273,10 +273,19 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
       [req.user.id, supplier.name],
     );
 
+    // Fetch all general payments for this supplier
+    const paymentsResult = await req.db.query(
+      `SELECT * FROM supplier_payments 
+       WHERE "supplierId" = $1 AND "userId" = $2 
+       ORDER BY date ASC`,
+      [id, req.user.id],
+    );
+
     const SupplierExcelService = require("../services/SupplierExcelService");
     const workbook = await SupplierExcelService.generateSupplierExcel(
       supplier,
       expensesResult.rows,
+      paymentsResult.rows,
       lang || "ar"
     );
 
@@ -302,7 +311,7 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
 exports.addGeneralPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { amount, currency, amountMAD, bookingType, date, method, ...paymentFields } = req.body;
+    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -347,32 +356,60 @@ exports.addGeneralPayment = async (req, res, next) => {
       return next(new AppError("No outstanding balance found for the selected criteria and currency.", 400));
     }
 
-    // 3. Distribute the payment across the unpaid expenses
+    await req.db.query("BEGIN");
+
+    // 3. Insert the general payment row into supplier_payments
+    const insertPaymentQuery = `
+      INSERT INTO supplier_payments (
+        "userId", "supplierId", amount, currency, "amountMAD", "bookingType",
+        date, method, "labelPaper", "chequeNumber", "bankName", "chequeCashingDate",
+        "transferReference", "transferPayerName"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING *
+    `;
+    const paymentValues = [
+      req.user.id,
+      id,
+      parsedAmount,
+      currency || "MAD",
+      parseFloat(amountMAD || amount),
+      bookingType || "all",
+      date || new Date().toISOString().split("T")[0],
+      method || "cash",
+      labelPaper || `General Payment - ${supplierName}`,
+      chequeNumber || null,
+      bankName || null,
+      chequeCashingDate || null,
+      transferReference || null,
+      transferPayerName || null
+    ];
+    
+    const paymentInsertResult = await req.db.query(insertPaymentQuery, paymentValues);
+    const supplierPaymentId = paymentInsertResult.rows[0].id;
+
+    // 4. Distribute the payment across the unpaid expenses
     let remainingPaymentToDistribute = parsedAmount;
     const isForeignCurrency = (currency && currency !== "MAD");
     const totalAmountMAD = parseFloat(amountMAD || amount);
-    // conversionRate is equivalent MAD per unit of foreign currency
     const conversionRate = totalAmountMAD / parsedAmount;
-
-    await req.db.query("BEGIN");
 
     for (const exp of unpaidExpenses) {
       if (remainingPaymentToDistribute <= 0.01) break;
 
       const expRemaining = parseFloat(exp.remainingBalance);
-      // Determine how much of the payment goes to this expense
       const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
       remainingPaymentToDistribute -= paymentForThisExp;
 
       const newPaymentObject = {
-        ...paymentFields,
         _id: uuidv4(),
         id: uuidv4(),
+        supplierPaymentId: supplierPaymentId,
         date: date || new Date().toISOString().split("T")[0],
         amount: paymentForThisExp,
         amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
         currency: currency || "MAD",
         method: method || "cash",
+        labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
       };
 
       const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
@@ -388,15 +425,266 @@ exports.addGeneralPayment = async (req, res, next) => {
 
     await req.db.query("COMMIT");
 
-    res.status(200).json({
-      message: "General payment distributed successfully.",
-      distributedAmount: parsedAmount - remainingPaymentToDistribute,
-      remainingUnapplied: remainingPaymentToDistribute,
-    });
+    res.status(200).json(paymentInsertResult.rows[0]);
   } catch (error) {
     await req.db.query("ROLLBACK");
     logger.error("Add General Payment Error:", error);
     next(new AppError("Failed to apply general payment", 500));
+  }
+};
+
+exports.getGeneralPayments = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const [paymentsResult, countResult] = await Promise.all([
+      req.db.query(
+        `SELECT * FROM supplier_payments 
+         WHERE "supplierId" = $1 AND "userId" = $2 
+         ORDER BY date DESC, "createdAt" DESC
+         LIMIT $3 OFFSET $4`,
+        [id, req.user.id, limit, offset]
+      ),
+      req.db.query(
+        `SELECT COUNT(*) FROM supplier_payments 
+         WHERE "supplierId" = $1 AND "userId" = $2`,
+        [id, req.user.id]
+      )
+    ]);
+
+    const total = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(200).json({
+      payments: paymentsResult.rows,
+      total,
+      page,
+      totalPages
+    });
+  } catch (error) {
+    logger.error("Get General Payments Error:", error);
+    next(new AppError("Failed to fetch general payments", 500));
+  }
+};
+
+exports.deleteGeneralPayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+
+    await req.db.query("BEGIN");
+
+    // 1. Verify general payment exists
+    const checkPayment = await req.db.query(
+      `SELECT * FROM supplier_payments WHERE id = $1 AND "supplierId" = $2 AND "userId" = $3`,
+      [paymentId, id, req.user.id]
+    );
+    if (checkPayment.rowCount === 0) {
+      await req.db.query("ROLLBACK");
+      return next(new AppError("General payment not found", 404));
+    }
+
+    // 2. Revert/remove the payment splits from all matching expenses
+    const supplierResult = await req.db.query(
+      `SELECT name FROM suppliers WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+    const supplierName = supplierResult.rows[0].name;
+
+    const allExpensesResult = await req.db.query(
+      `SELECT * FROM expenses 
+       WHERE "userId" = $1 
+         AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2))
+         AND type = 'order_note'`,
+      [req.user.id, supplierName]
+    );
+
+    for (const exp of allExpensesResult.rows) {
+      if (exp.advancePayments && Array.isArray(exp.advancePayments) && exp.advancePayments.some(p => p.supplierPaymentId === parseInt(paymentId))) {
+        const cleanPaymentsList = exp.advancePayments.filter(
+          (p) => p.supplierPaymentId !== parseInt(paymentId)
+        );
+        
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, cleanPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(cleanPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
+    }
+
+    // 3. Delete the payment row
+    await req.db.query(
+      `DELETE FROM supplier_payments WHERE id = $1`,
+      [paymentId]
+    );
+
+    await req.db.query("COMMIT");
+
+    res.status(200).json({ message: "General payment deleted and reverted successfully." });
+  } catch (error) {
+    await req.db.query("ROLLBACK");
+    logger.error("Delete General Payment Error:", error);
+    next(new AppError("Failed to delete general payment", 500));
+  }
+};
+
+exports.updateGeneralPayment = async (req, res, next) => {
+  try {
+    const { id, paymentId } = req.params;
+    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return next(new AppError("Please provide a valid payment amount.", 400));
+    }
+
+    await req.db.query("BEGIN");
+
+    // 1. Verify general payment exists
+    const checkPayment = await req.db.query(
+      `SELECT * FROM supplier_payments WHERE id = $1 AND "supplierId" = $2 AND "userId" = $3`,
+      [paymentId, id, req.user.id]
+    );
+    if (checkPayment.rowCount === 0) {
+      await req.db.query("ROLLBACK");
+      return next(new AppError("General payment not found", 404));
+    }
+
+    // 2. Revert the old payment distribution from all matching expenses
+    const supplierResult = await req.db.query(
+      `SELECT name FROM suppliers WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+    const supplierName = supplierResult.rows[0].name;
+
+    const allExpensesResult = await req.db.query(
+      `SELECT * FROM expenses 
+       WHERE "userId" = $1 
+         AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2))
+         AND type = 'order_note'`,
+      [req.user.id, supplierName]
+    );
+
+    for (const exp of allExpensesResult.rows) {
+      if (exp.advancePayments && Array.isArray(exp.advancePayments) && exp.advancePayments.some(p => p.supplierPaymentId === parseInt(paymentId))) {
+        const cleanPaymentsList = exp.advancePayments.filter(
+          (p) => p.supplierPaymentId !== parseInt(paymentId)
+        );
+        
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, cleanPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(cleanPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
+    }
+
+    // 3. Fetch all unpaid/partially paid order notes for this supplier with matching currency
+    let query = `
+      SELECT * FROM expenses 
+      WHERE "userId" = $1 
+        AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
+        AND type = 'order_note' 
+        AND "isFullyPaid" = false 
+        AND "remainingBalance" > 0
+        AND "currency" = $3
+    `;
+    const params = [req.user.id, supplierName, currency || "MAD"];
+
+    if (bookingType && bookingType !== "all") {
+      query += ` AND "bookingType" = $4`;
+      params.push(bookingType);
+    }
+
+    query += ` ORDER BY date ASC, "createdAt" ASC`;
+
+    const { rows: unpaidExpenses } = await req.db.query(query, params);
+
+    if (unpaidExpenses.length === 0) {
+      await req.db.query("ROLLBACK");
+      return next(new AppError("No outstanding balance found for the selected criteria and currency to re-apply the updated payment.", 400));
+    }
+
+    // 4. Update the supplier_payments row
+    const updatePaymentQuery = `
+      UPDATE supplier_payments 
+      SET amount = $1, currency = $2, "amountMAD" = $3, "bookingType" = $4,
+          date = $5, method = $6, "labelPaper" = $7, "chequeNumber" = $8, "bankName" = $9, "chequeCashingDate" = $10,
+          "transferReference" = $11, "transferPayerName" = $12, "updatedAt" = NOW()
+      WHERE id = $13 AND "userId" = $14
+      RETURNING *
+    `;
+    const updateValues = [
+      parsedAmount,
+      currency || "MAD",
+      parseFloat(amountMAD || amount),
+      bookingType || "all",
+      date || new Date().toISOString().split("T")[0],
+      method || "cash",
+      labelPaper || `General Payment - ${supplierName}`,
+      chequeNumber || null,
+      bankName || null,
+      chequeCashingDate || null,
+      transferReference || null,
+      transferPayerName || null,
+      paymentId,
+      req.user.id
+    ];
+    
+    const paymentUpdateResult = await req.db.query(updatePaymentQuery, updateValues);
+
+    // 5. Distribute the updated payment across the unpaid expenses
+    let remainingPaymentToDistribute = parsedAmount;
+    const isForeignCurrency = (currency && currency !== "MAD");
+    const totalAmountMAD = parseFloat(amountMAD || amount);
+    const conversionRate = totalAmountMAD / parsedAmount;
+
+    for (const exp of unpaidExpenses) {
+      if (remainingPaymentToDistribute <= 0.01) break;
+
+      const expRemaining = parseFloat(exp.remainingBalance);
+      const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
+      remainingPaymentToDistribute -= paymentForThisExp;
+
+      const newPaymentObject = {
+        _id: uuidv4(),
+        id: uuidv4(),
+        supplierPaymentId: parseInt(paymentId),
+        date: date || new Date().toISOString().split("T")[0],
+        amount: paymentForThisExp,
+        amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+        currency: currency || "MAD",
+        method: method || "cash",
+        labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
+      };
+
+      const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+      const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+      await req.db.query(
+        `UPDATE expenses 
+         SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+         WHERE id = $4`,
+        [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+      );
+    }
+
+    await req.db.query("COMMIT");
+
+    res.status(200).json(paymentUpdateResult.rows[0]);
+  } catch (error) {
+    await req.db.query("ROLLBACK");
+    logger.error("Update General Payment Error:", error);
+    next(new AppError("Failed to update general payment", 500));
   }
 };
 

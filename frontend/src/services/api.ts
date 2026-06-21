@@ -757,6 +757,20 @@ export const addSupplierGeneralPayment = (id: number, paymentData: any) =>
     body: JSON.stringify(paymentData),
   });
 
+export const getSupplierGeneralPayments = (id: number, page = 1, limit = 10) =>
+  request(`/suppliers/${id}/general-payments?page=${page}&limit=${limit}`);
+
+export const updateSupplierGeneralPayment = (id: number, paymentId: number, data: any) =>
+  request(`/suppliers/${id}/general-payment/${paymentId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+
+export const deleteSupplierGeneralPayment = (id: number, paymentId: number) =>
+  request(`/suppliers/${id}/general-payment/${paymentId}`, {
+    method: "DELETE",
+  });
+
 export const createSupplier = (data: Create<Supplier>) =>
   request("/suppliers", { method: "POST", body: JSON.stringify(data) });
 

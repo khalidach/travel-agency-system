@@ -262,6 +262,28 @@ const applyDatabaseMigrations = async (client) => {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS supplier_payments (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "supplierId" INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+        amount NUMERIC(12, 2) NOT NULL,
+        currency VARCHAR(10) NOT NULL,
+        "amountMAD" NUMERIC(12, 2) NOT NULL,
+        "bookingType" VARCHAR(50),
+        date DATE NOT NULL,
+        method VARCHAR(50) NOT NULL,
+        "labelPaper" TEXT,
+        "chequeNumber" VARCHAR(100),
+        "bankName" VARCHAR(255),
+        "chequeCashingDate" DATE,
+        "transferReference" VARCHAR(255),
+        "transferPayerName" VARCHAR(255),
+        "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS clients (
         id SERIAL PRIMARY KEY,
         "userId" INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -456,6 +478,12 @@ const applyDatabaseMigrations = async (client) => {
     );
     await client.query(
       "CREATE INDEX IF NOT EXISTS idx_suppliers_name_gin ON suppliers USING GIN (name gin_trgm_ops);",
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_supplier_payments_supplier ON supplier_payments("supplierId");',
+    );
+    await client.query(
+      'CREATE INDEX IF NOT EXISTS idx_supplier_payments_user ON supplier_payments("userId");',
     );
     await client.query(
       'CREATE INDEX IF NOT EXISTS idx_clients_user ON clients("userId");',

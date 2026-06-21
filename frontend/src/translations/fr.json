@@ -853,5 +853,13 @@
   "topUpWallet": "Recharger le Portefeuille",
   "logFlightTicket": "Enregistrer un Billet d'avion",
   "iataTransactions": "Transactions IATA EasyPay",
-  "showIataOnly": "Afficher uniquement IATA EasyPay"
+  "showIataOnly": "Afficher uniquement IATA EasyPay",
+  "generalPayment": "Paiement Général",
+  "generalPayments": "Paiements Généraux",
+  "allServices": "Tous les services",
+  "generalPaymentHistory": "Historique des Paiements Généraux",
+  "editGeneralPayment": "Modifier le paiement général",
+  "deleteGeneralPayment": "Supprimer le paiement général",
+  "deleteGeneralPaymentConfirm": "Êtes-vous sûr de vouloir supprimer ce paiement général ? Cela annulera les montants appliqués sur les bons de commande du fournisseur.",
+  "targetedType": "Type ciblé"
 }
