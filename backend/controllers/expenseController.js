@@ -68,8 +68,8 @@ exports.getAllExpenses = async (req, res, next) => {
     }
 
     if (beneficiary) {
-      query += ` AND beneficiary = $${params.length + 1}`;
-      countQuery += ` AND beneficiary = $${params.length + 1}`;
+      query += ` AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($${params.length + 1}))`;
+      countQuery += ` AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($${params.length + 1}))`;
       params.push(beneficiary);
     }
 

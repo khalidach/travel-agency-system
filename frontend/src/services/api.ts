@@ -751,6 +751,12 @@ export const exportSupplierAnalysisToExcel = (id: number, lang?: string) => {
   return request(`/suppliers/${id}/export?${params.toString()}`, {}, true);
 };
 
+export const addSupplierGeneralPayment = (id: number, paymentData: any) =>
+  request(`/suppliers/${id}/general-payment`, {
+    method: "POST",
+    body: JSON.stringify(paymentData),
+  });
+
 export const createSupplier = (data: Create<Supplier>) =>
   request("/suppliers", { method: "POST", body: JSON.stringify(data) });
 

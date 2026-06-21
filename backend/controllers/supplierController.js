@@ -1,6 +1,19 @@
 // backend/controllers/supplierController.js
+const { v4: uuidv4 } = require("uuid");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+
+const calculatePaymentStatus = (amount, payments) => {
+  const totalPaid = payments.reduce(
+    (sum, p) => sum + parseFloat(p.amount || 0),
+    0,
+  );
+  const remaining = parseFloat(amount) - totalPaid;
+  return {
+    remainingBalance: remaining > 0.1 ? remaining : 0, // 0.1 tolerance for float math
+    isFullyPaid: remaining <= 0.1,
+  };
+};
 
 exports.getAllSuppliers = async (req, res, next) => {
   try {
@@ -35,28 +48,31 @@ exports.getAllSuppliers = async (req, res, next) => {
       // We match expenses.beneficiary to supplier.name
       const statsQuery = `
         SELECT 
-          beneficiary,
+          LOWER(TRIM(beneficiary)) as norm_beneficiary,
           SUM(amount) as total_amount,
           SUM(amount - "remainingBalance") as total_paid,
           SUM("remainingBalance") as total_remaining
         FROM expenses 
         WHERE "userId" = $1 AND type = 'order_note'
-        GROUP BY beneficiary
+        GROUP BY LOWER(TRIM(beneficiary))
       `;
 
       const statsResult = await req.db.query(statsQuery, [req.user.id]);
       const statsMap = statsResult.rows.reduce((acc, row) => {
-        acc[row.beneficiary] = row;
+        acc[row.norm_beneficiary] = row;
         return acc;
       }, {});
 
       // Merge stats into suppliers
-      const suppliersWithStats = suppliers.map((s) => ({
-        ...s,
-        totalAmount: parseFloat(statsMap[s.name]?.total_amount || 0),
-        totalPaid: parseFloat(statsMap[s.name]?.total_paid || 0),
-        totalRemaining: parseFloat(statsMap[s.name]?.total_remaining || 0),
-      }));
+      const suppliersWithStats = suppliers.map((s) => {
+        const key = s.name.trim().toLowerCase();
+        return {
+          ...s,
+          totalAmount: parseFloat(statsMap[key]?.total_amount || 0),
+          totalPaid: parseFloat(statsMap[key]?.total_paid || 0),
+          totalRemaining: parseFloat(statsMap[key]?.total_remaining || 0),
+        };
+      });
 
       return res.status(200).json({
         suppliers: suppliersWithStats,
@@ -100,14 +116,14 @@ exports.getSupplier = async (req, res, next) => {
     const [expensesResult, countResult, statsResult] = await Promise.all([
       req.db.query(
         `SELECT * FROM expenses 
-         WHERE "userId" = $1 AND beneficiary = $2 
+         WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
          ORDER BY date DESC
          LIMIT $3 OFFSET $4`,
         [req.user.id, supplier.name, limit, offset],
       ),
       req.db.query(
         `SELECT COUNT(*) FROM expenses 
-         WHERE "userId" = $1 AND beneficiary = $2`,
+         WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2))`,
         [req.user.id, supplier.name],
       ),
       req.db.query(
@@ -116,7 +132,7 @@ exports.getSupplier = async (req, res, next) => {
            COALESCE(SUM(amount - "remainingBalance"), 0) as total_paid,
            COALESCE(SUM("remainingBalance"), 0) as total_remaining
          FROM expenses 
-         WHERE "userId" = $1 AND beneficiary = $2`,
+         WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2))`,
         [req.user.id, supplier.name],
       ),
     ]);
@@ -252,7 +268,7 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
     // Fetch all expenses for this supplier without pagination limits
     const expensesResult = await req.db.query(
       `SELECT * FROM expenses 
-       WHERE "userId" = $1 AND beneficiary = $2 
+       WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
        ORDER BY date ASC`,
       [req.user.id, supplier.name],
     );
@@ -280,6 +296,107 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
   } catch (error) {
     logger.error("Export Supplier Analysis Error:", error);
     next(new AppError("Failed to export supplier analysis details.", 500));
+  }
+};
+
+exports.addGeneralPayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { amount, currency, amountMAD, bookingType, date, method, ...paymentFields } = req.body;
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return next(new AppError("Please provide a valid payment amount.", 400));
+    }
+
+    // 1. Get the supplier
+    const supplierResult = await req.db.query(
+      `SELECT name FROM suppliers WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (supplierResult.rowCount === 0) {
+      return next(new AppError("Supplier not found", 404));
+    }
+
+    const supplierName = supplierResult.rows[0].name;
+
+    // 2. Fetch all unpaid/partially paid order notes for this supplier with matching currency
+    let query = `
+      SELECT * FROM expenses 
+      WHERE "userId" = $1 
+        AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
+        AND type = 'order_note' 
+        AND "isFullyPaid" = false 
+        AND "remainingBalance" > 0
+        AND "currency" = $3
+    `;
+    const params = [req.user.id, supplierName, currency || "MAD"];
+
+    if (bookingType && bookingType !== "all") {
+      query += ` AND "bookingType" = $4`;
+      params.push(bookingType);
+    }
+
+    // Order by date ASC (oldest first) so we pay older ones first
+    query += ` ORDER BY date ASC, "createdAt" ASC`;
+
+    const { rows: unpaidExpenses } = await req.db.query(query, params);
+
+    if (unpaidExpenses.length === 0) {
+      return next(new AppError("No outstanding balance found for the selected criteria and currency.", 400));
+    }
+
+    // 3. Distribute the payment across the unpaid expenses
+    let remainingPaymentToDistribute = parsedAmount;
+    const isForeignCurrency = (currency && currency !== "MAD");
+    const totalAmountMAD = parseFloat(amountMAD || amount);
+    // conversionRate is equivalent MAD per unit of foreign currency
+    const conversionRate = totalAmountMAD / parsedAmount;
+
+    await req.db.query("BEGIN");
+
+    for (const exp of unpaidExpenses) {
+      if (remainingPaymentToDistribute <= 0.01) break;
+
+      const expRemaining = parseFloat(exp.remainingBalance);
+      // Determine how much of the payment goes to this expense
+      const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
+      remainingPaymentToDistribute -= paymentForThisExp;
+
+      const newPaymentObject = {
+        ...paymentFields,
+        _id: uuidv4(),
+        id: uuidv4(),
+        date: date || new Date().toISOString().split("T")[0],
+        amount: paymentForThisExp,
+        amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+        currency: currency || "MAD",
+        method: method || "cash",
+      };
+
+      const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+      const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+      await req.db.query(
+        `UPDATE expenses 
+         SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+         WHERE id = $4`,
+        [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+      );
+    }
+
+    await req.db.query("COMMIT");
+
+    res.status(200).json({
+      message: "General payment distributed successfully.",
+      distributedAmount: parsedAmount - remainingPaymentToDistribute,
+      remainingUnapplied: remainingPaymentToDistribute,
+    });
+  } catch (error) {
+    await req.db.query("ROLLBACK");
+    logger.error("Add General Payment Error:", error);
+    next(new AppError("Failed to apply general payment", 500));
   }
 };
 

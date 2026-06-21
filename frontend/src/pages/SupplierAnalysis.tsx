@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Phone, Mail, FileText, Calendar } from "lucide-react";
+import { ArrowLeft, Phone, Mail, FileText, Calendar, CreditCard } from "lucide-react";
 import * as api from "../services/api";
 import { Supplier, Expense } from "../context/models";
 import Modal from "../components/Modal";
 import OrderNoteForm from "../components/expenses/OrderNoteForm";
 import PaginationControls from "../components/ui/PaginationControls";
+import SupplierGeneralPaymentModal from "../components/suppliers/SupplierGeneralPaymentModal";
 
 // Define the specific shape expected for the analysis view (includes expenses)
 interface SupplierDetail extends Supplier {
@@ -32,6 +33,7 @@ export default function SupplierAnalysis() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isGeneralPaymentModalOpen, setIsGeneralPaymentModalOpen] = useState(false);
 
   const { data: supplier, isLoading } = useQuery<SupplierDetail>({
     queryKey: ["supplier", id, currentPage],
@@ -110,6 +112,13 @@ export default function SupplierAnalysis() {
               >
                 <FileText className="w-4 h-4" />
                 {isExporting ? t("exporting") : t("exportToExcel")}
+              </button>
+              <button
+                onClick={() => setIsGeneralPaymentModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              >
+                <CreditCard className="w-4 h-4" />
+                {t("generalPayment") || "General Payment"}
               </button>
             </div>
 
@@ -257,6 +266,15 @@ export default function SupplierAnalysis() {
           />
         )}
       </Modal>
+
+      <SupplierGeneralPaymentModal
+        supplierId={Number(id)}
+        supplierName={supplier.name}
+        isOpen={isGeneralPaymentModalOpen}
+        onClose={() => setIsGeneralPaymentModalOpen(false)}
+        defaultCurrency={topCurrency}
+        totalRemaining={totalRemaining}
+      />
     </div>
   );
 }
