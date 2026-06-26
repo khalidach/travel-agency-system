@@ -3,6 +3,7 @@ const RoomManagementService = require("../services/RoomManagementService");
 const ExcelRoomService = require("../services/excelRoomService.js");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 exports.getRoomsByProgramAndHotel = async (req, res, next) => {
   try {
@@ -113,6 +114,7 @@ exports.exportRoomsToExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {

@@ -4,6 +4,7 @@ const ExcelListService = require("../../services/ExcelListService");
 const ExcelRoomService = require("../../services/excelRoomService");
 const AppError = require("../../utils/appError");
 const logger = require("../../utils/logger");
+const { applyExcelPageSetup } = require("../../utils/excelHelper");
 
 exports.exportBookingsToExcel = async (req, res, next) => {
   const client = await req.db.connect();
@@ -74,6 +75,7 @@ exports.exportBookingsToExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -159,6 +161,7 @@ exports.exportFlightListToExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -207,6 +210,7 @@ exports.exportBookingTemplateForProgram = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -412,6 +416,7 @@ exports.exportCombinedExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(masterWorkbook);
     await masterWorkbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -504,6 +509,7 @@ exports.exportMultiProgramsExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {

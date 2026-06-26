@@ -2,6 +2,7 @@
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 const calculatePaymentStatus = (amount, payments) => {
   const totalPaid = payments.reduce(
@@ -504,6 +505,7 @@ exports.exportSingleExpense = async (req, res, next) => {
       `attachment; filename="${encodeURIComponent(sanitizedName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(sanitizedName)}.xlsx`
     );
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -546,6 +548,7 @@ exports.exportIataWallet = async (req, res, next) => {
       `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
     );
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {

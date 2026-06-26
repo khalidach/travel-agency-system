@@ -3,6 +3,7 @@
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 const ProfitReportExcelService = require("../services/ProfitReportExcelService");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 const getDashboardStats = async (req, res, next) => {
   try {
@@ -687,6 +688,7 @@ const exportProfitReportExcel = async (req, res, next) => {
     );
     res.setHeader("Content-Disposition", `attachment; filename=${fileName}`);
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {

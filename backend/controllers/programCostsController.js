@@ -1,6 +1,7 @@
 // backend/controllers/programCostsController.js
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 exports.getProgramCosts = async (req, res, next) => {
   try {
@@ -116,6 +117,7 @@ exports.exportProgramCostsList = async (req, res, next) => {
       "attachment; filename=program_costs_list.xlsx"
     );
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -185,6 +187,7 @@ exports.exportSingleProgramCosts = async (req, res, next) => {
       `attachment; filename=program_cost_${sanitizedProgramName}.xlsx`
     );
 
+    applyExcelPageSetup(workbook);
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
