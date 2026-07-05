@@ -4,6 +4,7 @@ import { useFormContext, Controller, useWatch } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Trash2 } from "lucide-react";
 import { ClientFormData, BookingFormData } from "./types";
+import MultiplePhoneInput from "../ui/MultiplePhoneInput";
 
 interface BulkClientRowProps {
   index: number;
@@ -256,10 +257,10 @@ const BulkClientRow = ({ index, remove }: BulkClientRowProps) => {
             name={`clients.${index}.phoneNumber`}
             control={control}
             render={({ field }) => (
-              <input
-                {...field}
-                type="tel"
-                className="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm dark:bg-gray-700 dark:text-gray-100"
+              <MultiplePhoneInput
+                value={field.value || ""}
+                onChange={field.onChange}
+                compact={true}
               />
             )}
           />

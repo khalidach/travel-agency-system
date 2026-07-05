@@ -95,7 +95,7 @@ const applyDatabaseMigrations = async (client) => {
         "clientNameAr" VARCHAR(255), 
         "clientNameFr" JSONB,
         "personType" VARCHAR(50) NOT NULL,
-        "phoneNumber" VARCHAR(50),
+        "phoneNumber" VARCHAR(255),
         "passportNumber" VARCHAR(255), 
         "dateOfBirth" VARCHAR(20),
         "passportExpirationDate" DATE,
@@ -404,6 +404,9 @@ const applyDatabaseMigrations = async (client) => {
         ) THEN
           ALTER TABLE branches ADD COLUMN "isHeadquarters" BOOLEAN DEFAULT FALSE;
         END IF;
+
+        -- Alter bookings.phoneNumber to VARCHAR(255) to support multiple numbers
+        ALTER TABLE bookings ALTER COLUMN "phoneNumber" TYPE VARCHAR(255);
       END $$;
     `);
 

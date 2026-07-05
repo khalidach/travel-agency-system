@@ -7,6 +7,7 @@ import {
   FieldError,
 } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import MultiplePhoneInput from "../ui/MultiplePhoneInput";
 
 const ClientInfoFields = () => {
   const { t } = useTranslation();
@@ -253,10 +254,9 @@ const ClientInfoFields = () => {
             name="clients.0.phoneNumber"
             control={control}
             render={({ field }) => (
-              <input
-                {...field}
-                type="tel"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-gray-100"
+              <MultiplePhoneInput
+                value={field.value || ""}
+                onChange={field.onChange}
               />
             )}
           />

@@ -193,6 +193,7 @@
   "infant": "Infant",
   "passportNumberRequired": "Passport number is required",
   "phoneNumber": "Phone Number",
+  "addPhoneNumber": "Add Phone Number",
   "travelProgram": "Travel Program",
   "travelProgramRequired": "Travel program is required",
   "packageRequired": "Package is required",
