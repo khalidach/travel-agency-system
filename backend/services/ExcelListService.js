@@ -8,10 +8,12 @@ const excel = require("exceljs");
  * @returns {Promise<object>} A promise that resolves to an exceljs Workbook object.
  */
 exports.generateFlightListExcel = async (bookings, program) => {
-  // Sort bookings by variation name first, handling potential null/undefined values.
-  bookings.sort((a, b) =>
-    (a.variationName || "").localeCompare(b.variationName || "")
-  );
+  // Sort bookings by creation date (oldest to newest), handling potential null/undefined values.
+  bookings.sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+    const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+    return dateA - dateB;
+  });
 
   const workbook = new excel.Workbook();
   const worksheet = workbook.addWorksheet("Flight List", {
@@ -92,12 +94,22 @@ exports.generateFlightListExcel = async (bookings, program) => {
     processedIds.add(booking.id);
 
     if (booking.relatedPersons && booking.relatedPersons.length > 0) {
+      const familyMembers = [];
       for (const related of booking.relatedPersons) {
         const memberBooking = bookingMap.get(related.ID);
         if (memberBooking && !processedIds.has(memberBooking.id)) {
-          orderedBookings.push(memberBooking);
-          processedIds.add(memberBooking.id);
+          familyMembers.push(memberBooking);
         }
+      }
+      // Sort family members by creation date (oldest to newest) to place the newest at the bottom
+      familyMembers.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+        return dateA - dateB;
+      });
+      for (const memberBooking of familyMembers) {
+        orderedBookings.push(memberBooking);
+        processedIds.add(memberBooking.id);
       }
     }
   } // Add any remaining bookings that might be members but their leader wasn't in the initial list for some reason
