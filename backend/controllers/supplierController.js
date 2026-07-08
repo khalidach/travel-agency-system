@@ -45,33 +45,60 @@ exports.getAllSuppliers = async (req, res, next) => {
     const totalPages = Math.ceil(total / limit);
 
     if (withStats === "true") {
-      // Calculate stats for each supplier based on expenses
-      // We match expenses.beneficiary to supplier.name
-      const statsQuery = `
-        SELECT 
-          LOWER(TRIM(beneficiary)) as norm_beneficiary,
-          SUM(amount) as total_amount,
-          SUM(amount - "remainingBalance") as total_paid,
-          SUM("remainingBalance") as total_remaining
-        FROM expenses 
-        WHERE "userId" = $1 AND type = 'order_note'
-        GROUP BY LOWER(TRIM(beneficiary))
-      `;
+      const allExpensesResult = await req.db.query(
+        `SELECT beneficiary, amount, "advancePayments" 
+         FROM expenses 
+         WHERE "userId" = $1 AND type = 'order_note'`,
+        [req.user.id]
+      );
 
-      const statsResult = await req.db.query(statsQuery, [req.user.id]);
-      const statsMap = statsResult.rows.reduce((acc, row) => {
-        acc[row.norm_beneficiary] = row;
-        return acc;
-      }, {});
+      const allGeneralPaymentsResult = await req.db.query(
+        `SELECT "supplierId", amount 
+         FROM supplier_payments 
+         WHERE "userId" = $1`,
+        [req.user.id]
+      );
+
+      // Group expenses by normalized beneficiary
+      const supplierStats = {};
+      for (const exp of allExpensesResult.rows) {
+        if (!exp.beneficiary) continue;
+        const key = exp.beneficiary.trim().toLowerCase();
+        if (!supplierStats[key]) {
+          supplierStats[key] = { totalAmount: 0, totalDirectPaid: 0 };
+        }
+        supplierStats[key].totalAmount += parseFloat(exp.amount || 0);
+        
+        const payments = exp.advancePayments || [];
+        if (Array.isArray(payments)) {
+          for (const p of payments) {
+            if (p.supplierPaymentId === undefined || p.supplierPaymentId === null) {
+              supplierStats[key].totalDirectPaid += parseFloat(p.amount || 0);
+            }
+          }
+        }
+      }
+
+      // Group general payments by supplierId
+      const generalPaymentsMap = {};
+      for (const gp of allGeneralPaymentsResult.rows) {
+        const sId = gp.supplierId;
+        generalPaymentsMap[sId] = (generalPaymentsMap[sId] || 0) + parseFloat(gp.amount || 0);
+      }
 
       // Merge stats into suppliers
       const suppliersWithStats = suppliers.map((s) => {
         const key = s.name.trim().toLowerCase();
+        const stats = supplierStats[key] || { totalAmount: 0, totalDirectPaid: 0 };
+        const totalGeneralPaid = generalPaymentsMap[s.id] || 0;
+        const totalPaid = stats.totalDirectPaid + totalGeneralPaid;
+        const totalRemaining = stats.totalAmount - totalPaid;
+
         return {
           ...s,
-          totalAmount: parseFloat(statsMap[key]?.total_amount || 0),
-          totalPaid: parseFloat(statsMap[key]?.total_paid || 0),
-          totalRemaining: parseFloat(statsMap[key]?.total_remaining || 0),
+          totalAmount: stats.totalAmount,
+          totalPaid,
+          totalRemaining,
         };
       });
 
@@ -114,7 +141,7 @@ exports.getSupplier = async (req, res, next) => {
     const supplier = result.rows[0];
 
     // Run paginated expenses, count, and aggregation in parallel
-    const [expensesResult, countResult, statsResult] = await Promise.all([
+    const [expensesResult, countResult, allExpensesResult, generalPaymentsResult] = await Promise.all([
       req.db.query(
         `SELECT * FROM expenses 
          WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
@@ -128,19 +155,38 @@ exports.getSupplier = async (req, res, next) => {
         [req.user.id, supplier.name],
       ),
       req.db.query(
-        `SELECT 
-           COALESCE(SUM(amount), 0) as total_amount,
-           COALESCE(SUM(amount - "remainingBalance"), 0) as total_paid,
-           COALESCE(SUM("remainingBalance"), 0) as total_remaining
-         FROM expenses 
-         WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2))`,
-        [req.user.id, supplier.name],
+        `SELECT amount, "advancePayments" FROM expenses 
+         WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) AND type = 'order_note'`,
+        [req.user.id, supplier.name]
       ),
+      req.db.query(
+        `SELECT COALESCE(SUM(amount), 0) as total_general_paid
+         FROM supplier_payments 
+         WHERE "userId" = $1 AND "supplierId" = $2`,
+        [req.user.id, id]
+      )
     ]);
+
+    let totalAmount = 0;
+    let totalDirectPaid = 0;
+    for (const exp of allExpensesResult.rows) {
+      totalAmount += parseFloat(exp.amount || 0);
+      const payments = exp.advancePayments || [];
+      if (Array.isArray(payments)) {
+        for (const p of payments) {
+          if (p.supplierPaymentId === undefined || p.supplierPaymentId === null) {
+            totalDirectPaid += parseFloat(p.amount || 0);
+          }
+        }
+      }
+    }
+
+    const totalGeneralPaid = parseFloat(generalPaymentsResult.rows[0].total_general_paid || 0);
+    const totalPaid = totalDirectPaid + totalGeneralPaid;
+    const totalRemaining = totalAmount - totalPaid;
 
     const expensesTotal = parseInt(countResult.rows[0].count);
     const expensesTotalPages = Math.ceil(expensesTotal / limit);
-    const stats = statsResult.rows[0];
 
     res.status(200).json({
       ...supplier,
@@ -148,9 +194,9 @@ exports.getSupplier = async (req, res, next) => {
       expensesTotal,
       expensesTotalPages,
       expensesPage: page,
-      totalAmount: parseFloat(stats.total_amount),
-      totalPaid: parseFloat(stats.total_paid),
-      totalRemaining: parseFloat(stats.total_remaining),
+      totalAmount,
+      totalPaid,
+      totalRemaining,
     });
   } catch (error) {
     logger.error("Get Supplier Error:", error);
@@ -345,18 +391,18 @@ exports.addGeneralPayment = async (req, res, next) => {
     const params = [req.user.id, supplierName, currency || "MAD"];
 
     if (bookingType && bookingType !== "all") {
-      query += ` AND "bookingType" = $4`;
-      params.push(bookingType);
+      if (bookingType === "Visa/Transfer") {
+        query += ` AND "bookingType" IN ('Visa', 'Transfer')`;
+      } else {
+        query += ` AND "bookingType" = $4`;
+        params.push(bookingType);
+      }
     }
 
     // Order by date ASC (oldest first) so we pay older ones first
     query += ` ORDER BY date ASC, "createdAt" ASC`;
 
     const { rows: unpaidExpenses } = await req.db.query(query, params);
-
-    if (unpaidExpenses.length === 0) {
-      return next(new AppError("No outstanding balance found for the selected criteria and currency.", 400));
-    }
 
     await req.db.query("BEGIN");
 
@@ -603,18 +649,17 @@ exports.updateGeneralPayment = async (req, res, next) => {
     const params = [req.user.id, supplierName, currency || "MAD"];
 
     if (bookingType && bookingType !== "all") {
-      query += ` AND "bookingType" = $4`;
-      params.push(bookingType);
+      if (bookingType === "Visa/Transfer") {
+        query += ` AND "bookingType" IN ('Visa', 'Transfer')`;
+      } else {
+        query += ` AND "bookingType" = $4`;
+        params.push(bookingType);
+      }
     }
 
     query += ` ORDER BY date ASC, "createdAt" ASC`;
 
     const { rows: unpaidExpenses } = await req.db.query(query, params);
-
-    if (unpaidExpenses.length === 0) {
-      await req.db.query("ROLLBACK");
-      return next(new AppError("No outstanding balance found for the selected criteria and currency to re-apply the updated payment.", 400));
-    }
 
     // 4. Update the supplier_payments row
     const updatePaymentQuery = `

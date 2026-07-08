@@ -699,6 +699,7 @@
     "Flight": "طيران",
     "Visa": "تأشيرة",
     "Transfer": "نقل",
+    "Visa/Transfer": "التأشيرات والنقل",
     "Other": "أخرى"
   },
   "enterEquivalentMAD": "أدخل المبلغ المعادل بالدرهم المغربي",

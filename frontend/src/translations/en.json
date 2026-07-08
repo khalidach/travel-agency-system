@@ -695,6 +695,7 @@
     "Flight": "Flight",
     "Visa": "Visa",
     "Transfer": "Transfer",
+    "Visa/Transfer": "Visa & Transport",
     "Other": "Other"
   },
   "enterEquivalentMAD": "Enter the equivalent amount in Moroccan Dirhams (MAD) for this expense.",

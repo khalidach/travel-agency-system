@@ -324,7 +324,7 @@ const buildLedgerRows = (categoryExpenses, supplierPayments = [], lang, bookingT
       return pType === "Flight";
     }
     if (bookingType === "Visa/Transfer") {
-      return pType === "Visa" || pType === "Transfer";
+      return pType === "Visa" || pType === "Transfer" || pType === "Visa/Transfer";
     }
     return pType === "Other" || pType === "all";
   });

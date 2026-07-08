@@ -699,6 +699,7 @@
     "Hotel": "Hôtel",
     "Visa": "Visa",
     "Transfer": "Transport",
+    "Visa/Transfer": "Visa & Transport",
     "Other": "Autre"
   },
   "enterEquivalentMAD": "Entrez le montant équivalent en MAD",

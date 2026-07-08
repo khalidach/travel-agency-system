@@ -54,7 +54,11 @@ export default function SupplierGeneralPaymentModal({
           ? Number((Number(payment.amountMAD) / Number(payment.amount)).toFixed(4))
           : "";
         setExchangeRate(initialExchangeRate);
-        setBookingType(payment.bookingType || "all");
+        let initialBookingType = payment.bookingType || "all";
+        if (initialBookingType === "Visa" || initialBookingType === "Transfer") {
+          initialBookingType = "Visa/Transfer";
+        }
+        setBookingType(initialBookingType);
         setMethod(payment.method);
         setDate(payment.date ? new Date(payment.date).toISOString().split("T")[0] : "");
         setLabelPaper(payment.labelPaper || "");
@@ -339,8 +343,7 @@ export default function SupplierGeneralPaymentModal({
               <option value="all">{t("allServices") || "All Services"}</option>
               <option value="Flight">{t("bookingTypes.Flight") || "Flight"}</option>
               <option value="Hotel">{t("bookingTypes.Hotel") || "Hotel"}</option>
-              <option value="Visa">{t("bookingTypes.Visa") || "Visa"}</option>
-              <option value="Transfer">{t("bookingTypes.Transfer") || "Transport"}</option>
+              <option value="Visa/Transfer">{t("bookingTypes.Visa/Transfer") || "Visa & Transport"}</option>
               <option value="Other">{t("bookingTypes.Other") || "Other"}</option>
             </select>
           </div>
