@@ -180,19 +180,16 @@ export default function ProfitReport() {
   // Unified financial statistics calculation
   const stats = useMemo(() => {
     const progSales = reportData?.summary?.totalSales ?? 0;
-    const progCost = reportData?.summary?.totalCost ?? 0;
-    const progProfit = reportData?.summary?.totalProfit ?? 0;
+    const progCost = reportData?.summary?.totalCost ?? 0; // This is the unified cost from the backend
     const progBookings = reportData?.summary?.totalBookings ?? 0;
 
     const svcSales = dailyReportData?.dateFilteredSummary?.totalRevenue ?? 0;
-    const svcCost = dailyReportData?.dateFilteredSummary?.totalCost ?? 0;
-    const svcProfit = dailyReportData?.dateFilteredSummary?.totalProfit ?? 0;
     const svcCount = dailyReportData?.dateFilteredSummary?.totalSalesCount ?? 0;
 
     const totalSalesCount = progBookings + svcCount;
     const totalRevenue = progSales + svcSales;
-    const totalCost = progCost + svcCost;
-    const totalProfit = progProfit + svcProfit;
+    const totalCost = progCost; // Use unified cost directly
+    const totalProfit = totalRevenue - totalCost;
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return {

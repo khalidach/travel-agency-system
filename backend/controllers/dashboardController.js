@@ -5,6 +5,135 @@ const logger = require("../utils/logger");
 const ProfitReportExcelService = require("../services/ProfitReportExcelService");
 const { applyExcelPageSetup } = require("../utils/excelHelper");
 
+const getUnifiedCost = async (db, userId, startDate, endDate, branchIdFilter) => {
+  const isValidDate = (dateString) => dateString && !isNaN(new Date(dateString));
+
+  // 1. Query Paid Order Notes (sum of amountMAD in advancePayments, excluding linked payments)
+  const orderNotesParams = [userId];
+  let orderNotesParamIndex = 2;
+  let orderNotesBranchClause = "";
+  if (branchIdFilter && branchIdFilter !== 'all') {
+    orderNotesParams.push(branchIdFilter);
+    orderNotesBranchClause = `AND e."branchId" = $${orderNotesParamIndex++}`;
+  }
+  let orderNotesDateClause = "";
+  if (isValidDate(startDate) && isValidDate(endDate)) {
+    orderNotesParams.push(startDate, endDate);
+    orderNotesDateClause = `AND COALESCE(p->>'date', e.date::text)::date BETWEEN $${orderNotesParamIndex++} AND $${orderNotesParamIndex++}`;
+  }
+  const orderNotesQuery = `
+    SELECT COALESCE(SUM(COALESCE((p->>'amountMAD')::numeric, (p->>'amount')::numeric)), 0) as "orderNotePaid"
+    FROM expenses e,
+    jsonb_array_elements(CASE WHEN jsonb_typeof(e."advancePayments") = 'array' THEN e."advancePayments" ELSE '[]'::jsonb END) as p
+    WHERE e."userId" = $1 AND e.type = 'order_note'
+      AND (p->>'supplierPaymentId' IS NULL)
+      ${orderNotesBranchClause} ${orderNotesDateClause}
+  `;
+
+  // 2. Query Paid Regular Expenses (excluding top-ups, sum of amountMAD in advancePayments, excluding linked payments)
+  const regularParams = [userId];
+  let regularParamIndex = 2;
+  let regularBranchClause = "";
+  if (branchIdFilter && branchIdFilter !== 'all') {
+    regularParams.push(branchIdFilter);
+    regularBranchClause = `AND e."branchId" = $${regularParamIndex++}`;
+  }
+  let regularDateClause = "";
+  if (isValidDate(startDate) && isValidDate(endDate)) {
+    regularParams.push(startDate, endDate);
+    regularDateClause = `AND COALESCE(p->>'date', e.date::text)::date BETWEEN $${regularParamIndex++} AND $${regularParamIndex++}`;
+  }
+  const regularQuery = `
+    SELECT COALESCE(SUM(COALESCE((p->>'amountMAD')::numeric, (p->>'amount')::numeric)), 0) as "regularPaid"
+    FROM expenses e,
+    jsonb_array_elements(CASE WHEN jsonb_typeof(e."advancePayments") = 'array' THEN e."advancePayments" ELSE '[]'::jsonb END) as p
+    WHERE e."userId" = $1 AND e.type = 'regular' 
+      AND (p->>'supplierPaymentId' IS NULL)
+      AND (e.category != 'iata_easypay_topup' OR e.category IS NULL)
+      ${regularBranchClause} ${regularDateClause}
+  `;
+
+  // 3. Query IATA EasyPay Top-ups
+  const topUpsParams = [userId];
+  let topUpsParamIndex = 2;
+  let topUpsBranchClause = "";
+  if (branchIdFilter && branchIdFilter !== 'all') {
+    topUpsParams.push(branchIdFilter);
+    topUpsBranchClause = `AND "branchId" = $${topUpsParamIndex++}`;
+  }
+  let topUpsDateClause = "";
+  if (isValidDate(startDate) && isValidDate(endDate)) {
+    topUpsParams.push(startDate, endDate);
+    topUpsDateClause = `AND date::date BETWEEN $${topUpsParamIndex++} AND $${topUpsParamIndex++}`;
+  }
+  const topUpsQuery = `
+    SELECT COALESCE(SUM(amount), 0) as "topUps"
+    FROM expenses
+    WHERE "userId" = $1 AND category = 'iata_easypay_topup' ${topUpsBranchClause} ${topUpsDateClause}
+  `;
+
+  // 4. Query IATA EasyPay wallet deductions (payments made using 'iata_easypay' method)
+  const deductionsParams = [userId];
+  let dedParamIndex = 2;
+  let deductionsBranchFilterClause = "";
+  if (branchIdFilter && branchIdFilter !== 'all') {
+    deductionsParams.push(branchIdFilter);
+    deductionsBranchFilterClause = `AND e."branchId" = $${dedParamIndex++}`;
+  }
+  let deductionsDateFilterClause = "";
+  if (isValidDate(startDate) && isValidDate(endDate)) {
+    deductionsParams.push(startDate, endDate);
+    deductionsDateFilterClause = `AND COALESCE(p->>'date', e.date::text)::date BETWEEN $${dedParamIndex++} AND $${dedParamIndex++}`;
+  }
+  const deductionsQuery = `
+    SELECT COALESCE(SUM((p->>'amount')::numeric), 0) as deductions
+    FROM expenses e,
+    jsonb_array_elements(CASE WHEN jsonb_typeof(e."advancePayments") = 'array' THEN e."advancePayments" ELSE '[]'::jsonb END) as p
+    WHERE e."userId" = $1 AND p->>'method' = 'iata_easypay' ${deductionsBranchFilterClause} ${deductionsDateFilterClause}
+  `;
+
+  // 5. Query General Supplier Payments (from supplier_payments, no branch filter)
+  const supplierParams = [userId];
+  let supParamIndex = 2;
+  let supplierDateFilterClause = "";
+  if (isValidDate(startDate) && isValidDate(endDate)) {
+    supplierParams.push(startDate, endDate);
+    supplierDateFilterClause = `AND date::date BETWEEN $${supParamIndex++} AND $${supParamIndex++}`;
+  }
+  const supplierQuery = `
+    SELECT COALESCE(SUM("amountMAD"), 0) as payments
+    FROM supplier_payments
+    WHERE "userId" = $1 ${supplierDateFilterClause}
+  `;
+
+  const [orderNotesRes, regularRes, topUpsRes, deductionsRes, supplierRes] = await Promise.all([
+    db.query(orderNotesQuery, orderNotesParams),
+    db.query(regularQuery, regularParams),
+    db.query(topUpsQuery, topUpsParams),
+    db.query(deductionsQuery, deductionsParams),
+    db.query(supplierQuery, supplierParams),
+  ]);
+
+  const orderNotePaid = parseFloat(orderNotesRes.rows[0].orderNotePaid);
+  const regularPaid = parseFloat(regularRes.rows[0].regularPaid);
+  const topUps = parseFloat(topUpsRes.rows[0].topUps);
+  const deductions = parseFloat(deductionsRes.rows[0].deductions);
+  const supplierPayments = parseFloat(supplierRes.rows[0].payments);
+
+  const walletBalance = topUps - deductions;
+  const totalCost = orderNotePaid + regularPaid + supplierPayments + walletBalance;
+
+  return {
+    orderNotePaid,
+    regularPaid,
+    topUps,
+    deductions,
+    supplierPayments,
+    walletBalance,
+    totalCost,
+  };
+};
+
 const getDashboardStats = async (req, res, next) => {
   try {
     const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
@@ -228,7 +357,10 @@ const getDashboardStats = async (req, res, next) => {
     const expensesStats = expensesStatsResult.rows[0];
     const incomeStats = incomeStatsResult.rows[0];
     
-    const allTimeCost = parseFloat(expensesStats.allTimeExpensesCost);
+    const allTimeUnifiedCost = await getUnifiedCost(req.db, adminId, null, null, branchIdFilter);
+    const filteredUnifiedCost = await getUnifiedCost(req.db, adminId, startDate, endDate, branchIdFilter);
+
+    const allTimeCost = allTimeUnifiedCost.totalCost;
     const allTimeIncomeRevenue = parseFloat(incomeStats.allTimeIncomeRevenue);
     const allTimeRevenue = parseFloat(stats.allTimeRevenue) + parseFloat(dailyServiceStats.allTimeServiceRevenue) + allTimeIncomeRevenue;
     const allTimeProfit = allTimeRevenue - allTimeCost;
@@ -236,7 +368,7 @@ const getDashboardStats = async (req, res, next) => {
     const filteredBookingRevenue = parseFloat(stats.filteredBookingRevenue);
     const filteredServiceRevenue = parseFloat(dailyServiceStats.filteredServiceRevenue);
     const filteredIncomeRevenue = parseFloat(incomeStats.filteredIncomeRevenue);
-    const filteredCost = parseFloat(expensesStats.filteredExpensesCost);
+    const filteredCost = filteredUnifiedCost.totalCost;
     const filteredRevenue = filteredBookingRevenue + filteredServiceRevenue + filteredIncomeRevenue;
     const filteredProfit = filteredRevenue - filteredCost;
 
@@ -307,14 +439,7 @@ const getProfitReport = async (req, res, next) => {
     }
 
     // --- Paginated query for the detailed table ---
-    let bookingDateClause = "";
     let detailedParams = [...programParams];
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      const startIdx = programParams.indexOf(startDate) + 1;
-      const endIdx = programParams.indexOf(endDate) + 1;
-      bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
-    }
-
     let bookingBranchClause = "";
     if (branchIdFilter && branchIdFilter !== 'all') {
       detailedParams.push(branchIdFilter);
@@ -334,7 +459,7 @@ const getProfitReport = async (req, res, next) => {
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
           COALESCE(pc."totalCost", 0) as "totalCost"
       FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause} ${bookingBranchClause}
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingBranchClause}
       LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
       ${programWhereClause}
       GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
@@ -353,7 +478,7 @@ const getProfitReport = async (req, res, next) => {
       summaryParams.push(programType);
     }
     if (isValidDate(startDate) && isValidDate(endDate)) {
-      summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
+      summaryWhereClause += ` AND p."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
       summaryParams.push(startDate, endDate);
     }
     if (branchIdFilter && branchIdFilter !== 'all') {
@@ -454,7 +579,8 @@ const getProfitReport = async (req, res, next) => {
 
     const programCount = parseInt(programCountResult.rows[0].count, 10);
     const summaryData = summaryResult.rows[0];
-    const summaryTotalCost = parseFloat(totalCostResult.rows[0].totalCost);
+    const unifiedCostResult = await getUnifiedCost(req.db, adminId, startDate, endDate, branchIdFilter);
+    const summaryTotalCost = unifiedCostResult.totalCost;
     const summaryTotalSales = parseFloat(summaryData.totalSales);
 
     res.status(200).json({
@@ -508,13 +634,6 @@ const exportProfitReportExcel = async (req, res, next) => {
       programParams.push(startDate, endDate);
     }
 
-    let bookingDateClause = "";
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      const startIdx = programParams.indexOf(startDate) + 1;
-      const endIdx = programParams.indexOf(endDate) + 1;
-      bookingDateClause = `AND b."createdAt"::date BETWEEN $${startIdx} AND $${endIdx}`;
-    }
-
     let bookingBranchClause = "";
     if (branchIdFilter && branchIdFilter !== 'all') {
       programParams.push(branchIdFilter);
@@ -530,7 +649,7 @@ const exportProfitReportExcel = async (req, res, next) => {
           COALESCE(SUM(b."sellingPrice"), 0) as "totalSales",
           COALESCE(pc."totalCost", 0) as "totalCost"
       FROM programs p
-      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingDateClause} ${bookingBranchClause}
+      LEFT JOIN bookings b ON p.id::text = b."tripId" AND b."userId" = p."userId" ${bookingBranchClause}
       LEFT JOIN program_costs pc ON p.id = pc."programId" AND pc."userId" = p."userId"
       ${programWhereClause}
       GROUP BY p.id, pc."totalCost" ORDER BY p."createdAt" DESC
@@ -558,7 +677,7 @@ const exportProfitReportExcel = async (req, res, next) => {
       summaryParams.push(programType);
     }
     if (isValidDate(startDate) && isValidDate(endDate)) {
-      summaryWhereClause += ` AND b."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
+      summaryWhereClause += ` AND p."createdAt"::date BETWEEN $${summaryParams.length + 1} AND $${summaryParams.length + 2}`;
       summaryParams.push(startDate, endDate);
     }
     if (branchIdFilter && branchIdFilter !== 'all') {
@@ -575,26 +694,9 @@ const exportProfitReportExcel = async (req, res, next) => {
     `;
     const summaryResult = await req.db.query(summaryQuery, summaryParams);
 
-    let costWhereClause = `WHERE pc."userId" = $1`;
-    const costParams = [adminId];
-    if (programType && programType !== "all") {
-      costWhereClause += ` AND p.type = $${costParams.length + 1}`;
-      costParams.push(programType);
-    }
-    if (isValidDate(startDate) && isValidDate(endDate)) {
-      costWhereClause += ` AND p."createdAt"::date BETWEEN $${costParams.length + 1} AND $${costParams.length + 2}`;
-      costParams.push(startDate, endDate);
-    }
-    const totalCostQuery = `
-      SELECT COALESCE(SUM(pc."totalCost"), 0) as "totalCost"
-      FROM program_costs pc
-      LEFT JOIN programs p ON pc."programId" = p.id
-      ${costWhereClause}
-    `;
-    const totalCostResult = await req.db.query(totalCostQuery, costParams);
-
+    const unifiedCostResult = await getUnifiedCost(req.db, adminId, startDate, endDate, branchIdFilter);
+    const summaryTotalCost = unifiedCostResult.totalCost;
     const summaryData = summaryResult.rows[0];
-    const summaryTotalCost = parseFloat(totalCostResult.rows[0].totalCost);
     const summaryTotalSales = parseFloat(summaryData.totalSales);
     const progSummary = {
       totalBookings: parseInt(summaryData.totalBookings, 10),
@@ -661,8 +763,8 @@ const exportProfitReportExcel = async (req, res, next) => {
     // 3. Calculate Unified Financial Statistics
     const totalSalesCount = progSummary.totalBookings + dateFilteredSummary.totalSalesCount;
     const totalRevenue = progSummary.totalSales + dateFilteredSummary.totalRevenue;
-    const totalCost = progSummary.totalCost + dateFilteredSummary.totalCost;
-    const totalProfit = progSummary.totalProfit + dateFilteredSummary.totalProfit;
+    const totalCost = unifiedCostResult.totalCost;
+    const totalProfit = totalRevenue - totalCost;
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     const stats = {
