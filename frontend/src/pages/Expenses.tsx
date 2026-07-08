@@ -151,14 +151,52 @@ export default function Expenses() {
       if (e.advancePayments && Array.isArray(e.advancePayments)) {
         e.advancePayments.forEach((p) => {
           if (p.method === "iata_easypay") {
-            list.push({
-              id: `deduction-${e.id}-${p.id || p._id}`,
-              date: p.date,
-              type: "deduction",
-              description: `${e.beneficiary || "IATA"} - ${e.description}`,
-              amount: Number(p.amount),
-              expenseId: e.id,
-            });
+            const items = Array.isArray(e.items) ? e.items : [];
+            if (items.length > 0) {
+              const itemsSum = items.reduce((sum, item) => {
+                const itemTotal = item.total !== undefined && item.total !== null
+                  ? Number(item.total)
+                  : (Number(item.quantity) * Number(item.unitPrice) || 0);
+                return sum + itemTotal;
+              }, 0);
+
+              items.forEach((item, idx) => {
+                const itemTotal = item.total !== undefined && item.total !== null
+                  ? Number(item.total)
+                  : (Number(item.quantity) * Number(item.unitPrice) || 0);
+                const proportionalAmount = itemsSum > 0
+                  ? (itemTotal / itemsSum) * Number(p.amount)
+                  : Number(p.amount) / items.length;
+
+                let desc = `${e.beneficiary || "IATA"} - ${item.description || e.description || ""}`;
+                if (item.passengerName) {
+                  desc += ` (${item.passengerName})`;
+                }
+                if (item.bookingRef) {
+                  desc += ` [PNR: ${item.bookingRef}]`;
+                }
+
+                list.push({
+                  id: `deduction-${e.id}-${p.id || p._id}-${idx}`,
+                  date: p.date || e.date,
+                  type: "deduction",
+                  description: desc,
+                  amount: proportionalAmount,
+                  expenseId: e.id,
+                  passengerName: item.passengerName || undefined,
+                  bookingRef: item.bookingRef || undefined,
+                });
+              });
+            } else {
+              list.push({
+                id: `deduction-${e.id}-${p.id || p._id}`,
+                date: p.date || e.date,
+                type: "deduction",
+                description: `${e.beneficiary || "IATA"} - ${e.description}`,
+                amount: Number(p.amount),
+                expenseId: e.id,
+              });
+            }
           }
         });
       }
