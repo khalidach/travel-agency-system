@@ -58,7 +58,7 @@ export default function OrderNoteForm({
   const [currency, setCurrency] = useState(initialData?.currency || "MAD");
 
   const [bookingType, setBookingType] = useState<BookingType>(
-    initialData?.bookingType || "Other",
+    (initialData?.bookingType as BookingType) || "Other",
   );
 
   const [reservationNumber, setReservationNumber] = useState(
