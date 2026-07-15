@@ -685,3 +685,219 @@ exports.generateExpenseExcel = async (expense, lang = "ar") => {
 
   return workbook;
 };
+
+exports.generateExpensesListExcel = async (expenses, type, lang = "ar") => {
+  const workbook = new excel.Workbook();
+  const t = translations[lang] || translations.ar;
+  const isRtl = lang === "ar";
+
+  const sheetName = type === "regular" 
+    ? (lang === "ar" ? "المصاريف العادية" : (lang === "fr" ? "Dépenses Régulières" : "Regular Expenses"))
+    : (lang === "ar" ? "مذكرات الطلب" : (lang === "fr" ? "Bons de Commande" : "Order Notes"));
+
+  const sheet = workbook.addWorksheet(sheetName);
+  sheet.views = [{ showGridLines: true, rightToLeft: isRtl }];
+
+  // Title Block
+  const titleText = type === "regular"
+    ? (lang === "ar" ? "تقرير المصاريف العادية" : (lang === "fr" ? "Rapport des Dépenses Régulières" : "Regular Expenses Report"))
+    : (lang === "ar" ? "تقرير مذكرات الطلب" : (lang === "fr" ? "Rapport des Bons de Commande" : "Order Notes Report"));
+
+  sheet.addRow([]); // Blank row 1
+
+  const titleRow = sheet.addRow([titleText]);
+  titleRow.height = 30;
+  const titleCell = sheet.getCell("A2");
+  titleCell.font = { bold: true, size: 14, color: { argb: "FF1E3A8A" } };
+  titleCell.alignment = { vertical: "middle", horizontal: isRtl ? "right" : "left" };
+
+  // Calculate sum of amounts
+  let totalAmount = 0;
+  let totalPaid = 0;
+  let totalRemaining = 0;
+  expenses.forEach(e => {
+    const amt = Number(e.amount) || 0;
+    totalAmount += amt;
+    if (e.type === "regular") {
+      totalPaid += amt;
+    } else {
+      const remaining = Number(e.remainingBalance) || 0;
+      totalRemaining += remaining;
+      totalPaid += (amt - remaining);
+    }
+  });
+
+  sheet.addRow([]); // Blank row 3
+
+  // KPIs
+  const kpiData = [
+    { label: t.totalPurchases, value: totalAmount },
+    { label: t.totalPaid, value: totalPaid }
+  ];
+  if (type === "order_note") {
+    kpiData.push({ label: t.totalRemaining, value: totalRemaining });
+  }
+
+  // Merge title row across headers (number of columns depends on headers size)
+  const headerCols = type === "regular" ? 6 : 8;
+  const colLetter = String.fromCharCode(64 + headerCols);
+  sheet.mergeCells(`A2:${colLetter}2`);
+
+  kpiData.forEach((kpi, idx) => {
+    const rIdx = 4 + idx;
+    const row = sheet.getRow(rIdx);
+    row.values = [kpi.label, kpi.value];
+    row.height = 22;
+
+    const cellA = row.getCell(1);
+    const cellB = row.getCell(2);
+
+    cellA.border = borderStyle;
+    cellB.border = borderStyle;
+    cellA.font = { size: 11, bold: true };
+    cellB.font = { size: 11, bold: true };
+    cellB.numFmt = `#,##0.00`;
+    cellB.alignment = { horizontal: isRtl ? "left" : "right" };
+    cellA.alignment = { horizontal: isRtl ? "right" : "left" };
+
+    cellA.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFF8FAFC" }, // slate-50
+    };
+  });
+
+  sheet.addRow([]); // Blank row 6 / 7 depending on KPIs length
+  const headerRowIdx = type === "regular" ? 7 : 8;
+
+  // Main Data Headers
+  let headers = [];
+  if (type === "regular") {
+    headers = [
+      t.date,
+      t.description,
+      t.category,
+      t.total, // Amount
+      t.payment, // Paid
+      lang === "ar" ? "الحالة" : (lang === "fr" ? "Statut" : "Status")
+    ];
+  } else {
+    headers = [
+      t.date,
+      t.description,
+      t.beneficiary,
+      t.bookingType,
+      t.total, // Amount
+      t.payment, // Paid
+      t.remaining, // Remaining
+      lang === "ar" ? "الحالة" : (lang === "fr" ? "Statut" : "Status")
+    ];
+  }
+
+  const headerRow = sheet.getRow(headerRowIdx);
+  headerRow.values = headers;
+  headerRow.height = 25;
+  headerRow.eachCell((cell) => {
+    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    cell.fill = headerFill;
+    cell.alignment = { vertical: "middle", horizontal: "center" };
+    cell.border = borderStyle;
+  });
+
+  const startDataRow = headerRowIdx + 1;
+
+  if (expenses.length === 0) {
+    const noRow = sheet.addRow([t.noTransactions]);
+    noRow.height = 25;
+    sheet.mergeCells(`A${startDataRow}:${colLetter}${startDataRow}`);
+    const noCell = sheet.getCell(`A${startDataRow}`);
+    noCell.font = { italic: true, color: { argb: "FF64748B" } };
+    noCell.alignment = { vertical: "middle", horizontal: "center" };
+    noCell.border = borderStyle;
+  } else {
+    expenses.forEach((e) => {
+      const amt = Number(e.amount) || 0;
+      const currency = e.currency || "MAD";
+      const paid = e.type === "regular" ? amt : (amt - (Number(e.remainingBalance) || 0));
+      const remaining = e.type === "regular" ? 0 : (Number(e.remainingBalance) || 0);
+
+      const statusText = e.isFullyPaid 
+        ? (lang === "ar" ? "مدفوع بالكامل" : (lang === "fr" ? "Entièrement Payé" : "Fully Paid"))
+        : (lang === "ar" ? "معلق" : (lang === "fr" ? "En attente" : "Pending"));
+
+      let rowValues = [];
+      if (type === "regular") {
+        rowValues = [
+          new Date(e.date),
+          e.description,
+          translateCategory(e.category, lang),
+          amt,
+          paid,
+          statusText
+        ];
+      } else {
+        rowValues = [
+          new Date(e.date),
+          e.description,
+          e.beneficiary || "-",
+          e.bookingType ? (t[`bookingTypes.${e.bookingType}`] || e.bookingType) : "-",
+          amt,
+          paid,
+          remaining,
+          statusText
+        ];
+      }
+
+      const dataRow = sheet.addRow(rowValues);
+      dataRow.height = 20;
+
+      // Align and format cells
+      dataRow.eachCell((cell, colIdx) => {
+        cell.border = borderStyle;
+        
+        // Date column formatting (always first col)
+        if (colIdx === 1) {
+          cell.numFmt = "yyyy-mm-dd";
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        } 
+        // Text alignment
+        else if (type === "regular" && (colIdx === 2 || colIdx === 3)) {
+          cell.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
+        } else if (type === "order_note" && (colIdx >= 2 && colIdx <= 4)) {
+          cell.alignment = { horizontal: isRtl ? "right" : "left", vertical: "middle" };
+        } 
+        // Numeric values formatting
+        else if (type === "regular" && (colIdx === 4 || colIdx === 5)) {
+          cell.numFmt = `#,##0.00" ${currency}"`;
+          cell.alignment = { horizontal: "right", vertical: "middle" };
+        } else if (type === "order_note" && (colIdx >= 5 && colIdx <= 7)) {
+          cell.numFmt = `#,##0.00" ${currency}"`;
+          cell.alignment = { horizontal: "right", vertical: "middle" };
+        }
+        // Status formatting
+        else {
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+          if (e.isFullyPaid) {
+            cell.font = { color: { argb: "FF16A34A" }, bold: true };
+          } else {
+            cell.font = { color: { argb: "FFD97706" }, bold: true };
+          }
+        }
+      });
+    });
+  }
+
+  // Adjust Column Widths dynamically
+  sheet.columns.forEach((column) => {
+    let maxLen = 0;
+    column.eachCell({ includeEmpty: true }, (cell) => {
+      const cellWidth = estimateCellWidth(cell);
+      if (cellWidth > maxLen) {
+        maxLen = cellWidth;
+      }
+    });
+    column.width = Math.min(maxLen, 40);
+  });
+
+  return workbook;
+};

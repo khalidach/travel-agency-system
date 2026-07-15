@@ -842,6 +842,25 @@ export const exportExpenseToExcel = (id: number, lang?: string) => {
   return request(`/expenses/${id}/export?${params.toString()}`, {}, true);
 };
 
+export const exportExpensesListToExcel = (filters: {
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+  searchTerm?: string;
+  bookingType?: string;
+  beneficiary?: string;
+  branchId?: string;
+  lang?: string;
+}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val && val !== "all") {
+      params.append(key, String(val));
+    }
+  });
+  return request(`/expenses/export?${params.toString()}`, {}, true);
+};
+
 export const exportIataWalletToExcel = (lang?: string, branchId?: string) => {
   const params = new URLSearchParams();
   if (lang) {

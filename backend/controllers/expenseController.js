@@ -557,3 +557,82 @@ exports.exportIataWallet = async (req, res, next) => {
   }
 };
 
+exports.exportExpensesList = async (req, res, next) => {
+  try {
+    const {
+      type,
+      startDate,
+      endDate,
+      searchTerm,
+      bookingType,
+      beneficiary,
+      lang,
+    } = req.query;
+
+    let query = `SELECT * FROM expenses WHERE "userId" = $1`;
+    const params = [req.user.id];
+
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      query += ` AND "branchId" = $${params.length + 1}`;
+      params.push(branchIdFilter);
+    }
+
+    if (type) {
+      query += ` AND type = $${params.length + 1}`;
+      params.push(type);
+    }
+
+    if (startDate && endDate) {
+      query += ` AND date BETWEEN $${params.length + 1} AND $${params.length + 2}`;
+      params.push(startDate, endDate);
+    }
+
+    if (searchTerm) {
+      query += ` AND (description ILIKE $${params.length + 1} OR beneficiary ILIKE $${params.length + 1})`;
+      params.push(`%${searchTerm}%`);
+    }
+
+    if (bookingType) {
+      query += ` AND "bookingType" = $${params.length + 1}`;
+      params.push(bookingType);
+    }
+
+    if (beneficiary) {
+      query += ` AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($${params.length + 1}))`;
+      params.push(beneficiary);
+    }
+
+    query += ` ORDER BY date DESC, "createdAt" DESC`;
+
+    const { rows } = await req.db.query(query, params);
+
+    const ExpenseExcelService = require("../services/ExpenseExcelService");
+    const workbook = await ExpenseExcelService.generateExpensesListExcel(
+      rows,
+      type || "regular",
+      lang || "ar"
+    );
+
+    const fileName = type === "regular"
+      ? (lang === "ar" || !lang ? "تقرير_المصاريف_العادية" : "regular_expenses_report")
+      : (lang === "ar" || !lang ? "تقرير_مذكرات_الطلب" : "order_notes_report");
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Expenses List Error:", error);
+    next(new AppError("Failed to export expenses list.", 500));
+  }
+};
+

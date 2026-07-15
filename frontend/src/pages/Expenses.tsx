@@ -398,6 +398,7 @@ export default function Expenses() {
   };
 
   const [isExportingIata, setIsExportingIata] = useState(false);
+  const [isExportingList, setIsExportingList] = useState(false);
 
   const handleExportIataExcel = async () => {
     setIsExportingIata(true);
@@ -416,6 +417,38 @@ export default function Expenses() {
       toast.error(t("exportFailed"));
     } finally {
       setIsExportingIata(false);
+    }
+  };
+
+  const handleExportListExcel = async () => {
+    setIsExportingList(true);
+    try {
+      const blob = await api.exportExpensesListToExcel({
+        type: activeTab,
+        searchTerm,
+        bookingType: selectedBookingType,
+        beneficiary: selectedSupplier,
+        branchId: selectedBranchId,
+        lang: "ar",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      
+      const fileName = activeTab === "regular"
+        ? "تقرير_المصاريف_العادية"
+        : "تقرير_مذكرات_الطلب";
+        
+      link.setAttribute("download", `${fileName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess"));
+    } catch (error) {
+      console.error("Failed to export expenses list Excel", error);
+      toast.error(t("exportFailed"));
+    } finally {
+      setIsExportingList(false);
     }
   };
 
@@ -470,19 +503,29 @@ export default function Expenses() {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => {
-                setSelectedExpense(null);
-                setFormPrefill(null);
-                setIsFormOpen(true);
-              }}
-              className="btn-primary flex items-center gap-2 bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg"
-            >
-              <Plus className="w-4 h-4" />
-              {activeTab === "order_note"
-                ? t("addOrderNote")
-                : t("addRegularExpense")}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExportListExcel}
+                disabled={isExportingList}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all disabled:opacity-50 font-medium shadow-sm hover:shadow"
+              >
+                <FileText className="w-4 h-4" />
+                {isExportingList ? t("exporting") : t("exportToExcel")}
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedExpense(null);
+                  setFormPrefill(null);
+                  setIsFormOpen(true);
+                }}
+                className="btn-primary flex items-center gap-2 bg-primary text-white hover:bg-primary/90 transition-colors px-4 py-2 rounded-lg font-medium shadow-sm hover:shadow"
+              >
+                <Plus className="w-4 h-4" />
+                {activeTab === "order_note"
+                  ? t("addOrderNote")
+                  : t("addRegularExpense")}
+              </button>
+            </div>
           )}
         </div>
       </div>

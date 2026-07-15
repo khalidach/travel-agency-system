@@ -4,6 +4,7 @@ const router = express.Router();
 const expenseController = require("../controllers/expenseController");
 
 router.get("/", expenseController.getAllExpenses);
+router.get("/export", expenseController.exportExpensesList);
 router.get("/export-iata", expenseController.exportIataWallet);
 router.get("/:id/export", expenseController.exportSingleExpense);
 router.post("/", expenseController.createExpense);
