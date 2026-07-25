@@ -194,20 +194,28 @@ export default function ExpensePaymentModal({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleEditClick(payment)}
-                    className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-full transition-colors"
-                    title={t("edit") as string}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setPaymentToDelete(payment._id)}
-                    className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition-colors"
-                    title={t("delete") as string}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {payment.supplierPaymentId ? (
+                    <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 px-2.5 py-1 rounded-full font-medium">
+                      {t("generalPayment") || "General Payment"}
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(payment)}
+                        className="text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 p-2 rounded-full transition-colors"
+                        title={t("edit") as string}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setPaymentToDelete(payment._id)}
+                        className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-2 rounded-full transition-colors"
+                        title={t("delete") as string}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

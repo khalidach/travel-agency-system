@@ -15,6 +15,7 @@ import {
     AlertCircle,
     ArrowRightLeft,
     Download,
+    FileSpreadsheet,
 } from "lucide-react";
 import * as api from "../services/api";
 import { Income, FacturationSettings } from "../context/models";
@@ -43,6 +44,9 @@ export default function IncomeManagement() {
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
     const [incomeToDelete, setIncomeToDelete] = useState<number | null>(null);
+    const [isExportingList, setIsExportingList] = useState(false);
+    const [exportingId, setExportingId] = useState<number | null>(null);
+    const { i18n } = useTranslation();
     const [incomeToConvert, setIncomeToConvert] = useState<Income | null>(null);
     const [isFactureModalOpen, setIsFactureModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -263,6 +267,59 @@ export default function IncomeManagement() {
         setIsPaymentModalOpen(true);
     };
 
+    const handleExportListExcel = async () => {
+        setIsExportingList(true);
+        try {
+            const blob = await api.exportIncomesToExcel({
+                type: activeTab,
+                searchTerm,
+                bookingType: selectedBookingType,
+                client: selectedClient,
+                branchId: selectedBranchId,
+                lang: "ar",
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            const fileName = activeTab === "delivery_note"
+                ? "تقرير_سندات_التسليم"
+                : "تقرير_المقبوضات";
+            link.setAttribute("download", `${fileName}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success(t("exportSuccess") || "Exported successfully");
+        } catch (error) {
+            console.error("Failed to export incomes list Excel", error);
+            toast.error(t("exportFailed") || "Export failed");
+        } finally {
+            setIsExportingList(false);
+        }
+    };
+
+    const handleExportExcel = async (income: Income) => {
+        setExportingId(income.id);
+        try {
+            const blob = await api.exportIncomeToExcel(income.id, "ar");
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            const name = income.type === "delivery_note"
+                ? `delivery_note_${income.deliveryNoteNumber || income.id}`
+                : `income_${income.id}`;
+            link.setAttribute("download", `${name}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success(t("exportSuccess") || "Exported successfully");
+        } catch (error) {
+            console.error("Failed to export income Excel", error);
+            toast.error(t("exportFailed") || "Export failed");
+        } finally {
+            setExportingId(null);
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center">
@@ -285,6 +342,14 @@ export default function IncomeManagement() {
                             {t("deleteSelected")} ({selectedIds.size})
                         </button>
                     )}
+                    <button
+                        onClick={handleExportListExcel}
+                        disabled={isExportingList}
+                        className="inline-flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors px-4 py-2 rounded-lg disabled:opacity-50"
+                    >
+                        <Download className="w-4 h-4" />
+                        {isExportingList ? t("exporting") : t("exportToExcel")}
+                    </button>
                     <button
                         onClick={() => {
                             setSelectedIncome(null);
@@ -538,6 +603,14 @@ export default function IncomeManagement() {
                                                         )}
                                                     </>
                                                 )}
+                                                <button
+                                                    onClick={() => handleExportExcel(income)}
+                                                    disabled={exportingId === income.id}
+                                                    className="p-2 text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors disabled:opacity-50"
+                                                    title={t("exportToExcel") || "Export to Excel"}
+                                                >
+                                                    <FileSpreadsheet className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleEdit(income)}
                                                     className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"

@@ -1,6 +1,7 @@
 // backend/controllers/clientController.js
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 exports.getAllClients = async (req, res, next) => {
   try {
@@ -230,5 +231,56 @@ exports.deleteClient = async (req, res, next) => {
   } catch (error) {
     logger.error("Delete Client Error:", error);
     next(new AppError("Failed to delete client", 500));
+  }
+};
+
+exports.exportClientAnalysis = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { lang } = req.query;
+
+    const result = await req.db.query(
+      `SELECT * FROM clients WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (result.rowCount === 0) {
+      return next(new AppError("Client not found", 404));
+    }
+
+    const client = result.rows[0];
+
+    // Fetch all incomes for this client name without pagination limit
+    const incomesResult = await req.db.query(
+      `SELECT * FROM incomes 
+       WHERE "userId" = $1 AND client = $2 
+       ORDER BY date DESC`,
+      [req.user.id, client.name],
+    );
+
+    const ClientExcelService = require("../services/ClientExcelService");
+    const workbook = await ClientExcelService.generateClientAnalysisExcel(
+      client,
+      incomesResult.rows,
+      lang || "ar"
+    );
+
+    const sanitizedName = client.name.replace(/[\/\\:\*\?"<>\|]/g, "");
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(sanitizedName)}_analysis.xlsx"; filename*=UTF-8''${encodeURIComponent(sanitizedName)}_analysis.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Client Analysis Error:", error);
+    next(new AppError("Failed to export client analysis.", 500));
   }
 };

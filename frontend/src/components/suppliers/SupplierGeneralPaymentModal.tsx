@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CreditCard } from "lucide-react";
 import Modal from "../Modal";
 import NumberInput from "../ui/NumberInput";
@@ -43,6 +43,31 @@ export default function SupplierGeneralPaymentModal({
   const [transferReference, setTransferReference] = useState<string>("");
   const [transferPayerName, setTransferPayerName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  
+  // State for manual allocations: { [expenseId: number]: number }
+  const [allocations, setAllocations] = useState<{ [expenseId: number]: number }>({});
+
+  const { data: unpaidExpenses } = useQuery({
+    queryKey: ["unpaid-expenses", String(supplierId), currency, payment?.id],
+    queryFn: () => api.getSupplierUnpaidExpenses(supplierId, currency, payment?.id),
+    enabled: isOpen && !!supplierId,
+  });
+
+  useEffect(() => {
+    if (isOpen && unpaidExpenses && payment) {
+      const initialAllocations: { [expenseId: number]: number } = {};
+      unpaidExpenses.forEach((exp: any) => {
+        const payments = exp.advancePayments || [];
+        const split = payments.find((p: any) => p.supplierPaymentId === payment.id);
+        if (split) {
+          initialAllocations[exp.id] = Number(split.amount);
+        }
+      });
+      setAllocations(initialAllocations);
+    } else if (!isOpen) {
+      setAllocations({});
+    }
+  }, [unpaidExpenses, payment, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -159,6 +184,19 @@ export default function SupplierGeneralPaymentModal({
       return;
     }
 
+    const totalAllocated = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+    if (totalAllocated > amount) {
+      setError(t("allocationExceedsAmount") || "Total allocated amount cannot exceed the payment amount.");
+      return;
+    }
+
+    const allocationsArray = Object.entries(allocations)
+      .map(([expenseId, amt]) => ({
+        expenseId: parseInt(expenseId),
+        amount: Number(amt)
+      }))
+      .filter(alloc => alloc.amount > 0);
+
     const payload: any = {
       amount,
       currency,
@@ -167,6 +205,7 @@ export default function SupplierGeneralPaymentModal({
       date,
       method,
       labelPaper: labelPaper || `General Payment - ${supplierName}`,
+      allocations: allocationsArray,
     };
 
     if (method === "cheque") {
@@ -453,6 +492,83 @@ export default function SupplierGeneralPaymentModal({
                 />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Allocations Section */}
+        {unpaidExpenses && unpaidExpenses.length > 0 && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4 bg-gray-50/50 dark:bg-gray-800/30">
+            <h3 className="font-bold text-sm uppercase text-gray-500 tracking-wider flex items-center justify-between">
+              <span>{t("allocatePayment") || "Allocate Payment to Purchases"}</span>
+              <span className="text-xs font-normal normal-case text-gray-400">({t("optional") || "Optional"})</span>
+            </h3>
+            <p className="text-xs text-gray-500">
+              {t("allocateExplanation") || "Specify how much of the payment goes to which purchase. Leave blank to distribute automatically (FIFO)."}
+            </p>
+            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+              {unpaidExpenses.map((exp: any) => {
+                // Calculate original remaining balance before this payment's allocation (if editing)
+                let originalRemaining = Number(exp.remainingBalance);
+                if (payment) {
+                  const split = (exp.advancePayments || []).find((p: any) => p.supplierPaymentId === payment.id);
+                  if (split) {
+                    originalRemaining += Number(split.amount);
+                  }
+                }
+
+                return (
+                  <div key={exp.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white dark:bg-gray-700/40 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {exp.description}
+                      </p>
+                      <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                        <span>{t("date") || "Date"}: {new Date(exp.date).toLocaleDateString()}</span>
+                        <span>{t("total") || "Total"}: {Number(exp.amount).toLocaleString()} {exp.currency}</span>
+                        <span>{t("remaining") || "Remaining"}: <strong className="text-red-500">{originalRemaining.toLocaleString()} {exp.currency}</strong></span>
+                      </div>
+                    </div>
+                    <div className="w-full sm:w-36 flex items-center gap-2">
+                      <NumberInput
+                        value={allocations[exp.id] || ""}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || 0;
+                          const maxVal = originalRemaining;
+                          const cleanVal = Math.max(0, Math.min(val, maxVal));
+                          setAllocations(prev => ({
+                            ...prev,
+                            [exp.id]: cleanVal
+                          }));
+                          setError(null);
+                        }}
+                        placeholder="0.00"
+                        className="w-full px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-bold"
+                        min="0"
+                        max={originalRemaining}
+                        step="0.01"
+                      />
+                      <span className="text-xs text-gray-400 font-bold">{exp.currency}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Summary */}
+            {(() => {
+              const totalAllocated = Object.values(allocations).reduce((sum, val) => sum + val, 0);
+              const remainingUnallocated = amount - totalAllocated;
+              return (
+                <div className="border-t border-gray-100 dark:border-gray-700 pt-3 flex flex-wrap justify-between items-center text-xs gap-3">
+                  <div className="text-gray-500">
+                    {t("totalAllocated") || "Total Allocated"}: <strong className="text-blue-600 dark:text-blue-400 font-bold">{totalAllocated.toLocaleString()} {currency}</strong>
+                  </div>
+                  <div className="text-gray-500">
+                    {t("unallocatedAuto") || "Auto-Distributed (FIFO)"}: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">{Math.max(0, remainingUnallocated).toLocaleString()} {currency}</strong>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 

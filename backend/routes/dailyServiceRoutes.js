@@ -10,6 +10,8 @@ const {
   addDailyServicePayment,
   updateDailyServicePayment,
   deleteDailyServicePayment,
+  exportDailyServicesList,
+  exportSingleDailyService,
 } = require("../controllers/dailyServiceController");
 const {
   dailyServiceValidation,
@@ -27,6 +29,8 @@ const {
 router.use(checkDailyServiceAccess);
 
 router.get("/", paginationValidation, handleValidationErrors, getDailyServices);
+router.get("/export", exportDailyServicesList);
+router.get("/:id/export", exportSingleDailyService);
 router.post(
   "/",
   checkDailyServiceLimit,

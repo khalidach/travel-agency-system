@@ -4,6 +4,7 @@ const router = express.Router();
 const clientController = require("../controllers/clientController");
 
 router.route("/").get(clientController.getAllClients).post(clientController.createClient);
+router.get("/:id/export", clientController.exportClientAnalysis);
 router
   .route("/:id")
   .get(clientController.getClient)

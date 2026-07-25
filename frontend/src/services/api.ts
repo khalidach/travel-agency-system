@@ -760,6 +760,13 @@ export const addSupplierGeneralPayment = (id: number, paymentData: any) =>
 export const getSupplierGeneralPayments = (id: number, page = 1, limit = 10) =>
   request(`/suppliers/${id}/general-payments?page=${page}&limit=${limit}`);
 
+export const getSupplierUnpaidExpenses = (id: number, currency?: string, paymentId?: number) => {
+  const params = new URLSearchParams();
+  if (currency) params.append("currency", currency);
+  if (paymentId) params.append("paymentId", String(paymentId));
+  return request(`/suppliers/${id}/unpaid-expenses?${params.toString()}`);
+};
+
 export const updateSupplierGeneralPayment = (id: number, paymentId: number, data: any) =>
   request(`/suppliers/${id}/general-payment/${paymentId}`, {
     method: "PUT",
@@ -977,4 +984,85 @@ export const updateBranch = (id: number, data: Update<Branch>): Promise<Branch> 
   request(`/branches/${id}`, { method: "PUT", body: JSON.stringify(data) });
 export const deleteBranch = (id: number): Promise<{ message: string }> =>
   request(`/branches/${id}`, { method: "DELETE" });
+
+// --- Excel Exports API ---
+export const exportFacturesToExcel = (filters: {
+  type?: string;
+  branchId?: string | null;
+  lang?: string;
+}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val && val !== "all") {
+      params.append(key, String(val));
+    }
+  });
+  return request(`/factures/export?${params.toString()}`, {}, true);
+};
+
+export const exportFactureToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/factures/${id}/export?${params.toString()}`, {}, true);
+};
+
+export const exportIncomesToExcel = (filters: {
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+  searchTerm?: string;
+  client?: string;
+  branchId?: string | null;
+  lang?: string;
+}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val && val !== "all") {
+      params.append(key, String(val));
+    }
+  });
+  return request(`/incomes/export?${params.toString()}`, {}, true);
+};
+
+export const exportIncomeToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/incomes/${id}/export?${params.toString()}`, {}, true);
+};
+
+export const exportClientAnalysisToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/clients/${id}/export?${params.toString()}`, {}, true);
+};
+
+export const exportDailyServicesToExcel = (filters: {
+  typeFilter?: string;
+  statusFilter?: string;
+  searchTerm?: string;
+  branchId?: string | null;
+  lang?: string;
+}) => {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, val]) => {
+    if (val && val !== "all") {
+      params.append(key, String(val));
+    }
+  });
+  return request(`/daily-services/export?${params.toString()}`, {}, true);
+};
+
+export const exportDailyServiceToExcel = (id: number, lang?: string) => {
+  const params = new URLSearchParams();
+  if (lang) {
+    params.append("lang", lang);
+  }
+  return request(`/daily-services/${id}/export?${params.toString()}`, {}, true);
+};
 

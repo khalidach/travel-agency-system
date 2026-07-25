@@ -359,7 +359,7 @@ exports.exportSupplierAnalysis = async (req, res, next) => {
 exports.addGeneralPayment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName } = req.body;
+    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName, allocations } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -402,8 +402,6 @@ exports.addGeneralPayment = async (req, res, next) => {
     // Order by date ASC (oldest first) so we pay older ones first
     query += ` ORDER BY date ASC, "createdAt" ASC`;
 
-    const { rows: unpaidExpenses } = await req.db.query(query, params);
-
     await req.db.query("BEGIN");
 
     // 3. Insert the general payment row into supplier_payments
@@ -441,34 +439,88 @@ exports.addGeneralPayment = async (req, res, next) => {
     const totalAmountMAD = parseFloat(amountMAD || amount);
     const conversionRate = totalAmountMAD / parsedAmount;
 
-    for (const exp of unpaidExpenses) {
-      if (remainingPaymentToDistribute <= 0.01) break;
+    // A. Apply explicit allocations first if provided
+    if (allocations && Array.isArray(allocations) && allocations.length > 0) {
+      for (const alloc of allocations) {
+        const expenseId = parseInt(alloc.expenseId);
+        const allocatedAmount = parseFloat(alloc.amount);
+        if (isNaN(expenseId) || isNaN(allocatedAmount) || allocatedAmount <= 0) continue;
 
-      const expRemaining = parseFloat(exp.remainingBalance);
-      const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
-      remainingPaymentToDistribute -= paymentForThisExp;
+        const expResult = await req.db.query(
+          `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+          [expenseId, req.user.id]
+        );
+        if (expResult.rowCount === 0) continue;
+        const exp = expResult.rows[0];
 
-      const newPaymentObject = {
-        _id: uuidv4(),
-        id: uuidv4(),
-        supplierPaymentId: supplierPaymentId,
-        date: date || new Date().toISOString().split("T")[0],
-        amount: paymentForThisExp,
-        amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
-        currency: currency || "MAD",
-        method: method || "cash",
-        labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
-      };
+        // Ensure currency matches and type is order_note
+        if (exp.currency !== (currency || "MAD") || exp.type !== 'order_note') continue;
 
-      const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
-      const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+        const expRemaining = parseFloat(exp.remainingBalance);
+        const paymentForThisExp = Math.min(allocatedAmount, expRemaining);
+        if (paymentForThisExp <= 0) continue;
 
-      await req.db.query(
-        `UPDATE expenses 
-         SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
-         WHERE id = $4`,
-        [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
-      );
+        remainingPaymentToDistribute -= paymentForThisExp;
+
+        const newPaymentObject = {
+          _id: uuidv4(),
+          id: uuidv4(),
+          supplierPaymentId: supplierPaymentId,
+          date: date || new Date().toISOString().split("T")[0],
+          amount: paymentForThisExp,
+          amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+          currency: currency || "MAD",
+          method: method || "cash",
+          labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
+        };
+
+        const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
+    }
+
+    // B. Distribute the remaining payment using FIFO (default behavior)
+    if (remainingPaymentToDistribute > 0.01) {
+      const { rows: unpaidExpenses } = await req.db.query(query, params);
+
+      for (const exp of unpaidExpenses) {
+        if (remainingPaymentToDistribute <= 0.01) break;
+
+        const expRemaining = parseFloat(exp.remainingBalance);
+        if (expRemaining <= 0) continue;
+
+        const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
+        remainingPaymentToDistribute -= paymentForThisExp;
+
+        const newPaymentObject = {
+          _id: uuidv4(),
+          id: uuidv4(),
+          supplierPaymentId: supplierPaymentId,
+          date: date || new Date().toISOString().split("T")[0],
+          amount: paymentForThisExp,
+          amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+          currency: currency || "MAD",
+          method: method || "cash",
+          labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
+        };
+
+        const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
     }
 
     await req.db.query("COMMIT");
@@ -515,6 +567,61 @@ exports.getGeneralPayments = async (req, res, next) => {
   } catch (error) {
     logger.error("Get General Payments Error:", error);
     next(new AppError("Failed to fetch general payments", 500));
+  }
+};
+
+exports.getUnpaidExpenses = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { currency, paymentId } = req.query;
+
+    const supplierResult = await req.db.query(
+      `SELECT name FROM suppliers WHERE id = $1 AND "userId" = $2`,
+      [id, req.user.id],
+    );
+
+    if (supplierResult.rowCount === 0) {
+      return next(new AppError("Supplier not found", 404));
+    }
+
+    const supplierName = supplierResult.rows[0].name;
+
+    let query = `
+      SELECT id, description, amount, "remainingBalance", "isFullyPaid", currency, date, "bookingType", "advancePayments"
+      FROM expenses 
+      WHERE "userId" = $1 
+        AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
+        AND type = 'order_note'
+    `;
+    const params = [req.user.id, supplierName];
+
+    if (currency) {
+      query += ` AND "currency" = $3`;
+      params.push(currency);
+    }
+
+    query += ` ORDER BY date ASC, "createdAt" ASC`;
+
+    const { rows } = await req.db.query(query, params);
+
+    // Filter in JS: keep unpaid OR contains a split for paymentId
+    const filteredRows = rows.filter(exp => {
+      if (!exp.isFullyPaid && parseFloat(exp.remainingBalance) > 0.01) {
+        return true;
+      }
+      if (paymentId) {
+        const payments = exp.advancePayments || [];
+        if (Array.isArray(payments)) {
+          return payments.some(p => p.supplierPaymentId === parseInt(paymentId));
+        }
+      }
+      return false;
+    });
+
+    res.status(200).json(filteredRows);
+  } catch (error) {
+    logger.error("Get Unpaid Expenses Error:", error);
+    next(new AppError("Failed to fetch unpaid expenses", 500));
   }
 };
 
@@ -585,7 +692,7 @@ exports.deleteGeneralPayment = async (req, res, next) => {
 exports.updateGeneralPayment = async (req, res, next) => {
   try {
     const { id, paymentId } = req.params;
-    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName } = req.body;
+    const { amount, currency, amountMAD, bookingType, date, method, labelPaper, chequeNumber, bankName, chequeCashingDate, transferReference, transferPayerName, allocations } = req.body;
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -659,8 +766,6 @@ exports.updateGeneralPayment = async (req, res, next) => {
 
     query += ` ORDER BY date ASC, "createdAt" ASC`;
 
-    const { rows: unpaidExpenses } = await req.db.query(query, params);
-
     // 4. Update the supplier_payments row
     const updatePaymentQuery = `
       UPDATE supplier_payments 
@@ -694,35 +799,90 @@ exports.updateGeneralPayment = async (req, res, next) => {
     const isForeignCurrency = (currency && currency !== "MAD");
     const totalAmountMAD = parseFloat(amountMAD || amount);
     const conversionRate = totalAmountMAD / parsedAmount;
+    const supplierPaymentId = parseInt(paymentId);
 
-    for (const exp of unpaidExpenses) {
-      if (remainingPaymentToDistribute <= 0.01) break;
+    // A. Apply explicit allocations first if provided
+    if (allocations && Array.isArray(allocations) && allocations.length > 0) {
+      for (const alloc of allocations) {
+        const expenseId = parseInt(alloc.expenseId);
+        const allocatedAmount = parseFloat(alloc.amount);
+        if (isNaN(expenseId) || isNaN(allocatedAmount) || allocatedAmount <= 0) continue;
 
-      const expRemaining = parseFloat(exp.remainingBalance);
-      const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
-      remainingPaymentToDistribute -= paymentForThisExp;
+        const expResult = await req.db.query(
+          `SELECT * FROM expenses WHERE id = $1 AND "userId" = $2`,
+          [expenseId, req.user.id]
+        );
+        if (expResult.rowCount === 0) continue;
+        const exp = expResult.rows[0];
 
-      const newPaymentObject = {
-        _id: uuidv4(),
-        id: uuidv4(),
-        supplierPaymentId: parseInt(paymentId),
-        date: date || new Date().toISOString().split("T")[0],
-        amount: paymentForThisExp,
-        amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
-        currency: currency || "MAD",
-        method: method || "cash",
-        labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
-      };
+        // Ensure currency matches and type is order_note
+        if (exp.currency !== (currency || "MAD") || exp.type !== 'order_note') continue;
 
-      const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
-      const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+        const expRemaining = parseFloat(exp.remainingBalance);
+        const paymentForThisExp = Math.min(allocatedAmount, expRemaining);
+        if (paymentForThisExp <= 0) continue;
 
-      await req.db.query(
-        `UPDATE expenses 
-         SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
-         WHERE id = $4`,
-        [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
-      );
+        remainingPaymentToDistribute -= paymentForThisExp;
+
+        const newPaymentObject = {
+          _id: uuidv4(),
+          id: uuidv4(),
+          supplierPaymentId: supplierPaymentId,
+          date: date || new Date().toISOString().split("T")[0],
+          amount: paymentForThisExp,
+          amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+          currency: currency || "MAD",
+          method: method || "cash",
+          labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
+        };
+
+        const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
+    }
+
+    // B. Distribute the remaining payment using FIFO (default behavior)
+    if (remainingPaymentToDistribute > 0.01) {
+      const { rows: unpaidExpenses } = await req.db.query(query, params);
+
+      for (const exp of unpaidExpenses) {
+        if (remainingPaymentToDistribute <= 0.01) break;
+
+        const expRemaining = parseFloat(exp.remainingBalance);
+        if (expRemaining <= 0) continue;
+
+        const paymentForThisExp = Math.min(remainingPaymentToDistribute, expRemaining);
+        remainingPaymentToDistribute -= paymentForThisExp;
+
+        const newPaymentObject = {
+          _id: uuidv4(),
+          id: uuidv4(),
+          supplierPaymentId: supplierPaymentId,
+          date: date || new Date().toISOString().split("T")[0],
+          amount: paymentForThisExp,
+          amountMAD: isForeignCurrency ? parseFloat((paymentForThisExp * conversionRate).toFixed(2)) : paymentForThisExp,
+          currency: currency || "MAD",
+          method: method || "cash",
+          labelPaper: labelPaper || `General Payment Split - ${supplierName}`,
+        };
+
+        const newPaymentsList = [...(exp.advancePayments || []), newPaymentObject];
+        const { remainingBalance, isFullyPaid } = calculatePaymentStatus(exp.amount, newPaymentsList);
+
+        await req.db.query(
+          `UPDATE expenses 
+           SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+           WHERE id = $4`,
+          [JSON.stringify(newPaymentsList), remainingBalance, isFullyPaid, exp.id]
+        );
+      }
     }
 
     await req.db.query("COMMIT");

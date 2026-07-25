@@ -2,6 +2,7 @@
 const { v4: uuidv4 } = require("uuid");
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 const calculatePaymentStatus = (amount, payments) => {
     const totalPaid = payments.reduce(
@@ -605,5 +606,119 @@ exports.convertToFacture = async (req, res, next) => {
         next(new AppError("Failed to convert delivery note to facture", 500));
     } finally {
         dbClient.release();
+    }
+};
+
+exports.exportIncomesList = async (req, res, next) => {
+    try {
+        const {
+            type,
+            startDate,
+            endDate,
+            searchTerm,
+            client,
+            lang,
+        } = req.query;
+
+        let query = `SELECT * FROM incomes WHERE "userId" = $1`;
+        const params = [req.user.id];
+
+        const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+        if (branchIdFilter && branchIdFilter !== 'all') {
+            query += ` AND "branchId" = $${params.length + 1}`;
+            params.push(branchIdFilter);
+        }
+
+        if (type) {
+            query += ` AND type = $${params.length + 1}`;
+            params.push(type);
+        }
+
+        if (startDate && endDate) {
+            query += ` AND date BETWEEN $${params.length + 1} AND $${params.length + 2}`;
+            params.push(startDate, endDate);
+        }
+
+        if (searchTerm) {
+            query += ` AND (description ILIKE $${params.length + 1} OR client ILIKE $${params.length + 1} OR "deliveryNoteNumber" ILIKE $${params.length + 1})`;
+            params.push(`%${searchTerm}%`);
+        }
+
+        if (client) {
+            query += ` AND client ILIKE $${params.length + 1}`;
+            params.push(`%${client}%`);
+        }
+
+        query += ` ORDER BY date DESC, "createdAt" DESC`;
+
+        const { rows } = await req.db.query(query, params);
+
+        const IncomeExcelService = require("../services/IncomeExcelService");
+        const workbook = await IncomeExcelService.generateIncomesListExcel(
+            rows,
+            type || "regular",
+            lang || "ar"
+        );
+
+        const fileName = type === "delivery_note"
+            ? (lang === "ar" || !lang ? "تقرير_سندات_التسليم" : "delivery_notes_report")
+            : (lang === "ar" || !lang ? "تقرير_المقبوضات" : "incomes_report");
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+        );
+
+        applyExcelPageSetup(workbook);
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        logger.error("Export Incomes List Error:", error);
+        next(new AppError("Failed to export incomes list.", 500));
+    }
+};
+
+exports.exportSingleIncome = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { lang } = req.query;
+
+        const { rows } = await req.db.query(
+            `SELECT * FROM incomes WHERE id = $1 AND "userId" = $2`,
+            [id, req.user.id]
+        );
+
+        if (rows.length === 0) {
+            return next(new AppError("Income not found or not authorized.", 404));
+        }
+
+        const income = rows[0];
+
+        const IncomeExcelService = require("../services/IncomeExcelService");
+        const workbook = await IncomeExcelService.generateIncomeExcel(income, lang || "ar");
+
+        const fileName = income.type === "delivery_note"
+            ? `delivery_note_${income.deliveryNoteNumber || income.id}`
+            : `income_${income.id}`;
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+        );
+
+        applyExcelPageSetup(workbook);
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        logger.error("Export Single Income Error:", error);
+        next(new AppError("Failed to export income details.", 500));
     }
 };

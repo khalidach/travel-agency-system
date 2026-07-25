@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Phone, Mail, MapPin, FileText, Calendar } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, FileText, Calendar, Download } from "lucide-react";
 import * as api from "../services/api";
 import { Client, Income } from "../context/models";
 import Modal from "../components/Modal";
 import DeliveryNoteForm from "../components/incomes/DeliveryNoteForm";
 import PaginationControls from "../components/ui/PaginationControls";
+import { toast } from "react-hot-toast";
 
 // Define the specific shape expected for the analysis view (includes incomes)
 interface ClientDetail extends Client {
@@ -31,6 +32,8 @@ export default function ClientAnalysis() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIncome, setSelectedIncome] = useState<Income | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { i18n } = useTranslation();
 
   const { data: client, isLoading } = useQuery<ClientDetail>({
     queryKey: ["client", id, currentPage],
@@ -40,6 +43,28 @@ export default function ClientAnalysis() {
 
   if (isLoading) return <div className="p-8 text-center">{t("loading")}</div>;
   if (!client) return <div className="p-8 text-center">{t("notFound")}</div>;
+
+  const handleExportExcel = async () => {
+    if (!id) return;
+    setIsExporting(true);
+    try {
+      const blob = await api.exportClientAnalysisToExcel(Number(id), "ar");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      const fileName = `${client.name || "client"}_analysis`;
+      link.setAttribute("download", `${fileName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess") || "Exported successfully");
+    } catch (error) {
+      console.error("Failed to export client analysis Excel", error);
+      toast.error(t("exportFailed") || "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const totalAmount = client.totalAmount || 0;
   const totalPaid = client.totalPaid || 0;
@@ -67,12 +92,22 @@ export default function ClientAnalysis() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" /> {t("back")}
-      </button>
+      <div className="flex justify-between items-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> {t("back")}
+        </button>
+        <button
+          onClick={handleExportExcel}
+          disabled={isExporting}
+          className="inline-flex items-center gap-2 bg-emerald-600 text-white hover:bg-emerald-700 transition-colors px-4 py-2 rounded-lg disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />
+          {isExporting ? t("exporting") : t("exportToExcel")}
+        </button>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col md:flex-row justify-between gap-6">

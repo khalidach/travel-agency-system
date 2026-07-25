@@ -6,6 +6,9 @@ const { protect } = require('../middleware/authMiddleware');
 
 router.use(protect);
 
+router.get('/export', incomeController.exportIncomesList);
+router.get('/:id/export', incomeController.exportSingleIncome);
+
 router.route('/')
     .get(incomeController.getAllIncomes)
     .post(incomeController.createIncome);

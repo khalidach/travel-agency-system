@@ -1,6 +1,7 @@
 // backend/controllers/factureController.js
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 const getFactures = async (req, res, next) => {
   try {
@@ -241,9 +242,99 @@ const deleteFacture = async (req, res, next) => {
   }
 };
 
+const exportFacturesList = async (req, res, next) => {
+  try {
+    const { adminId } = req.user;
+    const { type, lang } = req.query; // type can be facture/devis/all
+
+    let queryStr = 'SELECT * FROM factures WHERE "userId" = $1';
+    const params = [adminId];
+
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      queryStr += ` AND "branchId" = $${params.length + 1}`;
+      params.push(branchIdFilter);
+    }
+
+    if (type && type !== 'all') {
+      queryStr += ` AND "type" = $${params.length + 1}`;
+      params.push(type);
+    }
+
+    queryStr += ` ORDER BY "createdAt" DESC`;
+
+    const { rows } = await req.db.query(queryStr, params);
+
+    const FactureExcelService = require("../services/FactureExcelService");
+    const workbook = await FactureExcelService.generateFacturesListExcel(rows, type || "facture", lang || "ar");
+
+    const fileName = type === "devis"
+      ? (lang === "ar" || !lang ? "تقرير_التقديرات" : "estimates_report")
+      : (lang === "ar" || !lang ? "تقرير_الفواتير" : "invoices_report");
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Factures List Error:", error);
+    next(new AppError("Failed to export factures list.", 500));
+  }
+};
+
+const exportSingleFacture = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { adminId } = req.user;
+    const { lang } = req.query;
+
+    const { rows } = await req.db.query(
+      'SELECT * FROM factures WHERE id = $1 AND "userId" = $2',
+      [id, adminId]
+    );
+
+    if (rows.length === 0) {
+      return next(new AppError("Facture not found or not authorized.", 404));
+    }
+
+    const facture = rows[0];
+
+    const FactureExcelService = require("../services/FactureExcelService");
+    const workbook = await FactureExcelService.generateFactureExcel(facture, lang || "ar");
+
+    const fileName = `${facture.type || "document"}_${facture.facture_number || facture.id}`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Single Facture Error:", error);
+    next(new AppError("Failed to export facture details.", 500));
+  }
+};
+
 module.exports = {
   getFactures,
   createFacture,
   updateFacture,
   deleteFacture,
+  exportFacturesList,
+  exportSingleFacture,
 };

@@ -9,6 +9,7 @@ import {
   Trash2,
   FileText,
   HelpCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 import * as api from "../services/api";
 import { Facture, PaginatedResponse, FacturationSettings } from "../context/models";
@@ -34,6 +35,9 @@ export default function Facturation() {
   const [factureToDelete, setFactureToDelete] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isExportingList, setIsExportingList] = useState(false);
+  const [exportingId, setExportingId] = useState<number | null>(null);
+  const { i18n } = useTranslation();
   const facturesPerPage = 10;
 
   const { data: facturesResponse, isLoading } = useQuery<
@@ -134,6 +138,51 @@ export default function Facturation() {
     }
   };
 
+  const handleExportListExcel = async () => {
+    setIsExportingList(true);
+    try {
+      const blob = await api.exportFacturesToExcel({
+        branchId: selectedBranchId,
+        lang: "ar",
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      const fileName = "تقرير_الفواتير";
+      link.setAttribute("download", `${fileName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess") || "Exported successfully");
+    } catch (error) {
+      console.error("Failed to export invoices list Excel", error);
+      toast.error(t("exportFailed") || "Export failed");
+    } finally {
+      setIsExportingList(false);
+    }
+  };
+
+  const handleExportExcel = async (facture: Facture) => {
+    setExportingId(facture.id);
+    try {
+      const blob = await api.exportFactureToExcel(facture.id, "ar");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      const docName = `${facture.type || "document"}_${facture.facture_number || facture.id}`;
+      link.setAttribute("download", `${docName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success(t("exportSuccess") || "Exported successfully");
+    } catch (error) {
+      console.error("Failed to export invoice Excel", error);
+      toast.error(t("exportFailed") || "Export failed");
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   const handleNewDocumentClick = () => {
     setEditingFacture(null);
     setIsModalOpen(true);
@@ -157,6 +206,14 @@ export default function Facturation() {
             aria-label="Help"
           >
             <HelpCircle className="w-6 h-6" />
+          </button>
+          <button
+            onClick={handleExportListExcel}
+            disabled={isExportingList}
+            className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition-colors disabled:opacity-50"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            {isExportingList ? t("exporting") : t("exportToExcel")}
           </button>
           <button
             onClick={handleNewDocumentClick}
@@ -241,6 +298,14 @@ export default function Facturation() {
                           title={t("download") || "Download"}
                         >
                           <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleExportExcel(facture)}
+                          disabled={exportingId === facture.id}
+                          className="p-2 text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors disabled:opacity-50"
+                          title={t("exportToExcel") || "Export to Excel"}
+                        >
+                          <FileSpreadsheet className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => {

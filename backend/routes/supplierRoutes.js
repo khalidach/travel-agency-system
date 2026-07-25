@@ -8,6 +8,7 @@ router.post("/", supplierController.createSupplier);
 router.get("/:id/export", supplierController.exportSupplierAnalysis);
 router.post("/:id/general-payment", supplierController.addGeneralPayment);
 router.get("/:id/general-payments", supplierController.getGeneralPayments);
+router.get("/:id/unpaid-expenses", supplierController.getUnpaidExpenses);
 router.put("/:id/general-payment/:paymentId", supplierController.updateGeneralPayment);
 router.delete("/:id/general-payment/:paymentId", supplierController.deleteGeneralPayment);
 router.get("/:id", supplierController.getSupplier);

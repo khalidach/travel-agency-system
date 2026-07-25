@@ -864,5 +864,10 @@
   "editGeneralPayment": "Modifier le paiement général",
   "deleteGeneralPayment": "Supprimer le paiement général",
   "deleteGeneralPaymentConfirm": "Êtes-vous sûr de vouloir supprimer ce paiement général ? Cela annulera les montants appliqués sur les bons de commande du fournisseur.",
-  "targetedType": "Type ciblé"
+  "targetedType": "Type ciblé",
+  "allocatePayment": "Allouer le paiement aux achats",
+  "allocateExplanation": "Spécifiez le montant alloué à chaque achat. Laissez vide pour distribuer automatiquement (FIFO).",
+  "totalAllocated": "Total Alloué",
+  "unallocatedAuto": "Distribution Automatique (FIFO)",
+  "allocationExceedsAmount": "Le montant total alloué ne peut pas dépasser le montant du paiement."
 }

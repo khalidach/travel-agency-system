@@ -241,6 +241,7 @@ export interface Payment {
   isLeader?: boolean;
   groupAmount?: number;
   forWhat?: string;
+  supplierPaymentId?: number;
 }
 
 export interface HotelPrice {

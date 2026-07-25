@@ -6,6 +6,8 @@ const {
   createFacture,
   updateFacture,
   deleteFacture,
+  exportFacturesList,
+  exportSingleFacture,
 } = require("../controllers/factureController");
 const {
   checkInvoicingAccess,
@@ -15,6 +17,8 @@ const {
 // Note: The 'protect' middleware is applied in index.js for this route group
 router.use(checkInvoicingAccess);
 router.get("/", getFactures);
+router.get("/export", exportFacturesList);
+router.get("/:id/export", exportSingleFacture);
 router.post("/", checkFactureLimit, createFacture);
 router.put("/:id", updateFacture);
 router.delete("/:id", deleteFacture);

@@ -1,6 +1,7 @@
 const AppError = require("../utils/appError");
 const logger = require("../utils/logger");
 const { getNextPaymentId } = require("../services/sequence.service");
+const { applyExcelPageSetup } = require("../utils/excelHelper");
 
 // Helper to compute derived properties from items JSONB
 const mapServiceData = (row) => {
@@ -493,6 +494,114 @@ const deleteDailyServicePayment = async (req, res, next) => {
   }
 };
 
+const exportDailyServicesList = async (req, res, next) => {
+  try {
+    const { adminId } = req.user;
+    const { searchTerm, typeFilter, statusFilter, lang } = req.query;
+
+    let conditions = ['"userId" = $1'];
+    let params = [adminId];
+
+    const branchIdFilter = req.user.role === 'admin' || req.user.role === 'owner' ? req.query.branchId : req.user.branchId;
+    if (branchIdFilter && branchIdFilter !== 'all') {
+      conditions.push(`"branchId" = $${params.length + 1}`);
+      params.push(branchIdFilter);
+    }
+
+    if (typeFilter && typeFilter !== "all" && typeFilter !== "All") {
+      conditions.push(`type = $${params.length + 1}`);
+      params.push(typeFilter);
+    }
+
+    if (searchTerm) {
+      conditions.push(`("clientName" ILIKE $${params.length + 1} OR "bookingRef" ILIKE $${params.length + 1} OR type ILIKE $${params.length + 1} OR items::text ILIKE $${params.length + 1})`);
+      params.push(`%${searchTerm}%`);
+    }
+
+    if (statusFilter && statusFilter !== "all" && statusFilter !== "All") {
+      if (statusFilter === "paid") {
+        conditions.push(`"isFullyPaid" = true`);
+      } else if (statusFilter === "unpaid") {
+        conditions.push(`"isFullyPaid" = false`);
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const query = `SELECT * FROM daily_services ${whereClause} ORDER BY date DESC, "createdAt" DESC`;
+
+    const { rows } = await req.db.query(query, params);
+    const mappedServices = rows.map(mapServiceData);
+
+    const DailyServiceExcelService = require("../services/DailyServiceExcelService");
+    const workbook = await DailyServiceExcelService.generateDailyServicesListExcel(
+      mappedServices,
+      lang || "ar"
+    );
+
+    const fileName = lang === "ar" || !lang ? "تقرير_الخدمات_اليومية" : "daily_services_report";
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Daily Services List Error:", error);
+    next(new AppError("Failed to export daily services list.", 500));
+  }
+};
+
+const exportSingleDailyService = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { adminId } = req.user;
+    const { lang } = req.query;
+
+    const { rows } = await req.db.query(
+      'SELECT * FROM daily_services WHERE id = $1 AND "userId" = $2',
+      [id, adminId]
+    );
+
+    if (rows.length === 0) {
+      return next(new AppError("Daily service not found or not authorized.", 404));
+    }
+
+    const service = mapServiceData(rows[0]);
+
+    const DailyServiceExcelService = require("../services/DailyServiceExcelService");
+    const workbook = await DailyServiceExcelService.generateDailyServiceExcel(
+      service,
+      lang || "ar"
+    );
+
+    const fileName = `daily_service_${service.bookingRef || service.id}`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}.xlsx`
+    );
+
+    applyExcelPageSetup(workbook);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    logger.error("Export Single Daily Service Error:", error);
+    next(new AppError("Failed to export daily service details.", 500));
+  }
+};
+
 module.exports = {
   getDailyServices,
   createDailyService,
@@ -502,4 +611,6 @@ module.exports = {
   addDailyServicePayment,
   updateDailyServicePayment,
   deleteDailyServicePayment,
+  exportDailyServicesList,
+  exportSingleDailyService,
 };
