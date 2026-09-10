@@ -1,5 +1,5 @@
 // frontend/src/components/expenses/ExpensePaymentForm.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Payment } from "../../context/models";
 import NumberInput from "../ui/NumberInput";
@@ -12,6 +12,45 @@ interface ExpensePaymentFormProps {
   currency?: string;
 }
 
+const getInitialFormData = (payment?: Payment): Omit<Payment, "_id" | "id"> => {
+  if (payment) {
+    return {
+      amount: payment.amount,
+      amountMAD: payment.amountMAD || payment.amount,
+      method: payment.method,
+      date: payment.date
+        ? new Date(payment.date).toISOString().split("T")[0]
+        : "",
+      labelPaper: payment.labelPaper || "",
+      chequeNumber: payment.chequeNumber || "",
+      bankName: payment.bankName || "",
+      chequeCashingDate: payment.chequeCashingDate
+        ? new Date(payment.chequeCashingDate).toISOString().split("T")[0]
+        : "",
+      transferReference: payment.transferReference || "",
+      transferPayerName: payment.transferPayerName || "",
+    };
+  }
+  return {
+    amount: 0,
+    amountMAD: 0,
+    method: "cash",
+    date: new Date().toISOString().split("T")[0],
+    labelPaper: "",
+    chequeNumber: "",
+    bankName: "",
+    chequeCashingDate: "",
+    transferReference: "",
+    transferPayerName: "",
+  };
+};
+
+const getInitialExchangeRate = (payment?: Payment): number | string => {
+  return payment && payment.amount && payment.amountMAD
+    ? Number((Number(payment.amountMAD) / Number(payment.amount)).toFixed(4))
+    : "";
+};
+
 export default function ExpensePaymentForm({
   payment,
   onSave,
@@ -21,57 +60,25 @@ export default function ExpensePaymentForm({
 }: ExpensePaymentFormProps) {
   const { t } = useTranslation();
 
-  const getInitialFormData = useCallback((): Omit<Payment, "_id" | "id"> => {
-    if (payment) {
-      return {
-        amount: payment.amount,
-        amountMAD: payment.amountMAD || payment.amount,
-        method: payment.method,
-        date: payment.date
-          ? new Date(payment.date).toISOString().split("T")[0]
-          : "",
-        labelPaper: payment.labelPaper || "",
-        chequeNumber: payment.chequeNumber || "",
-        bankName: payment.bankName || "",
-        chequeCashingDate: payment.chequeCashingDate
-          ? new Date(payment.chequeCashingDate).toISOString().split("T")[0]
-          : "",
-        transferReference: payment.transferReference || "",
-        transferPayerName: payment.transferPayerName || "",
-      };
-    }
-    return {
-      amount: 0,
-      amountMAD: 0,
-      method: "cash",
-      date: new Date().toISOString().split("T")[0],
-      labelPaper: "",
-      chequeNumber: "",
-      bankName: "",
-      chequeCashingDate: "",
-      transferReference: "",
-      transferPayerName: "",
-    };
-  }, [payment]);
-
-  const [formData, setFormData] = useState(getInitialFormData());
-  const [exchangeRate, setExchangeRate] = useState<number | string>("");
+  const [prevPayment, setPrevPayment] = useState(payment);
+  const [formData, setFormData] = useState(() => getInitialFormData(payment));
+  const [exchangeRate, setExchangeRate] = useState<number | string>(() =>
+    getInitialExchangeRate(payment),
+  );
   const [error, setError] = useState<string | null>(null);
+
+  if (payment !== prevPayment) {
+    setPrevPayment(payment);
+    setFormData(getInitialFormData(payment));
+    setExchangeRate(getInitialExchangeRate(payment));
+    setError(null);
+  }
 
   // Determine the maximum allowed amount safely
   // We explicitly convert to Number to avoid any string concatenation issues
   const maxAmount = payment
     ? Number(remainingBalance) + Number(payment.amount)
     : Number(remainingBalance);
-
-  useEffect(() => {
-    setFormData(getInitialFormData());
-    const initialRate = payment && payment.amount && payment.amountMAD
-      ? Number((Number(payment.amountMAD) / Number(payment.amount)).toFixed(4))
-      : "";
-    setExchangeRate(initialRate);
-    setError(null);
-  }, [getInitialFormData, payment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +129,7 @@ export default function ExpensePaymentForm({
         const rateVal = typeof exchangeRate === "string" ? parseFloat(exchangeRate) : exchangeRate;
         if (rateVal && rateVal > 0) {
           nextData.amountMAD = Number((validAmount * rateVal).toFixed(2));
-        } else if (prev.amountMAD > 0 && validAmount > 0) {
+        } else if (prev.amountMAD && prev.amountMAD > 0 && validAmount > 0) {
           setExchangeRate(Number((prev.amountMAD / validAmount).toFixed(4)));
         }
       }
