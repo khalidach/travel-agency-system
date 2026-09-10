@@ -3,7 +3,16 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Phone, Mail, FileText, Calendar, CreditCard, Edit2, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Phone,
+  Mail,
+  FileText,
+  Calendar,
+  CreditCard,
+  Edit2,
+  Trash2,
+} from "lucide-react";
 import * as api from "../services/api";
 import { Supplier, Expense } from "../context/models";
 import Modal from "../components/Modal";
@@ -24,6 +33,23 @@ interface SupplierDetail extends Supplier {
   totalRemaining?: number;
 }
 
+interface SupplierGeneralPayment {
+  id: number;
+  date: string;
+  amount: number;
+  amountMAD?: number;
+  currency?: string;
+  bookingType: string;
+  method: string;
+  labelPaper?: string;
+}
+
+interface SupplierGeneralPaymentsResponse {
+  payments: SupplierGeneralPayment[];
+  totalPages?: number;
+  total?: number;
+}
+
 const ITEMS_PER_PAGE = 7;
 
 export default function SupplierAnalysis() {
@@ -36,12 +62,17 @@ export default function SupplierAnalysis() {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [isGeneralPaymentModalOpen, setIsGeneralPaymentModalOpen] = useState(false);
+  const [isGeneralPaymentModalOpen, setIsGeneralPaymentModalOpen] =
+    useState(false);
 
-  const [activeTab, setActiveTab] = useState<"purchases" | "payments">("purchases");
+  const [activeTab, setActiveTab] = useState<"purchases" | "payments">(
+    "purchases",
+  );
   const [paymentsPage, setPaymentsPage] = useState(1);
-  const [selectedGeneralPayment, setSelectedGeneralPayment] = useState<any>(null);
-  const [paymentToDelete, setPaymentToDelete] = useState<any>(null);
+  const [selectedGeneralPayment, setSelectedGeneralPayment] =
+    useState<SupplierGeneralPayment | null>(null);
+  const [paymentToDelete, setPaymentToDelete] =
+    useState<SupplierGeneralPayment | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const { data: supplier, isLoading } = useQuery<SupplierDetail>({
@@ -51,26 +82,40 @@ export default function SupplierAnalysis() {
   });
 
   const PAYMENTS_ITEMS_PER_PAGE = 7;
-  const { data: paymentsData, isLoading: isPaymentsLoading } = useQuery({
-    queryKey: ["supplier-general-payments", id, paymentsPage],
-    queryFn: () => api.getSupplierGeneralPayments(Number(id), paymentsPage, PAYMENTS_ITEMS_PER_PAGE),
-    enabled: !!id && activeTab === "payments",
-  });
+  const { data: paymentsData, isLoading: isPaymentsLoading } =
+    useQuery<SupplierGeneralPaymentsResponse>({
+      queryKey: ["supplier-general-payments", id, paymentsPage],
+      queryFn: () =>
+        api.getSupplierGeneralPayments(
+          Number(id),
+          paymentsPage,
+          PAYMENTS_ITEMS_PER_PAGE,
+        ),
+      enabled: !!id && activeTab === "payments",
+    });
 
   const deletePaymentMutation = useMutation({
-    mutationFn: (paymentId: number) => api.deleteSupplierGeneralPayment(Number(id), paymentId),
+    mutationFn: (paymentId: number) =>
+      api.deleteSupplierGeneralPayment(Number(id), paymentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["supplier", id] });
-      queryClient.invalidateQueries({ queryKey: ["supplier-general-payments", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["supplier-general-payments", id],
+      });
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
-      toast.success(t("paymentDeleted") || "General payment deleted and reverted successfully.");
+      toast.success(
+        t("paymentDeleted") ||
+          "General payment deleted and reverted successfully.",
+      );
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || err.message || "Failed to delete payment.");
-    }
+    onError: (err: unknown) => {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete payment.",
+      );
+    },
   });
 
   const handleConfirmDeletePayment = () => {
@@ -87,8 +132,8 @@ export default function SupplierAnalysis() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      
-      const sanitizedName = supplier.name.replace(/[\/\\:\*\?"<>\|]/g, "");
+
+      const sanitizedName = supplier.name.replace(/[\\/:*?"<>|]/g, "");
       link.setAttribute("download", `supplier_analysis_${sanitizedName}.xlsx`);
       document.body.appendChild(link);
       link.click();
@@ -107,14 +152,17 @@ export default function SupplierAnalysis() {
   const totalPaid = supplier.totalPaid || 0;
   const totalRemaining = supplier.totalRemaining || 0;
 
-  const topCurrency = supplier.expenses && supplier.expenses.length > 0 && supplier.expenses[0].currency 
-    ? supplier.expenses[0].currency 
-    : "MAD";
+  const topCurrency =
+    supplier.expenses &&
+    supplier.expenses.length > 0 &&
+    supplier.expenses[0].currency
+      ? supplier.expenses[0].currency
+      : "MAD";
 
   const getCurrencyDisplay = (curr?: string) => {
     const code = curr || "MAD";
     const translation = t(`currency.${code}`);
-    return translation.includes('.') ? code : translation;
+    return translation.includes(".") ? code : translation;
   };
 
   const handleRowClick = (expense: Expense) => {
@@ -182,21 +230,27 @@ export default function SupplierAnalysis() {
               <p className="text-sm text-gray-500">{t("totalPurchases")}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {totalAmount.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
+                <span className="text-sm font-normal">
+                  {getCurrencyDisplay(topCurrency)}
+                </span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalPaid")}</p>
               <p className="text-2xl font-bold text-emerald-600">
                 {totalPaid.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
+                <span className="text-sm font-normal">
+                  {getCurrencyDisplay(topCurrency)}
+                </span>
               </p>
             </div>
             <div className="text-left px-4 border-l border-gray-200">
               <p className="text-sm text-gray-500">{t("totalRemaining")}</p>
               <p className="text-2xl font-bold text-red-600">
                 {totalRemaining.toLocaleString()}{" "}
-                <span className="text-sm font-normal">{getCurrencyDisplay(topCurrency)}</span>
+                <span className="text-sm font-normal">
+                  {getCurrencyDisplay(topCurrency)}
+                </span>
               </p>
             </div>
           </div>
@@ -269,11 +323,13 @@ export default function SupplierAnalysis() {
                       {expense.description}
                     </td>
                     <td className="p-4 text-sm font-medium">
-                      {Number(expense.amount).toLocaleString()} {getCurrencyDisplay(expense.currency)}
+                      {Number(expense.amount).toLocaleString()}{" "}
+                      {getCurrencyDisplay(expense.currency)}
                     </td>
                     <td className="p-4 text-sm text-emerald-600">
                       {(
-                        Number(expense.amount) - Number(expense.remainingBalance)
+                        Number(expense.amount) -
+                        Number(expense.remainingBalance)
                       ).toLocaleString()}{" "}
                       {getCurrencyDisplay(expense.currency)}
                     </td>
@@ -283,10 +339,11 @@ export default function SupplierAnalysis() {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${expense.isFullyPaid
+                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                          expense.isFullyPaid
                             ? "bg-green-100 text-green-800"
                             : "bg-yellow-100 text-yellow-800"
-                          }`}
+                        }`}
                       >
                         {expense.isFullyPaid ? t("paid") : t("pending")}
                       </span>
@@ -343,7 +400,7 @@ export default function SupplierAnalysis() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {paymentsData?.payments?.map((payment: any) => (
+                    {paymentsData?.payments?.map((payment) => (
                       <tr
                         key={payment.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
@@ -355,7 +412,8 @@ export default function SupplierAnalysis() {
                           </div>
                         </td>
                         <td className="p-4 text-sm font-medium text-gray-900 dark:text-white">
-                          {Number(payment.amount).toLocaleString()} {getCurrencyDisplay(payment.currency)}
+                          {Number(payment.amount).toLocaleString()}{" "}
+                          {getCurrencyDisplay(payment.currency)}
                           {payment.currency !== "MAD" && (
                             <span className="text-xs text-gray-500 block">
                               ({Number(payment.amountMAD).toLocaleString()} MAD)
@@ -365,12 +423,18 @@ export default function SupplierAnalysis() {
                         <td className="p-4 text-sm text-gray-600">
                           {payment.bookingType === "all"
                             ? t("allServices") || "All Services"
-                            : t(`bookingTypes.${payment.bookingType}`) || payment.bookingType}
+                            : t(`bookingTypes.${payment.bookingType}`) ||
+                              payment.bookingType}
                         </td>
                         <td className="p-4 text-sm text-gray-600">
-                          {t(`paymentMethods.${payment.method}`) || t(payment.method) || payment.method}
+                          {t(`paymentMethods.${payment.method}`) ||
+                            t(payment.method) ||
+                            payment.method}
                         </td>
-                        <td className="p-4 text-sm text-gray-600 text-ellipsis overflow-hidden max-w-[200px]" title={payment.labelPaper}>
+                        <td
+                          className="p-4 text-sm text-gray-600 text-ellipsis overflow-hidden max-w-[200px]"
+                          title={payment.labelPaper}
+                        >
                           {payment.labelPaper}
                         </td>
                         <td className="p-4 text-sm">
@@ -399,9 +463,13 @@ export default function SupplierAnalysis() {
                         </td>
                       </tr>
                     ))}
-                    {(!paymentsData?.payments || paymentsData.payments.length === 0) && (
+                    {(!paymentsData?.payments ||
+                      paymentsData.payments.length === 0) && (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-gray-500">
+                        <td
+                          colSpan={6}
+                          className="p-8 text-center text-gray-500"
+                        >
                           {t("noTransactions")}
                         </td>
                       </tr>
@@ -431,7 +499,7 @@ export default function SupplierAnalysis() {
         {selectedExpense && (
           <OrderNoteForm
             initialData={selectedExpense}
-            onSubmit={() => { }} // No-op for read-only
+            onSubmit={() => {}} // No-op for read-only
             onCancel={handleCloseModal}
             readOnly={true} // Enable preview mode
           />
@@ -459,11 +527,13 @@ export default function SupplierAnalysis() {
         }}
         onConfirm={handleConfirmDeletePayment}
         title={t("deleteGeneralPayment") || "Delete General Payment"}
-        message={t("deleteGeneralPaymentConfirm") || "Are you sure you want to delete this general payment? This will revert the applied amounts on the supplier's order notes."}
+        message={
+          t("deleteGeneralPaymentConfirm") ||
+          "Are you sure you want to delete this general payment? This will revert the applied amounts on the supplier's order notes."
+        }
         confirmText={t("delete") || "Delete"}
         cancelText={t("cancel") || "Cancel"}
       />
     </div>
   );
 }
-
