@@ -169,6 +169,19 @@ export default function BookingForm({
       // basePrice and profit are display-only — not sent to backend
       // Profit is calculated at program level via ProgramCosting
 
+      if (booking) {
+        const existingPayments = booking.advancePayments || [];
+        const totalPaid = existingPayments.reduce(
+          (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
+          0,
+        );
+        const newSellingPrice = Number(data.sellingPrice || 0);
+        if (totalPaid > 0 && newSellingPrice < totalPaid) {
+          toast.error(t("paymentsExceedNewPrice"));
+          return;
+        }
+      }
+
       if (!isBulkMode && booking) {
         const { clients: _clients, ...restOfData } = data;
         const singleClientData =
@@ -181,7 +194,7 @@ export default function BookingForm({
       }
       onSave(data, booking?.advancePayments || []);
     },
-    [onSave, booking, isBulkMode],
+    [onSave, booking, isBulkMode, t],
   );
 
   // Helper: Hotel/Room Updaters

@@ -1,5 +1,6 @@
 {
   "selectAllMatching": "Sélectionner les {{total}} réservations correspondant à ces filtres",
+  "paymentsExceedNewPrice": "Les paiements existants dépassent le nouveau prix à modifier",
   "pageSelectionNotification": "{{count}} réservations sélectionnées sur cette page.",
   "allSelectedNotification": "Toutes les {{count}} réservations sont sélectionnées.",
   "clearSelection": "Effacer la sélection",
@@ -356,6 +357,9 @@
   "createFirstService": "Créez votre premier enregistrement de service.",
   "deleteServiceTitle": "Supprimer le Service",
   "deleteServiceMessage": "Êtes-vous sûr de vouloir supprimer ce service ? Cette action est irréversible.",
+  "bulkDeleteServiceTitle": "Confirmer la suppression des services",
+  "bulkDeleteServiceMessage": "Êtes-vous sûr de vouloir supprimer les services sélectionnés ? Cette action est irréversible.",
+  "servicesDeletedSuccessfully": "Services supprimés avec succès",
   "airline-ticket": "Billet d'avion",
   "hotel-reservation": "Réservation d'hôtel",
   "reservation-ticket": "Réservation de Billet ",

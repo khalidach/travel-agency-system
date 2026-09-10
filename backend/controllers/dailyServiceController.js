@@ -172,7 +172,7 @@ const updateDailyService = async (req, res, next) => {
     } = req.body;
 
     const existing = await req.db.query(
-      'SELECT "branchId" FROM daily_services WHERE id = $1 AND "userId" = $2',
+      'SELECT "branchId", "advancePayments" FROM daily_services WHERE id = $1 AND "userId" = $2',
       [id, adminId]
     );
     if (existing.rows.length === 0) {
@@ -184,10 +184,14 @@ const updateDailyService = async (req, res, next) => {
     const totalPrice = (items || []).reduce((sum, item) => sum + (Number(item.quantity) * Number(item.sellPrice) || 0), 0);
     const profit = totalPrice - originalPrice;
 
-    const totalPaid = (advancePayments || []).reduce(
+    const existingPayments = advancePayments !== undefined ? advancePayments : (existing.rows[0].advancePayments || []);
+    const totalPaid = (existingPayments || []).reduce(
       (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
+    if (totalPaid > 0 && Number(totalPrice) < totalPaid) {
+      return next(new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400));
+    }
     const remainingBalance = Number(totalPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
@@ -246,6 +250,33 @@ const deleteDailyService = async (req, res, next) => {
       serviceId: req.params.id,
     });
     next(new AppError("Failed to delete daily service.", 500));
+  }
+};
+
+const bulkDeleteDailyServices = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    const { adminId } = req.user;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return next(new AppError("Please provide an array of service IDs.", 400));
+    }
+
+    const result = await req.db.query(
+      'DELETE FROM daily_services WHERE id = ANY($1::int[]) AND "userId" = $2 RETURNING id',
+      [ids, adminId],
+    );
+
+    res.status(200).json({
+      message: `${result.rowCount} service(s) deleted`,
+      deletedCount: result.rowCount,
+    });
+  } catch (error) {
+    logger.error("Bulk Delete Daily Services Error:", {
+      message: error.message,
+      stack: error.stack,
+    });
+    next(new AppError("Failed to bulk delete daily services.", 500));
   }
 };
 
@@ -607,6 +638,7 @@ module.exports = {
   createDailyService,
   updateDailyService,
   deleteDailyService,
+  bulkDeleteDailyServices,
   getDailyServiceReport,
   addDailyServicePayment,
   updateDailyServicePayment,

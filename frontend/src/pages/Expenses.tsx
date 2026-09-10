@@ -315,7 +315,7 @@ export default function Expenses() {
       toast.success(t("expenseUpdated"));
       setIsFormOpen(false);
     },
-    onError: () => toast.error(t("errorUpdatingExpense")),
+    onError: (error: Error) => toast.error(error.message || t("errorUpdatingExpense")),
   });
 
   const deleteMutation = useMutation({

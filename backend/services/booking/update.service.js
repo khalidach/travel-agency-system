@@ -168,10 +168,14 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const basePrice = 0;
     const profit = 0;
-    const totalPaid = (advancePayments || []).reduce(
-      (sum, p) => sum + p.amount,
+    const existingPayments = advancePayments !== undefined ? advancePayments : (oldBooking.advancePayments || []);
+    const totalPaid = (existingPayments || []).reduce(
+      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
       0,
     );
+    if (totalPaid > 0 && Number(sellingPrice) < totalPaid) {
+      throw new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400);
+    }
     const remainingBalance = sellingPrice - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 

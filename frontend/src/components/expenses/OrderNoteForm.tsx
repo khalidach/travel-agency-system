@@ -1,6 +1,7 @@
 // frontend/src/components/expenses/OrderNoteForm.tsx
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 import { Expense, ExpenseItem, Supplier } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
 import { getSuppliers, createSupplier } from "../../services/api";
@@ -225,6 +226,18 @@ export default function OrderNoteForm({
         : `${itemsToSubmit[0].description}, ...`;
 
     const finalAmount = itemsToSubmit.reduce((sum, item) => sum + (item.total || 0), 0);
+
+    if (initialData) {
+      const existingPayments = initialData.advancePayments || [];
+      const totalPaid = existingPayments.reduce(
+        (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
+        0,
+      );
+      if (totalPaid > 0 && finalAmount < totalPaid) {
+        toast.error(t("paymentsExceedNewPrice"));
+        return;
+      }
+    }
 
     onSubmit({
       date,
@@ -515,7 +528,6 @@ export default function OrderNoteForm({
                   <div className="col-span-2">
                     <input
                       type="date"
-                      required
                       disabled={readOnly}
                       placeholder="Departure"
                       value={item.departureDate || ""}
@@ -528,7 +540,6 @@ export default function OrderNoteForm({
                   <div className="col-span-2">
                     <input
                       type="date"
-                      required
                       disabled={readOnly}
                       min={item.departureDate}
                       placeholder="Return"

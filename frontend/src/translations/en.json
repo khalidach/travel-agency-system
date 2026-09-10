@@ -1,5 +1,6 @@
 {
   "selectAllMatching": "Select all {{total}} bookings matching these filters",
+  "paymentsExceedNewPrice": "Existing payments exceed the new price to be set",
   "pageSelectionNotification": "{{count}} bookings selected on this page.",
   "allSelectedNotification": "All {{count}} bookings are selected.",
   "clearSelection": "Clear selection",
@@ -352,6 +353,9 @@
   "createFirstService": "Create your first service record.",
   "deleteServiceTitle": "Delete Service",
   "deleteServiceMessage": "Are you sure you want to delete this service? This action cannot be undone.",
+  "bulkDeleteServiceTitle": "Confirm Bulk Delete Services",
+  "bulkDeleteServiceMessage": "Are you sure you want to delete the selected services? This action cannot be undone.",
+  "servicesDeletedSuccessfully": "Services deleted successfully",
   "airline-ticket": "Airline Ticket",
   "hotel-reservation": "Hotel Reservation",
   "reservation-ticket": "Ticket Reservation",

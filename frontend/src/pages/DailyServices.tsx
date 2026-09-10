@@ -54,6 +54,8 @@ export default function DailyServices() {
     null,
   );
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [receiptToPreview, setReceiptToPreview] = useState<{
     service: DailyService;
     payment: Payment;
@@ -139,9 +141,46 @@ export default function DailyServices() {
       invalidateQueries();
       toast.success(t("serviceDeletedSuccessfully"));
       setServiceToDelete(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     },
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: api.bulkDeleteDailyServices,
+    onSuccess: () => {
+      invalidateQueries();
+      toast.success(t("servicesDeletedSuccessfully"));
+      setSelectedIds(new Set());
+      setShowBulkDeleteConfirm(false);
+    },
+    onError: (error: Error) =>
+      toast.error(error.message || t("errorDeletingExpense")),
+  });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === services.length && services.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(services.map((s) => s.id)));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const { mutate: addPayment } = useMutation({
     mutationFn: (data: {
@@ -322,6 +361,15 @@ export default function DailyServices() {
           </p>
         </div>
         <div className="flex items-center gap-4">
+          {selectedIds.size > 0 && (
+            <button
+              onClick={() => setShowBulkDeleteConfirm(true)}
+              className="inline-flex items-center px-4 py-2 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl shadow-sm transition-colors"
+            >
+              <Trash2 className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0" />
+              {t("deleteSelected")} ({selectedIds.size})
+            </button>
+          )}
           <button
             onClick={() => setIsHelpModalOpen(true)}
             className="p-2 text-muted-foreground bg-secondary rounded-full hover:bg-secondary/80 transition-colors"
@@ -360,6 +408,7 @@ export default function DailyServices() {
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
+              setSelectedIds(new Set());
             }}
             className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
@@ -369,6 +418,7 @@ export default function DailyServices() {
           onChange={(e) => {
             setTypeFilter(e.target.value);
             setCurrentPage(1);
+            setSelectedIds(new Set());
           }}
           className="px-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[150px]"
         >
@@ -383,6 +433,7 @@ export default function DailyServices() {
           onChange={(e) => {
             setStatusFilter(e.target.value);
             setCurrentPage(1);
+            setSelectedIds(new Set());
           }}
           className="px-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-[150px]"
         >
@@ -396,6 +447,14 @@ export default function DailyServices() {
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
+              <th className="px-4 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-10">
+                <input
+                  type="checkbox"
+                  checked={services.length > 0 && selectedIds.size === services.length}
+                  onChange={toggleSelectAll}
+                  className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                />
+              </th>
               {[
                 "date",
                 "serviceName",
@@ -419,7 +478,7 @@ export default function DailyServices() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="text-center p-4 text-muted-foreground"
                 >
                   Loading...
@@ -427,7 +486,7 @@ export default function DailyServices() {
               </tr>
             ) : services.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center p-12">
+                <td colSpan={9} className="text-center p-12">
                   <ConciergeBell className="w-12 h-12 mx-auto text-muted-foreground" />
                   <h3 className="mt-2 text-sm font-medium text-foreground">
                     {t("noServices")}
@@ -443,6 +502,14 @@ export default function DailyServices() {
                   key={service.id}
                   className="hover:bg-muted/50 transition-colors"
                 >
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-muted-foreground w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(service.id)}
+                      onChange={() => toggleSelectOne(service.id)}
+                      className="rounded border-border text-primary focus:ring-primary h-4 w-4 cursor-pointer"
+                    />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     {new Date(service.date).toLocaleDateString()}
                   </td>
@@ -529,7 +596,10 @@ export default function DailyServices() {
             <PaginationControls
               currentPage={currentPage}
               totalPages={pagination.totalPages}
-              onPageChange={setCurrentPage}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                setSelectedIds(new Set());
+              }}
               paginationRange={paginationRange}
             />
           </div>
@@ -577,6 +647,14 @@ export default function DailyServices() {
         onConfirm={() => deleteService(serviceToDelete!)}
         title={t("deleteServiceTitle")}
         message={t("deleteServiceMessage")}
+      />
+
+      <ConfirmationModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        onConfirm={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+        title={t("bulkDeleteServiceTitle")}
+        message={t("bulkDeleteServiceMessage")}
       />
 
       {receiptToPreview && (

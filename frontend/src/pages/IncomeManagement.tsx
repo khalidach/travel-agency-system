@@ -154,7 +154,7 @@ export default function IncomeManagement() {
             toast.success(t("incomeUpdated", { defaultValue: "Income Updated" }));
             setIsFormOpen(false);
         },
-        onError: () => toast.error(t("errorUpdatingIncome", { defaultValue: "Error Updating Income" })),
+        onError: (error: Error) => toast.error(error.message || t("errorUpdatingIncome", { defaultValue: "Error Updating Income" })),
     });
 
     const deleteMutation = useMutation({

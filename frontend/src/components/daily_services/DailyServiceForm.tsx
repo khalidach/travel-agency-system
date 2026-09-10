@@ -160,6 +160,18 @@ const DailyServiceForm: React.FC<DailyServiceFormProps> = ({
     );
     const cleanProfit = cleanTotalPrice - cleanOriginalPrice;
 
+    if (service) {
+      const existingPayments = service.advancePayments || [];
+      const totalPaid = existingPayments.reduce(
+        (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
+        0,
+      );
+      if (totalPaid > 0 && cleanTotalPrice < totalPaid) {
+        toast.error(t("paymentsExceedNewPrice"));
+        return;
+      }
+    }
+
     const serviceName =
       itemsToSubmit.length === 1
         ? itemsToSubmit[0].description

@@ -156,6 +156,11 @@ export const updateDailyService = (id: number, service: Update<DailyService>) =>
   });
 export const deleteDailyService = (id: number) =>
   request(`/daily-services/${id}`, { method: "DELETE" });
+export const bulkDeleteDailyServices = (ids: number[]) =>
+  request("/daily-services/bulk-delete", {
+    method: "POST",
+    body: JSON.stringify({ ids }),
+  });
 export const getDailyServiceReport = (startDate?: string, endDate?: string, branchId?: string) => {
   let endpoint = "/daily-services/report";
   const params = new URLSearchParams();

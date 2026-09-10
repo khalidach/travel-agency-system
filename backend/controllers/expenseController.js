@@ -217,6 +217,13 @@ exports.updateExpense = async (req, res, next) => {
       remainingBalance = 0;
       isFullyPaid = true;
     } else {
+      const totalPaid = advancePayments.reduce(
+        (sum, p) => sum + (parseFloat(p.amount || 0) || parseFloat(p.amountMAD || 0)),
+        0,
+      );
+      if (totalPaid > 0 && parseFloat(amount) < totalPaid) {
+        return next(new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400));
+      }
       const status = calculatePaymentStatus(amount, advancePayments);
       remainingBalance = status.remainingBalance;
       isFullyPaid = status.isFullyPaid;

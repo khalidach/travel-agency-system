@@ -6,6 +6,7 @@ const {
   createDailyService,
   updateDailyService,
   deleteDailyService,
+  bulkDeleteDailyServices,
   getDailyServiceReport,
   addDailyServicePayment,
   updateDailyServicePayment,
@@ -30,6 +31,7 @@ router.use(checkDailyServiceAccess);
 
 router.get("/", paginationValidation, handleValidationErrors, getDailyServices);
 router.get("/export", exportDailyServicesList);
+router.post("/bulk-delete", bulkDeleteDailyServices);
 router.get("/:id/export", exportSingleDailyService);
 router.post(
   "/",

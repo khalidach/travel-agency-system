@@ -1,5 +1,6 @@
 {
   "selectAllMatching": "تحديد كل الحجوزات الـ {{total}} المطابقة لهذه الفلاتر",
+  "paymentsExceedNewPrice": "الدفوعات الموجودة اكبر من السعر مراد تغييره",
   "pageSelectionNotification": "تم تحديد {{count}} حجوزات في هذه الصفحة.",
   "allSelectedNotification": "تم تحديد كل الحجوزات الـ {{count}}.",
   "clearSelection": "إلغاء التحديد",
@@ -356,6 +357,9 @@
   "createFirstService": "قم بإنشاء سجل خدمتك الأول.",
   "deleteServiceTitle": "حذف الخدمة",
   "deleteServiceMessage": "هل أنت متأكد أنك تريد حذف هذه الخدمة؟ لا يمكن التراجع عن هذا الإجراء.",
+  "bulkDeleteServiceTitle": "تأكيد حذف الخدمات المحددة",
+  "bulkDeleteServiceMessage": "هل أنت متأكد أنك تريد حذف الخدمات المحددة؟ لا يمكن التراجع عن هذا الإجراء.",
+  "servicesDeletedSuccessfully": "تم حذف الخدمات بنجاح",
   "airline-ticket": "تذكرة طيران",
   "hotel-reservation": "حجز فندق",
   "reservation-ticket": "حجز تذكرة",

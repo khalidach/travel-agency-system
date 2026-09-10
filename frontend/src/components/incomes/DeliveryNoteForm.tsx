@@ -1,6 +1,7 @@
 // frontend/src/components/incomes/DeliveryNoteForm.tsx
 import React, { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Income, FactureItem, Client } from "../../context/models";
 import { Plus, Trash2 } from "lucide-react";
@@ -159,6 +160,18 @@ export default function DeliveryNoteForm({
       montant: item.montant,
       total: item.total,
     }));
+
+    if (initialData) {
+      const existingPayments = initialData.advancePayments || [];
+      const totalPaid = existingPayments.reduce(
+        (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
+        0,
+      );
+      if (totalPaid > 0 && calculatedTotals.totalFacture < totalPaid) {
+        toast.error(t("paymentsExceedNewPrice"));
+        return;
+      }
+    }
 
     onSubmit({
       date,
