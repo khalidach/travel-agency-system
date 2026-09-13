@@ -161,12 +161,20 @@ export default function Expenses() {
               }, 0);
 
               items.forEach((item, idx) => {
-                const itemTotal = item.total !== undefined && item.total !== null
-                  ? Number(item.total)
-                  : (Number(item.quantity) * Number(item.unitPrice) || 0);
-                const proportionalAmount = itemsSum > 0
-                  ? (itemTotal / itemsSum) * Number(p.amount)
-                  : Number(p.amount) / items.length;
+                let allocatedAmount = 0;
+                if (Array.isArray(p.itemAllocations) && p.itemAllocations.length > 0) {
+                  const alloc = p.itemAllocations.find((a: any) => a.itemIndex === idx);
+                  allocatedAmount = alloc ? Number(alloc.amount || 0) : 0;
+                } else {
+                  const itemTotal = item.total !== undefined && item.total !== null
+                    ? Number(item.total)
+                    : (Number(item.quantity) * Number(item.unitPrice) || 0);
+                  allocatedAmount = itemsSum > 0
+                    ? (itemTotal / itemsSum) * Number(p.amount)
+                    : Number(p.amount) / items.length;
+                }
+
+                if (allocatedAmount <= 0) return;
 
                 let desc = `${e.beneficiary || "IATA"} - ${item.description || e.description || ""}`;
                 if (item.passengerName) {
@@ -181,7 +189,7 @@ export default function Expenses() {
                   date: p.date || e.date,
                   type: "deduction",
                   description: desc,
-                  amount: proportionalAmount,
+                  amount: allocatedAmount,
                   expenseId: e.id,
                   passengerName: item.passengerName || undefined,
                   bookingRef: item.bookingRef || undefined,

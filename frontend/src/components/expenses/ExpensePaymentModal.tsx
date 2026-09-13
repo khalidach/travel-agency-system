@@ -192,8 +192,37 @@ export default function ExpensePaymentModal({
                     <span className="mx-2">•</span>
                     <span>{new Date(payment.date).toLocaleDateString()}</span>
                   </div>
+
+                  {payment.itemAllocations && payment.itemAllocations.some((a) => a.amount > 0) && (
+                    <div className="mt-2.5 pt-2 border-t border-gray-200 dark:border-gray-600/60 space-y-1.5">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                        {t("itemDistribution")}:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                        {payment.itemAllocations.map((alloc, aIdx) => {
+                          if (!alloc.amount || alloc.amount <= 0) return null;
+                          const expItem = expense.items?.[alloc.itemIndex];
+                          const title = alloc.passengerName || expItem?.passengerName || alloc.description || expItem?.description || `#${alloc.itemIndex + 1}`;
+                          const pnr = alloc.bookingRef || expItem?.bookingRef;
+                          return (
+                            <div
+                              key={aIdx}
+                              className="flex justify-between items-center bg-white dark:bg-gray-800 px-2.5 py-1.5 rounded border border-gray-200 dark:border-gray-600/60"
+                            >
+                              <span className="text-gray-700 dark:text-gray-300 truncate mr-2" title={title}>
+                                {title} {pnr ? `[${pnr}]` : ""}
+                              </span>
+                              <span className="font-semibold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                {alloc.amount.toLocaleString()} {currency}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 self-start mt-1">
                   {payment.supplierPaymentId ? (
                     <span className="text-xs bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300 px-2.5 py-1 rounded-full font-medium">
                       {t("generalPayment") || "General Payment"}
@@ -237,6 +266,7 @@ export default function ExpensePaymentModal({
           payment={editingPayment || undefined} // Pass payment if editing
           remainingBalance={expense.remainingBalance}
           currency={currency}
+          expense={expense}
           onSave={(data) => {
             if (editingPayment) {
               updatePaymentMutation.mutate({

@@ -870,5 +870,15 @@
   "allocateExplanation": "Specify how much of the payment goes to which purchase. Leave blank to distribute automatically (FIFO).",
   "totalAllocated": "Total Allocated",
   "unallocatedAuto": "Auto-Distributed (FIFO)",
-  "allocationExceedsAmount": "Total allocated amount cannot exceed the payment amount."
+  "allocationExceedsAmount": "Total allocated amount cannot exceed the payment amount.",
+  "itemDistribution": "Item Allocation (IATA EasyPay)",
+  "itemDistributionHelp": "Specify how the IATA EasyPay payment amount is allocated across expense items.",
+  "autoDistribute": "Distribute Proportionally",
+  "fillRemaining": "Fill Remaining",
+  "unallocatedAmount": "Unallocated",
+  "allocationMustEqualPayment": "The sum of item allocations ({{allocated}} {{currency}}) must equal the total payment amount ({{total}} {{currency}}).",
+  "fullyAllocated": "Amount fully allocated",
+  "overAllocated": "Allocations exceed payment amount",
+  "previouslyPaid": "Previously Paid",
+  "itemRemaining": "Item Remaining"
 }

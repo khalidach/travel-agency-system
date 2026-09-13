@@ -223,6 +223,14 @@ export interface ExpenseItem {
   total: number;
 }
 
+export interface ItemAllocation {
+  itemIndex: number;
+  amount: number;
+  description?: string;
+  passengerName?: string;
+  bookingRef?: string;
+}
+
 export interface Payment {
   _id: string;
   paymentID?: string;
@@ -242,6 +250,7 @@ export interface Payment {
   groupAmount?: number;
   forWhat?: string;
   supplierPaymentId?: number;
+  itemAllocations?: ItemAllocation[];
 }
 
 export interface HotelPrice {

@@ -873,5 +873,15 @@
   "allocateExplanation": "حدد المبلغ المخصص لكل عملية شراء. اترك الحقل فارغًا للتوزيع التلقائي (FIFO).",
   "totalAllocated": "إجمالي المخصص",
   "unallocatedAuto": "التوزيع التلقائي (FIFO)",
-  "allocationExceedsAmount": "لا يمكن أن يتجاوز إجمالي المبالغ المخصصة قيمة الدفعة الكلية."
+  "allocationExceedsAmount": "لا يمكن أن يتجاوز إجمالي المبالغ المخصصة قيمة الدفعة الكلية.",
+  "itemDistribution": "توزيع المبلغ على البنود (IATA EasyPay)",
+  "itemDistributionHelp": "حدد كيفية توزيع مبلغ دفعة إياتا إيزي باي على بنود وتذاكر المصروف.",
+  "autoDistribute": "توزيع تناسبي",
+  "fillRemaining": "ملء المتبقي",
+  "unallocatedAmount": "المتبقي للتوزيع",
+  "allocationMustEqualPayment": "يجب أن يساوي مجموع المبالغ الموزعة ({{allocated}} {{currency}}) إجمالي مبلغ الدفعة ({{total}} {{currency}}).",
+  "fullyAllocated": "تم توزيع كامل المبلغ بنجاح",
+  "overAllocated": "المبالغ الموزعة تتجاوز مبلغ الدفعة",
+  "previouslyPaid": "المدفوع سابقاً",
+  "itemRemaining": "المتبقي للبند"
 }

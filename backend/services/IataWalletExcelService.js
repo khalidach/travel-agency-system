@@ -146,13 +146,21 @@ exports.generateIataWalletExcel = async (expenses, lang = "ar") => {
               return sum + itemTotal;
             }, 0);
 
-            items.forEach((item) => {
-              const itemTotal = item.total !== undefined && item.total !== null
-                ? Number(item.total)
-                : (Number(item.quantity) * Number(item.unitPrice) || 0);
-              const proportionalAmount = itemsSum > 0
-                ? (itemTotal / itemsSum) * Number(p.amount)
-                : Number(p.amount) / items.length;
+            items.forEach((item, idx) => {
+              let amount = 0;
+              if (Array.isArray(p.itemAllocations) && p.itemAllocations.length > 0) {
+                const alloc = p.itemAllocations.find((a) => a.itemIndex === idx);
+                amount = alloc ? Number(alloc.amount || 0) : 0;
+              } else {
+                const itemTotal = item.total !== undefined && item.total !== null
+                  ? Number(item.total)
+                  : (Number(item.quantity) * Number(item.unitPrice) || 0);
+                amount = itemsSum > 0
+                  ? (itemTotal / itemsSum) * Number(p.amount)
+                  : Number(p.amount) / items.length;
+              }
+
+              if (amount <= 0) return;
 
               let desc = `${e.beneficiary || "IATA"} - ${item.description || e.description || ""}`;
               if (item.passengerName) {
@@ -166,7 +174,7 @@ exports.generateIataWalletExcel = async (expenses, lang = "ar") => {
                 date: p.date || e.date,
                 type: "deduction",
                 description: desc,
-                amount: proportionalAmount,
+                amount: amount,
               });
             });
           } else {
