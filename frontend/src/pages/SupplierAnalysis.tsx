@@ -118,6 +118,29 @@ export default function SupplierAnalysis() {
     },
   });
 
+  const updateExpenseMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Expense> }) =>
+      api.updateExpense(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["supplier", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["supplier-general-payments", id],
+      });
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+      queryClient.invalidateQueries({ queryKey: ["profitReport"] });
+      toast.success(t("expenseUpdated") || "Expense updated successfully.");
+      handleCloseModal();
+    },
+    onError: (err: unknown) => {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update expense.",
+      );
+    },
+  });
+
   const handleConfirmDeletePayment = () => {
     if (paymentToDelete) {
       deletePaymentMutation.mutate(paymentToDelete.id);
@@ -304,6 +327,9 @@ export default function SupplierAnalysis() {
                   <th className="p-4 text-xs uppercase text-gray-500">
                     {t("status")}
                   </th>
+                  <th className="p-4 text-xs uppercase text-gray-500">
+                    {t("actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -348,11 +374,20 @@ export default function SupplierAnalysis() {
                         {expense.isFullyPaid ? t("paid") : t("pending")}
                       </span>
                     </td>
+                    <td className="p-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleRowClick(expense)}
+                        className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
+                        title={t("edit") || "Edit"}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {(!supplier.expenses || supplier.expenses.length === 0) && (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                    <td colSpan={7} className="p-8 text-center text-gray-500">
                       {t("noTransactions")}
                     </td>
                   </tr>
@@ -493,15 +528,18 @@ export default function SupplierAnalysis() {
       <Modal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
-        title={t("expenseDetails") || "Expense Details"}
-        size="xl"
+        title={t("editExpense") || "Edit Expense"}
+        size="xl2"
       >
         {selectedExpense && (
           <OrderNoteForm
+            key={selectedExpense.id}
             initialData={selectedExpense}
-            onSubmit={() => {}} // No-op for read-only
+            onSubmit={(data) => {
+              updateExpenseMutation.mutate({ id: selectedExpense.id, data });
+            }}
             onCancel={handleCloseModal}
-            readOnly={true} // Enable preview mode
+            readOnly={false}
           />
         )}
       </Modal>

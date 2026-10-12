@@ -77,6 +77,7 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, user) =
     { header: "Passport Number", key: "passportNumber" },
     { header: "Phone Number", key: "phoneNumber" },
     { header: "Variation", key: "variationName" },
+    { header: "Source de la réservation", key: "bookingSource" },
     { header: "الباقة", key: "packageId" },
   ]; // Dynamically add hotel and room type columns based on program cities
 
@@ -219,6 +220,7 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, user) =
       passportNumber: booking.passportNumber,
       phoneNumber: booking.phoneNumber,
       variationName: booking.variationName,
+      bookingSource: booking.bookingSource || "",
       packageId: booking.packageId,
       sellingPrice: isRedacted ? "🔒 Restricted" : Number(booking.sellingPrice),
       paid: isRedacted ? "🔒 Restricted" : totalPaid,
@@ -350,12 +352,8 @@ exports.addBookingsSheetToWorkbook = async (workbook, bookings, program, user) =
     totalColumnsKeys.includes(c.key)
   );
   if (firstTotalCol) {
-    const firstTotalColLetter = firstTotalCol.letter;
-    worksheet.mergeCells(
-      `A${totalRowNumber}:${String.fromCharCode(
-        firstTotalColLetter.charCodeAt(0) - 1
-      )}${totalRowNumber}`
-    );
+    const prevColLetter = worksheet.getColumn(firstTotalCol.number - 1).letter;
+    worksheet.mergeCells(`A${totalRowNumber}:${prevColLetter}${totalRowNumber}`);
     const totalLabelCell = worksheet.getCell(`A${totalRowNumber}`);
     totalLabelCell.value = "Total";
     totalLabelCell.font = { bold: true, size: 20 };

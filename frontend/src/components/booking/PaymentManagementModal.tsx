@@ -341,7 +341,7 @@ export default function PaymentManagementModal({
         isOpen={isGroupPaymentFormOpen}
         onClose={() => setIsGroupPaymentFormOpen(false)}
         title={editingGroupPayment ? "Edit Group Payment" : "Add Group Payment"}
-        size="md"
+        size="xl"
         level={1}
       >
         <GroupPaymentForm
@@ -349,6 +349,8 @@ export default function PaymentManagementModal({
           onSave={handleSaveGroupPaymentForm}
           onCancel={() => setIsGroupPaymentFormOpen(false)}
           groupRemainingBalance={groupBookings ? groupBookings.reduce((sum, b) => sum + Number(b.remainingBalance || 0), 0) : 0}
+          groupBookings={groupBookings || []}
+          currentBookingId={booking.id}
         />
       </Modal>
 

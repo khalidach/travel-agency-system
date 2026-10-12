@@ -16,6 +16,163 @@ const calculatePaymentStatus = (amount, payments) => {
   };
 };
 
+/**
+ * Checks if a supplier has unused balance from general payments (solde is minus / money in wallet).
+ * If so, automatically creates splits from those general payments and applies them to this expense.
+ */
+const autoAllocateSupplierWallet = async (
+  db,
+  userId,
+  { beneficiary, amount, currency = "MAD", bookingType, advancePayments = [] },
+  excludeExpenseId = null,
+) => {
+  if (!beneficiary || !beneficiary.trim()) {
+    const status = calculatePaymentStatus(amount, advancePayments);
+    return {
+      advancePayments,
+      remainingBalance: status.remainingBalance,
+      isFullyPaid: status.isFullyPaid,
+    };
+  }
+
+  // 1. Find supplier by name
+  const supplierResult = await db.query(
+    `SELECT id, name FROM suppliers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND "userId" = $2`,
+    [beneficiary, userId],
+  );
+  if (supplierResult.rowCount === 0) {
+    const status = calculatePaymentStatus(amount, advancePayments);
+    return {
+      advancePayments,
+      remainingBalance: status.remainingBalance,
+      isFullyPaid: status.isFullyPaid,
+    };
+  }
+
+  const supplier = supplierResult.rows[0];
+
+  // 2. Fetch all general payments for this supplier
+  const paymentsResult = await db.query(
+    `SELECT * FROM supplier_payments 
+     WHERE "supplierId" = $1 AND "userId" = $2 
+     ORDER BY date ASC, "createdAt" ASC`,
+    [supplier.id, userId],
+  );
+  if (paymentsResult.rowCount === 0) {
+    const status = calculatePaymentStatus(amount, advancePayments);
+    return {
+      advancePayments,
+      remainingBalance: status.remainingBalance,
+      isFullyPaid: status.isFullyPaid,
+    };
+  }
+
+  // 3. Fetch all other expenses for this supplier to calculate already used amounts of each general payment
+  let otherExpensesQuery = `
+    SELECT id, "advancePayments" FROM expenses 
+    WHERE "userId" = $1 AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) AND type = 'order_note'
+  `;
+  const otherExpensesParams = [userId, supplier.name];
+  if (excludeExpenseId) {
+    otherExpensesQuery += ` AND id != $3`;
+    otherExpensesParams.push(excludeExpenseId);
+  }
+  const otherExpensesResult = await db.query(otherExpensesQuery, otherExpensesParams);
+
+  const allocatedMap = {};
+  for (const exp of otherExpensesResult.rows) {
+    const payments = exp.advancePayments || [];
+    if (Array.isArray(payments)) {
+      for (const p of payments) {
+        if (p.supplierPaymentId) {
+          const spId = parseInt(p.supplierPaymentId);
+          allocatedMap[spId] = (allocatedMap[spId] || 0) + parseFloat(p.amount || 0);
+        }
+      }
+    }
+  }
+
+  // Also include any supplierPaymentId already in current advancePayments
+  if (Array.isArray(advancePayments)) {
+    for (const p of advancePayments) {
+      if (p.supplierPaymentId) {
+        const spId = parseInt(p.supplierPaymentId);
+        allocatedMap[spId] = (allocatedMap[spId] || 0) + parseFloat(p.amount || 0);
+      }
+    }
+  }
+
+  let updatedPayments = [...advancePayments];
+  let currentStatus = calculatePaymentStatus(amount, updatedPayments);
+  let remainingToPay = currentStatus.remainingBalance;
+
+  if (remainingToPay <= 0.01) {
+    return {
+      advancePayments: updatedPayments,
+      remainingBalance: currentStatus.remainingBalance,
+      isFullyPaid: currentStatus.isFullyPaid,
+    };
+  }
+
+  // 4. For each general payment, check matching currency & bookingType and allocate unallocated amount
+  for (const sp of paymentsResult.rows) {
+    if (remainingToPay <= 0.01) break;
+
+    // Currency check
+    const spCurrency = sp.currency || "MAD";
+    const expCurrency = currency || "MAD";
+    if (spCurrency !== expCurrency) continue;
+
+    // Booking type check
+    const spBookingType = sp.bookingType || "all";
+    if (spBookingType !== "all") {
+      if (spBookingType === "Visa/Transfer") {
+        if (!["Visa", "Transfer"].includes(bookingType)) continue;
+      } else if (bookingType && spBookingType !== bookingType) {
+        continue;
+      }
+    }
+
+    const spAmount = parseFloat(sp.amount || 0);
+    const spUsed = allocatedMap[sp.id] || 0;
+    const unallocated = spAmount - spUsed;
+
+    if (unallocated <= 0.01) continue;
+
+    const paymentForThisExp = Math.min(unallocated, remainingToPay);
+    if (paymentForThisExp <= 0.001) continue;
+
+    const isForeignCurrency = (expCurrency !== "MAD");
+    const totalAmountMAD = parseFloat(sp.amountMAD || sp.amount);
+    const conversionRate = totalAmountMAD / spAmount;
+
+    const newPaymentObject = {
+      _id: uuidv4(),
+      id: uuidv4(),
+      supplierPaymentId: sp.id,
+      date: sp.date || new Date().toISOString().split("T")[0],
+      amount: parseFloat(paymentForThisExp.toFixed(2)),
+      amountMAD: isForeignCurrency
+        ? parseFloat((paymentForThisExp * conversionRate).toFixed(2))
+        : parseFloat(paymentForThisExp.toFixed(2)),
+      currency: expCurrency,
+      method: sp.method || "cash",
+      labelPaper: sp.labelPaper || `General Payment Split - ${supplier.name}`,
+    };
+
+    updatedPayments.push(newPaymentObject);
+    allocatedMap[sp.id] = spUsed + paymentForThisExp;
+    remainingToPay -= paymentForThisExp;
+  }
+
+  const finalStatus = calculatePaymentStatus(amount, updatedPayments);
+  return {
+    advancePayments: updatedPayments,
+    remainingBalance: finalStatus.remainingBalance,
+    isFullyPaid: finalStatus.isFullyPaid,
+  };
+};
+
 exports.getAllExpenses = async (req, res, next) => {
   try {
     const {
@@ -135,6 +292,21 @@ exports.createExpense = async (req, res, next) => {
           labelPaper: "Auto-payment for Regular Expense",
         },
       ];
+    } else if (type === "order_note" && beneficiary) {
+      const walletAllocation = await autoAllocateSupplierWallet(
+        req.db,
+        req.user.id,
+        {
+          beneficiary,
+          amount,
+          currency: currency || "MAD",
+          bookingType,
+          advancePayments: [],
+        },
+      );
+      advancePayments = walletAllocation.advancePayments;
+      remainingBalance = walletAllocation.remainingBalance;
+      isFullyPaid = walletAllocation.isFullyPaid;
     }
 
     const { rows } = await req.db.query(
@@ -224,9 +396,27 @@ exports.updateExpense = async (req, res, next) => {
       if (totalPaid > 0 && parseFloat(amount) < totalPaid) {
         return next(new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400));
       }
-      const status = calculatePaymentStatus(amount, advancePayments);
-      remainingBalance = status.remainingBalance;
-      isFullyPaid = status.isFullyPaid;
+
+      const targetBeneficiary = beneficiary !== undefined ? beneficiary : expense.beneficiary;
+      const targetCurrency = currency || expense.currency || "MAD";
+      const targetBookingType = bookingType !== undefined ? bookingType : expense.bookingType;
+
+      const walletAllocation = await autoAllocateSupplierWallet(
+        req.db,
+        req.user.id,
+        {
+          beneficiary: targetBeneficiary,
+          amount,
+          currency: targetCurrency,
+          bookingType: targetBookingType,
+          advancePayments,
+        },
+        id,
+      );
+
+      advancePayments = walletAllocation.advancePayments;
+      remainingBalance = walletAllocation.remainingBalance;
+      isFullyPaid = walletAllocation.isFullyPaid;
     }
 
     const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (expense.branchId) : (branchId !== undefined ? branchId : expense.branchId);

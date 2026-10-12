@@ -251,6 +251,7 @@ export interface Payment {
   forWhat?: string;
   supplierPaymentId?: number;
   itemAllocations?: ItemAllocation[];
+  allocations?: Record<string | number, number>;
 }
 
 export interface HotelPrice {

@@ -68,51 +68,91 @@ module.exports = {
   deletePayment,
 };
 
-const distributeAmount = (totalAmount, groupBookingsData) => {
-  let amountLeft = Number(totalAmount);
+const distributeAmount = (totalAmount, groupBookingsData, manualAllocations = null) => {
+  let amountLeft = Number(totalAmount) || 0;
 
   const distribution = {};
   groupBookingsData.forEach(b => {
-    distribution[b.id] = { assigned: 0, remaining: b.trueRemainingBalance > 0 ? b.trueRemainingBalance : 0 };
+    distribution[b.id] = {
+      assigned: 0,
+      remaining: b.trueRemainingBalance > 0 ? Number(b.trueRemainingBalance) : 0,
+    };
   });
 
+  // If manual allocations are provided:
+  if (manualAllocations && typeof manualAllocations === "object") {
+    let hasValidAllocations = false;
+    for (const b of groupBookingsData) {
+      if (manualAllocations[b.id] !== undefined && manualAllocations[b.id] !== null) {
+        const val = Number(manualAllocations[b.id]);
+        if (!isNaN(val) && val >= 0) {
+          distribution[b.id].assigned = val;
+          hasValidAllocations = true;
+        }
+      }
+    }
+    if (hasValidAllocations) {
+      return distribution;
+    }
+  }
+
+  // DEFAULT DISTRIBUTION:
+  // Distribute equally among members who have a remaining balance.
+  // If equal share exceeds someone's remaining balance, cap them at their remaining balance
+  // and distribute the rest among remaining members.
+  // Any leftover (rounding cents or excess over total remaining balance) is given to the upper person (leader first).
+  if (amountLeft <= 0) return distribution;
+
   const leader = groupBookingsData.find(b => b.isLeader);
-  if (leader && amountLeft > 0) {
-    const leaderRemaining = distribution[leader.id].remaining;
-    if (leaderRemaining > 0) {
-      if (amountLeft >= leaderRemaining) {
-        distribution[leader.id].assigned += leaderRemaining;
-        distribution[leader.id].remaining = 0;
-        amountLeft -= leaderRemaining;
-      } else {
-        distribution[leader.id].assigned += amountLeft;
-        distribution[leader.id].remaining -= amountLeft;
-        amountLeft = 0;
+  const orderedMembers = leader
+    ? [leader, ...groupBookingsData.filter(b => !b.isLeader)]
+    : [...groupBookingsData];
+
+  let activeMembers = orderedMembers.filter(m => distribution[m.id].remaining > 0);
+
+  while (amountLeft > 0.001 && activeMembers.length > 0) {
+    const share = amountLeft / activeMembers.length;
+    let anyCapped = false;
+
+    for (const m of activeMembers) {
+      const cap = distribution[m.id].remaining - distribution[m.id].assigned;
+      if (cap < share - 0.0001) {
+        distribution[m.id].assigned += cap;
+        amountLeft -= cap;
+        anyCapped = true;
       }
+    }
+
+    if (anyCapped) {
+      activeMembers = activeMembers.filter(m => {
+        const cap = distribution[m.id].remaining - distribution[m.id].assigned;
+        return cap > 0.001;
+      });
+    } else {
+      const shareRounded = Math.floor((amountLeft / activeMembers.length) * 100) / 100;
+      let totalDistributedInStep = 0;
+      activeMembers.forEach(m => {
+        distribution[m.id].assigned += shareRounded;
+        totalDistributedInStep += shareRounded;
+      });
+      amountLeft = Math.round((amountLeft - totalDistributedInStep) * 100) / 100;
+
+      // Distribute leftover cents to upper members (orderedMembers / leader first)
+      for (const m of activeMembers) {
+        if (amountLeft <= 0.001) break;
+        distribution[m.id].assigned = Math.round((distribution[m.id].assigned + 0.01) * 100) / 100;
+        amountLeft = Math.round((amountLeft - 0.01) * 100) / 100;
+      }
+      break;
     }
   }
 
-  const relatedPeople = groupBookingsData.filter(b => !b.isLeader);
-  for (const person of relatedPeople) {
-    if (amountLeft <= 0.001) break;
-
-    const remaining = distribution[person.id].remaining;
-    if (remaining > 0) {
-      if (amountLeft >= remaining) {
-        distribution[person.id].assigned += remaining;
-        distribution[person.id].remaining = 0;
-        amountLeft -= remaining;
-      } else {
-        distribution[person.id].assigned += amountLeft;
-        distribution[person.id].remaining -= amountLeft;
-        amountLeft = 0;
-      }
-    }
-  }
-
+  // If amountLeft still > 0 (meaning payment exceeds the total group balance):
+  // Give excess to the upper person (leader)
   if (amountLeft > 0.001) {
-    const target = leader ? leader : groupBookingsData[0];
-    distribution[target.id].assigned += amountLeft;
+    const topPerson = leader || orderedMembers[0];
+    distribution[topPerson.id].assigned = Math.round((distribution[topPerson.id].assigned + amountLeft) * 100) / 100;
+    amountLeft = 0;
   }
 
   return distribution;
@@ -130,14 +170,14 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
     throw new Error("You are not authorized to modify payments for this booking.");
   }
 
-  const { labelPaper, ...restOfPaymentData } = paymentData;
+  const { labelPaper, allocations, ...restOfPaymentData } = paymentData;
 
   const bookingsData = groupBookings.map(b => ({
     id: b.id,
     trueRemainingBalance: Number(b.remainingBalance || 0),
     isLeader: b.id == bookingId
   }));
-  const distribution = distributeAmount(paymentData.amount, bookingsData);
+  const distribution = distributeAmount(paymentData.amount, bookingsData, allocations);
 
   const paymentId = await getNextPaymentId(db, user.adminId);
   const sharedGroupPaymentId = new Date().getTime().toString();
@@ -184,7 +224,7 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
     throw new Error("You are not authorized to modify payments for this booking.");
   }
 
-  const { labelPaper, ...restOfPaymentData } = paymentData;
+  const { labelPaper, allocations, ...restOfPaymentData } = paymentData;
 
   const leaderPayment = (leaderBooking.advancePayments || []).find(p => p._id === paymentId && p.isGroupPayment);
   const targetPaymentID = leaderPayment ? leaderPayment.paymentID : null;
@@ -198,7 +238,7 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
       isLeader: b.id == bookingId
     };
   });
-  const distribution = distributeAmount(paymentData.amount, bookingsData);
+  const distribution = distributeAmount(paymentData.amount, bookingsData, allocations);
 
   const updatedBookings = [];
 
