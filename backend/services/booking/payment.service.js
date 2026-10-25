@@ -186,15 +186,17 @@ const addGroupPayment = async (db, user, bookingId, paymentData) => {
 
   for (const booking of groupBookings) {
     const isLeader = booking.id == bookingId;
+    const assignedAmount = distribution[booking.id].assigned;
     const newPayment = {
       ...restOfPaymentData,
       _id: sharedGroupPaymentId,
       paymentID: paymentId,
       labelPaper: labelPaper || "",
-      amount: distribution[booking.id].assigned,
+      amount: assignedAmount,
+      amountMAD: assignedAmount,
       isGroupPayment: true,
       isLeader: isLeader,
-      groupAmount: isLeader ? Number(paymentData.amount) : undefined,
+      groupAmount: Number(paymentData.amount),
     };
 
     const advancePayments = [...(booking.advancePayments || []), newPayment];
@@ -244,6 +246,7 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
 
   for (const booking of groupBookings) {
     const isLeader = booking.id == bookingId;
+    const assignedAmount = distribution[booking.id].assigned;
     const advancePayments = (booking.advancePayments || []).map((p) =>
       (p._id === paymentId || (targetPaymentID && p.paymentID === targetPaymentID)) && p.isGroupPayment
         ? {
@@ -251,8 +254,11 @@ const updateGroupPayment = async (db, user, bookingId, paymentId, paymentData) =
           ...restOfPaymentData,
           _id: p._id,
           labelPaper: labelPaper || "",
-          amount: distribution[booking.id].assigned,
-          groupAmount: isLeader ? Number(paymentData.amount) : undefined,
+          amount: assignedAmount,
+          amountMAD: assignedAmount,
+          isGroupPayment: true,
+          isLeader: isLeader,
+          groupAmount: Number(paymentData.amount),
         }
         : p
     );

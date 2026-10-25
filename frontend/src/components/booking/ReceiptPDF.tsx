@@ -272,7 +272,7 @@ export default function ReceiptPDF({
                   {!isGroup && (
                     <>
                       <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
-                        {Number((prevPayment.isGroupPayment ? prevPayment.amountMAD : prevPayment.amount) || 0).toLocaleString("de-DE")} درهم
+                        {Number((prevPayment.isGroupPayment ? (prevPayment.groupAmount || prevPayment.amountMAD || prevPayment.amount) : prevPayment.amount) || 0).toLocaleString("de-DE")} درهم
                       </td>
                       <td className="border border-cyan-900 text-lg  px-4 py-2 align-middle">
                         {t(prevPayment.method)}

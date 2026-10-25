@@ -168,15 +168,44 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
 
     const basePrice = 0;
     const profit = 0;
+
+    const getBookingPaymentAmount = (p) => {
+      if (!p) return 0;
+      if (p.isGroupPayment) {
+        const val = Number(p.amount);
+        return isNaN(val) ? 0 : val;
+      }
+      if (p.amount !== undefined && p.amount !== null && !isNaN(Number(p.amount))) {
+        return Number(p.amount);
+      }
+      if (p.amountMAD !== undefined && p.amountMAD !== null && !isNaN(Number(p.amountMAD))) {
+        return Number(p.amountMAD);
+      }
+      return 0;
+    };
+
     const existingPayments = advancePayments !== undefined ? advancePayments : (oldBooking.advancePayments || []);
-    const totalPaid = (existingPayments || []).reduce(
-      (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
+    const sanitizedPayments = (existingPayments || []).map((p) => {
+      if (p && p.isGroupPayment) {
+        const assigned = getBookingPaymentAmount(p);
+        return {
+          ...p,
+          amount: assigned,
+          amountMAD: assigned,
+          groupAmount: p.groupAmount !== undefined ? Number(p.groupAmount) : (p.amountMAD !== undefined ? Number(p.amountMAD) : assigned),
+        };
+      }
+      return p;
+    });
+
+    const totalPaid = sanitizedPayments.reduce(
+      (sum, p) => sum + getBookingPaymentAmount(p),
       0,
     );
     if (totalPaid > 0 && Number(sellingPrice) < totalPaid) {
       throw new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400);
     }
-    const remainingBalance = sellingPrice - totalPaid;
+    const remainingBalance = Number(sellingPrice) - totalPaid;
     const isFullyPaid = remainingBalance <= 0;
 
     const branchIdToSave = user.role === "employee" || user.role === "manager" ? (oldBooking.branchId) : (branchId !== undefined ? branchId : oldBooking.branchId);
@@ -199,7 +228,7 @@ const updateBooking = async (db, user, bookingId, bookingData) => {
         sellingPrice,
         basePrice,
         profit,
-        JSON.stringify(advancePayments || []),
+        JSON.stringify(sanitizedPayments),
         remainingBalance,
         isFullyPaid,
         JSON.stringify(relatedPersons || []),

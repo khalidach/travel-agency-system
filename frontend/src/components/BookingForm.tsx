@@ -171,10 +171,18 @@ export default function BookingForm({
 
       if (booking) {
         const existingPayments = booking.advancePayments || [];
-        const totalPaid = existingPayments.reduce(
-          (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
-          0,
-        );
+        const totalPaid = existingPayments.reduce((sum, p) => {
+          let amt = 0;
+          if (p.isGroupPayment) {
+            const val = Number(p.amount);
+            amt = isNaN(val) ? 0 : val;
+          } else if (p.amount !== undefined && p.amount !== null && !isNaN(Number(p.amount))) {
+            amt = Number(p.amount);
+          } else if (p.amountMAD !== undefined && p.amountMAD !== null && !isNaN(Number(p.amountMAD))) {
+            amt = Number(p.amountMAD);
+          }
+          return sum + amt;
+        }, 0);
         const newSellingPrice = Number(data.sellingPrice || 0);
         if (totalPaid > 0 && newSellingPrice < totalPaid) {
           toast.error(t("paymentsExceedNewPrice"));

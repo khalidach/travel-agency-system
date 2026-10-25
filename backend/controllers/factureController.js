@@ -56,7 +56,8 @@ const createFacture = async (req, res, next) => {
   try {
     await client.query("BEGIN");
 
-    const { adminId, id: employeeId, role } = req.user;
+    const { id: employeeId, role } = req.user;
+    const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
     const {
       clientName,
       clientAddress,
@@ -116,7 +117,7 @@ const createFacture = async (req, res, next) => {
         clientAddress,
         clientICE,
         date,
-        JSON.stringify(items),
+        typeof items === "string" ? items : JSON.stringify(items || []),
         type,
         showMargin,
         prixTotalHorsFrais,
@@ -154,7 +155,8 @@ const createFacture = async (req, res, next) => {
 const updateFacture = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { adminId } = req.user;
+    const { role } = req.user;
+    const adminId = req.user.role === "admin" || req.user.role === "owner" ? req.user.id : req.user.adminId;
     const {
       clientName,
       clientAddress,
@@ -173,31 +175,74 @@ const updateFacture = async (req, res, next) => {
     } = req.body;
 
     const existing = await req.db.query(
-      'SELECT "branchId" FROM factures WHERE id = $1 AND "userId" = $2',
+      'SELECT "branchId", facture_number, date, total, type, "showMargin", "clientName", "clientAddress", "clientICE", notes, items FROM factures WHERE id = $1 AND "userId" = $2',
       [id, adminId]
     );
     if (existing.rows.length === 0) {
       return next(new AppError("Facture not found or not authorized.", 404));
     }
-    const branchIdToSave = role === "employee" || role === "manager" ? (existing.rows[0].branchId) : (branchId !== undefined ? branchId : existing.rows[0].branchId);
+    const existingFacture = existing.rows[0];
+    const branchIdToSave = role === "employee" || role === "manager" ? (existingFacture.branchId) : (branchId !== undefined ? branchId : existingFacture.branchId);
+
+    let finalFactureNumber = facture_number && typeof facture_number === "string" && facture_number.trim() ? facture_number.trim() : null;
+
+    if (!finalFactureNumber && !existingFacture.facture_number) {
+      const currentYear = new Date(date || existingFacture.date || Date.now()).getFullYear();
+      const yearPrefix = `${currentYear}-`;
+
+      const lastFactureRes = await req.db.query(
+        `SELECT facture_number FROM factures 
+         WHERE "userId" = $1 AND facture_number LIKE $2 
+         ORDER BY id DESC LIMIT 1`,
+        [adminId, `${yearPrefix}%`]
+      );
+
+      let nextFactureNumber = 1;
+      if (lastFactureRes.rows.length > 0) {
+        const lastNum = lastFactureRes.rows[0].facture_number;
+        const parts = lastNum.split("-");
+        if (parts.length > 1) {
+          const lastCount = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastCount)) {
+            nextFactureNumber = lastCount + 1;
+          }
+        }
+      }
+
+      finalFactureNumber = `${yearPrefix}${nextFactureNumber
+        .toString()
+        .padStart(4, "0")}`;
+    }
+
+    const dateToSave = date || existingFacture.date;
+    const totalToSave = total !== undefined ? total : existingFacture.total;
+    const typeToSave = type || existingFacture.type;
+    const clientNameToSave = clientName !== undefined ? clientName : existingFacture.clientName;
+    const clientAddressToSave = clientAddress !== undefined ? clientAddress : existingFacture.clientAddress;
+    const clientICEToSave = clientICE !== undefined ? clientICE : existingFacture.clientICE;
+    const notesToSave = notes !== undefined ? notes : existingFacture.notes;
+    const showMarginToSave = showMargin !== undefined ? showMargin : existingFacture.showMargin;
+    const itemsToSave = items !== undefined
+      ? (typeof items === "string" ? items : JSON.stringify(items || []))
+      : (existingFacture.items ? (typeof existingFacture.items === "string" ? existingFacture.items : JSON.stringify(existingFacture.items)) : "[]");
 
     const { rows } = await req.db.query(
       `UPDATE factures SET "clientName" = $1, "clientAddress" = $2, "clientICE" = $3, date = $4, items = $5, type = $6, "showMargin" = $7, "prixTotalHorsFrais" = $8, "totalFraisServiceHT" = $9, tva = $10, total = $11, notes = $12, facture_number = COALESCE($13, facture_number), "branchId" = $14, "updatedAt" = NOW()
        WHERE id = $15 AND "userId" = $16 RETURNING *`,
       [
-        clientName,
-        clientAddress,
-        clientICE,
-        date,
-        JSON.stringify(items),
-        type,
-        showMargin,
+        clientNameToSave,
+        clientAddressToSave,
+        clientICEToSave,
+        dateToSave,
+        itemsToSave,
+        typeToSave,
+        showMarginToSave,
         prixTotalHorsFrais,
         totalFraisServiceHT,
         tva,
-        total,
-        notes,
-        facture_number,
+        totalToSave,
+        notesToSave,
+        finalFactureNumber,
         branchIdToSave,
         id,
         adminId,
@@ -214,6 +259,14 @@ const updateFacture = async (req, res, next) => {
       stack: error.stack,
       factureId: req.params.id,
     });
+    if (error.code === "23505") {
+      return next(
+        new AppError(
+          "A facture with this number already exists. Please try again.",
+          409
+        )
+      );
+    }
     next(new AppError("Failed to update facture.", 400));
   }
 };

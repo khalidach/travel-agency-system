@@ -54,11 +54,23 @@ export default function FactureForm({
       setClientName(existingFacture.clientName);
       setClientAddress(existingFacture.clientAddress || "");
       setClientICE(existingFacture.clientICE || "");
-      setDate(new Date(existingFacture.date).toISOString().split("T")[0]);
+      const formattedDate = existingFacture.date
+        ? (typeof existingFacture.date === "string" && existingFacture.date.includes("T")
+            ? existingFacture.date.split("T")[0]
+            : (typeof existingFacture.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(existingFacture.date)
+                ? existingFacture.date
+                : !isNaN(new Date(existingFacture.date).getTime())
+                    ? new Date(existingFacture.date).toISOString().split("T")[0]
+                    : new Date().toISOString().split("T")[0]))
+        : new Date().toISOString().split("T")[0];
+      setDate(formattedDate);
       setShowMargin(existingFacture.showMargin ?? false);
       setManualNumber("");
       setEditedFactureNumber(existingFacture.facture_number || "");
-      setNumberYear(new Date(existingFacture.date).getFullYear().toString());
+      const year = !isNaN(new Date(existingFacture.date).getTime())
+        ? new Date(existingFacture.date).getFullYear().toString()
+        : new Date().getFullYear().toString();
+      setNumberYear(year);
 
       let parsedItems: FactureItemForm[] = [emptyItem];
       if (existingFacture.items) {
@@ -172,7 +184,7 @@ export default function FactureForm({
       total: calculatedTotals.totalFacture,
       notes,
       facture_number: existingFacture 
-        ? editedFactureNumber 
+        ? (editedFactureNumber.trim() || undefined) 
         : (manualNumber ? `${numberYear}-${manualNumber}` : undefined),
     });
   };

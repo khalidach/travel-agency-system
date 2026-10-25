@@ -190,7 +190,11 @@ interface FacturePDFProps {
 export default function FacturePDF({ facture, settings, agencyName }: FacturePDFProps) {
   const totalInWords = numberToWordsFr(facture.total || 0);
   const showMargin = facture.showMargin ?? true;
-  const items = Array.isArray(facture.items) ? facture.items : [];
+  const items = Array.isArray(facture.items)
+    ? facture.items
+    : (typeof facture.items === "string"
+        ? (() => { try { const p = JSON.parse(facture.items); return Array.isArray(p) ? p : []; } catch { return []; } })()
+        : []);
 
   const footerItems = [
     `Sté. ${agencyName || "Votre Agence"}`,
