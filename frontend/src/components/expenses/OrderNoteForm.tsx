@@ -227,18 +227,6 @@ export default function OrderNoteForm({
 
     const finalAmount = itemsToSubmit.reduce((sum, item) => sum + (item.total || 0), 0);
 
-    if (initialData) {
-      const existingPayments = initialData.advancePayments || [];
-      const totalPaid = existingPayments.reduce(
-        (sum, p) => sum + (Number(p.amount) || Number(p.amountMAD) || 0),
-        0,
-      );
-      if (totalPaid > 0 && finalAmount < totalPaid) {
-        toast.error(t("paymentsExceedNewPrice"));
-        return;
-      }
-    }
-
     onSubmit({
       date,
       beneficiary,

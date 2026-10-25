@@ -368,10 +368,17 @@ exports.updateExpense = async (req, res, next) => {
     if (existing.rowCount === 0)
       return next(new AppError("Expense not found", 404));
 
+    await req.db.query("BEGIN");
+
     const expense = existing.rows[0];
     let advancePayments = expense.advancePayments || [];
     let remainingBalance;
     let isFullyPaid;
+
+    const targetBeneficiary = beneficiary !== undefined ? beneficiary : expense.beneficiary;
+    const targetCurrency = currency || expense.currency || "MAD";
+    const targetBookingType = bookingType !== undefined ? bookingType : expense.bookingType;
+    const newAmount = parseFloat(amount);
 
     if (expense.type === "regular") {
       advancePayments = [
@@ -379,8 +386,8 @@ exports.updateExpense = async (req, res, next) => {
           _id: uuidv4(),
           id: uuidv4(),
           date: date,
-          amount: amount,
-          amountMAD: amount,
+          amount: newAmount,
+          amountMAD: newAmount,
           currency: "MAD",
           method: paymentMethod || "cash",
           labelPaper: "Auto-payment (Updated)",
@@ -393,33 +400,181 @@ exports.updateExpense = async (req, res, next) => {
         (sum, p) => sum + (parseFloat(p.amount || 0) || parseFloat(p.amountMAD || 0)),
         0,
       );
-      if (totalPaid > 0 && parseFloat(amount) < totalPaid) {
-        return next(new AppError("الدفوعات الموجودة اكبر من السعر مراد تغييره", 400));
+
+      if (totalPaid > 0 && newAmount < totalPaid) {
+        // Price was reduced below total payments made.
+        // Trim excess from the most recent payments.
+        let remainingToTrim = parseFloat((totalPaid - newAmount).toFixed(2));
+        const trimmedSplits = [];
+
+        for (let i = advancePayments.length - 1; i >= 0; i--) {
+          if (remainingToTrim <= 0.001) break;
+          const p = advancePayments[i];
+          const pAmt = parseFloat(p.amount || 0);
+
+          if (pAmt <= remainingToTrim + 0.001) {
+            trimmedSplits.push({ ...p, trimmedAmount: pAmt });
+            remainingToTrim = parseFloat((remainingToTrim - pAmt).toFixed(2));
+            advancePayments.splice(i, 1);
+          } else {
+            const trimPortion = parseFloat(remainingToTrim.toFixed(2));
+            const keepPortion = parseFloat((pAmt - trimPortion).toFixed(2));
+            trimmedSplits.push({ ...p, trimmedAmount: trimPortion });
+            p.amount = keepPortion;
+            if (p.amountMAD && pAmt > 0) {
+              p.amountMAD = parseFloat((keepPortion * (parseFloat(p.amountMAD) / pAmt)).toFixed(2));
+            }
+            remainingToTrim = 0;
+          }
+        }
+
+        // Find or create supplier in suppliers table for targetBeneficiary
+        let supplier = null;
+        if (targetBeneficiary && targetBeneficiary.trim()) {
+          const supplierResult = await req.db.query(
+            `SELECT id, name FROM suppliers WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) AND "userId" = $2`,
+            [targetBeneficiary, req.user.id],
+          );
+          if (supplierResult.rowCount > 0) {
+            supplier = supplierResult.rows[0];
+          } else {
+            const insertSup = await req.db.query(
+              `INSERT INTO suppliers ("userId", name) VALUES ($1, $2) RETURNING id, name`,
+              [req.user.id, targetBeneficiary.trim()],
+            );
+            supplier = insertSup.rows[0];
+          }
+        }
+
+        // For direct payments that were trimmed, insert them into supplier_payments
+        for (const trimmedSplit of trimmedSplits) {
+          if (!trimmedSplit.supplierPaymentId && supplier) {
+            const isForeign = (trimmedSplit.currency && trimmedSplit.currency !== "MAD");
+            const splitAmountMAD = trimmedSplit.amountMAD
+              ? parseFloat(trimmedSplit.amountMAD)
+              : (isForeign ? parseFloat((trimmedSplit.trimmedAmount * 1).toFixed(2)) : trimmedSplit.trimmedAmount);
+
+            const insertSpResult = await req.db.query(
+              `INSERT INTO supplier_payments (
+                "userId", "supplierId", amount, currency, "amountMAD", "bookingType",
+                date, method, "labelPaper"
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              RETURNING id`,
+              [
+                req.user.id,
+                supplier.id,
+                trimmedSplit.trimmedAmount,
+                trimmedSplit.currency || targetCurrency,
+                splitAmountMAD,
+                "all",
+                trimmedSplit.date || date || new Date().toISOString().split("T")[0],
+                trimmedSplit.method || "cash",
+                `فائض دفعة من المصروف #${id} - ${(expense.description || "").substring(0, 50)}`,
+              ],
+            );
+            trimmedSplit.supplierPaymentId = insertSpResult.rows[0].id;
+          }
+        }
+
+        // Try to allocate excess to any other unpaid expenses for the same supplier
+        if (targetBeneficiary && targetBeneficiary.trim()) {
+          const otherExpensesResult = await req.db.query(
+            `SELECT * FROM expenses 
+             WHERE "userId" = $1 
+               AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
+               AND type = 'order_note' 
+               AND id != $3
+               AND "isFullyPaid" = false 
+               AND "remainingBalance" > 0.01
+             ORDER BY date ASC, "createdAt" ASC`,
+            [req.user.id, targetBeneficiary, id],
+          );
+          const otherExpenses = otherExpensesResult.rows;
+
+          for (const trimmedSplit of trimmedSplits) {
+            if (!trimmedSplit.supplierPaymentId) continue;
+            let unallocatedInSplit = trimmedSplit.trimmedAmount;
+            const splitCurrency = trimmedSplit.currency || targetCurrency;
+
+            for (const otherExp of otherExpenses) {
+              if (unallocatedInSplit <= 0.001) break;
+              if (otherExp.currency !== splitCurrency) continue;
+
+              const otherRemaining = parseFloat(otherExp.remainingBalance || 0);
+              if (otherRemaining <= 0.001) continue;
+
+              const toPay = Math.min(unallocatedInSplit, otherRemaining);
+              if (toPay <= 0.001) continue;
+
+              const isForeignOther = (otherExp.currency && otherExp.currency !== "MAD");
+              const totalAmountMAD = parseFloat(trimmedSplit.amountMAD || trimmedSplit.trimmedAmount);
+              const conversionRate = totalAmountMAD / trimmedSplit.trimmedAmount;
+
+              const newPaymentObj = {
+                _id: uuidv4(),
+                id: uuidv4(),
+                supplierPaymentId: trimmedSplit.supplierPaymentId,
+                date: trimmedSplit.date || new Date().toISOString().split("T")[0],
+                amount: parseFloat(toPay.toFixed(2)),
+                amountMAD: isForeignOther
+                  ? parseFloat((toPay * conversionRate).toFixed(2))
+                  : parseFloat(toPay.toFixed(2)),
+                currency: otherExp.currency,
+                method: trimmedSplit.method || "cash",
+                labelPaper: `تحويل فائض من المصروف #${id} - ${targetBeneficiary}`,
+              };
+
+              const updatedOtherPayments = [...(otherExp.advancePayments || []), newPaymentObj];
+              const status = calculatePaymentStatus(otherExp.amount, updatedOtherPayments);
+              otherExp.advancePayments = updatedOtherPayments;
+              otherExp.remainingBalance = status.remainingBalance;
+              otherExp.isFullyPaid = status.isFullyPaid;
+
+              await req.db.query(
+                `UPDATE expenses 
+                 SET "advancePayments" = $1, "remainingBalance" = $2, "isFullyPaid" = $3, "updatedAt" = NOW()
+                 WHERE id = $4`,
+                [
+                  JSON.stringify(updatedOtherPayments),
+                  status.remainingBalance,
+                  status.isFullyPaid,
+                  otherExp.id,
+                ],
+              );
+
+              unallocatedInSplit = parseFloat((unallocatedInSplit - toPay).toFixed(2));
+            }
+          }
+        }
+
+        remainingBalance = 0;
+        isFullyPaid = true;
+      } else {
+        const walletAllocation = await autoAllocateSupplierWallet(
+          req.db,
+          req.user.id,
+          {
+            beneficiary: targetBeneficiary,
+            amount: newAmount,
+            currency: targetCurrency,
+            bookingType: targetBookingType,
+            advancePayments,
+          },
+          id,
+        );
+
+        advancePayments = walletAllocation.advancePayments;
+        remainingBalance = walletAllocation.remainingBalance;
+        isFullyPaid = walletAllocation.isFullyPaid;
       }
-
-      const targetBeneficiary = beneficiary !== undefined ? beneficiary : expense.beneficiary;
-      const targetCurrency = currency || expense.currency || "MAD";
-      const targetBookingType = bookingType !== undefined ? bookingType : expense.bookingType;
-
-      const walletAllocation = await autoAllocateSupplierWallet(
-        req.db,
-        req.user.id,
-        {
-          beneficiary: targetBeneficiary,
-          amount,
-          currency: targetCurrency,
-          bookingType: targetBookingType,
-          advancePayments,
-        },
-        id,
-      );
-
-      advancePayments = walletAllocation.advancePayments;
-      remainingBalance = walletAllocation.remainingBalance;
-      isFullyPaid = walletAllocation.isFullyPaid;
     }
 
-    const branchIdToSave = req.user.role === "employee" || req.user.role === "manager" ? (expense.branchId) : (branchId !== undefined ? branchId : expense.branchId);
+    const branchIdToSave =
+      req.user.role === "employee" || req.user.role === "manager"
+        ? expense.branchId
+        : branchId !== undefined
+        ? branchId
+        : expense.branchId;
 
     const { rows } = await req.db.query(
       `UPDATE expenses 
@@ -433,15 +588,15 @@ exports.updateExpense = async (req, res, next) => {
       [
         category,
         description,
-        beneficiary,
-        amount,
+        targetBeneficiary,
+        newAmount,
         date,
         JSON.stringify(advancePayments),
         remainingBalance,
         isFullyPaid,
         JSON.stringify(items || []),
-        currency || "MAD",
-        bookingType || null,
+        targetCurrency,
+        targetBookingType || null,
         reservationNumber || null,
         branchIdToSave,
         id,
@@ -449,8 +604,14 @@ exports.updateExpense = async (req, res, next) => {
       ],
     );
 
+    await req.db.query("COMMIT");
     res.status(200).json(rows[0]);
   } catch (error) {
+    try {
+      await req.db.query("ROLLBACK");
+    } catch (rbErr) {
+      // ignore rollback failure
+    }
     logger.error("Update Expense Error:", error);
     next(new AppError("Failed to update expense", 500));
   }
