@@ -65,31 +65,52 @@ export const login = async (username: string, password: string) => {
 // Helper function for authenticated API requests
 async function request(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit & { timeoutMs?: number } = {},
   returnsBlob = false,
 ) {
+  const { timeoutMs = 15000, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   const headers = {
     "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
+    ...(fetchOptions.headers as Record<string, string>),
   } as Record<string, string>;
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: "include", // Include cookies in all API requests
-  });
-  if (!response.ok) {
-    if (response.status === 401) window.dispatchEvent(new Event("auth-error"));
-    const errorData = await response.json();
-    throw new Error(errorData.message || "Something went wrong");
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+      credentials: "include", // Include cookies in all API requests
+      signal: fetchOptions.signal || controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 401 && endpoint !== "/auth/refresh") {
+        window.dispatchEvent(new Event("auth-error"));
+      }
+      let errorMessage = "Something went wrong";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (_) {}
+      throw new Error(errorMessage);
+    }
+    if (returnsBlob) return response.blob();
+    if (response.status === 204) return; // For DELETE requests with no content
+    return response.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
+    throw error;
   }
-  if (returnsBlob) return response.blob();
-  if (response.status === 204) return; // For DELETE requests with no content
-  return response.json();
 }
 
 export const refreshToken = async () => {
-  return request("/auth/refresh", { method: "POST" });
+  return request("/auth/refresh", { method: "POST", timeoutMs: 3000 });
 };
 
 export const logout = () => request("/auth/logout", { method: "POST" });

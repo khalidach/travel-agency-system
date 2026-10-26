@@ -40,7 +40,14 @@ const app = express();
 
 // --- CORS Configuration Fix ---
 // Whitelist of allowed origins. Add any other frontend URLs you might have (e.g., preview domains).
-const allowedOrigins = [process.env.FRONTEND_URL];
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.frontend_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5000',
+  'http://localhost:3000',
+].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
