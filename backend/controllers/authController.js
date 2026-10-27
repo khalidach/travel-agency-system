@@ -10,6 +10,20 @@ const generateToken = (id, role, adminId, tierId) => {
   });
 };
 
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.VERCEL === "1" ||
+  Boolean(process.env.VERCEL);
+
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  path: "/",
+  maxAge: 60 * 60 * 1000,
+});
+
+
 const safeJsonParse = (data) => {
   if (typeof data === "string") {
     try {
@@ -118,15 +132,10 @@ const loginUser = async (req, res, next) => {
         logger.info(`User login successful: ${user.username}`);
 
         const token = generateToken(user.id, user.role, user.id, user.tierId);
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          path: "/",
-          maxAge: 60 * 60 * 1000,
-        });
+        res.cookie("token", token, getCookieOptions());
 
         return res.status(200).json({
+          token,
           id: user.id,
           username: user.username,
           agencyName: user.agencyName,
@@ -198,13 +207,7 @@ const loginUser = async (req, res, next) => {
           employee.adminId,
           adminData.tierId,
         );
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-          path: "/",
-          maxAge: 60 * 60 * 1000,
-        });
+        res.cookie("token", token, getCookieOptions());
 
         let parsedPermissions = safeJsonParse(employee.permissions) || [];
         if (parsedPermissions.length === 0) {
@@ -234,6 +237,7 @@ const loginUser = async (req, res, next) => {
         }
 
         return res.status(200).json({
+          token,
           id: employee.id,
           username: employee.username,
           agencyName: adminData.agencyName || "Agency",
@@ -275,15 +279,10 @@ const refreshToken = async (req, res, next) => {
     logger.info(`Token refreshed for user: ${username}`);
 
     const token = generateToken(id, role, adminId, tierId);
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      path: "/",
-      maxAge: 60 * 60 * 1000,
-    });
+    res.cookie("token", token, getCookieOptions());
 
     res.status(200).json({
+      token,
       id,
       username: username,
       agencyName,
@@ -309,8 +308,8 @@ const logoutUser = (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
     expires: new Date(0),
-    secure: process.env.NODE_ENV === "production",
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     path: "/",
   });
   res.status(200).json({ message: "Logged out successfully" });

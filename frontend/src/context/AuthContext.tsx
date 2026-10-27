@@ -43,7 +43,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         loading: false,
       };
     case "LOGOUT":
-      // Clear localStorage for any old data that might exist.
+      api.setAuthToken(null);
       localStorage.removeItem("user");
       return {
         ...initialState,
@@ -73,11 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // The refreshToken API endpoint will succeed if a valid httpOnly cookie is present.
         const userData = await api.refreshToken();
         if (userData) {
+          if ((userData as any).token) {
+            api.setAuthToken((userData as any).token);
+          }
           dispatch({ type: "LOGIN", payload: userData });
         }
       } catch (_error) {
         // If it fails, it means no valid session exists. The state is already logged out.
         console.log("No active session found.");
+        api.setAuthToken(null);
         dispatch({ type: "LOGOUT" }); // Ensure any lingering state is cleared
       } finally {
         // Stop the loading indicator once the check is complete.

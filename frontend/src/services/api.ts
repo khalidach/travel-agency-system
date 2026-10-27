@@ -22,6 +22,22 @@ import type { BookingSaveData } from "../components/booking_form/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
+let authToken: string | null =
+  typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+  if (typeof window !== "undefined") {
+    if (token) {
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("token");
+    }
+  }
+};
+
+export const getAuthToken = () => authToken;
+
 export interface BookingFilters {
   programId: string;
   searchTerm: string;
@@ -59,7 +75,11 @@ export const login = async (username: string, password: string) => {
     const errorData = await response.json();
     throw new Error(errorData.message || "Login failed");
   }
-  return response.json();
+  const data = await response.json();
+  if (data && data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
 };
 
 // Helper function for authenticated API requests
@@ -72,8 +92,11 @@ async function request(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  const authHeader = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+
   const headers = {
     "Content-Type": "application/json",
+    ...authHeader,
     ...(fetchOptions.headers as Record<string, string>),
   } as Record<string, string>;
 
@@ -88,6 +111,7 @@ async function request(
 
     if (!response.ok) {
       if (response.status === 401 && endpoint !== "/auth/refresh") {
+        setAuthToken(null);
         window.dispatchEvent(new Event("auth-error"));
       }
       let errorMessage = "Something went wrong";
@@ -110,10 +134,17 @@ async function request(
 }
 
 export const refreshToken = async () => {
-  return request("/auth/refresh", { method: "POST", timeoutMs: 3000 });
+  const data = await request("/auth/refresh", { method: "POST", timeoutMs: 15000 });
+  if (data && data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
 };
 
-export const logout = () => request("/auth/logout", { method: "POST" });
+export const logout = async () => {
+  setAuthToken(null);
+  return request("/auth/logout", { method: "POST" });
+};
 
 // --- Account Settings API ---
 export const updateAccountSettings = (data: Partial<User>) =>

@@ -13,7 +13,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": "https://travel-agency-system.vercel.app/api/$1"
     },
     {
       "source": "/:path*",

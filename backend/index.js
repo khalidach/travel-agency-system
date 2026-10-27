@@ -38,8 +38,10 @@ const branchRoutes = require("./routes/branchRoutes");
 
 const app = express();
 
-// --- CORS Configuration Fix ---
-// Whitelist of allowed origins. Add any other frontend URLs you might have (e.g., preview domains).
+// Trust reverse proxy (Vercel, Nginx, etc.)
+app.set("trust proxy", 1);
+
+// --- CORS Configuration ---
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.frontend_URL,
@@ -49,18 +51,34 @@ const allowedOrigins = [
   'http://localhost:3000',
 ].filter(Boolean);
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  const norm = origin.replace(/\/$/, "");
+  if (allowedOrigins.some(o => o && o.replace(/\/$/, "") === norm)) {
+    return true;
+  }
+  // Allow all Vercel deployments (*.vercel.app)
+  if (norm.endsWith(".vercel.app")) {
+    return true;
+  }
+  // Allow localhost on any port
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(norm)) {
+    return true;
+  }
+  return false;
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg =
-        "The CORS policy for this site does not allow access from the specified Origin.";
-      return callback(new Error(msg), false);
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    const msg = `The CORS policy for this site does not allow access from origin: ${origin}`;
+    return callback(new Error(msg), false);
   },
   credentials: true, // This is crucial for cookies
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
 };
 
 // Security Headers - Apply helmet middleware for security
