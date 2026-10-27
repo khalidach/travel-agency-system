@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   colQty: {
-    width: 50,
+    width: 45,
     textAlign: 'center',
     padding: 6,
     borderRightWidth: 1,
@@ -113,7 +113,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   colPrice: {
-    width: 100,
+    width: 85,
+    textAlign: 'right',
+    padding: 6,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    justifyContent: 'center',
+  },
+  colFee: {
+    width: 95,
     textAlign: 'right',
     padding: 6,
     borderRightWidth: 1,
@@ -121,7 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   colAmount: {
-    width: 100,
+    width: 95,
     textAlign: 'right',
     padding: 6,
     fontWeight: 'bold',
@@ -234,25 +242,39 @@ export default function FacturePDF({ facture, settings, agencyName }: FacturePDF
             <View style={styles.colDesignation}><Text>DÉSIGNATION</Text></View>
             <View style={styles.colQty}><Text>QTÉ</Text></View>
             <View style={styles.colPrice}><Text>Prix unitaire</Text></View>
-            <View style={styles.colAmount}><Text>Montant</Text></View>
+            <View style={styles.colFee}><Text>Frais de service</Text></View>
+            <View style={styles.colAmount}><Text>Montant TTC</Text></View>
           </View>
 
-          {items.map((item, index) => (
-            <View key={index} style={index === items.length - 1 ? styles.lastTableRow : styles.tableRow} wrap={false}>
-              <View style={styles.colDesignation}>
-                <Text>{item.description || ""}</Text>
+          {items.map((item, index) => {
+            const qty = Number(item.quantity) || 0;
+            const pu = Number(item.prixUnitaire) || 0;
+            const fee = Number(item.fraisServiceUnitaire) || 0;
+            const montantTTC =
+              item.total !== undefined && item.total !== null && !isNaN(Number(item.total)) && Number(item.total) !== 0
+                ? Number(item.total)
+                : qty * (pu + fee);
+
+            return (
+              <View key={index} style={index === items.length - 1 ? styles.lastTableRow : styles.tableRow} wrap={false}>
+                <View style={styles.colDesignation}>
+                  <Text>{item.description || ""}</Text>
+                </View>
+                <View style={styles.colQty}>
+                  <Text>{String(qty)}</Text>
+                </View>
+                <View style={styles.colPrice}>
+                  <Text>{pu.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
+                <View style={styles.colFee}>
+                  <Text>{fee.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
+                <View style={styles.colAmount}>
+                  <Text style={{ fontWeight: 'bold' }}>{montantTTC.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                </View>
               </View>
-              <View style={styles.colQty}>
-                <Text>{String(item.quantity || 0)}</Text>
-              </View>
-              <View style={styles.colPrice}>
-                <Text>{(Number(item.prixUnitaire) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              </View>
-              <View style={styles.colAmount}>
-                <Text style={{ fontWeight: 'bold' }}>{(Number(item.montant) || 0).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         <View style={styles.totalsContainer}>

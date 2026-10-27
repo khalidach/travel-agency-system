@@ -33,7 +33,7 @@ export default function FactureForm({
   onSave,
   onCancel,
   existingFacture,
-  showMarginOnNew = false,
+  showMarginOnNew = true,
 }: FactureFormProps) {
   const { t } = useTranslation();
   const [type, setType] = useState<"facture" | "devis">("facture");

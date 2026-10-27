@@ -75,7 +75,7 @@ const translations = {
     quantity: "الكمية",
     unitPrice: "سعر الوحدة",
     serviceFee: "رسوم الخدمة",
-    total: "الإجمالي",
+    total: "المبلغ الإجمالي (TTC)",
     prixTotalHorsFrais: "إجمالي غير شامل الرسوم",
     totalFraisServiceHT: "إجمالي رسوم الخدمة (HT)",
     tva: "الضريبة على القيمة المضافة (TVA)",
@@ -105,7 +105,7 @@ const translations = {
     quantity: "Quantity",
     unitPrice: "Unit Price",
     serviceFee: "Service Fee",
-    total: "Total",
+    total: "Amount TTC",
     prixTotalHorsFrais: "Total Excl. Fees",
     totalFraisServiceHT: "Total Service Fees (HT)",
     tva: "VAT / TVA",
@@ -135,7 +135,7 @@ const translations = {
     quantity: "Quantité",
     unitPrice: "Prix Unitaire",
     serviceFee: "Frais de Service",
-    total: "Total",
+    total: "Montant TTC",
     prixTotalHorsFrais: "Total Hors Frais",
     totalFraisServiceHT: "Total Frais Service (HT)",
     tva: "TVA",
@@ -265,13 +265,21 @@ exports.generateFactureExcel = async (facture, lang = "ar") => {
     noCell.border = borderStyle;
   } else {
     items.forEach((item, idx) => {
+      const qty = Number(item.quantity) || 0;
+      const pu = Number(item.prixUnitaire) || 0;
+      const fee = Number(item.fraisServiceUnitaire) || 0;
+      const itemTotal =
+        item.total !== undefined && item.total !== null && !isNaN(Number(item.total)) && Number(item.total) !== 0
+          ? Number(item.total)
+          : qty * (pu + fee);
+
       const dataRow = sheet.addRow([
         idx + 1,
         item.description,
-        Number(item.quantity) || 0,
-        Number(item.prixUnitaire) || 0,
-        Number(item.fraisServiceUnitaire) || 0,
-        Number(item.total) || 0
+        qty,
+        pu,
+        fee,
+        itemTotal
       ]);
       dataRow.height = 22;
       
