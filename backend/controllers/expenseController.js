@@ -126,8 +126,10 @@ const autoAllocateSupplierWallet = async (
     // Booking type check
     const spBookingType = sp.bookingType || "all";
     if (spBookingType !== "all") {
-      if (spBookingType === "Visa/Transfer") {
-        if (!["Visa", "Transfer"].includes(bookingType)) continue;
+      const isSpVisaTransfer = ["Visa", "Transfer", "Visa/Transfer"].includes(spBookingType);
+      const isBookingVisaTransfer = ["Visa", "Transfer", "Visa/Transfer"].includes(bookingType);
+      if (isSpVisaTransfer && isBookingVisaTransfer) {
+        // Matched Visa/Transfer category
       } else if (bookingType && spBookingType !== bookingType) {
         continue;
       }
@@ -466,7 +468,7 @@ exports.updateExpense = async (req, res, next) => {
                 trimmedSplit.trimmedAmount,
                 trimmedSplit.currency || targetCurrency,
                 splitAmountMAD,
-                "all",
+                targetBookingType || "all",
                 trimmedSplit.date || date || new Date().toISOString().split("T")[0],
                 trimmedSplit.method || "cash",
                 `فائض دفعة من المصروف #${id} - ${(expense.description || "").substring(0, 50)}`,
@@ -476,18 +478,54 @@ exports.updateExpense = async (req, res, next) => {
           }
         }
 
-        // Try to allocate excess to any other unpaid expenses for the same supplier
+        // Try to allocate excess to any other unpaid expenses for the same supplier (restricted to same booking type)
         if (targetBeneficiary && targetBeneficiary.trim()) {
-          const otherExpensesResult = await req.db.query(
-            `SELECT * FROM expenses 
+          const spBookingTypeMap = {};
+          for (const s of trimmedSplits) {
+            if (s.supplierPaymentId) {
+              spBookingTypeMap[s.supplierPaymentId] = targetBookingType || "all";
+            }
+          }
+
+          const existingSpIds = trimmedSplits
+            .map((s) => s.supplierPaymentId)
+            .filter((pId) => pId !== null && pId !== undefined);
+
+          if (existingSpIds.length > 0) {
+            const spRes = await req.db.query(
+              `SELECT id, "bookingType" FROM supplier_payments WHERE id = ANY($1::int[]) AND "userId" = $2`,
+              [existingSpIds, req.user.id],
+            );
+            for (const row of spRes.rows) {
+              spBookingTypeMap[row.id] = row.bookingType || "all";
+            }
+          }
+
+          let otherExpensesQuery = `
+            SELECT * FROM expenses 
              WHERE "userId" = $1 
                AND LOWER(TRIM(beneficiary)) = LOWER(TRIM($2)) 
                AND type = 'order_note' 
                AND id != $3
                AND "isFullyPaid" = false 
                AND "remainingBalance" > 0.01
-             ORDER BY date ASC, "createdAt" ASC`,
-            [req.user.id, targetBeneficiary, id],
+          `;
+          const otherExpensesParams = [req.user.id, targetBeneficiary, id];
+
+          if (targetBookingType) {
+            if (["Visa", "Transfer", "Visa/Transfer"].includes(targetBookingType)) {
+              otherExpensesQuery += ` AND "bookingType" IN ('Visa', 'Transfer', 'Visa/Transfer')`;
+            } else {
+              otherExpensesQuery += ` AND "bookingType" = $4`;
+              otherExpensesParams.push(targetBookingType);
+            }
+          }
+
+          otherExpensesQuery += ` ORDER BY date ASC, "createdAt" ASC`;
+
+          const otherExpensesResult = await req.db.query(
+            otherExpensesQuery,
+            otherExpensesParams,
           );
           const otherExpenses = otherExpensesResult.rows;
 
@@ -495,10 +533,33 @@ exports.updateExpense = async (req, res, next) => {
             if (!trimmedSplit.supplierPaymentId) continue;
             let unallocatedInSplit = trimmedSplit.trimmedAmount;
             const splitCurrency = trimmedSplit.currency || targetCurrency;
+            const originalSpBookingType = spBookingTypeMap[trimmedSplit.supplierPaymentId] || "all";
 
             for (const otherExp of otherExpenses) {
               if (unallocatedInSplit <= 0.001) break;
               if (otherExp.currency !== splitCurrency) continue;
+
+              // Ensure matching bookingType with the original general payment if specific
+              if (originalSpBookingType !== "all") {
+                const isSpVT = ["Visa", "Transfer", "Visa/Transfer"].includes(originalSpBookingType);
+                const isExpVT = ["Visa", "Transfer", "Visa/Transfer"].includes(otherExp.bookingType);
+                if (isSpVT && isExpVT) {
+                  // match
+                } else if (otherExp.bookingType && otherExp.bookingType !== originalSpBookingType) {
+                  continue;
+                }
+              }
+
+              // Ensure matching bookingType with targetBookingType (same booking type)
+              if (targetBookingType) {
+                const isTargetVT = ["Visa", "Transfer", "Visa/Transfer"].includes(targetBookingType);
+                const isExpVT = ["Visa", "Transfer", "Visa/Transfer"].includes(otherExp.bookingType);
+                if (isTargetVT && isExpVT) {
+                  // match
+                } else if (otherExp.bookingType !== targetBookingType) {
+                  continue;
+                }
+              }
 
               const otherRemaining = parseFloat(otherExp.remainingBalance || 0);
               if (otherRemaining <= 0.001) continue;
