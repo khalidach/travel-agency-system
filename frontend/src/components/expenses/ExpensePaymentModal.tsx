@@ -56,6 +56,7 @@ export default function ExpensePaymentModal({
       api.addExpensePayment(expense!.id, payment),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
@@ -79,6 +80,7 @@ export default function ExpensePaymentModal({
     }) => api.updateExpensePayment(expense!.id, paymentId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
@@ -97,6 +99,7 @@ export default function ExpensePaymentModal({
       api.deleteExpensePayment(expense!.id, paymentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });

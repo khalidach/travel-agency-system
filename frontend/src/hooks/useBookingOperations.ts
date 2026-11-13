@@ -35,6 +35,7 @@ export const useBookingOperations = ({
     queryClient.invalidateQueries({ queryKey: ["bookingsByProgramTotalSummary"] });
     queryClient.invalidateQueries({ queryKey: ["allBookingIds"] });
     queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
+    queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
     queryClient.invalidateQueries({ queryKey: ["profitReport"] });
     queryClient.invalidateQueries({ queryKey: ["programs"] });
     queryClient.invalidateQueries({ queryKey: ["rooms"] });

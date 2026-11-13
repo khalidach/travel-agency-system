@@ -131,6 +131,7 @@ export default function SupplierGeneralPaymentModal({
       queryClient.invalidateQueries({ queryKey: ["supplier-general-payments", String(supplierId)] });
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       
@@ -155,6 +156,7 @@ export default function SupplierGeneralPaymentModal({
       queryClient.invalidateQueries({ queryKey: ["supplier-general-payments", String(supplierId)] });
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["allExpensesForWallet"] });
       queryClient.invalidateQueries({ queryKey: ["dashboardStats"] });
       queryClient.invalidateQueries({ queryKey: ["profitReport"] });
       
